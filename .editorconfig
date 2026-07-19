@@ -160,7 +160,7 @@ dotnet_naming_symbols.private_field_symbol.applicable_accessibilities = private
 # ============================================================================
 # CÓDIGO GERADO (migrations EF Core)
 # ============================================================================
-[*/Migrations/**.cs]
+[src/*/Migrations/**.cs]
 # Migrations são geradas pelo dotnet ef e não seguem as regras de estilo
 generated_code = true
 dotnet_analyzer_diagnostic.severity = none

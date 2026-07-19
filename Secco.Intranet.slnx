@@ -1,10 +1,12 @@
 <Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Secco.Intranet.Application/Secco.Intranet.Application.csproj" />
+    <Project Path="src/Secco.Intranet.Domain/Secco.Intranet.Domain.csproj" />
+    <Project Path="src/Secco.Intranet.Infrastructure/Secco.Intranet.Infrastructure.csproj" />
+    <Project Path="src/Secco.Intranet.Migrations.Postgres/Secco.Intranet.Migrations.Postgres.csproj" />
+    <Project Path="src/Secco.Intranet.Migrations.SqlServer/Secco.Intranet.Migrations.SqlServer.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Secco.Intranet.Tests/Secco.Intranet.Tests.csproj" />
   </Folder>
-  <Project Path="Secco.Intranet.Application/Secco.Intranet.Application.csproj" />
-  <Project Path="Secco.Intranet.Domain/Secco.Intranet.Domain.csproj" />
-  <Project Path="Secco.Intranet.Infrastructure/Secco.Intranet.Infrastructure.csproj" />
-  <Project Path="Secco.Intranet.Migrations.Postgres/Secco.Intranet.Migrations.Postgres.csproj" />
-  <Project Path="Secco.Intranet.Migrations.SqlServer/Secco.Intranet.Migrations.SqlServer.csproj" />
 </Solution>
