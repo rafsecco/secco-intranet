@@ -1,0 +1,56 @@
+# Normalização de finais de linha para o repositório e working directory
+# Evita diffs falsos entre desenvolvimento em Windows e execução em Linux via Docker
+
+# Padrão global: LF em todo repositório
+* text=auto eol=lf
+
+# Exceções Windows que requerem CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# PowerShell moderno aceita LF
+*.ps1 text eol=lf
+
+# Scripts Unix/Linux sempre LF
+*.sh text eol=lf
+
+# Solução Visual Studio usa convenção com CRLF
+*.sln text eol=crlf
+
+# Arquivos de projeto e configuração (sem conversão)
+*.csproj text eol=lf
+*.props text eol=lf
+*.targets text eol=lf
+
+# Arquivos de configuração (sem conversão)
+*.json text eol=lf
+*.xml text eol=lf
+*.config text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Binários (não converter, tratar como binário puro)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.dll binary
+*.exe binary
+*.pdb binary
+*.zip binary
+*.snk binary
+*.pfx binary
+*.xlsx binary
+*.docx binary
+*.pdf binary
+
+# SVG é texto (não incluir em binários)
+*.svg text eol=lf
+
+# Documentação e markdown
+*.md text eol=lf

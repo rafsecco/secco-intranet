@@ -1,0 +1,166 @@
+# Editorconfig para Secco.Intranet
+# Padrão .NET 9 completo com convenções C# modernas e suporte multi-editor
+root = true
+
+# ============================================================================
+# PADRÃO GLOBAL
+# ============================================================================
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# ============================================================================
+# ARQUIVOS DE CÓDIGO (C#, HTML/Razor) — tab, tamanho 4
+# ============================================================================
+[*.{cs,csx,razor,cshtml,html,htm}]
+indent_style = tab
+indent_size = 4
+
+# ============================================================================
+# ARQUIVOS DE SCRIPT E CONFIGURAÇÃO (TS/JS, JSON, XML, YAML) — 2 espaços
+# ============================================================================
+[*.{ts,tsx,js,jsx,json,csproj,props,targets,xml,config,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# ============================================================================
+# MARKDOWN (preservar espaços em branco intencionais, sem limite de linha)
+# ============================================================================
+[*.md]
+max_line_length = off
+trim_trailing_whitespace = false
+
+# ============================================================================
+# SCRIPTS WINDOWS (CRLF)
+# ============================================================================
+[*.{cmd,bat}]
+end_of_line = crlf
+
+# ============================================================================
+# SOLUÇÃO VISUAL STUDIO (CRLF + tabs)
+# ============================================================================
+[*.sln]
+end_of_line = crlf
+indent_style = tab
+
+# ============================================================================
+# C# - CONVENÇÕES MODERNAS .NET
+# ============================================================================
+[*.cs]
+
+# Namespaces - file-scoped (C# 10+)
+csharp_style_namespace_declarations = file_scoped:warning
+
+# Palavras-chave var - usar em contextos apropriados
+csharp_style_var_elsewhere = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_for_built_in_types = true:suggestion
+
+# Chaves - sempre usar em blocos
+csharp_prefer_braces = true:suggestion
+
+# Expression-bodied members - quando couber em uma linha
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = when_on_single_line:suggestion
+csharp_style_expression_bodied_indexers = when_on_single_line:suggestion
+csharp_style_expression_bodied_accessors = when_on_single_line:suggestion
+
+# Organizacao de usings
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = outside_namespace:warning
+
+# Qualificação com 'this' - não usar
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_event = false:suggestion
+
+# Tipos predefinidos - usar int ao invés de Int32
+dotnet_style_predefined_type_for_locals_parameters_members = true:warning
+
+# Campos readonly - preferir
+dotnet_style_readonly_field = true:suggestion
+
+# Inicializadores de objeto e coleção
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+
+# Expressões condicionais
+dotnet_style_prefer_conditional_expression_over_return = true:suggestion
+dotnet_style_prefer_conditional_expression_over_assignment = true:suggestion
+
+# Null checking moderno
+csharp_style_conditional_delegate_call = true:suggestion
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+csharp_style_throw_expression = true:suggestion
+
+# Construtores primários (C# 12+)
+csharp_style_prefer_primary_constructors = true:suggestion
+
+# ============================================================================
+# REGRAS DE NOMENCLATURA - .NET
+# ============================================================================
+[*.cs]
+
+# Interfaces começam com I
+dotnet_naming_style.interface_style.required_prefix = I
+dotnet_naming_style.interface_style.capitalization = pascal_case
+
+dotnet_naming_rule.interfaces.symbols = interface_symbol
+dotnet_naming_rule.interfaces.style = interface_style
+dotnet_naming_rule.interfaces.severity = warning
+dotnet_naming_symbols.interface_symbol.applicable_kinds = interface
+dotnet_naming_symbols.interface_symbol.applicable_accessibilities = *
+
+# Tipos públicos em PascalCase
+dotnet_naming_style.public_type_style.capitalization = pascal_case
+
+dotnet_naming_rule.public_types.symbols = public_type_symbol
+dotnet_naming_rule.public_types.style = public_type_style
+dotnet_naming_rule.public_types.severity = warning
+dotnet_naming_symbols.public_type_symbol.applicable_kinds = class,struct,enum,delegate
+dotnet_naming_symbols.public_type_symbol.applicable_accessibilities = public
+
+# Membros públicos em PascalCase
+dotnet_naming_style.public_member_style.capitalization = pascal_case
+
+dotnet_naming_rule.public_members.symbols = public_member_symbol
+dotnet_naming_rule.public_members.style = public_member_style
+dotnet_naming_rule.public_members.severity = warning
+dotnet_naming_symbols.public_member_symbol.applicable_kinds = property,method,event
+dotnet_naming_symbols.public_member_symbol.applicable_accessibilities = public
+
+# Constantes em PascalCase
+# (deve vir ANTES da regra de campos privados: a primeira regra que casa vence,
+# e um private const casaria com a regra de campos privados se ela viesse primeiro)
+dotnet_naming_style.constant_style.capitalization = pascal_case
+
+dotnet_naming_rule.constants.symbols = constant_symbol
+dotnet_naming_rule.constants.style = constant_style
+dotnet_naming_rule.constants.severity = warning
+dotnet_naming_symbols.constant_symbol.applicable_kinds = field,local
+dotnet_naming_symbols.constant_symbol.applicable_accessibilities = *
+dotnet_naming_symbols.constant_symbol.required_modifiers = const
+
+# Campos privados em camelCase com prefixo _
+dotnet_naming_style.private_field_style.required_prefix = _
+dotnet_naming_style.private_field_style.capitalization = camel_case
+
+dotnet_naming_rule.private_fields.symbols = private_field_symbol
+dotnet_naming_rule.private_fields.style = private_field_style
+dotnet_naming_rule.private_fields.severity = suggestion
+dotnet_naming_symbols.private_field_symbol.applicable_kinds = field
+dotnet_naming_symbols.private_field_symbol.applicable_accessibilities = private
+
+# ============================================================================
+# CÓDIGO GERADO (migrations EF Core)
+# ============================================================================
+[*/Migrations/**.cs]
+# Migrations são geradas pelo dotnet ef e não seguem as regras de estilo
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none

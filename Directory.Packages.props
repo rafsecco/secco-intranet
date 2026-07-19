@@ -1,0 +1,38 @@
+<Project>
+
+  <!-- Central Package Management: toda versão de pacote da solução é declarada aqui.
+       Os .csproj usam PackageReference sem atributo Version. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup Label="Secco Platform (feed privado — versões conforme tags MinVer do monorepo)">
+    <PackageVersion Include="Secco.SharedKernel" Version="0.3.0" />
+    <PackageVersion Include="Secco.SDK.AspNetCore" Version="0.3.0" />
+    <!-- Tag sdk-efcore/v0.2.0 existe no monorepo, mas o feed só tem 0.1.0 publicado -->
+    <PackageVersion Include="Secco.SDK.EntityFrameworkCore" Version="0.1.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Application">
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
+  </ItemGroup>
+
+  <ItemGroup Label="EF Core / Migrations">
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+  </ItemGroup>
+
+  <ItemGroup Label="Testes">
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <!-- Fork do FluentAssertions (Apache 2.0 — o original 8+ exige licença comercial);
+         a partir da linha 9.x o namespace passou a ser AwesomeAssertions -->
+    <PackageVersion Include="AwesomeAssertions" Version="9.4.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.10" />
+    <PackageVersion Include="Testcontainers.MsSql" Version="4.13.0" />
+  </ItemGroup>
+
+</Project>

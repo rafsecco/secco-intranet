@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Infrastructure (ADR-0002): EF Core + implementações de portas.
+       Dois providers suportados (ADR-0018): SQL Server (padrão) e PostgreSQL;
+       migrations vivem em assemblies próprios por engine. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <!-- Repositório standalone: SDK da plataforma via pacotes NuGet do feed privado -->
+    <PackageReference Include="Secco.SDK.EntityFrameworkCore" />
+    <!-- Tenancy (ITenantConnectionFactory/ITenantCatalog) vive no SDK.AspNetCore (ADR-0004/0005) -->
+    <PackageReference Include="Secco.SDK.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Secco.Intranet.Application\Secco.Intranet.Application.csproj" />
+  </ItemGroup>
+
+</Project>

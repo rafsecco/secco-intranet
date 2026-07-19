@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Domain (ADR-0002): apenas SharedKernel — zero infraestrutura.
+       Repositório standalone: consome a plataforma via pacote NuGet do feed privado. -->
+  <ItemGroup>
+    <PackageReference Include="Secco.SharedKernel" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Stack de testes da plataforma (ADR-0012); versões em Directory.Packages.props (ADR-0011) -->
+  <PropertyGroup>
+    <!-- Testes não exigem doc XML pública -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Testcontainers.MsSql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Secco.Intranet.Application\Secco.Intranet.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Integração suspensa até existir o host (Secco.Intranet.Web, ADR-0002): a factory
+         referenciava o Program da Api removida; os cenários (401, isolamento de tenant,
+         ProblemDetails) serão readaptados para o Web com a mesma WebApplicationFactory -->
+    <Compile Remove="Integration\**\*.cs" />
+    <None Include="Integration\**\*.cs" />
+  </ItemGroup>
+
+</Project>

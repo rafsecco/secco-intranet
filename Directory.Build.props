@@ -1,0 +1,20 @@
+<Project>
+
+  <!-- Propriedades comuns a todos os projetos da solução.
+       Versões de pacotes ficam centralizadas em Directory.Packages.props. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>Rafael Secco</Authors>
+    <Product>Secco.Intranet</Product>
+  </PropertyGroup>
+
+</Project>
