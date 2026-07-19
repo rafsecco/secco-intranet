@@ -17,14 +17,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Secco.Intranet.Application\Secco.Intranet.Application.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- Integração suspensa até existir o host (Secco.Intranet.Web, ADR-0002): a factory
-         referenciava o Program da Api removida; os cenários (401, isolamento de tenant,
-         ProblemDetails) serão readaptados para o Web com a mesma WebApplicationFactory -->
-    <Compile Remove="Integration\**\*.cs" />
-    <None Include="Integration\**\*.cs" />
+    <!-- Host real dos testes de integração (ADR-0002/0012): WebApplicationFactory<Program> -->
+    <ProjectReference Include="..\..\src\Secco.Intranet.Web\Secco.Intranet.Web.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,53 @@
+@model SetorListViewModel
+@{
+    ViewData["Title"] = "Setores";
+}
+<h1>Setores</h1>
+
+<form method="get" asp-action="Index" class="search-form">
+    <input type="text" name="nome" value="@Model.Nome" placeholder="Buscar por nome" />
+    <button type="submit">Buscar</button>
+</form>
+
+<p><a asp-action="Create">Novo setor</a></p>
+
+@if (Model.Page.Items.Count == 0)
+{
+    <p>Nenhum setor encontrado.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Slug</th>
+                <th>Ativo</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var setor in Model.Page.Items)
+            {
+                <tr>
+                    <td>@setor.Nome</td>
+                    <td>@setor.Slug</td>
+                    <td>@(setor.Ativo ? "Sim" : "Não")</td>
+                    <td><a asp-action="Details" asp-route-id="@setor.Id">Detalhes</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <nav class="pagination">
+        @if (Model.Page.HasPreviousPage)
+        {
+            <a asp-action="Index" asp-route-nome="@Model.Nome" asp-route-page="@(Model.Page.Page - 1)">Anterior</a>
+        }
+        <span>Página @Model.Page.Page de @Model.Page.TotalPages</span>
+        @if (Model.Page.HasNextPage)
+        {
+            <a asp-action="Index" asp-route-nome="@Model.Nome" asp-route-page="@(Model.Page.Page + 1)">Próxima</a>
+        }
+    </nav>
+}

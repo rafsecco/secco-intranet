@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!-- Raiz de composição do monolito (ADR-0002): Secco.Intranet.Web consome a Application
+       layer em processo, sem Api HTTP separada. Carrega os dois assemblies de migrations
+       (ADR-0018) porque é a raiz de composição quem aplica migrations em Development. -->
+  <ItemGroup>
+    <PackageReference Include="Secco.SDK.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Secco.Intranet.Application\Secco.Intranet.Application.csproj" />
+    <ProjectReference Include="..\Secco.Intranet.Infrastructure\Secco.Intranet.Infrastructure.csproj" />
+    <!-- Assemblies de migrations por engine (ADR-0018): a raiz de composição os carrega -->
+    <ProjectReference Include="..\Secco.Intranet.Migrations.SqlServer\Secco.Intranet.Migrations.SqlServer.csproj" />
+    <ProjectReference Include="..\Secco.Intranet.Migrations.Postgres\Secco.Intranet.Migrations.Postgres.csproj" />
+  </ItemGroup>
+
+</Project>

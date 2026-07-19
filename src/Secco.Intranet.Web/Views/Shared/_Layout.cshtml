@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Secco Intranet</title>
+    <!--
+        TODO (ADR-0003): este layout é um placeholder minimalista do core, sem framework
+        CSS externo. O sistema de temas via Razor Class Library (Secco.Intranet.Themes.
+        Vertical/Horizontal, resolvido por IViewLocationExpander) é item futuro do roadmap
+        e substituirá este arquivo quando existir.
+    -->
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+    <header class="app-header">
+        <nav class="app-nav">
+            <a class="app-brand" asp-controller="Home" asp-action="Index">Secco Intranet</a>
+            <a asp-controller="Setores" asp-action="Index">Setores</a>
+        </nav>
+    </header>
+    <main class="app-main">
+        @RenderBody()
+    </main>
+    <footer class="app-footer">
+        <span>&copy; @DateTime.UtcNow.Year Secco Intranet</span>
+    </footer>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -14,7 +14,8 @@ processos (maior risco técnico) só entra com a base já sólida.
 
 - [x] Scaffold do repositório (gerado a partir do template `secco-service`)
 - [x] Recurso `Setor` (entidade, handlers, endpoints, testes) — ADR-0001
-- [ ] Projeto `Secco.Intranet.Web` (MVC) — ainda não existe, é 100% novo (não vem do template)
+- [x] Projeto `Secco.Intranet.Web` (MVC) — 100% novo (não vinha do template), consumindo
+      a Application layer em processo (ADR-0002)
 - [ ] Integração com `Secco.SecureGate.Client` (auth) — criação automática das Roles
       `{slug}-admin`/`{slug}-user` ao cadastrar um setor
 - [ ] Integração com `Secco.LogStream.Client` (logs)

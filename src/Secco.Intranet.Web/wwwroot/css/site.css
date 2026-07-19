@@ -1,0 +1,62 @@
+/* Estilo mínimo e próprio do core (ADR-0003: o sistema de temas via Razor Class Library
+   é item futuro do roadmap; sem framework CSS externo por enquanto). */
+
+body {
+	font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+	margin: 0;
+	color: #2c2c2a;
+	background-color: #f1efe8;
+}
+
+.app-header {
+	background-color: #0f6e56;
+	padding: 0.75rem 1.5rem;
+}
+
+.app-nav a {
+	color: #fff;
+	margin-right: 1rem;
+	text-decoration: none;
+	font-weight: 600;
+}
+
+.app-nav a:hover {
+	text-decoration: underline;
+}
+
+.app-main {
+	padding: 1.5rem;
+	max-width: 960px;
+	margin: 0 auto;
+}
+
+.app-footer {
+	padding: 1rem 1.5rem;
+	color: #5f5e5a;
+	font-size: 0.875rem;
+}
+
+.table {
+	border-collapse: collapse;
+	width: 100%;
+}
+
+.table th,
+.table td {
+	border: 1px solid #d8d5cb;
+	padding: 0.5rem;
+	text-align: left;
+}
+
+.form-group {
+	margin-bottom: 1rem;
+}
+
+.text-danger {
+	color: #b3261e;
+}
+
+.validation-summary,
+.field-validation {
+	color: #b3261e;
+}

@@ -33,17 +33,17 @@ consultar antes de mudanças estruturais. O plano de fases está em
 
 1. **Gerar as migrations iniciais** (uma por engine, ADR-0018):
    ```bash
-   dotnet ef migrations add Initial --project Secco.Intranet.Migrations.SqlServer --output-dir Migrations
-   dotnet ef migrations add Initial --project Secco.Intranet.Migrations.Postgres --output-dir Migrations
+   dotnet ef migrations add Initial --project src/Secco.Intranet.Migrations.SqlServer --output-dir Migrations
+   dotnet ef migrations add Initial --project src/Secco.Intranet.Migrations.Postgres --output-dir Migrations
    ```
 2. **Montar a solution**: `dotnet new sln -n Secco.Intranet && dotnet sln add **/*.csproj`
 3. **Apontar o `nuget.config`** para o feed onde `Secco.SecureGate.Client`,
    `Secco.LogStream.Client`, `Secco.NotificationHub.Client` e `Secco.SharedKernel` são
    publicados pelo secco-platform.
 4. **CI**: workflow próprio deste repositório (não compartilha o `ci.yml` do monorepo).
-5. **Adicionar o projeto `Secco.Intranet.Web`** (MVC) — não vem do template original,
-   é específico deste produto; ao criá-lo, reativar os testes de integração
-   (`tests/.../Integration`, hoje fora da compilação — ver comentário no csproj de testes).
+5. [feito] **Projeto `Secco.Intranet.Web`** (MVC) — não vem do template original, é
+   específico deste produto (ADR-0002). Os testes de integração (`tests/.../Integration`)
+   foram reativados sobre o host real via `WebApplicationFactory<Program>`.
 
 ## O recurso Setor
 
@@ -55,8 +55,8 @@ por setor).
   (`tb_setores`, `ds_nome`, `ds_slug`, `fl_fixo`, `fl_ativo`...).
 - Handler com `Result<T>` (ADR-0004) e limites de entrada (ADR-0020) via options com bind lazy.
 - Paginação com `PagedResult<T>`; slug único por tenant, validado antes de persistir.
-- Testes unitários (fake da porta); os de integração com SQL Server real (Testcontainers)
-  estão suspensos até o host `Secco.Intranet.Web` existir (ADR-0002).
+- Testes unitários (fake da porta) e de integração com SQL Server real (Testcontainers)
+  sobre o host `Secco.Intranet.Web` (ADR-0002).
 
 ### Próximos recursos do domínio (ainda não implementados)
 

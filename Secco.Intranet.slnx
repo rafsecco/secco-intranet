@@ -5,6 +5,7 @@
     <Project Path="src/Secco.Intranet.Infrastructure/Secco.Intranet.Infrastructure.csproj" />
     <Project Path="src/Secco.Intranet.Migrations.Postgres/Secco.Intranet.Migrations.Postgres.csproj" />
     <Project Path="src/Secco.Intranet.Migrations.SqlServer/Secco.Intranet.Migrations.SqlServer.csproj" />
+    <Project Path="src/Secco.Intranet.Web/Secco.Intranet.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Secco.Intranet.Tests/Secco.Intranet.Tests.csproj" />

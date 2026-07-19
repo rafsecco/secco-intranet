@@ -1,0 +1,16 @@
+@model SetorDto
+@{
+    ViewData["Title"] = $"Setor - {Model.Nome}";
+}
+<h1>@Model.Nome</h1>
+<dl>
+    <dt>Slug</dt>
+    <dd>@Model.Slug</dd>
+    <dt>Fixo</dt>
+    <dd>@(Model.Fixo ? "Sim" : "Não")</dd>
+    <dt>Ativo</dt>
+    <dd>@(Model.Ativo ? "Sim" : "Não")</dd>
+    <dt>Criado em</dt>
+    <dd>@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
+</dl>
+<p><a asp-action="Index">Voltar</a></p>
