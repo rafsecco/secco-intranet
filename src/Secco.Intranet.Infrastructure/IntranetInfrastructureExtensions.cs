@@ -3,9 +3,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application;
 using Secco.Intranet.Application.Setores;
+using Secco.Intranet.Infrastructure.Access;
 using Secco.Intranet.Infrastructure.Contexts;
 using Secco.Intranet.Infrastructure.Repositories;
 using Secco.SDK.AspNetCore.Tenancy;
+using Secco.SecureGate.Client.Administration;
+using Secco.SecureGate.Client.Catalog;
 
 namespace Secco.Intranet.Infrastructure;
 
@@ -38,6 +41,23 @@ public static class IntranetInfrastructureExtensions
 		});
 
 		services.AddScoped<ISetorRepository, SetorRepository>();
+
+		// Composição lazy por configuração (mesmo padrão de AddSecureGateTenantCatalog na
+		// plataforma): AddSecureGateAdminClient() já é seguro chamar sempre — o HttpClient só
+		// ganha BaseAddress/handler de autenticação quando a seção Secco:SecureGate está
+		// configurada (ver Secco.SecureGate.Client). A escolha do adapter (real vs. no-op) só
+		// acontece na RESOLUÇÃO do ISetorAccessProvisioner, lendo o mesmo
+		// SecureGateClientCredentialsOptions que o client usa — evita ler IConfiguration
+		// diretamente aqui, seguindo o padrão de bind lazy já usado nesta classe.
+		services.AddSecureGateAdminClient();
+		services.AddScoped<ISetorAccessProvisioner>(serviceProvider =>
+		{
+			var secureGateOptions = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();
+
+			return secureGateOptions.IsConfigured
+				? ActivatorUtilities.CreateInstance<SecureGateSetorAccessProvisioner>(serviceProvider)
+				: ActivatorUtilities.CreateInstance<NullSetorAccessProvisioner>(serviceProvider);
+		});
 
 		return services;
 	}

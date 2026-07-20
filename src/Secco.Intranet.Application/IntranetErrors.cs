@@ -27,5 +27,14 @@ public static class IntranetErrors
 		/// <summary>Registro não encontrado no banco do tenant atual.</summary>
 		public static readonly Error NotFound =
 			Error.NotFound("Intranet.Setor.NotFound", "Setor não encontrado.");
+
+		/// <summary>
+		/// Falha ao provisionar as Roles <c>{slug}-admin</c>/<c>{slug}-user</c> do setor no
+		/// SecureGate (ADR-0001). Mensagem sem detalhe interno (ADR-0020).
+		/// </summary>
+		public static readonly Error AccessProvisioningUnavailable =
+			Error.Failure(
+				"Intranet.Setor.AccessProvisioningUnavailable",
+				"Não foi possível provisionar o acesso do setor no momento. Tente novamente em instantes.");
 	}
 }

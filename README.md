@@ -29,6 +29,30 @@ consultar antes de mudanças estruturais. O plano de fases está em
 - **Temas via Razor Class Library**: cada tema (`Secco.Intranet.Themes.*`) é um pacote
   independente; o core não impõe framework CSS — o tema padrão usa Bootstrap.
 
+## Autenticação (SecureGate)
+
+A Intranet é uma relying party OIDC do `Secco.SecureGate` (ADR-0023 da plataforma): cookie
+de sessão + authorization code/PKCE, sem custódia de access token (a Intranet não chama
+nenhuma API on-behalf-of do usuário hoje). Composição lazy por configuração
+(`Secco.Intranet.Web.Authentication.IntranetAuthenticationExtensions`):
+
+- **Chaves** (seção `Secco:SecureGate`): `Authority`, `ClientId`, `ClientSecret`.
+- **Redirect URI**: `/signin-oidc` (padrão do middleware OpenIdConnect).
+- **Scopes** do login interativo: `openid profile roles` — sem `securegate:admin` (esse
+  scope é exclusivo do provisionamento automático de Roles via client credentials, ver
+  abaixo) e sem `offline_access`/custódia de token.
+- **Modo aberto**: sem `Secco:SecureGate:Authority` configurada, nenhum middleware de
+  autenticação/autorização é registrado — modo válido apenas em DEV local (sem SecureGate
+  disponível) e no ambiente `Testing`. ADR-0020: produção exige a seção; o modo aberto não
+  deve chegar lá.
+
+Separadamente, o cadastro de um setor (ADR-0001) provisiona automaticamente as Roles
+`{slug}-admin`/`{slug}-user` no tenant atual via `Secco.SecureGate.Client`, autenticado por
+client credentials com o scope administrativo (`securegate:admin`, via
+`AddSecureGateAdminClient()`) — não confundir com os scopes do login interativo acima. Sem
+a seção `Secco:SecureGate` configurada, esse provisionamento cai num adapter no-op
+(`NullSetorAccessProvisioner`), o mesmo modo aberto de DEV/Testing.
+
 ## Pós-geração (checklist)
 
 1. **Gerar as migrations iniciais** (uma por engine, ADR-0018):

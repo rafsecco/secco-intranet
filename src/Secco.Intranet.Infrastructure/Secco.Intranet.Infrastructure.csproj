@@ -10,6 +10,8 @@
     <PackageReference Include="Secco.SDK.EntityFrameworkCore" />
     <!-- Tenancy (ITenantConnectionFactory/ITenantCatalog) vive no SDK.AspNetCore (ADR-0004/0005) -->
     <PackageReference Include="Secco.SDK.AspNetCore" />
+    <!-- Client administrativo do SecureGate: provisionamento das Roles de setor (ADR-0001) -->
+    <PackageReference Include="Secco.SecureGate.Client" />
   </ItemGroup>
 
   <ItemGroup>

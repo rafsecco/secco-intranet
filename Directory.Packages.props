@@ -8,14 +8,23 @@
   </PropertyGroup>
 
   <ItemGroup Label="Secco Platform (feed privado — versões conforme tags MinVer do monorepo)">
-    <PackageVersion Include="Secco.SharedKernel" Version="0.3.0" />
-    <PackageVersion Include="Secco.SDK.AspNetCore" Version="0.3.0" />
+    <PackageVersion Include="Secco.SharedKernel" Version="0.3.2" />
+    <PackageVersion Include="Secco.SDK.AspNetCore" Version="0.4.1" />
     <!-- Tag sdk-efcore/v0.2.0 existe no monorepo, mas o feed só tem 0.1.0 publicado -->
     <PackageVersion Include="Secco.SDK.EntityFrameworkCore" Version="0.1.0" />
+    <!-- 0.2.1 e não 0.2.0: o 0.2.0 foi empacotado com dependências prerelease não
+         publicadas (regra "tag estável exige tag da dependência no mesmo commit" do
+         monorepo); o 0.2.1 é o mesmo código, republicado contra as dependências estáveis -->
+    <PackageVersion Include="Secco.SecureGate.Client" Version="0.2.1" />
   </ItemGroup>
 
   <ItemGroup Label="Application">
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
+  </ItemGroup>
+
+  <ItemGroup Label="Web">
+    <!-- Relying party OIDC (ADR-0023): o handler não vem implícito no FrameworkReference. -->
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.9" />
   </ItemGroup>
 
   <ItemGroup Label="EF Core / Migrations">

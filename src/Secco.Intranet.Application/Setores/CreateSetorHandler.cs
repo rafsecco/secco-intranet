@@ -10,12 +10,14 @@ namespace Secco.Intranet.Application.Setores;
 public sealed record CreateSetorCommand(string? Nome, string? Slug, bool Fixo = false);
 
 /// <summary>
-/// Caso de uso: valida unicidade do slug (ADR-0020), cria a entidade e persiste — erros
-/// de negócio fluem por <see cref="Result{T}"/>, nunca por exceção (ADR-0004). A criação
-/// das Roles <c>{slug}-admin</c>/<c>{slug}-user</c> no SecureGate acontece após o commit,
-/// orquestrada por quem chama este handler (ver ADR de integração SecureGate pendente).
+/// Caso de uso: valida unicidade do slug (ADR-0020), provisiona as Roles do setor no
+/// SecureGate (ADR-0001) e só então persiste a entidade — erros de negócio fluem por
+/// <see cref="Result{T}"/>, nunca por exceção (ADR-0004).
 /// </summary>
-public sealed class CreateSetorHandler(ISetorRepository repository, IntranetOptions options)
+public sealed class CreateSetorHandler(
+	ISetorRepository repository,
+	IntranetOptions options,
+	ISetorAccessProvisioner accessProvisioner)
 {
 	/// <summary>Executa o caso de uso.</summary>
 	/// <param name="command">Comando de criação.</param>
@@ -42,6 +44,20 @@ public sealed class CreateSetorHandler(ISetorRepository repository, IntranetOpti
 		if (await repository.ExistsBySlugAsync(command.Slug, cancellationToken).ConfigureAwait(false))
 		{
 			return IntranetErrors.Setores.SlugAlreadyExists(command.Slug);
+		}
+
+		// ADR-0001: as Roles do SecureGate são provisionadas ANTES de persistir o setor.
+		// Roles órfãs no SecureGate (se algo falhar depois) são inofensivas e a operação é
+		// idempotente — tentar de novo não duplica nada. O inverso — setor persistido sem as
+		// Roles — quebraria o modelo de acesso da ADR-0001: não haveria como vincular um
+		// usuário a esse setor.
+		var provisioningResult = await accessProvisioner
+			.EnsureSetorRolesAsync(command.Slug, cancellationToken)
+			.ConfigureAwait(false);
+
+		if (provisioningResult.IsFailure)
+		{
+			return provisioningResult.Error;
 		}
 
 		var setor = new Setor(command.Nome, command.Slug, command.Fixo);

@@ -16,7 +16,7 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [x] Recurso `Setor` (entidade, handlers, endpoints, testes) — ADR-0001
 - [x] Projeto `Secco.Intranet.Web` (MVC) — 100% novo (não vinha do template), consumindo
       a Application layer em processo (ADR-0002)
-- [ ] Integração com `Secco.SecureGate.Client` (auth) — criação automática das Roles
+- [x] Integração com `Secco.SecureGate.Client` (auth) — criação automática das Roles
       `{slug}-admin`/`{slug}-user` ao cadastrar um setor
 - [ ] Integração com `Secco.LogStream.Client` (logs)
 - [ ] Sistema de temas: esqueleto RCL (`IViewLocationExpander`) com um tema padrão mínimo

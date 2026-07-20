@@ -17,6 +17,17 @@
         <nav class="app-nav">
             <a class="app-brand" asp-controller="Home" asp-action="Index">Secco Intranet</a>
             <a asp-controller="Setores" asp-action="Index">Setores</a>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <span>@User.Identity.Name</span>
+                <form asp-controller="Conta" asp-action="Sair" method="post">
+                    <button type="submit">Sair</button>
+                </form>
+            }
+            else
+            {
+                <a asp-controller="Conta" asp-action="Entrar">Entrar</a>
+            }
         </nav>
     </header>
     <main class="app-main">

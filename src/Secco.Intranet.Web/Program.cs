@@ -1,16 +1,19 @@
 using Secco.Intranet.Application;
 using Secco.Intranet.Infrastructure;
+using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Tenancy;
 using Secco.SDK.AspNetCore.Extensions;
 using Secco.SDK.EntityFrameworkCore.Seeding;
 
 // Raiz de composição do monolito (ADR-0002): Secco.Intranet.Web (MVC) consome a
-// Application layer diretamente, em processo — sem uma Api HTTP separada. Hoje NÃO há
-// autenticação/autorização registrada: a integração OIDC via Secco.SecureGate (relying
-// party) é item futuro do roadmap (ver docs/roadmap.md, Fase 0). Por isso as extensões
+// Application layer diretamente, em processo — sem uma Api HTTP separada. A autenticação é
+// um relying party OIDC contra o Secco.SecureGate (ADR-0023), registrada de forma LAZY por
+// configuração via AddIntranetAuthentication() — presente a seção Secco:SecureGate:Authority,
+// vira relying party de verdade; ausente, segue no modo aberto de DEV local/Testing (ver
+// Secco.Intranet.Web.Authentication.IntranetAuthenticationExtensions). Por isso as extensões
 // individuais do SDK são usadas em vez de AddSeccoPlatform()/UseSeccoPlatform() — essas
-// exigem a seção Secco:Authentication (fail-fast) porque assumem um resource server JWT,
-// o que este host de usuário humano ainda não é.
+// exigem a seção Secco:Authentication (fail-fast) porque assumem um resource server JWT, e a
+// Intranet é um cliente humano (cookie de sessão), não um resource server.
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
@@ -23,6 +26,7 @@ builder.Services.AddSeccoHealthChecks();
 
 builder.Services.AddIntranetApplication();
 builder.Services.AddIntranetInfrastructure();
+builder.Services.AddIntranetAuthentication(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
@@ -39,15 +43,27 @@ app.UseRouting();
 
 app.UseSeccoCorrelation();
 
+if (IntranetAuthenticationExtensions.IsConfigured(app.Configuration))
+{
+	app.UseAuthentication();
+}
+
 if (app.Environment.IsDevelopment())
 {
 	// Suprimento interino de tenant para navegação manual em DEV (ADR-0020: nunca em
 	// produção — ver comentário na própria classe). Precisa vir antes de
-	// UseSeccoTenancy(), que é quem efetivamente resolve o TenantContext do escopo.
+	// UseSeccoTenancy(), que é quem efetivamente resolve o TenantContext do escopo. Com a
+	// autenticação configurada, a claim tenant_id normalmente já vem do cookie — este
+	// middleware vira no-op nesse caso (só age quando a requisição não carrega a claim).
 	app.UseMiddleware<DevelopmentTenantMiddleware>();
 }
 
 app.UseSeccoTenancy();
+
+if (IntranetAuthenticationExtensions.IsConfigured(app.Configuration))
+{
+	app.UseAuthorization();
+}
 
 app.MapSeccoHealthChecks();
 app.MapControllerRoute(

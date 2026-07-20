@@ -8,7 +8,7 @@ namespace Secco.Intranet.Domain.Setores;
 /// organizacional da Intranet: documentos, processos e outros recursos são habilitados
 /// por setor, e o acesso de cada usuário é resolvido via as Roles tenant-scoped
 /// <c>{slug}-admin</c> e <c>{slug}-user</c> criadas no Secco.SecureGate quando o setor
-/// é cadastrado (ver Secco.Intranet.Infrastructure.SecureGate).
+/// é cadastrado (ver Secco.Intranet.Infrastructure.Access).
 /// </summary>
 public sealed class Setor : BaseEntity
 {

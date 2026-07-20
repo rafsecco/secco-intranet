@@ -34,13 +34,27 @@ public class CreateSetorHandlerTests
 			Task.FromResult(PagedResult.Create(Added, criteria.EffectivePage, Added.Count));
 	}
 
+	/// <summary>Fake da porta de provisionamento (ADR-0001): configurável para simular sucesso/falha e capturar o slug recebido.</summary>
+	private sealed class FakeSetorAccessProvisioner : ISetorAccessProvisioner
+	{
+		public Result ResultToReturn { get; set; } = Result.Success();
+
+		public string? LastSlug { get; private set; }
+
+		public Task<Result> EnsureSetorRolesAsync(string slug, CancellationToken cancellationToken = default)
+		{
+			LastSlug = slug;
+			return Task.FromResult(ResultToReturn);
+		}
+	}
+
 	private static readonly IntranetOptions Options = new();
 
 	[Fact]
 	public async Task Handle_WithValidCommand_PersistsAndReturnsDto()
 	{
 		var repository = new FakeRepository();
-		var handler = new CreateSetorHandler(repository, Options);
+		var handler = new CreateSetorHandler(repository, Options, new FakeSetorAccessProvisioner());
 
 		var result = await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
 
@@ -54,7 +68,7 @@ public class CreateSetorHandlerTests
 	[InlineData("   ")]
 	public async Task Handle_WithoutNome_ReturnsValidationFailure(string? nome)
 	{
-		var handler = new CreateSetorHandler(new FakeRepository(), Options);
+		var handler = new CreateSetorHandler(new FakeRepository(), Options, new FakeSetorAccessProvisioner());
 
 		var result = await handler.HandleAsync(new CreateSetorCommand(nome, "financeiro"));
 
@@ -65,7 +79,7 @@ public class CreateSetorHandlerTests
 	[Fact]
 	public async Task Handle_WithNomeAboveLimit_ReturnsValidationFailure()
 	{
-		var handler = new CreateSetorHandler(new FakeRepository(), Options);
+		var handler = new CreateSetorHandler(new FakeRepository(), Options, new FakeSetorAccessProvisioner());
 
 		var result = await handler.HandleAsync(
 			new CreateSetorCommand(new string('x', Options.MaxNameLength + 1), "financeiro"));
@@ -78,12 +92,40 @@ public class CreateSetorHandlerTests
 	public async Task Handle_WithDuplicateSlug_ReturnsConflictFailure()
 	{
 		var repository = new FakeRepository();
-		var handler = new CreateSetorHandler(repository, Options);
+		var handler = new CreateSetorHandler(repository, Options, new FakeSetorAccessProvisioner());
 
 		await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
 		var result = await handler.HandleAsync(new CreateSetorCommand("Financeiro Filial", "financeiro"));
 
 		result.IsFailure.Should().BeTrue();
 		result.Error.Type.Should().Be(ErrorType.Conflict);
+	}
+
+	[Fact]
+	public async Task Handle_WhenProvisionerFails_ReturnsFailureAndDoesNotPersist()
+	{
+		var repository = new FakeRepository();
+		var provisioner = new FakeSetorAccessProvisioner
+		{
+			ResultToReturn = Result.Failure(IntranetErrors.Setores.AccessProvisioningUnavailable),
+		};
+		var handler = new CreateSetorHandler(repository, Options, provisioner);
+
+		var result = await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
+
+		result.IsFailure.Should().BeTrue();
+		result.Error.Should().Be(IntranetErrors.Setores.AccessProvisioningUnavailable);
+		repository.Added.Should().BeEmpty();
+	}
+
+	[Fact]
+	public async Task Handle_WithValidCommand_CallsProvisionerWithCommandSlug()
+	{
+		var provisioner = new FakeSetorAccessProvisioner();
+		var handler = new CreateSetorHandler(new FakeRepository(), Options, provisioner);
+
+		await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
+
+		provisioner.LastSlug.Should().Be("financeiro");
 	}
 }

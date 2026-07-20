@@ -51,3 +51,25 @@ contraste legível — ajuste manual, não automático.
 Primária `#0F6E56` (verde-petróleo), neutros quentes (`#2C2C2A` / `#5F5E5A` /
 `#F1EFE8`) em vez de cinza puro, `border-radius` `0.625rem`. Ver a ADR pra contexto
 completo da escolha.
+
+## Layout de referência do tema Vertical (`_Layout.cshtml`)
+
+Wireframe validado com o usuário — usar como base ao implementar o `_Layout.cshtml`
+deste tema:
+
+- **Header** (barra superior, fundo na cor primária): logo/nome do produto à esquerda
+  (`Secco Intranet`); à direita, nessa ordem, um ícone de sino de notificação (badge de
+  contador — ver skill de notificação in-app quando existir) e o avatar do usuário
+  (círculo com iniciais, cor de destaque)
+- **Sidebar** (largura fixa ~150px, fundo levemente destacado do conteúdo, borda à
+  direita): lista vertical de itens de menu, cada um com ícone + rótulo; o item ativo
+  tem fundo suave na cor primária e uma borda esquerda de destaque (3px, cor primária)
+- **Área de conteúdo**: fundo levemente diferente do branco puro (usa o neutro claro da
+  paleta), título da página em destaque, conteúdo em cards com borda sutil e cantos
+  arredondados (`border-radius` da paleta)
+- **Card de aviso/mural** (padrão a reaproveitar em outras listagens): badge pequeno
+  colorido por origem/setor no topo (ex: badge verde-claro para RH, laranja-claro para
+  TI), título em negrito, metadado (data) em cinza abaixo
+
+No tema **Horizontal**, a mesma composição vale, só com o menu migrando da sidebar
+para uma barra abaixo do header, itens dispostos lado a lado em vez de empilhados.
