@@ -1,0 +1,111 @@
+{
+  // Sem isto o C# Dev Kit pergunta qual solucao carregar ao abrir o workspace.
+  "dotnet.defaultSolution": "Secco.Intranet.slnx",
+  "dotnet.automaticallyCreateSolutionInWorkspace": false,
+
+  // O .editorconfig manda (tab 4 em .cs); com deteccao ligada o editor sobrescreve.
+  "editor.detectIndentation": false,
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "file",
+  // O .editorconfig exige LF (end_of_line = lf) em todo o repositorio.
+  "files.eol": "\n",
+
+  // Sem isto, "Format Document" em .cs cai no prompt de multiplos formatadores
+  // quando o Prettier tambem esta instalado.
+  "[csharp]": {
+    "editor.defaultFormatter": "ms-dotnettools.csharp"
+  },
+  "[aspnetcorerazor]": {
+    "editor.defaultFormatter": "ms-dotnettools.csharp"
+  },
+  "[razor]": {
+    "editor.defaultFormatter": "ms-dotnettools.csharp"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  "dotnet.formatting.organizeImportsOnFormat": true,
+  "dotnet.completion.showCompletionItemsFromUnimportedNamespaces": true,
+  "dotnet.codeLens.enableReferencesCodeLens": true,
+  "dotnet.codeLens.enableTestsCodeLens": true,
+  // TreatWarningsAsErrors=true + doc XML obrigatoria fazem qualquer aviso quebrar o
+  // build; analisar a solucao inteira mostra o erro antes do build, nao depois.
+  "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "fullSolution",
+  "dotnet.backgroundAnalysis.compilerDiagnosticsScope": "fullSolution",
+  "razor.format.enable": true,
+
+  "dotnet.inlayHints.enableInlayHintsForParameters": true,
+  "dotnet.inlayHints.enableInlayHintsForLiteralParameters": true,
+  "dotnet.inlayHints.enableInlayHintsForObjectCreationParameters": true,
+  "dotnet.inlayHints.enableInlayHintsForIndexerParameters": true,
+  "csharp.inlayHints.enableInlayHintsForTypes": true,
+  "csharp.inlayHints.enableInlayHintsForImplicitVariableTypes": true,
+  "csharp.inlayHints.enableInlayHintsForLambdaParameterTypes": true,
+
+  // Autocomplete de PackageVersion no Directory.Packages.props (CPM) oferece a
+  // versao mais nova primeiro.
+  "msbuildProjectTools.nuget.newestVersionFirst": true,
+
+  "files.associations": {
+    "*.slnx": "xml",
+    "*.props": "xml",
+    "*.targets": "xml"
+  },
+
+  "search.exclude": {
+    "**/bin": true,
+    "**/obj": true,
+    "**/TestResults": true
+  },
+  "files.watcherExclude": {
+    "**/bin/**": true,
+    "**/obj/**": true,
+    "**/TestResults/**": true
+  },
+
+  // As ADRs em docs/adr/ repetem "### Contexto" / "### Decisao" / "### Consequencias"
+  // em cada ADR, e o .editorconfig ja desliga limite de linha em .md.
+  "markdownlint.config": {
+    "MD013": false,
+    "MD024": { "siblings_only": true },
+    "MD033": false
+  },
+
+  "cSpell.language": "en,pt,pt-BR",
+  "cSpell.words": [
+    "aspnetcorerazor",
+    "csdevkit",
+    "Intranet",
+    "LogStream",
+    "msbuild",
+    "NotificationHub",
+    "Npgsql",
+    "Secco",
+    "SecureGate",
+    "setor",
+    "setores",
+    "SharedKernel",
+    "slnx",
+    "Testcontainers",
+    "xunit"
+  ],
+
+  // Senha vazia de proposito: este arquivo e versionado, entao a extensao pergunta
+  // a senha em vez de grava-la aqui. O valor esta no .env local (MSSQL_SA_PASSWORD).
+  "mssql.connections": [
+    {
+      "server": "localhost,1433",
+      "database": "secco_intranet_tenant_alfa",
+      "authenticationType": "SqlLogin",
+      "user": "sa",
+      "password": "",
+      "savePassword": false,
+      "trustServerCertificate": true,
+      "profileName": "Secco.Intranet — SQL Server dev (docker compose)"
+    }
+  ]
+}

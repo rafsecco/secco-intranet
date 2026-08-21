@@ -1,0 +1,70 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // Porta e ASPNETCORE_ENVIRONMENT vem do launchSettings.json — fonte unica,
+      // para o F5 e o "dotnet run" baterem. O perfil https exige
+      // "dotnet dev-certs https --trust" uma vez.
+      "name": "Web: https (Development)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/Secco.Intranet.Web/bin/Debug/net10.0/Secco.Intranet.Web.dll",
+      "cwd": "${workspaceFolder}/src/Secco.Intranet.Web",
+      "args": [],
+      "stopAtEntry": false,
+      // O catalogo de tenants (connection string com senha) vem do .env da raiz,
+      // que nao e versionado — ver .env.example.
+      "envFile": "${workspaceFolder}/.env",
+      "launchSettingsFilePath": "${workspaceFolder}/src/Secco.Intranet.Web/Properties/launchSettings.json",
+      "launchSettingsProfile": "https",
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s"
+      },
+      "sourceFileMap": {
+        "/Views": "${workspaceFolder}/src/Secco.Intranet.Web/Views"
+      },
+      "console": "internalConsole"
+    },
+    {
+      "name": "Web: http (Development)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/Secco.Intranet.Web/bin/Debug/net10.0/Secco.Intranet.Web.dll",
+      "cwd": "${workspaceFolder}/src/Secco.Intranet.Web",
+      "args": [],
+      "stopAtEntry": false,
+      // O catalogo de tenants (connection string com senha) vem do .env da raiz,
+      // que nao e versionado — ver .env.example.
+      "envFile": "${workspaceFolder}/.env",
+      "launchSettingsFilePath": "${workspaceFolder}/src/Secco.Intranet.Web/Properties/launchSettings.json",
+      "launchSettingsProfile": "http",
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s"
+      },
+      "sourceFileMap": {
+        "/Views": "${workspaceFolder}/src/Secco.Intranet.Web/Views"
+      },
+      "console": "internalConsole"
+    },
+    {
+      "name": "Anexar a processo .NET",
+      "type": "coreclr",
+      "request": "attach"
+    },
+    {
+      // Caminho de excecao — o normal e depurar testes pela view Testing do
+      // C# Dev Kit; esta config serve para quando o teste roda por fora, via
+      // "dotnet test" com VSTEST_HOST_DEBUG=1.
+      "name": "Testes: anexar ao testhost",
+      "type": "coreclr",
+      "request": "attach",
+      "processName": "testhost"
+    }
+  ]
+}

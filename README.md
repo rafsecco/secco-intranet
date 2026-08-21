@@ -17,6 +17,99 @@ estão documentadas em [`docs/adr/secco-intranet-adrs.md`](docs/adr/secco-intran
 consultar antes de mudanças estruturais. O plano de fases está em
 [`docs/roadmap.md`](docs/roadmap.md).
 
+## Pré-requisitos
+
+- **.NET SDK 10.0** — confira com `dotnet --version`.
+- **Docker** — o SQL Server de desenvolvimento sobe via `docker compose`, e os testes de
+  integração criam o próprio container através do Testcontainers.
+- **Autenticação no feed de pacotes** (abaixo) — sem ela o `dotnet restore` não passa.
+- **Arquivo `.env`** (abaixo) — sem ele o `docker compose up` falha, de propósito.
+
+### Variáveis de ambiente (`.env`)
+
+Nenhum segredo é versionado. As credenciais de desenvolvimento — senha do `sa` e a
+connection string do tenant de DEV — ficam num `.env` na raiz, ignorado pelo git. O
+inventário das variáveis está em [`.env.example`](.env.example), o único versionado:
+
+```bash
+cp .env.example .env
+# abra o .env e troque MSSQL_SA_PASSWORD — e a mesma senha dentro da connection string
+```
+
+Quem lê esse arquivo:
+
+- **`docker compose`** lê o `.env` da raiz sozinho, para interpolar o
+  `docker-compose.yml`. Sem `MSSQL_SA_PASSWORD` definida o `up` falha com mensagem
+  explícita, em vez de subir um banco com senha que está no repositório.
+- **VS Code (F5)** lê via `"envFile"` no `.vscode/launch.json`. É assim que a variável
+  `Secco__Tenancy__Tenants__<id>__ConnectionString` chega na configuração da aplicação —
+  o provider de variáveis de ambiente do ASP.NET Core troca `__` por `:`.
+
+Para `dotnet run` direto no terminal, exporte as variáveis à mão antes. E note que
+`set -a; . ./.env` **não** serve para a linha da connection string: o nome carrega os
+hífens do GUID do tenant, que não formam nome de variável válido no shell.
+
+### Autenticar no feed de pacotes
+
+Os pacotes `Secco.*` são **públicos**, mas o registry NuGet do GitHub Packages **não serve
+leitura anônima** — é limitação dele, não uma restrição deste projeto. Sem token, o
+`dotnet restore` falha com `401 Unauthorized` e nenhum `Secco.*` resolve. Qualquer conta
+GitHub serve: **não** é preciso ter acesso ao repositório `rafsecco/secco-platform`.
+
+Basta um Personal Access Token com o escopo `read:packages`:
+
+```bash
+gh auth login --scopes read:packages   # ou, se já estiver logado: gh auth refresh -s read:packages
+
+dotnet nuget add source "https://nuget.pkg.github.com/rafsecco/index.json" \
+  --name secco --username SEU_USUARIO_GITHUB --password "$(gh auth token)"
+```
+
+A credencial vai para o `NuGet.Config` de **usuário** (`%APPDATA%\NuGet\NuGet.Config` no
+Windows, `~/.nuget/NuGet/NuGet.Config` no Linux/macOS), que é o padrão do comando acima —
+nunca para o `nuget.config` deste repositório, que é versionado e vazaria o token num
+commit. Funciona porque o NuGet casa `packageSourceCredentials` pelo **nome** da fonte ao
+mesclar os configs da hierarquia, então o `<clear />` do `nuget.config` do repo limpa só as
+fontes herdadas, não as credenciais.
+
+No Linux/macOS acrescente `--store-password-in-clear-text`: a criptografia do NuGet só
+existe no Windows. Em CI, o `GITHUB_TOKEN` do próprio workflow já basta.
+
+### Ambiente no VS Code
+
+O repositório versiona `.vscode/` (settings, tasks, launch e extensões recomendadas) para
+que o ambiente funcione igual em qualquer máquina, sem depender de um perfil pessoal do VS
+Code. Ao abrir a pasta, aceite a notificação de extensões recomendadas
+(`.vscode/extensions.json`) — inclui C# Dev Kit, editorconfig, mssql, pgsql, spell checker
+(inglês + português) e afins.
+
+`F5` roda o perfil **"Web: https (Development)"**, que lê porta e
+`ASPNETCORE_ENVIRONMENT` do `launchSettings.json` (fonte única, para o F5 e o `dotnet run`
+baterem) e carrega o `.env` da raiz via `"envFile"` — é de lá que vem a connection string
+do tenant. Antes da primeira vez: `cp .env.example .env`, `dotnet dev-certs https --trust`
+(uma vez só) e `docker compose up -d` (o `Program.cs` aplica migrations e faz seed dos
+tenants em `Development` no start). `Ctrl+Shift+B` roda a task `build`, que builda a solução inteira; a
+view **Testing** do C# Dev Kit descobre os testes automaticamente (sem precisar de task
+separada). Para gerar migration, use a task `ef: nova migration (ambos os engines)` — ela
+encadeia os dois providers em sequência, porque a ADR-0018 exige o par.
+
+Quatro extensões estão em `unwantedRecommendations` de propósito:
+`formulahendry.dotnet-test-explorer` duplica o Test Explorer do C# Dev Kit (dois
+descobridores sobre os mesmos testes); `jmrog.vscode-nuget-package-manager` e
+`aliasadidev.nugetpackagemanagergui` escrevem `Version=` direto no `.csproj`, o que quebra o
+Central Package Management do `Directory.Packages.props`; `adrianwilczynski.namespace` é
+redundante com o C# Dev Kit, que já gera namespace file-scoped conforme o `.editorconfig`.
+
+### Rodar
+
+```bash
+cp .env.example .env   # uma vez por máquina — ver acima
+docker compose up -d   # SQL Server de desenvolvimento na porta 1433
+dotnet restore
+dotnet build
+dotnet test            # os testes de integração sobem container próprio (Testcontainers)
+```
+
 ## Arquitetura
 
 - **Monolito**: `Secco.Intranet.Web` (MVC) consome a Application layer diretamente —
@@ -55,16 +148,20 @@ a seção `Secco:SecureGate` configurada, esse provisionamento cai num adapter n
 
 ## Pós-geração (checklist)
 
-1. **Gerar as migrations iniciais** (uma por engine, ADR-0018):
+1. [feito] **Gerar as migrations iniciais** (uma por engine, ADR-0018) — `Initial` existe
+   nos dois projetos de migration:
    ```bash
    dotnet ef migrations add Initial --project src/Secco.Intranet.Migrations.SqlServer --output-dir Migrations
    dotnet ef migrations add Initial --project src/Secco.Intranet.Migrations.Postgres --output-dir Migrations
    ```
-2. **Montar a solution**: `dotnet new sln -n Secco.Intranet && dotnet sln add **/*.csproj`
-3. **Apontar o `nuget.config`** para o feed onde `Secco.SecureGate.Client`,
+2. [feito] **Montar a solution** — `Secco.Intranet.slnx`, no formato XML novo em vez do
+   `.sln` clássico.
+3. [feito] **Apontar o `nuget.config`** para o feed onde `Secco.SecureGate.Client`,
    `Secco.LogStream.Client`, `Secco.NotificationHub.Client` e `Secco.SharedKernel` são
-   publicados pelo secco-platform.
+   publicados pelo secco-platform — fonte `secco`, com `packageSourceMapping` prendendo o
+   padrão `Secco.*` só a ela. Consumir exige token: ver [Pré-requisitos](#pré-requisitos).
 4. **CI**: workflow próprio deste repositório (não compartilha o `ci.yml` do monorepo).
+   **Pendente** — ainda não existe `.github/workflows/`.
 5. [feito] **Projeto `Secco.Intranet.Web`** (MVC) — não vem do template original, é
    específico deste produto (ADR-0002). Os testes de integração (`tests/.../Integration`)
    foram reativados sobre o host real via `WebApplicationFactory<Program>`.

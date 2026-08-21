@@ -1,0 +1,135 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["build", "Secco.Intranet.slnx"],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "restore",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["restore", "Secco.Intranet.slnx"],
+      "problemMatcher": []
+    },
+    {
+      "label": "clean",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["clean", "Secco.Intranet.slnx"],
+      "problemMatcher": []
+    },
+    {
+      // Sem problemMatcher: e um processo de longa duracao (watch), nao uma
+      // compilacao unica que termina com um resultado a ser reportado.
+      "label": "watch: Web",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["watch", "--project", "src/Secco.Intranet.Web", "run", "--launch-profile", "https"],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "test",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["test", "Secco.Intranet.slnx"],
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "test: unidade",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["test", "Secco.Intranet.slnx", "--filter", "FullyQualifiedName~Secco.Intranet.Tests.Unit"],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      // Exige Docker no ar (Testcontainers sobe o proprio SQL Server).
+      "label": "test: integração",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["test", "Secco.Intranet.slnx", "--filter", "FullyQualifiedName~Secco.Intranet.Tests.Integration"],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "format",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["format", "Secco.Intranet.slnx"],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "docker: compose up",
+      "type": "process",
+      "command": "docker",
+      "args": ["compose", "up", "-d"],
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: compose down",
+      "type": "process",
+      "command": "docker",
+      "args": ["compose", "down"],
+      "problemMatcher": []
+    },
+    {
+      "label": "ef: nova migration (SqlServer)",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "ef",
+        "migrations",
+        "add",
+        "${input:migrationName}",
+        "--project",
+        "src/Secco.Intranet.Migrations.SqlServer",
+        "--output-dir",
+        "Migrations"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "ef: nova migration (Postgres)",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "ef",
+        "migrations",
+        "add",
+        "${input:migrationName}",
+        "--project",
+        "src/Secco.Intranet.Migrations.Postgres",
+        "--output-dir",
+        "Migrations"
+      ],
+      "problemMatcher": []
+    },
+    {
+      // ADR-0018 exige uma migration por engine, sempre em par — esta task encadeia
+      // as duas anteriores em sequencia (mesmo nome de migration nas duas).
+      "label": "ef: nova migration (ambos os engines)",
+      "dependsOrder": "sequence",
+      "dependsOn": ["ef: nova migration (SqlServer)", "ef: nova migration (Postgres)"],
+      "problemMatcher": []
+    },
+    {
+      "label": "ef: instalar/atualizar dotnet-ef",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["tool", "update", "--global", "dotnet-ef"],
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "migrationName",
+      "type": "promptString",
+      "description": "Nome da migration (PascalCase, ex: AdicionaRecurso)"
+    }
+  ]
+}

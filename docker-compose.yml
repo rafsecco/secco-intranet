@@ -1,5 +1,10 @@
 # Ambiente de desenvolvimento: SQL Server local.
+#   cp .env.example .env    # uma vez por máquina, e troque a senha
 #   docker compose up -d
+#
+# Nenhuma credencial aqui: tudo vem do .env da raiz, que o Compose lê sozinho para
+# interpolar este arquivo. O inventário das variáveis está em .env.example.
+#
 # O serviço do monolito (Secco.Intranet.Web, ADR-0002) será adicionado quando o
 # projeto existir; em Development ele aplicará migrations e seed nos tenants do catálogo.
 
@@ -8,11 +13,24 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "Secco@Dev123"
+      # Sem valor default de propósito: preferimos falhar a subida a subir um banco
+      # com senha que qualquer um que leia o repositório conhece.
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?defina MSSQL_SA_PASSWORD no .env (copie de .env.example)}"
     ports:
-      - "1433:1433"
+      - "${MSSQL_PORT:-1433}:1433"
+    volumes:
+      # Sem isto, todo `docker compose up` que recria o container zera os bancos de
+      # tenant. A app recria o schema no start (migrations + seed em Development), mas
+      # os dados que você cadastrou navegando somem junto.
+      # Para começar do zero de propósito: `docker compose down -v`.
+      - mssql-data:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Secco@Dev123' -C -Q 'SELECT 1' || exit 1"]
+      # $$ escapa a interpolação do Compose: quem expande é o shell DENTRO do container,
+      # então a senha não aparece no YAML nem no comando registrado do healthcheck.
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 20
+
+volumes:
+  mssql-data:

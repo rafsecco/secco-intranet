@@ -1,0 +1,24 @@
+{
+  "recommendations": [
+    "ms-dotnettools.csdevkit",
+    "ms-dotnettools.csharp",
+    "ms-dotnettools.vscodeintellicode-csharp",
+    "editorconfig.editorconfig",
+    "tintoy.msbuild-project-tools",
+    "ms-mssql.mssql",
+    "ms-ossdata.vscode-pgsql",
+    "ms-azuretools.vscode-containers",
+    "redhat.vscode-yaml",
+    "github.vscode-github-actions",
+    "davidanson.vscode-markdownlint",
+    "eamodio.gitlens",
+    "streetsidesoftware.code-spell-checker",
+    "streetsidesoftware.code-spell-checker-portuguese-brazilian"
+  ],
+  "unwantedRecommendations": [
+    "formulahendry.dotnet-test-explorer",
+    "jmrog.vscode-nuget-package-manager",
+    "aliasadidev.nugetpackagemanagergui",
+    "adrianwilczynski.namespace"
+  ]
+}

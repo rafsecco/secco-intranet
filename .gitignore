@@ -32,7 +32,8 @@ out/
 # Ignorar toda pasta .vscode
 .vscode/*
 
-# Exceto configurações compartilhadas no time
+# Exceção: o template É versionado. Padrão sem barra casa em qualquer profundidade,
+# e a negação vem DEPOIS — invertida, o .env.* acima reignoraria o template.
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
@@ -69,6 +70,9 @@ appsettings.*.local.json
 *.env
 .env
 .env.*
+# Exceção: o template É versionado. Padrão sem barra casa em qualquer profundidade,
+# e a negação vem DEPOIS — invertida, o .env.* acima reignoraria o template.
+!.env.example
 secrets.json
 # Nota: appsettings.json e appsettings.Development.json SÃO versionados
 
