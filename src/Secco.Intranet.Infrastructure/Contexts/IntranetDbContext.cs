@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Secco.Intranet.Domain.Documentos;
 using Secco.Intranet.Domain.Setores;
 using Secco.SDK.EntityFrameworkCore;
 
@@ -14,6 +15,9 @@ public sealed class IntranetDbContext(DbContextOptions<IntranetDbContext> option
 {
 	/// <summary>Setores/departamentos (tabela <c>tb_setores</c>).</summary>
 	public DbSet<Setor> Setores => Set<Setor>();
+
+	/// <summary>Documentos publicados por setor (tabela <c>tb_documentos</c>).</summary>
+	public DbSet<Documento> Documentos => Set<Documento>();
 
 	/// <inheritdoc />
 	protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -102,3 +102,6 @@ logs/
 # NOTA: .claude/ É VERSIONADO
 # ============================================================================
 # A pasta .claude/ contém configurações e deve ser versionada no repositório
+
+# Dependencias de build de assets dos temas (o CSS compilado e versionado)
+node_modules/

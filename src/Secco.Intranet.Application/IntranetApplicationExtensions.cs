@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Setores;
 
 namespace Secco.Intranet.Application;
@@ -17,7 +18,12 @@ public static class IntranetApplicationExtensions
 
 		services.AddScoped<CreateSetorHandler>();
 		services.AddScoped<GetSetorByIdHandler>();
+		services.AddScoped<GetSetorBySlugHandler>();
 		services.AddScoped<SearchSetoresHandler>();
+
+		services.AddScoped<PublicarDocumentoHandler>();
+		services.AddScoped<ListarDocumentosHandler>();
+		services.AddScoped<BaixarDocumentoHandler>();
 
 		return services;
 	}

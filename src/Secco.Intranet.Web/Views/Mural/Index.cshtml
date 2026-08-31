@@ -1,0 +1,67 @@
+@using Secco.Intranet.Web.Models.Mural
+@model MuralViewModel
+@{
+    ViewData["Title"] = "Mural";
+
+    var cabecalho = new PageHeaderModel(
+        "Mural",
+        "Comunicados, eventos e notícias de toda a empresa.");
+
+    static string Rotulo(TipoPublicacao tipo) => tipo switch
+    {
+        TipoPublicacao.Aviso => "Aviso",
+        TipoPublicacao.Evento => "Evento",
+        _ => "Notícia",
+    };
+
+    var abas = new (string Texto, TipoPublicacao? Tipo)[]
+    {
+        ("Tudo", null),
+        ("Avisos", TipoPublicacao.Aviso),
+        ("Eventos", TipoPublicacao.Evento),
+        ("Notícias", TipoPublicacao.Noticia),
+    };
+
+    var vazio = Model.Demonstracao
+        ? new EmptyStateModel(
+            "bi-funnel",
+            "Nenhuma publicação com esse filtro",
+            "Escolha outro tipo para ver o restante do conteúdo.")
+        : new EmptyStateModel(
+            "bi-megaphone",
+            "O mural ainda não tem publicações",
+            "Publicações feitas pelos setores aparecem aqui, da mais recente para a mais antiga.");
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<nav class="sc-tabs" aria-label="Filtrar por tipo">
+    @foreach (var aba in abas)
+    {
+        <a class="sc-tabs__item @(Model.Filtro == aba.Tipo ? "is-active" : null)"
+           asp-action="Index"
+           asp-route-tipo="@aba.Tipo"
+           aria-current="@(Model.Filtro == aba.Tipo ? "page" : null)">@aba.Texto</a>
+    }
+</nav>
+
+@if (Model.Publicacoes.Count == 0)
+{
+    <partial name="_EmptyState" model="vazio" />
+}
+else
+{
+    <div class="sc-stack">
+        @foreach (var publicacao in Model.Publicacoes)
+        {
+            var card = new CardModel(
+                Titulo: publicacao.Titulo,
+                Meta: $"{Rotulo(publicacao.Tipo)} · {publicacao.PublicadoEm:dd/MM/yyyy}",
+                SetorSlug: publicacao.SetorSlug,
+                SetorNome: publicacao.SetorNome,
+                Texto: publicacao.Resumo);
+
+            <partial name="_Card" model="card" />
+        }
+    </div>
+}

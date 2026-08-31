@@ -1,0 +1,40 @@
+// Overrides das variaveis do Bootstrap. Precisa vir ANTES do import do Bootstrap.
+// A identidade visual do tema mora aqui e em _tokens.scss (ADR-0003).
+
+// --- Cor -------------------------------------------------------------------
+$primary:               #0B8A64;
+$body-color:            #0F172A;
+$body-bg:               #F6F8FA;
+$border-color:          #E3E8EF;
+$secondary-color:       #64748B;
+
+// Variante escura: a primaria clareia em vez de escurecer. Nao e inversao
+// automatica — verde saturado sobre fundo escuro perde contraste (ADR-0003).
+$body-color-dark:       #E8EDF2;
+$body-bg-dark:          #0F141A;
+$border-color-dark:     #263039;
+$secondary-color-dark:  #94A3B8;
+
+// --- Forma -----------------------------------------------------------------
+$border-radius:         .75rem;
+$border-radius-sm:      .5rem;
+$border-radius-lg:      1rem;
+$border-radius-xl:      1.25rem;
+$border-radius-pill:    50rem;
+
+// A borda de 1px e o que segura a superficie no modo escuro, onde a sombra some.
+$enable-shadows:        false;
+
+// --- Tipografia ------------------------------------------------------------
+// Tres papeis: display para titulos, sans para corpo, mono para dado tabular.
+$font-family-sans-serif: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+$font-family-monospace:  "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+$headings-font-family:   "Instrument Sans", #{$font-family-sans-serif};
+
+$font-size-base:        .9375rem;
+$headings-font-weight:  600;
+$headings-line-height:  1.25;
+
+// --- Icones ----------------------------------------------------------------
+// Só woff2: e o unico formato copiado para wwwroot/vendor (todo navegador alvo suporta).
+$bootstrap-icons-font-src: url("../vendor/fonts/bootstrap-icons.woff2") format("woff2");

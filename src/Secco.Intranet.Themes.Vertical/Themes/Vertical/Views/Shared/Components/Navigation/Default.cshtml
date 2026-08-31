@@ -1,0 +1,40 @@
+@model NavigationModel
+<ul class="sc-nav">
+    @foreach (var grupo in Model.Grupos)
+    {
+        if (grupo.Itens.Count == 0)
+        {
+            continue;
+        }
+
+        if (grupo.Titulo is not null)
+        {
+            <li class="sc-nav__group-title" aria-hidden="true">@grupo.Titulo</li>
+        }
+
+        foreach (var item in grupo.Itens)
+        {
+            var temSetor = !string.IsNullOrWhiteSpace(item.SetorSlug);
+            string? estilo = temSetor ? $"--sc-setor-hue:{SetorHue.From(item.SetorSlug)}" : null;
+
+            <li>
+                @* O title cobre a barra recolhida, onde o rótulo some e sobra só o ícone ou o ponto. *@
+                <a class="sc-nav__item @(item.Ativo ? "is-active" : null)"
+                   href="@item.Url"
+                   style="@estilo"
+                   title="@item.Texto"
+                   aria-current="@(item.Ativo ? "page" : null)">
+                    @if (temSetor)
+                    {
+                        <span class="sc-nav__dot" aria-hidden="true"></span>
+                    }
+                    else
+                    {
+                        <i class="bi @item.Icone sc-nav__icon" aria-hidden="true"></i>
+                    }
+                    <span class="sc-nav__label">@item.Texto</span>
+                </a>
+            </li>
+        }
+    }
+</ul>

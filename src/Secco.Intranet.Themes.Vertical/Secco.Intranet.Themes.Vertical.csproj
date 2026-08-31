@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!-- Tema de saída padrão (ADR-0003/ADR-0004): RCL com as views do contrato de tema e os
+       assets estáticos. As views ficam em Themes/Vertical/Views para que o
+       ThemeViewLocationExpander as encontre; wwwroot é servido em
+       _content/Secco.Intranet.Themes.Vertical/. -->
+  <PropertyGroup>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Secco.Intranet.Web.Theming\Secco.Intranet.Web.Theming.csproj" />
+  </ItemGroup>
+
+  <!-- Fontes e dependências de build de CSS não são conteúdo do pacote. -->
+  <ItemGroup>
+    <Content Remove="node_modules\**" />
+    <None Remove="node_modules\**" />
+    <Content Remove="package*.json" />
+    <Content Remove="scripts\**" />
+    <Content Remove="wwwroot\scss\**" />
+  </ItemGroup>
+
+</Project>

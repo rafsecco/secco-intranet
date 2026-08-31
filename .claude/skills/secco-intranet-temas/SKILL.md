@@ -1,75 +1,108 @@
 ---
 name: secco-intranet-temas
-description: Arquitetura de temas via Razor Class Library (RCL) do produto secco-intranet — estrutura de pastas, variáveis Bootstrap/Sass, suporte obrigatório a dark/light. Usar SEMPRE que a tarefa envolver criação ou edição de tema/layout, o projeto Secco.Intranet.Web, views compartilhadas (_Layout.cshtml), paleta de cores, ou os temas padrão Vertical/Horizontal.
+description: Convenção de temas via Razor Class Library (RCL) do produto secco-intranet — estrutura de pastas, contrato de parciais, paleta e suporte obrigatório a dark/light. Usar SEMPRE que a tarefa envolver criação ou edição de tema/layout, o projeto Secco.Intranet.Web, views compartilhadas (_Layout.cshtml), paleta de cores, ou os temas padrão Vertical/Horizontal.
 ---
 
 # secco-intranet — Sistema de Temas
 
-Resume a decisão registrada em `docs/adr/secco-intranet-adrs.md` (ADR-0003). Ler a ADR
-antes de decisões estruturais; este skill é o resumo operacional do dia a dia.
+Resume as decisões registradas em `docs/adr/secco-intranet-adrs.md` (ADR-0003 e ADR-0004).
+Ler as ADRs antes de decisões estruturais; este skill é o resumo operacional do dia a dia.
+O guia completo para quem escreve um tema está em `docs/temas.md`.
 
-## Um tema é um pacote RCL independente
+## Três projetos
+
+| Projeto | Papel |
+|---|---|
+| `Secco.Intranet.Web.Theming` | Contratos: `ThemeOptions`, `ThemeViewLocationExpander`, `SetorHue` e os models dos parciais |
+| `Secco.Intranet.Themes.<Nome>` | RCL do tema: `_Layout`, parciais e `wwwroot` |
+| `Secco.Intranet.Web` | Controllers, ViewModels, views de página, registro de navegação |
+
+O projeto de contratos existe para quebrar o ciclo (o core referencia as RCLs pelos assets,
+então o tema não pode referenciar o core) e para que um tema de terceiro dependa de um
+projeto pequeno, não da Web inteira.
+
+## A regra que sustenta tudo
+
+> **O core decide o que a página mostra; o tema decide como ela parece.**
+
+Views de página do core **não** escrevem markup de sidebar, card ou badge à mão — compõem os
+parciais do contrato. Uma view que emite markup estrutural próprio cria uma página que um
+tema novo não consegue reestilizar.
+
+## Estrutura de um tema
 
 ```
 Secco.Intranet.Themes.<Nome>/
-├── wwwroot/
-│   ├── scss/
-│   │   ├── _variables.scss   ← identidade visual do tema (cores, tipografia, radius)
-│   │   └── theme.scss        ← @import "bootstrap" + overrides
-│   └── css/theme.css         ← compilado
-├── Views/
-│   └── Shared/_Layout.cshtml
-└── Secco.Intranet.Themes.<Nome>.csproj
+├── Themes/<Nome>/Views/Shared/     ← onde o expander procura
+│   ├── _Layout.cshtml
+│   ├── _PageHeader.cshtml  _Card.cshtml  _Badge.cshtml
+│   ├── _EmptyState.cshtml  _Pagination.cshtml
+│   └── Components/Navigation/Default.cshtml
+│       Components/UserMenu/Default.cshtml
+└── wwwroot/                        ← servido em _content/<assembly>/
+    ├── scss/  _variables.scss _tokens.scss _fonts.scss _components.scss theme.scss
+    ├── css/theme.css               ← compilado E VERSIONADO
+    └── vendor/                     ← fontes e JS copiados do npm
 ```
 
-O core (`Secco.Intranet.Web`) não conhece o framework CSS de um tema — carrega o
-CSS/JS que o tema declara via `IViewLocationExpander`. O tema padrão usa Bootstrap,
-mas isso não é uma restrição pra temas de terceiros.
+Os view components `Navigation` e `UserMenu` têm a lógica no core e o markup no tema —
+por isso nenhuma view de tema injeta serviço.
 
-## Temas de saída disponibilizados pelo projeto
+## Paleta do tema padrão (`Vertical`)
 
-- `Secco.Intranet.Themes.Vertical` — menu lateral (padrão)
-- `Secco.Intranet.Themes.Horizontal` — menu no topo
+Esmeralda com neutros cinza-frios. A primária **escurece** no claro e **clareia** no escuro:
+inversão automática não serve, cor saturada perde contraste sobre fundo escuro.
 
-Ambos compartilham a mesma paleta base; a diferença é só a disposição do menu.
+| Papel | Claro | Escuro |
+|---|---|---|
+| Primária | `#0B8A64` | `#34D399` |
+| Texto | `#0F172A` | `#E8EDF2` |
+| Texto suave | `#64748B` | `#94A3B8` |
+| Superfície | `#FFFFFF` | `#161D26` |
+| Fundo | `#F6F8FA` | `#0F141A` |
+| Borda | `#E3E8EF` | `#263039` |
+
+`border-radius` 12px, sombra difusa de baixa opacidade, e borda de 1px sempre presente nas
+superfícies — é a borda que segura o card no modo escuro, onde a sombra some.
+
+**Tipografia:** Instrument Sans (títulos), Inter (corpo), JetBrains Mono (data, tamanho,
+contagem, slug). Todas auto-hospedadas: a intranet precisa renderizar sem internet.
 
 ## Dark/light é obrigatório em todo tema publicado
 
-Todo tema — inclusive de terceiros — precisa declarar as duas variantes via
-`data-bs-theme="light"` / `data-bs-theme="dark"` como CSS custom properties. Não é
-suficiente inverter as cores automaticamente: cores saturadas (ex: a cor primária)
-geralmente precisam de um tom mais claro/saturado na variante escura pra manter
-contraste legível — ajuste manual, não automático.
+Três blocos, sempre: `:root` com a paleta completa, a media query
+`@media (prefers-color-scheme: dark) { :root:not([data-bs-theme="light"]) { … } }` para a
+preferência do sistema, e `[data-bs-theme="dark"]` para a escolha explícita. Nenhuma cor
+pode ter sua única definição dentro de uma media query.
 
-```scss
-[data-bs-theme="light"] { --bs-body-bg: #F1EFE8; --bs-primary: #0F6E56; }
-[data-bs-theme="dark"]  { --bs-body-bg: #1A1B19; --bs-primary: #1D9E75; }
+O `_Layout` aplica a preferência guardada em `localStorage` num script inline no `<head>`,
+antes da primeira pintura — sem isso a página pisca no modo errado a cada carregamento.
+
+## Assinatura: a cor do setor
+
+Todo conteúdo pertence a um setor (ADR-0001). `SetorHue.From(slug)` devolve um matiz estável
+(FNV-1a, nunca `GetHashCode` — o do runtime é aleatorizado por processo), exposto como
+`--sc-setor-hue` no elemento. Saturação e luminosidade são fixas por modo. O matiz aparece em
+três lugares e só neles: o badge do card, o filete de 3px na borda esquerda do card, e o
+ponto ao lado do item de menu.
+
+## Layout do tema `Vertical`
+
+- **Header** em superfície (não na cor primária), borda inferior de 1px: marca à esquerda;
+  à direita o alternador de tema e o avatar do usuário.
+- **Sidebar** de 220px, recolhível para trilho de 64px (preferência em `localStorage`);
+  abaixo de 768px vira gaveta sobre o conteúdo. Item ativo com fundo suave e filete de 3px
+  na cor primária.
+- **Conteúdo** com largura máxima de 1180px, cabeçalho de página e cards.
+
+No tema `Horizontal` a composição é a mesma, com o menu migrando para uma barra abaixo do
+header.
+
+## Build de assets
+
+```bash
+npm --prefix src/Secco.Intranet.Themes.Vertical run build
 ```
 
-## Paleta de referência do tema padrão
-
-Primária `#0F6E56` (verde-petróleo), neutros quentes (`#2C2C2A` / `#5F5E5A` /
-`#F1EFE8`) em vez de cinza puro, `border-radius` `0.625rem`. Ver a ADR pra contexto
-completo da escolha.
-
-## Layout de referência do tema Vertical (`_Layout.cshtml`)
-
-Wireframe validado com o usuário — usar como base ao implementar o `_Layout.cshtml`
-deste tema:
-
-- **Header** (barra superior, fundo na cor primária): logo/nome do produto à esquerda
-  (`Secco Intranet`); à direita, nessa ordem, um ícone de sino de notificação (badge de
-  contador — ver skill de notificação in-app quando existir) e o avatar do usuário
-  (círculo com iniciais, cor de destaque)
-- **Sidebar** (largura fixa ~150px, fundo levemente destacado do conteúdo, borda à
-  direita): lista vertical de itens de menu, cada um com ícone + rótulo; o item ativo
-  tem fundo suave na cor primária e uma borda esquerda de destaque (3px, cor primária)
-- **Área de conteúdo**: fundo levemente diferente do branco puro (usa o neutro claro da
-  paleta), título da página em destaque, conteúdo em cards com borda sutil e cantos
-  arredondados (`border-radius` da paleta)
-- **Card de aviso/mural** (padrão a reaproveitar em outras listagens): badge pequeno
-  colorido por origem/setor no topo (ex: badge verde-claro para RH, laranja-claro para
-  TI), título em negrito, metadado (data) em cinza abaixo
-
-No tema **Horizontal**, a mesma composição vale, só com o menu migrando da sidebar
-para uma barra abaixo do header, itens dispostos lado a lado em vez de empilhados.
+Compila o Sass e copia fontes e JS do `node_modules`. **O resultado é versionado** —
+`dotnet run` precisa funcionar sem Node instalado. Rodar sempre que mexer em `wwwroot/scss/`.

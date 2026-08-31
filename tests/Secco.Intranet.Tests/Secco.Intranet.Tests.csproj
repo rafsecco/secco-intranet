@@ -17,6 +17,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Secco.Intranet.Application\Secco.Intranet.Application.csproj" />
+    <!-- Cifragem e armazenamento sao internal da Infrastructure: o teste os alcanca por
+         InternalsVisibleTo declarado la. -->
+    <ProjectReference Include="..\..\src\Secco.Intranet.Infrastructure\Secco.Intranet.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Secco.Intranet.Web.Theming\Secco.Intranet.Web.Theming.csproj" />
     <!-- Host real dos testes de integração (ADR-0002/0012): WebApplicationFactory<Program> -->
     <ProjectReference Include="..\..\src\Secco.Intranet.Web\Secco.Intranet.Web.csproj" />
   </ItemGroup>

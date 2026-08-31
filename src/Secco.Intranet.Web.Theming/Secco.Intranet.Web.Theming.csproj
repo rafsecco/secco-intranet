@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Contrato de tema (ADR-0004): o único projeto que um tema de terceiro precisa
+       referenciar. Deliberadamente sem dependência de Secco.Intranet.Web — é o que quebra o
+       ciclo, já que a Web referencia os temas pelos assets da RCL. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+</Project>

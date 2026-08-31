@@ -22,6 +22,89 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Secco.Intranet.Domain.Documentos.Documento", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id_pk_documento");
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean")
+                        .HasColumnName("fl_ativo");
+
+                    b.Property<string>("CaminhoRelativo")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("ds_caminho_relativo");
+
+                    b.Property<string>("ChaveEmbrulhada")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("ds_chave_embrulhada");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("ds_content_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dt_created_at");
+
+                    b.Property<string>("CriadoPor")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("ds_criado_por");
+
+                    b.Property<string>("Descricao")
+                        .HasMaxLength(4096)
+                        .HasColumnType("character varying(4096)")
+                        .HasColumnName("ds_descricao");
+
+                    b.Property<string>("NomeArquivo")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("ds_nome_arquivo");
+
+                    b.Property<Guid>("SetorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id_fk_setor");
+
+                    b.Property<long>("Tamanho")
+                        .HasColumnType("bigint")
+                        .HasColumnName("nr_tamanho");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("ds_titulo");
+
+                    b.Property<int>("Visibilidade")
+                        .HasColumnType("integer")
+                        .HasColumnName("ie_visibilidade");
+
+                    b.HasKey("Id")
+                        .HasName("pk_documentos");
+
+                    b.HasIndex("Ativo")
+                        .HasDatabaseName("idx_documentos_fl_ativo");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("idx_documentos_dt_created_at");
+
+                    b.HasIndex("SetorId")
+                        .HasDatabaseName("idx_documentos_id_fk_setor");
+
+                    b.ToTable("tb_documentos");
+                });
+
             modelBuilder.Entity("Secco.Intranet.Domain.Setores.Setor", b =>
                 {
                     b.Property<Guid>("Id")
@@ -65,6 +148,16 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .HasDatabaseName("uk_setores_ds_slug");
 
                     b.ToTable("tb_setores");
+                });
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Documentos.Documento", b =>
+                {
+                    b.HasOne("Secco.Intranet.Domain.Setores.Setor", null)
+                        .WithMany()
+                        .HasForeignKey("SetorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_documentos_setor");
                 });
 #pragma warning restore 612, 618
         }

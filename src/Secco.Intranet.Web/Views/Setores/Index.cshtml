@@ -1,53 +1,78 @@
 @model SetorListViewModel
 @{
     ViewData["Title"] = "Setores";
+
+    string? PaginaUrl(int pagina) => Url.Action("Index", new { nome = Model.Nome, page = pagina });
+
+    var novoSetor = new PageActionModel("Novo setor", Url.Action("Create")!, "bi-plus-lg", Primaria: true);
+
+    var cabecalho = new PageHeaderModel(
+        "Setores",
+        "Cada setor cadastrado ganha os perfis de acesso administrador e usuário.",
+        Acoes: new[] { novoSetor });
+
+    var buscando = !string.IsNullOrWhiteSpace(Model.Nome);
+
+    var vazio = new EmptyStateModel(
+        "bi-diagram-3",
+        buscando ? "Nenhum setor com esse nome" : "Nenhum setor cadastrado",
+        buscando
+            ? "Ajuste a busca ou cadastre um setor novo."
+            : "Cadastre o primeiro setor para começar a organizar documentos e publicações.",
+        novoSetor);
+
+    var paginacao = new PaginationModel(
+        Model.Page.Page,
+        Model.Page.TotalPages,
+        Model.Page.HasPreviousPage ? PaginaUrl(Model.Page.Page - 1) : null,
+        Model.Page.HasNextPage ? PaginaUrl(Model.Page.Page + 1) : null);
+
+    var badgeFixo = new BadgeModel("Fixo", BadgeVariante.Neutro);
+    var badgeInativo = new BadgeModel("Inativo", BadgeVariante.Aviso);
 }
-<h1>Setores</h1>
 
-<form method="get" asp-action="Index" class="search-form">
-    <input type="text" name="nome" value="@Model.Nome" placeholder="Buscar por nome" />
-    <button type="submit">Buscar</button>
+<partial name="_PageHeader" model="cabecalho" />
+
+<form method="get" asp-action="Index" class="row g-2 mb-3" role="search">
+    <div class="col-sm-auto flex-grow-1">
+        <label class="visually-hidden" for="nome">Buscar por nome</label>
+        <input class="form-control" type="search" id="nome" name="nome" value="@Model.Nome" placeholder="Buscar por nome" />
+    </div>
+    <div class="col-sm-auto">
+        <button class="btn btn-outline-secondary w-100" type="submit">Buscar</button>
+    </div>
 </form>
-
-<p><a asp-action="Create">Novo setor</a></p>
 
 @if (Model.Page.Items.Count == 0)
 {
-    <p>Nenhum setor encontrado.</p>
+    <partial name="_EmptyState" model="vazio" />
 }
 else
 {
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Slug</th>
-                <th>Ativo</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var setor in Model.Page.Items)
-            {
-                <tr>
-                    <td>@setor.Nome</td>
-                    <td>@setor.Slug</td>
-                    <td>@(setor.Ativo ? "Sim" : "Não")</td>
-                    <td><a asp-action="Details" asp-route-id="@setor.Id">Detalhes</a></td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <ul class="sc-list">
+        @foreach (var setor in Model.Page.Items)
+        {
+            <li class="sc-list__item" style="--sc-setor-hue:@SetorHue.From(setor.Slug)">
+                <span class="sc-list__icon" aria-hidden="true"><i class="bi bi-diagram-3"></i></span>
+                <div class="sc-list__text">
+                    <p class="sc-list__title">
+                        <a class="text-reset text-decoration-none" asp-action="Details" asp-route-id="@setor.Id">@setor.Nome</a>
+                    </p>
+                    <span class="sc-list__sub">
+                        <span class="sc-meta">@setor.Slug</span>
+                        @if (setor.Fixo)
+                        {
+                            <partial name="_Badge" model="badgeFixo" />
+                        }
+                        @if (!setor.Ativo)
+                        {
+                            <partial name="_Badge" model="badgeInativo" />
+                        }
+                    </span>
+                </div>
+            </li>
+        }
+    </ul>
 
-    <nav class="pagination">
-        @if (Model.Page.HasPreviousPage)
-        {
-            <a asp-action="Index" asp-route-nome="@Model.Nome" asp-route-page="@(Model.Page.Page - 1)">Anterior</a>
-        }
-        <span>Página @Model.Page.Page de @Model.Page.TotalPages</span>
-        @if (Model.Page.HasNextPage)
-        {
-            <a asp-action="Index" asp-route-nome="@Model.Nome" asp-route-page="@(Model.Page.Page + 1)">Próxima</a>
-        }
-    </nav>
+    <partial name="_Pagination" model="paginacao" />
 }

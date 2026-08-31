@@ -37,4 +37,45 @@ public static class IntranetErrors
 				"Intranet.Setor.AccessProvisioningUnavailable",
 				"Não foi possível provisionar o acesso do setor no momento. Tente novamente em instantes.");
 	}
+
+	/// <summary>Erros do recurso Documento.</summary>
+	public static class Documentos
+	{
+		/// <summary>Título ausente ou vazio.</summary>
+		public static readonly Error TituloRequired =
+			Error.Validation("Intranet.Documento.TituloRequired", "O título é obrigatório.");
+
+		/// <summary>Título acima do limite configurado.</summary>
+		public static Error TituloTooLong(int limit) =>
+			Error.Validation("Intranet.Documento.TituloTooLong", $"O título excede o limite de {limit} caracteres.");
+
+		/// <summary>Nenhum arquivo enviado, ou arquivo sem conteúdo.</summary>
+		public static readonly Error ArquivoRequired =
+			Error.Validation("Intranet.Documento.ArquivoRequired", "Escolha um arquivo para publicar.");
+
+		/// <summary>Arquivo acima do tamanho máximo aceito.</summary>
+		public static Error ArquivoMuitoGrande(long limiteBytes) =>
+			Error.Validation(
+				"Intranet.Documento.ArquivoMuitoGrande",
+				$"O arquivo excede o tamanho máximo de {limiteBytes / (1024 * 1024)} MB.");
+
+		/// <summary>
+		/// Extensão fora da lista aceita, ou conteúdo que não corresponde à extensão — os dois
+		/// casos compartilham a mensagem de propósito: distinguir ajudaria a sondar o validador.
+		/// </summary>
+		public static readonly Error ArquivoNaoAceito =
+			Error.Validation(
+				"Intranet.Documento.ArquivoNaoAceito",
+				"Tipo de arquivo não aceito, ou o conteúdo não corresponde à extensão.");
+
+		/// <summary>Registro não encontrado no banco do tenant atual.</summary>
+		public static readonly Error NotFound =
+			Error.NotFound("Intranet.Documento.NotFound", "Documento não encontrado.");
+
+		/// <summary>Falha ao gravar ou ler o conteúdo. Mensagem sem detalhe interno (ADR-0020).</summary>
+		public static readonly Error ArmazenamentoIndisponivel =
+			Error.Failure(
+				"Intranet.Documento.ArmazenamentoIndisponivel",
+				"Não foi possível acessar o arquivo no momento. Tente novamente em instantes.");
+	}
 }

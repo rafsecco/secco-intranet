@@ -12,10 +12,11 @@ partir do conteúdo do template `secco-service` do secco-platform, adaptado para
 próprio — **sem** os projetos Api e Client do template: pela decisão de monolito (ADR-0002
 deste produto), não há Api HTTP separada nem, portanto, contrato OpenAPI/client NSwag.
 
-Decisões arquiteturais específicas deste produto (Setor = Role, monolito, sistema de temas)
-estão documentadas em [`docs/adr/secco-intranet-adrs.md`](docs/adr/secco-intranet-adrs.md) —
-consultar antes de mudanças estruturais. O plano de fases está em
-[`docs/roadmap.md`](docs/roadmap.md).
+Decisões arquiteturais específicas deste produto (Setor = Role, monolito, sistema de temas,
+armazenamento de documentos) estão documentadas em
+[`docs/adr/secco-intranet-adrs.md`](docs/adr/secco-intranet-adrs.md) — consultar antes de
+mudanças estruturais. O plano de fases está em [`docs/roadmap.md`](docs/roadmap.md), e o guia
+para escrever um tema em [`docs/temas.md`](docs/temas.md).
 
 ## Pré-requisitos
 

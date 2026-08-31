@@ -1,0 +1,21 @@
+@model EmptyStateModel
+<div class="sc-empty">
+    <i class="bi @Model.Icone sc-empty__icon" aria-hidden="true"></i>
+    <p class="sc-empty__title">@Model.Titulo</p>
+    @if (Model.Descricao is not null)
+    {
+        <p class="sc-empty__text">@Model.Descricao</p>
+    }
+    @if (Model.Acao is not null)
+    {
+        <div class="sc-empty__action">
+            <a class="btn btn-primary" href="@Model.Acao.Url">
+                @if (Model.Acao.Icone is not null)
+                {
+                    <i class="bi @Model.Acao.Icone" aria-hidden="true"></i>
+                }
+                @Model.Acao.Texto
+            </a>
+        </div>
+    }
+</div>

@@ -19,14 +19,18 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [x] Integração com `Secco.SecureGate.Client` (auth) — criação automática das Roles
       `{slug}-admin`/`{slug}-user` ao cadastrar um setor
 - [ ] Integração com `Secco.LogStream.Client` (logs)
-- [ ] Sistema de temas: esqueleto RCL (`IViewLocationExpander`) com um tema padrão mínimo
-      — ADR-0003
+- [x] Sistema de temas: RCL resolvida por `IViewLocationExpander`, contrato de tema em
+      `Secco.Intranet.Web.Theming` e o tema de saída `Vertical` — ADR-0003/ADR-0004
 
 ## Fase 1 — MVP visível
 
-- [ ] Mural de avisos/comunicados
-- [ ] Diretório organizacional (perfil de colaborador, organograma básico)
-- [ ] Repositório de documentos por setor (upload, público/privado via `SetorRecurso`)
+- [ ] Mural de avisos/comunicados — rota e tela já existem; falta o recurso real
+      (entidade, publicação, edição). Um recurso só, com discriminador de tipo
+      (aviso, evento, notícia)
+- [ ] Diretório organizacional (perfil de colaborador, organograma básico) — telas
+      existem como demonstração, atrás de `Intranet:Demo:Habilitado`
+- [x] Repositório de documentos por setor: upload cifrado em envelope, visibilidade por
+      documento (só o setor ou a empresa toda) e download autorizado — ADR-0005
 - [ ] Controle de inventário (dono nato: setor Infraestrutura, fixo)
 - [ ] `Recurso` + `SetorRecurso` (catálogo de módulos habilitáveis por setor)
 - [ ] Tela de administração de setores (cadastro + toggle de recursos)
