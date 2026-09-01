@@ -108,12 +108,23 @@ else
                         <p class="mb-0 mt-1 text-body-secondary small">@documento.Descricao</p>
                     }
                 </div>
-                <div class="sc-list__actions">
+                <div class="sc-list__actions d-flex gap-1">
                     <a class="btn btn-outline-secondary btn-sm"
                        asp-controller="Documentos" asp-action="Download" asp-route-id="@documento.Id">
                         <i class="bi bi-download" aria-hidden="true"></i>
                         <span class="visually-hidden">Baixar @documento.Titulo</span>
                     </a>
+                    @if (Model.PodePublicar)
+                    {
+                        <form method="post" asp-action="Arquivar"
+                              asp-route-slug="@Model.Setor.Slug" asp-route-id="@documento.Id">
+                            <button class="btn btn-outline-secondary btn-sm" type="submit"
+                                    title="Arquivar @documento.Titulo">
+                                <i class="bi bi-archive" aria-hidden="true"></i>
+                                <span class="visually-hidden">Arquivar @documento.Titulo</span>
+                            </button>
+                        </form>
+                    }
                 </div>
             </li>
         }

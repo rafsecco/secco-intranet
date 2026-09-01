@@ -30,7 +30,8 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [ ] Diretório organizacional (perfil de colaborador, organograma básico) — telas
       existem como demonstração, atrás de `Intranet:Demo:Habilitado`
 - [x] Repositório de documentos por setor: upload cifrado em envelope, visibilidade por
-      documento (só o setor ou a empresa toda) e download autorizado — ADR-0005
+      documento (só o setor ou a empresa toda), download autorizado e arquivamento (o
+      registro e o arquivo permanecem) — ADR-0005
 - [ ] Controle de inventário (dono nato: setor Infraestrutura, fixo)
 - [ ] `Recurso` + `SetorRecurso` (catálogo de módulos habilitáveis por setor)
 - [ ] Tela de administração de setores (cadastro + toggle de recursos)

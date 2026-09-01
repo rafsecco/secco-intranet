@@ -22,7 +22,7 @@ public class DocumentoFluxoTests(IntranetWebFactory factory) : IClassFixture<Int
 	private readonly string _raiz = Path.Combine(
 		Path.GetTempPath(), "secco-intranet-testes", Guid.NewGuid().ToString("N"));
 
-	public async Task InitializeAsync() => await factory.EnsureTenantDatabasesMigratedAsync();
+	public async Task InitializeAsync() => await factory.EnsureDatabaseMigratedAsync();
 
 	public Task DisposeAsync()
 	{
@@ -156,6 +156,38 @@ public class DocumentoFluxoTests(IntranetWebFactory factory) : IClassFixture<Int
 				HttpStatusCode.NotFound,
 				$"o arquivo não pode ser alcançável por {tentativa} — a visibilidade só é avaliada no endpoint de download");
 		}
+	}
+
+	[Fact]
+	public async Task Arquivar_PelaRota_TiraODocumentoDaListagem()
+	{
+		var client = CriarCliente();
+		var slug = $"setor-{Guid.NewGuid():N}"[..20];
+
+		await CriarSetorAsync(client, "Setor de Teste", slug);
+		await PublicarAsync(client, slug, "Política interna", ConteudoPdf);
+
+		var pagina = await client.GetStringAsync($"/setor/{slug}/documentos");
+		var id = Regex.Match(pagina, @"/[Dd]ocumentos/([0-9a-fA-F-]{36})/[Dd]ownload").Groups[1].Value;
+
+		id.Should().NotBeEmpty();
+
+		var token = await TokenAntiFalsificacaoAsync(client, $"/setor/{slug}/documentos");
+
+		var resposta = await client.PostAsync(
+			$"/setor/{slug}/documentos/{id}/arquivar",
+			new FormUrlEncodedContent([new KeyValuePair<string, string>("__RequestVerificationToken", token)]));
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK, "arquivar redireciona de volta para a aba");
+
+		var depois = await client.GetStringAsync($"/setor/{slug}/documentos");
+
+		depois.Should().NotContain(id, "o documento arquivado sai da listagem");
+		depois.Should().Contain("sc-empty", "sem documentos ativos, a aba mostra o estado vazio");
+
+		var download = await client.GetAsync($"/documentos/{id}/download");
+
+		download.StatusCode.Should().Be(HttpStatusCode.NotFound, "arquivar tira de circulação, não só da listagem");
 	}
 
 	[Fact]

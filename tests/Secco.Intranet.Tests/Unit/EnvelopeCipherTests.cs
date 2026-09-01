@@ -193,6 +193,31 @@ public class EnvelopeCipherTests
 	}
 
 	[Fact]
+	public async Task Decifrar_ComBlocosReordenados_Falha()
+	{
+		var chaveDoArquivo = EnvelopeCipher.GerarChaveDeArquivo();
+		var conteudo = RandomNumberGenerator.GetBytes((EnvelopeCipher.TamanhoDoBloco * 2) + 7);
+		var cifrado = await CifrarAsync(conteudo, chaveDoArquivo);
+
+		// Cabeçalho: assinatura (8) + versão (1) + tamanho do bloco (4).
+		// Bloco cheio: marca de último (1) + nonce (12) + comprimento (4) + cifrado + tag (16).
+		const int cabecalho = 8 + 1 + sizeof(int);
+		var blocoCheio = 1 + 12 + sizeof(int) + EnvelopeCipher.TamanhoDoBloco + 16;
+
+		var primeiro = cifrado[cabecalho..(cabecalho + blocoCheio)];
+		var segundo = cifrado[(cabecalho + blocoCheio)..(cabecalho + (2 * blocoCheio))];
+
+		var trocado = cifrado.ToArray();
+		segundo.CopyTo(trocado, cabecalho);
+		primeiro.CopyTo(trocado, cabecalho + blocoCheio);
+
+		var decifrar = async () => await DecifrarAsync(trocado, chaveDoArquivo);
+
+		await decifrar.Should().ThrowAsync<ChaveMestraException>(
+			"o índice do bloco entra no dado associado, então trocar dois blocos de lugar quebra o tag");
+	}
+
+	[Fact]
 	public async Task Decifrar_ComCabecalhoDeOutroFormato_Falha()
 	{
 		var decifrar = async () => await DecifrarAsync(

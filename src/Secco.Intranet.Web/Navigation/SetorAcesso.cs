@@ -41,6 +41,29 @@ public static class SetorAcesso
 		return slugs;
 	}
 
+	/// <summary>Slugs dos setores que o usuário administra (Role <c>{slug}-admin</c>).</summary>
+	/// <param name="usuario">Usuário atual; <c>null</c> devolve conjunto vazio.</param>
+	public static IReadOnlySet<string> SlugsAdministrados(ClaimsPrincipal? usuario)
+	{
+		var slugs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+		if (usuario is null)
+		{
+			return slugs;
+		}
+
+		foreach (var claim in usuario.FindAll(SeccoClaims.Role))
+		{
+			if (claim.Value.EndsWith(SufixoAdmin, StringComparison.OrdinalIgnoreCase)
+				&& claim.Value.Length > SufixoAdmin.Length)
+			{
+				slugs.Add(claim.Value[..^SufixoAdmin.Length]);
+			}
+		}
+
+		return slugs;
+	}
+
 	/// <summary>Indica se o usuário administra ao menos um setor.</summary>
 	/// <param name="usuario">Usuário atual; <c>null</c> devolve <c>false</c>.</param>
 	public static bool AdministraAlgumSetor(ClaimsPrincipal? usuario) =>

@@ -14,6 +14,7 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="getSetorHandler">Leitura do setor pelo slug.</param>
 /// <param name="listarHandler">Listagem de documentos do setor.</param>
 /// <param name="publicarHandler">Publicação de documento.</param>
+/// <param name="arquivarHandler">Arquivamento de documento.</param>
 /// <param name="documentoOptions">Limites de upload.</param>
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
 [Route("setor/{slug}")]
@@ -21,6 +22,7 @@ public sealed class SetorController(
 	GetSetorBySlugHandler getSetorHandler,
 	ListarDocumentosHandler listarHandler,
 	PublicarDocumentoHandler publicarHandler,
+	ArquivarDocumentoHandler arquivarHandler,
 	DocumentoOptions documentoOptions,
 	IConfiguration configuration) : Controller
 {
@@ -95,6 +97,31 @@ public sealed class SetorController(
 		}
 
 		TempData["Mensagem"] = $"Documento \"{resultado.Value.Titulo}\" publicado.";
+
+		return RedirectToAction(nameof(Documentos), new { slug });
+	}
+
+	/// <summary>Retira um documento de circulação, preservando o registro e o arquivo.</summary>
+	/// <param name="slug">Slug do setor.</param>
+	/// <param name="id">Identificador do documento.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost("documentos/{id:guid}/arquivar")]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> Arquivar(string slug, Guid id, CancellationToken cancellationToken = default)
+	{
+		var resultado = await arquivarHandler.HandleAsync(
+			new ArquivarDocumentoCommand(
+				id,
+				SetorAcesso.SlugsAdministrados(User),
+				ExigirVinculo: IntranetAuthenticationExtensions.IsConfigured(configuration)),
+			cancellationToken).ConfigureAwait(false);
+
+		if (resultado.IsFailure)
+		{
+			return NotFound();
+		}
+
+		TempData["Mensagem"] = "Documento arquivado.";
 
 		return RedirectToAction(nameof(Documentos), new { slug });
 	}

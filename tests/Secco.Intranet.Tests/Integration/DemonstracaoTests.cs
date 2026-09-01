@@ -12,7 +12,7 @@ namespace Secco.Intranet.Tests.Integration;
 /// </summary>
 public class DemonstracaoTests(IntranetWebFactory factory) : IClassFixture<IntranetWebFactory>, IAsyncLifetime
 {
-	public async Task InitializeAsync() => await factory.EnsureTenantDatabasesMigratedAsync();
+	public async Task InitializeAsync() => await factory.EnsureDatabaseMigratedAsync();
 
 	public Task DisposeAsync() => Task.CompletedTask;
 

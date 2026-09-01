@@ -23,7 +23,7 @@ indent_size = 4
 # ============================================================================
 # ARQUIVOS DE SCRIPT E CONFIGURAÇÃO (TS/JS, JSON, XML, YAML) — 2 espaços
 # ============================================================================
-[*.{ts,tsx,js,jsx,json,csproj,props,targets,xml,config,yml,yaml}]
+[*.{ts,tsx,js,jsx,json,css,scss,csproj,props,targets,xml,config,yml,yaml}]
 indent_style = space
 indent_size = 2
 
