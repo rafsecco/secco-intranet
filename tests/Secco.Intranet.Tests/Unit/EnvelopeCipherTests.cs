@@ -201,15 +201,15 @@ public class EnvelopeCipherTests
 
 		// Cabeçalho: assinatura (8) + versão (1) + tamanho do bloco (4).
 		// Bloco cheio: marca de último (1) + nonce (12) + comprimento (4) + cifrado + tag (16).
-		const int cabecalho = 8 + 1 + sizeof(int);
+		const int Cabecalho = 8 + 1 + sizeof(int);
 		var blocoCheio = 1 + 12 + sizeof(int) + EnvelopeCipher.TamanhoDoBloco + 16;
 
-		var primeiro = cifrado[cabecalho..(cabecalho + blocoCheio)];
-		var segundo = cifrado[(cabecalho + blocoCheio)..(cabecalho + (2 * blocoCheio))];
+		var primeiro = cifrado[Cabecalho..(Cabecalho + blocoCheio)];
+		var segundo = cifrado[(Cabecalho + blocoCheio)..(Cabecalho + (2 * blocoCheio))];
 
 		var trocado = cifrado.ToArray();
-		segundo.CopyTo(trocado, cabecalho);
-		primeiro.CopyTo(trocado, cabecalho + blocoCheio);
+		segundo.CopyTo(trocado, Cabecalho);
+		primeiro.CopyTo(trocado, Cabecalho + blocoCheio);
 
 		var decifrar = async () => await DecifrarAsync(trocado, chaveDoArquivo);
 
