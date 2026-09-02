@@ -18,6 +18,11 @@ armazenamento de documentos) estão documentadas em
 mudanças estruturais. O plano de fases está em [`docs/roadmap.md`](docs/roadmap.md), e o guia
 para escrever um tema em [`docs/temas.md`](docs/temas.md).
 
+O que este produto espera da plataforma e ainda não existe — com o link da issue onde cada
+lacuna é discutida — está em [`docs/plataforma.md`](docs/plataforma.md). Capacidade transversal
+(logging, auditoria, provisionamento de banco) é pedida ao monorepo, nunca reimplementada aqui:
+ver ADR-0006 e ADR-0007.
+
 ## Pré-requisitos
 
 - **.NET SDK 10.0** — confira com `dotnet --version`.

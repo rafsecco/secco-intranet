@@ -5,7 +5,7 @@
 > Para mudar uma decisão, cria-se uma nova ADR que **substitui** a anterior — ADRs nunca são editadas retroativamente nem apagadas.
 > Decisões da plataforma (multi-tenancy, `Result<T>`, nomenclatura de banco...) estão em `secco-platform/docs/adr/secco-platform-adrs.md` — este documento cobre apenas decisões específicas deste produto.
 
-**Última atualização:** 2026-08-31 (ADR-0004 e ADR-0005 adicionadas)
+**Última atualização:** 2026-09-02 (ADR-0006 e ADR-0007 adicionadas)
 
 ---
 
@@ -215,3 +215,88 @@ conteúdo estático nem têm endereço adivinhável — toda leitura passa por
   aceite caminho — a regra de visibilidade precisa ser avaliada a cada leitura.
 - O `Content-Type` informado pelo cliente nunca é persistido: vale a extensão cruzada com a
   assinatura dos primeiros bytes.
+
+---
+
+## ADR-0006: Observabilidade e auditoria são consumidas da plataforma, nunca construídas aqui
+
+**Status:** Aceita
+**Data:** 2026-09-02
+
+### Contexto
+A expectativa era que a Intranet já viesse com o LogStream configurado para duas coisas:
+registrar erros de uso e auditar o que o usuário fez na sessão. Nenhuma das duas acontece, e a
+investigação mostrou que os motivos são diferentes. Para **erro**, o produto LogStream está
+pronto e o `Secco.LogStream.Client` está publicado, mas o `AddLogStream()` — o provider de
+`ILogger` que a ADR-0008 da plataforma promete, com fila local, batch e retry — **não existe**:
+não há pasta `Logging/` no `Secco.SDK.AspNetCore` e o nome só aparece em ADR e comentários. Para
+**auditoria**, o problema é de modelo: `LogEntry` tem `Level`, `Message`, `StackTrace`,
+`CorrelationId` e `CreatedAt`, e **não tem ator** — mesmo com o LogStream integrado, "quem fez o
+quê" só caberia dentro do texto da mensagem. `Secco.Audit` não existe como código.
+
+A tentação em ambos os casos é resolver localmente: um `ILoggerProvider` caseiro sobre o client,
+e uma tabela `tb_auditoria` no banco do tenant. As duas foram avaliadas e recusadas.
+
+### Decisão
+Observabilidade e auditoria são **capacidades da plataforma**. Este produto consome, não
+constrói:
+
+- **Log de aplicação** sai por `ILogger<T>` e chega ao LogStream pelo `AddLogStream()` do SDK,
+  quando ele existir ([issue #1](https://github.com/rafsecco/secco-platform/issues/1)). Até lá o
+  `ILogger` local continua funcionando e nada é enviado.
+- **Trilha de ação de usuário** será consumida do recurso que a plataforma criar
+  ([issue #2](https://github.com/rafsecco/secco-platform/issues/2)). Nenhuma trilha local, nem
+  provisória: sem tabela, sem porta, sem pontos de instrumentação.
+- **`LogProcess`/`LogProcessDetail` fica reservado a processo de negócio com passos definidos** —
+  o consumidor previsto é o motor de workflow da Fase 2 (`ProcessoDefinicao` → `Etapa` →
+  `ProcessoInstancia`). Usá-lo como trilha de usuário é proibido.
+
+### Consequências
+- **A Intranet fica sem trilha de auditoria até a plataforma entregar o recurso.** É o custo
+  aceito conscientemente, e está registrado no roadmap para não parecer esquecimento.
+- A alternativa de uma tabela local temporária foi recusada por criar caminho de migração de
+  dados no futuro — dado de auditoria migrado depois é dado cuja integridade ninguém consegue
+  atestar.
+- Fica proibido implementar aqui um `ILoggerProvider`, um cliente de log próprio ou qualquer
+  persistência de log/auditoria em banco deste produto — inclusive "temporariamente". Quem
+  precisar da capacidade abre issue no monorepo, conforme [`docs/plataforma.md`](../plataforma.md).
+- Se a plataforma decidir que a auditoria vira um produto separado em vez de um recurso do
+  LogStream, nada muda aqui: este produto não escolheu implementação, escolheu origem.
+
+---
+
+## ADR-0007: A Intranet não provisiona banco nem custodia credencial de provisionamento
+
+**Status:** Aceita
+**Data:** 2026-09-02
+
+### Contexto
+Duas situações reais de adoção pressionam nesta direção: o banco do cliente já existe e a
+aplicação precisa de um usuário próprio; ou um tenant novo entra e alguém precisa criar o banco
+dele. O caminho aparentemente mais curto é dar à aplicação um usuário com permissão de criar
+databases — que é, na prática, o que o ambiente de desenvolvimento faz hoje ao usar SA no
+`docker-compose.yml` e na connection string de exemplo do `.env.example`.
+
+A plataforma não cobre isso: o único `CREATE DATABASE` do monorepo está na infraestrutura de
+testes, e o AdminPortal cadastra a connection string de um banco que já existe, sem criá-lo. A
+lacuna é real ([issue #3](https://github.com/rafsecco/secco-platform/issues/3)) — a questão é
+quem a preenche.
+
+### Decisão
+A Intranet consome connection string do catálogo e nada mais. Criar database, criar login ou
+usuário de banco e conceder permissão são capacidades da plataforma, que custodia o catálogo
+cifrado (ADR-0025 da plataforma) e é o único lugar onde uma credencial privilegiada de banco
+deve existir.
+
+### Consequências
+- Uma credencial com `dbcreator` ou `securityadmin` **nunca** é configurada neste produto —
+  inclusive "só para criar o banco do tenant novo". Um privilégio desses no processo que atende
+  requisição de usuário é o oposto do least privilege da ADR-0020 da plataforma.
+- Enquanto a connection string de um tenant usar um usuário amplo, o isolamento físico da
+  ADR-0005 é **convenção, não garantia**: um erro de connection string alcança o banco do tenant
+  vizinho. Por isso o SA nos arquivos de desenvolvimento é **dívida registrada**, não padrão a
+  copiar — a correção (usuário de aplicação com privilégio mínimo no compose) está no roadmap e
+  independe da decisão da plataforma.
+- Um painel dos bancos, se vier a existir aqui, se alimenta do catálogo e de health-check por
+  banco com a conexão de runtime de cada tenant — nunca de uma credencial de servidor.
+- Fica proibido a esta aplicação executar DDL fora das migrations do próprio schema de tenant.
