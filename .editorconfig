@@ -107,6 +107,12 @@ csharp_style_prefer_primary_constructors = true:suggestion
 # ============================================================================
 [*.cs]
 
+# Sem esta linha o IDE1006 nao roda no build: dotnet_naming_rule.*.severity define a
+# severidade DE CADA REGRA, mas nao habilita o diagnostico na compilacao. Ela tambem
+# achata as severidades individuais — por isso a regra de campos privados abaixo
+# precisou deixar de casar com static readonly.
+dotnet_diagnostic.IDE1006.severity = warning
+
 # Interfaces começam com I
 dotnet_naming_style.interface_style.required_prefix = I
 dotnet_naming_style.interface_style.capitalization = pascal_case
@@ -146,6 +152,18 @@ dotnet_naming_rule.constants.severity = warning
 dotnet_naming_symbols.constant_symbol.applicable_kinds = field,local
 dotnet_naming_symbols.constant_symbol.applicable_accessibilities = *
 dotnet_naming_symbols.constant_symbol.required_modifiers = const
+
+# Campos static readonly em PascalCase
+# (mesma razao da regra de constantes: precisa vir ANTES da regra de campos privados,
+# senao um private static readonly casaria com ela e exigiria prefixo _)
+dotnet_naming_style.static_readonly_style.capitalization = pascal_case
+
+dotnet_naming_rule.static_readonly_fields.symbols = static_readonly_field_symbol
+dotnet_naming_rule.static_readonly_fields.style = static_readonly_style
+dotnet_naming_rule.static_readonly_fields.severity = warning
+dotnet_naming_symbols.static_readonly_field_symbol.applicable_kinds = field
+dotnet_naming_symbols.static_readonly_field_symbol.applicable_accessibilities = *
+dotnet_naming_symbols.static_readonly_field_symbol.required_modifiers = static,readonly
 
 # Campos privados em camelCase com prefixo _
 dotnet_naming_style.private_field_style.required_prefix = _
