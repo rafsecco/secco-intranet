@@ -94,6 +94,10 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [ ] Automação opcional de clonagem de perfis admin/user por setor, se um caso de uso
       concreto justificar (ver ADR-0001)
 - [ ] Pesquisas de clima organizacional, outros extras
+- [ ] Padronizar o separador das tabelas em toda a documentação. Hoje o repositório usa a
+      forma compacta (`|---|`) de ponta a ponta, e a regra `MD060` do markdownlint está
+      desligada em `.vscode/settings.json` por isso. Se a padronização acontecer, a regra
+      volta a ligar no mesmo commit — desligada sem plano, ela vira ruído permanente
 
 ---
 
