@@ -22,15 +22,17 @@ processos (maior risco técnico) só entra com a base já sólida.
       a Application layer em processo (ADR-0002)
 - [x] Integração com `Secco.SecureGate.Client` (auth) — criação automática das Roles
       `{slug}-admin`/`{slug}-user` ao cadastrar um setor
-- [ ] ⛔ **Bloqueado na plataforma** — envio de log ao LogStream. O `AddLogStream()` que a
-      ADR-0008 da plataforma promete não existe, e implementar um provider local aqui é
-      proibido pela ADR-0006 deste produto.
-      [secco-platform#1](https://github.com/rafsecco/secco-platform/issues/1)
+- [ ] Envio de log ao LogStream: registrar o `AddLogStream()` do `Secco.SDK.Logging` 0.1.0,
+      com bind lazy pela seção `Secco:LogStream` — presente, envia; ausente, o `ILogger` local
+      segue sozinho. **Desbloqueado** em 2026-09-05
+      ([secco-platform#1](https://github.com/rafsecco/secco-platform/issues/1))
 - [x] Sistema de temas: RCL resolvida por `IViewLocationExpander`, contrato de tema em
       `Secco.Intranet.Web.Theming` e o tema de saída `Vertical` — ADR-0003/ADR-0004
 - [ ] Tirar o SA do ambiente de desenvolvimento: script de init no `docker-compose.yml` criando
       usuário de aplicação com privilégio mínimo, e `.env.example` deixando de usar `sa` na
-      connection string do tenant. Dívida registrada pela ADR-0007; independe da plataforma
+      connection string do tenant. Dívida registrada pela ADR-0007; independe da plataforma —
+      mas o provisionamento do SecureGate 0.3.0 passa a ser a referência de como o privilégio
+      mínimo é definido
 
 ## Fase 1 — MVP visível
 
@@ -47,10 +49,11 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [ ] Tela de administração de setores (cadastro + toggle de recursos)
 - [ ] Central de notificação in-app (`AvisoUsuario`, sino + toast), consumindo o canal
       in-app do `Secco.NotificationHub` (já disponível)
-- [ ] ⛔ **Bloqueado na plataforma** — trilha de auditoria de ação de usuário (quem baixou qual
-      documento, quem publicou, quem entrou). `LogEntry` não tem campo de ator e não existe
-      recurso equivalente; a ADR-0006 proíbe construir trilha local, mesmo provisória.
-      [secco-platform#2](https://github.com/rafsecco/secco-platform/issues/2)
+- [ ] Trilha de auditoria de ação de usuário (quem baixou qual documento, quem publicou, quem
+      entrou), consumindo a superfície `audit-entries` do `Secco.LogStream.Client` 0.3.0.
+      **Desbloqueado** em 2026-09-05
+      ([secco-platform#2](https://github.com/rafsecco/secco-platform/issues/2)). Exige rodada
+      de desenho própria: o que auditar e onde instrumentar não estão decididos
 
 ## Fase 2 — Controle de processos (v1 simples)
 
@@ -79,9 +82,8 @@ processos (maior risco técnico) só entra com a base já sólida.
 
 - [ ] Chamados de TI com integração Jira/Zendesk/GitHub/Azure DevOps (conectores
       independentes, priorizar por demanda real)
-- [ ] Analytics em cima do LogStream. O "mais robusta" que esta linha dizia pressupunha uma
-      trilha básica que não existe em lugar nenhum — ela é agora um item explícito da Fase 1,
-      bloqueado em [secco-platform#2](https://github.com/rafsecco/secco-platform/issues/2)
+- [ ] Analytics em cima do LogStream. Depende da trilha de auditoria da Fase 1, que deixou de
+      estar bloqueada em 2026-09-05
 
 ## Fase 5 — Comunidade (pós-lançamento open source)
 

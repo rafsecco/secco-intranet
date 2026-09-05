@@ -8,16 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup Label="Secco Platform (feed privado — versões conforme tags MinVer do monorepo)">
-    <PackageVersion Include="Secco.SharedKernel" Version="0.3.3" />
-    <PackageVersion Include="Secco.SDK.AspNetCore" Version="0.4.1" />
-    <!-- O feed tem 0.2.0 desde 2026-07-12. Mantida em 0.1.0 até alguém verificar o que
-         mudou entre as duas: o changelog do monorepo só descreve versões a partir de
-         2026-08-30, e este é o pacote do SeccoDbContext e da convention de nomenclatura. -->
-    <PackageVersion Include="Secco.SDK.EntityFrameworkCore" Version="0.1.0" />
-    <!-- 0.2.1 e não 0.2.0: o 0.2.0 foi empacotado com dependências prerelease não
-         publicadas (regra "tag estável exige tag da dependência no mesmo commit" do
-         monorepo); o 0.2.1 é o mesmo código, republicado contra as dependências estáveis -->
-    <PackageVersion Include="Secco.SecureGate.Client" Version="0.2.1" />
+    <PackageVersion Include="Secco.SharedKernel" Version="0.3.4" />
+    <!-- 0.5.0 acrescenta SeccoAmbientContext (espelho AsyncLocal de tenant e correlação),
+         que é o que permite um sink de log singleton enxergar o tenant da requisição. -->
+    <PackageVersion Include="Secco.SDK.AspNetCore" Version="0.5.0" />
+    <PackageVersion Include="Secco.SDK.EntityFrameworkCore" Version="0.3.0" />
+    <PackageVersion Include="Secco.SecureGate.Client" Version="0.3.0" />
   </ItemGroup>
 
   <ItemGroup Label="Application">

@@ -17,10 +17,25 @@ Duas regras sustentam esta lista:
 
 | Demanda | O que trava aqui | Issue |
 |---|---|---|
-| `AddLogStream()` — o sink `ILogger` → LogStream que a ADR-0008 da plataforma promete | A intranet não envia log nenhum. Fase 0 parada, e nem erro de aplicação chega ao LogStream | [#1](https://github.com/rafsecco/secco-platform/issues/1) |
-| Trilha de auditoria de ação de usuário (`LogEntry` não tem campo de ator) | Sem registro consultável de quem fez o quê. A intranet **não** constrói trilha local — ver ADR-0006 | [#2](https://github.com/rafsecco/secco-platform/issues/2) |
-| Provisionamento de banco e usuário de tenant | Os exemplos de desenvolvimento usam SA; não há caminho para criar banco de tenant novo com privilégio mínimo | [#3](https://github.com/rafsecco/secco-platform/issues/3) |
 | Onde vive o console de operação (futuro do `Secco.AdminPortal`) | A área administrativa da Fase 2 não tem escopo definido: só o próprio tenant, ou também operação cross-tenant | [#4](https://github.com/rafsecco/secco-platform/issues/4) |
+
+## Atendidas
+
+A lista fica: ela é a evidência de que o canal funciona, e o registro de qual versão trouxe
+cada capacidade — informação que some se a linha for apagada.
+
+| Demanda | Entregue em | Issue |
+|---|---|---|
+| `AddLogStream()` — o sink `ILogger` → LogStream | `Secco.SDK.Logging` 0.1.0 (2026-09-05), com fila local, lote por tenant e guarda anti-recursão | [#1](https://github.com/rafsecco/secco-platform/issues/1) |
+| Trilha de auditoria de ação de usuário | `Secco.LogStream.Client` 0.2.0 (2026-09-05) — superfície `audit-entries`, **dentro do LogStream** e não como produto separado | [#2](https://github.com/rafsecco/secco-platform/issues/2) |
+| Provisionamento de banco e usuário de tenant | `Secco.SecureGate.Client` 0.3.0 (2026-09-05) — `ProvisionTenantDatabaseAsync` e `GetTenantDatabaseStatusAsync`, ADR-0028 da plataforma | [#3](https://github.com/rafsecco/secco-platform/issues/3) |
+
+A auditoria ter vindo como recurso do LogStream, e não como um `Secco.Audit`, **não muda nada
+aqui** — a [ADR-0006](adr/secco-intranet-adrs.md) já previa a bifurcação e registrou que este
+produto escolheu a origem da capacidade, não a implementação dela.
+
+Consumir o que chegou é trabalho próprio, ainda não feito: ver os itens correspondentes no
+[`roadmap.md`](roadmap.md).
 
 ## Como registrar uma demanda nova
 
