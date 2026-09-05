@@ -18,6 +18,9 @@ Duas regras sustentam esta lista:
 | Demanda | O que trava aqui | Issue |
 |---|---|---|
 | Onde vive o console de operação (futuro do `Secco.AdminPortal`) | A área administrativa da Fase 2 não tem escopo definido: só o próprio tenant, ou também operação cross-tenant | [#4](https://github.com/rafsecco/secco-platform/issues/4) |
+| Canal de comunicação corporativa (Teams, Slack) no `Secco.NotificationHub` | `NotificationHubChannels` é conjunto fechado e validado (`email`, `in_app`). O nível **Urgente** do Mural deveria alcançar a ferramenta onde a empresa conversa, e não há como a Intranet inventar um canal | a abrir |
+| Provider SendGrid para o `IEmailSender` do `Secco.NotificationHub` | Hoje só existe `MailKitEmailSender` (SMTP). Quem adota sem servidor de e-mail próprio não tem caminho — e implementar o provider aqui violaria a ADR-0006 | a abrir |
+| Criação de notificação em lote no `Secco.NotificationHub` | `CreateNotification` cria uma por chamada. Avisar a empresa toda vira N requisições; hoje contornamos com job em background, mas o leque pertence ao Hub | a abrir |
 
 ## Atendidas
 
