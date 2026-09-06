@@ -1,4 +1,4 @@
-using Secco.SharedKernel.Results;
+﻿using Secco.SharedKernel.Results;
 
 namespace Secco.Intranet.Application;
 
@@ -77,5 +77,40 @@ public static class IntranetErrors
 			Error.Failure(
 				"Intranet.Documento.ArmazenamentoIndisponivel",
 				"Não foi possível acessar o arquivo no momento. Tente novamente em instantes.");
+	}
+
+	/// <summary>Erros do recurso Publicação.</summary>
+	public static class Publicacoes
+	{
+		/// <summary>Título ausente ou vazio.</summary>
+		public static readonly Error TituloRequired =
+			Error.Validation("Intranet.Publicacao.TituloRequired", "O título é obrigatório.");
+
+		/// <summary>Título acima do limite configurado.</summary>
+		/// <param name="limit">Limite aplicado.</param>
+		public static Error TituloTooLong(int limit) =>
+			Error.Validation("Intranet.Publicacao.TituloTooLong", $"O título excede o limite de {limit} caracteres.");
+
+		/// <summary>Corpo ausente ou vazio.</summary>
+		public static readonly Error CorpoRequired =
+			Error.Validation("Intranet.Publicacao.CorpoRequired", "O corpo é obrigatório.");
+
+		/// <summary>Corpo acima do limite da coluna.</summary>
+		public static readonly Error CorpoTooLong =
+			Error.Validation("Intranet.Publicacao.CorpoTooLong", "O corpo excede o limite de 4000 caracteres.");
+
+		/// <summary>Expiração anterior ou igual à entrada no ar.</summary>
+		public static readonly Error ExpiracaoInvalida =
+			Error.Validation(
+				"Intranet.Publicacao.ExpiracaoInvalida",
+				"A data de expiração precisa ser posterior à data de entrada no ar.");
+
+		/// <summary>
+		/// Registro não encontrado, ou fora do alcance de quem pediu. Os dois casos
+		/// compartilham o erro de propósito: distinguir revelaria a existência da publicação
+		/// a quem não administra o setor.
+		/// </summary>
+		public static readonly Error NotFound =
+			Error.NotFound("Intranet.Publicacao.NotFound", "Publicação não encontrada.");
 	}
 }
