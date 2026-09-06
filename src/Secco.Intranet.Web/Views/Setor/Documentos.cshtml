@@ -32,6 +32,7 @@
 
 <nav class="sc-tabs" aria-label="Recursos do setor">
     <a class="sc-tabs__item is-active" asp-action="Documentos" asp-route-slug="@Model.Setor.Slug" aria-current="page">Documentos</a>
+    <a class="sc-tabs__item" asp-action="Avisos" asp-route-slug="@Model.Setor.Slug">Avisos</a>
 </nav>
 
 @if (!string.IsNullOrEmpty(mensagem))
