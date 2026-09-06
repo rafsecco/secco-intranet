@@ -1,11 +1,8 @@
+@using Secco.Intranet.Domain.Publicacoes
 @using Secco.Intranet.Web.Models.Mural
 @model MuralViewModel
 @{
     ViewData["Title"] = "Mural";
-
-    var cabecalho = new PageHeaderModel(
-        "Mural",
-        "Comunicados, eventos e notícias de toda a empresa.");
 
     static string Rotulo(TipoPublicacao tipo) => tipo switch
     {
@@ -13,6 +10,12 @@
         TipoPublicacao.Evento => "Evento",
         _ => "Notícia",
     };
+
+    string? PaginaUrl(int pagina) => Url.Action("Index", new { tipo = Model.Filtro, page = pagina });
+
+    var cabecalho = new PageHeaderModel(
+        "Mural",
+        "Comunicados, eventos e notícias dos setores da empresa.");
 
     var abas = new (string Texto, TipoPublicacao? Tipo)[]
     {
@@ -22,15 +25,21 @@
         ("Notícias", TipoPublicacao.Noticia),
     };
 
-    var vazio = Model.Demonstracao
+    var vazio = Model.Filtro is null
         ? new EmptyStateModel(
-            "bi-funnel",
-            "Nenhuma publicação com esse filtro",
-            "Escolha outro tipo para ver o restante do conteúdo.")
-        : new EmptyStateModel(
             "bi-megaphone",
             "O mural ainda não tem publicações",
-            "Publicações feitas pelos setores aparecem aqui, da mais recente para a mais antiga.");
+            "Publicações feitas pelos setores aparecem aqui, da mais recente para a mais antiga.")
+        : new EmptyStateModel(
+            "bi-funnel",
+            "Nenhuma publicação com esse filtro",
+            "Escolha outro tipo para ver o restante do conteúdo.");
+
+    var paginacao = new PaginationModel(
+        Model.Pagina.Page,
+        Model.Pagina.TotalPages,
+        Model.Pagina.HasPreviousPage ? PaginaUrl(Model.Pagina.Page - 1) : null,
+        Model.Pagina.HasNextPage ? PaginaUrl(Model.Pagina.Page + 1) : null);
 }
 
 <partial name="_PageHeader" model="cabecalho" />
@@ -45,23 +54,36 @@
     }
 </nav>
 
-@if (Model.Publicacoes.Count == 0)
+@if (Model.Pagina.Items.Count == 0)
 {
     <partial name="_EmptyState" model="vazio" />
 }
 else
 {
     <div class="sc-stack">
-        @foreach (var publicacao in Model.Publicacoes)
+        @foreach (var publicacao in Model.Pagina.Items)
         {
+            var urgente = publicacao.Prioridade == PrioridadePublicacao.Urgente;
+
             var card = new CardModel(
                 Titulo: publicacao.Titulo,
-                Meta: $"{Rotulo(publicacao.Tipo)} · {publicacao.PublicadoEm:dd/MM/yyyy}",
+                Meta: $"{Rotulo(publicacao.Tipo)} · {publicacao.PublicadoEm.ToLocalTime():dd/MM/yyyy}",
                 SetorSlug: publicacao.SetorSlug,
                 SetorNome: publicacao.SetorNome,
-                Texto: publicacao.Resumo);
+                Corpo: publicacao.Corpo);
 
-            <partial name="_Card" model="card" />
+            if (urgente)
+            {
+                <div class="sc-urgente">
+                    <partial name="_Card" model="card" />
+                </div>
+            }
+            else
+            {
+                <partial name="_Card" model="card" />
+            }
         }
     </div>
+
+    <partial name="_Pagination" model="paginacao" />
 }

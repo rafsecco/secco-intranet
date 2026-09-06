@@ -44,11 +44,11 @@ public class DemonstracaoTests(IntranetWebFactory factory) : IClassFixture<Intra
 	}
 
 	[Fact]
-	public async Task Mural_ComDemonstracaoDesligada_RespondeComEstadoVazio()
+	public async Task Mural_SemPublicacoes_RespondeComEstadoVazio()
 	{
-		var client = ComDemonstracao(habilitada: false);
-
-		var resposta = await client.GetAsync("/");
+		// O mural nao olha mais a flag de demonstracao: ele le publicacoes reais. O que
+		// continua valendo e que um mural sem nada a mostrar responde 200 com estado vazio.
+		var resposta = await factory.CreateClient().GetAsync("/");
 		var html = await resposta.Content.ReadAsStringAsync();
 
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK, "o mural é a página inicial e responde sempre");

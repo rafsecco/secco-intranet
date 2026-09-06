@@ -613,3 +613,23 @@ h1, h2, h3, h4, h5, h6 {
     display: none;
   }
 }
+
+// Publicacao urgente: o filete do setor continua dizendo de quem e, e o anel diz que corre.
+.sc-urgente .sc-card {
+  border-color: var(--bs-danger-border-subtle);
+  box-shadow: 0 0 0 3px var(--bs-danger-bg-subtle);
+}
+
+// Corpo vindo do markdown: o Razor nao controla essas tags, entao o espacamento vem daqui.
+.sc-card__body {
+  p:last-child,
+  ul:last-child,
+  ol:last-child {
+    margin-bottom: 0;
+  }
+
+  ul,
+  ol {
+    padding-left: 1.25rem;
+  }
+}
