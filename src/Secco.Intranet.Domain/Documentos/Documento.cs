@@ -3,16 +3,6 @@ using Secco.SharedKernel.Exceptions;
 
 namespace Secco.Intranet.Domain.Documentos;
 
-/// <summary>Quem enxerga um documento.</summary>
-public enum VisibilidadeDocumento
-{
-	/// <summary>Apenas quem tem a Role do setor dono (<c>{slug}-admin</c> ou <c>{slug}-user</c>).</summary>
-	Setor = 0,
-
-	/// <summary>Qualquer pessoa autenticada da instituição.</summary>
-	Empresa = 1,
-}
-
 /// <summary>
 /// Documento publicado por um setor. A entidade guarda apenas os metadados; os bytes ficam
 /// no <c>IArquivoStore</c>, cifrados, endereçados por <see cref="CaminhoRelativo"/> e
@@ -50,7 +40,7 @@ public sealed class Documento : BaseEntity
 		string nomeArquivo,
 		string contentType,
 		long tamanho,
-		VisibilidadeDocumento visibilidade,
+		Visibilidade visibilidade,
 		string caminhoRelativo,
 		string chaveEmbrulhada,
 		string criadoPor)
@@ -113,7 +103,7 @@ public sealed class Documento : BaseEntity
 	public long Tamanho { get; private set; }
 
 	/// <summary>Quem enxerga o documento (coluna <c>ie_visibilidade</c>).</summary>
-	public VisibilidadeDocumento Visibilidade { get; private set; }
+	public Visibilidade Visibilidade { get; private set; }
 
 	/// <summary>Endereço opaco no armazenamento (coluna <c>ds_caminho_relativo</c>).</summary>
 	public string CaminhoRelativo { get; private set; }
@@ -136,7 +126,7 @@ public sealed class Documento : BaseEntity
 
 	/// <summary>Troca quem enxerga o documento.</summary>
 	/// <param name="visibilidade">Nova visibilidade.</param>
-	public void AlterarVisibilidade(VisibilidadeDocumento visibilidade) => Visibilidade = visibilidade;
+	public void AlterarVisibilidade(Visibilidade visibilidade) => Visibilidade = visibilidade;
 
 	/// <summary>Retira o documento de circulação, preservando o registro e o arquivo.</summary>
 	public void Arquivar() => Ativo = false;

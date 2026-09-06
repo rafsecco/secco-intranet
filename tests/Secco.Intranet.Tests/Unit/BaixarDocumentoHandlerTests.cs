@@ -1,5 +1,6 @@
 using AwesomeAssertions;
 using Secco.Intranet.Application.Documentos;
+using Secco.Intranet.Domain;
 using Secco.Intranet.Domain.Documentos;
 using Xunit;
 
@@ -49,7 +50,7 @@ public class BaixarDocumentoHandlerTests
 			Task.CompletedTask;
 	}
 
-	private static DocumentoComSetor Documento(VisibilidadeDocumento visibilidade, bool ativo = true)
+	private static DocumentoComSetor Documento(Visibilidade visibilidade, bool ativo = true)
 	{
 		var documento = new Documento(
 			Guid.NewGuid(),
@@ -88,27 +89,27 @@ public class BaixarDocumentoHandlerTests
 
 	[Fact]
 	public async Task DocumentoDeSetor_SemVinculoDoUsuario_Nega() =>
-		(await LiberouAsync(Documento(VisibilidadeDocumento.Setor), exigirVinculo: true, "diretoria"))
+		(await LiberouAsync(Documento(Visibilidade.Setor), exigirVinculo: true, "diretoria"))
 			.Should().BeFalse();
 
 	[Fact]
 	public async Task DocumentoDeSetor_ComVinculoDoUsuario_Libera() =>
-		(await LiberouAsync(Documento(VisibilidadeDocumento.Setor), exigirVinculo: true, "financeiro"))
+		(await LiberouAsync(Documento(Visibilidade.Setor), exigirVinculo: true, "financeiro"))
 			.Should().BeTrue();
 
 	[Fact]
 	public async Task DocumentoDaEmpresa_SemVinculoNenhum_Libera() =>
-		(await LiberouAsync(Documento(VisibilidadeDocumento.Empresa), exigirVinculo: true))
+		(await LiberouAsync(Documento(Visibilidade.Empresa), exigirVinculo: true))
 			.Should().BeTrue("documento marcado para a empresa toda dispensa vínculo com o setor");
 
 	[Fact]
 	public async Task DocumentoDeSetor_NoModoAbertoDeDesenvolvimento_Libera() =>
-		(await LiberouAsync(Documento(VisibilidadeDocumento.Setor), exigirVinculo: false))
+		(await LiberouAsync(Documento(Visibilidade.Setor), exigirVinculo: false))
 			.Should().BeTrue();
 
 	[Fact]
 	public async Task DocumentoArquivado_MesmoComVinculo_Nega() =>
-		(await LiberouAsync(Documento(VisibilidadeDocumento.Setor, ativo: false), exigirVinculo: true, "financeiro"))
+		(await LiberouAsync(Documento(Visibilidade.Setor, ativo: false), exigirVinculo: true, "financeiro"))
 			.Should().BeFalse();
 
 	[Fact]
@@ -119,7 +120,7 @@ public class BaixarDocumentoHandlerTests
 	public async Task DocumentoNegado_DevolveOMesmoErroDeInexistente()
 	{
 		var handler = new BaixarDocumentoHandler(
-			new RepositorioFalso(Documento(VisibilidadeDocumento.Setor)), new StoreFalso());
+			new RepositorioFalso(Documento(Visibilidade.Setor)), new StoreFalso());
 
 		var negado = await handler.HandleAsync(new BaixarDocumentoQuery(
 			Guid.NewGuid(), new HashSet<string>(StringComparer.OrdinalIgnoreCase), ExigirVinculo: true));

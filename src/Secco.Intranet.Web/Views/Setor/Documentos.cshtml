@@ -1,4 +1,5 @@
 @using Secco.Intranet.Application.Documentos
+@using Secco.Intranet.Domain
 @using Secco.Intranet.Domain.Documentos
 @using Secco.Intranet.Web.Models.Documentos
 @model SetorDocumentosViewModel
@@ -67,8 +68,8 @@
                 <div class="col-md-4">
                     <label class="form-label" asp-for="Form.Visibilidade">Quem pode ver</label>
                     <select class="form-select" asp-for="Form.Visibilidade">
-                        <option value="@((int)VisibilidadeDocumento.Setor)">Somente este setor</option>
-                        <option value="@((int)VisibilidadeDocumento.Empresa)">Toda a empresa</option>
+                        <option value="@((int)Visibilidade.Setor)">Somente este setor</option>
+                        <option value="@((int)Visibilidade.Empresa)">Toda a empresa</option>
                     </select>
                 </div>
             </div>
@@ -89,7 +90,7 @@ else
     <ul class="sc-list">
         @foreach (var documento in Model.Documentos)
         {
-            var badge = documento.Visibilidade == VisibilidadeDocumento.Empresa
+            var badge = documento.Visibilidade == Visibilidade.Empresa
                 ? new BadgeModel("Toda a empresa", BadgeVariante.Neutro)
                 : new BadgeModel(documento.SetorNome, BadgeVariante.Setor, documento.SetorSlug);
 

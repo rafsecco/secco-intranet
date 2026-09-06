@@ -1,3 +1,4 @@
+using Secco.Intranet.Domain;
 using Secco.Intranet.Domain.Documentos;
 
 namespace Secco.Intranet.Application.Documentos;
@@ -25,7 +26,7 @@ public sealed record DocumentoDto(
 	string NomeArquivo,
 	string ContentType,
 	long Tamanho,
-	VisibilidadeDocumento Visibilidade,
+	Visibilidade Visibilidade,
 	Guid SetorId,
 	string SetorNome,
 	string SetorSlug,

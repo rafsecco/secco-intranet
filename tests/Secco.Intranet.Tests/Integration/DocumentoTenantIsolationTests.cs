@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application;
 using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Setores;
+using Secco.Intranet.Domain;
 using Secco.Intranet.Domain.Documentos;
 using Secco.SDK.AspNetCore.Tenancy;
 using Xunit;
@@ -45,7 +46,7 @@ public class DocumentoTenantIsolationTests(IntranetWebFactory factory)
 			conteudo,
 			// Visibilidade mais permissiva de propósito: assim o teste prova o isolamento do
 			// BANCO, e não a regra de autorização, que já tem testes próprios.
-			VisibilidadeDocumento.Empresa,
+			Visibilidade.Empresa,
 			"teste"));
 
 		publicado.IsSuccess.Should().BeTrue();

@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Setores;
+using Secco.Intranet.Domain;
 using Secco.Intranet.Domain.Documentos;
 
 namespace Secco.Intranet.Web.Models.Documentos;
@@ -18,7 +19,7 @@ public sealed class DocumentoFormViewModel
 	public string? Descricao { get; set; }
 
 	/// <summary>Quem enxerga o documento.</summary>
-	public VisibilidadeDocumento Visibilidade { get; set; } = VisibilidadeDocumento.Setor;
+	public Visibilidade Visibilidade { get; set; } = Visibilidade.Setor;
 }
 
 /// <summary>

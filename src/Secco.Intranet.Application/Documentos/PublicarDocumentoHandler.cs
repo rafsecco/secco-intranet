@@ -1,4 +1,5 @@
 using Secco.Intranet.Application.Setores;
+using Secco.Intranet.Domain;
 using Secco.Intranet.Domain.Documentos;
 using Secco.SharedKernel.Results;
 
@@ -20,7 +21,7 @@ public sealed record PublicarDocumentoCommand(
 	string? NomeArquivo,
 	long Tamanho,
 	Stream Conteudo,
-	VisibilidadeDocumento Visibilidade,
+	Visibilidade Visibilidade,
 	string CriadoPor);
 
 /// <summary>

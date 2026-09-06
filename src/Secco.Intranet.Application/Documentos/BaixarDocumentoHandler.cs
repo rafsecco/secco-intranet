@@ -1,3 +1,4 @@
+using Secco.Intranet.Domain;
 using Secco.Intranet.Domain.Documentos;
 using Secco.SharedKernel.Results;
 
@@ -65,7 +66,7 @@ public sealed class BaixarDocumentoHandler(IDocumentoRepository repository, IArq
 	}
 
 	private static bool PodeLer(DocumentoComSetor encontrado, BaixarDocumentoQuery query) =>
-		encontrado.Documento.Visibilidade == VisibilidadeDocumento.Empresa
+		encontrado.Documento.Visibilidade == Visibilidade.Empresa
 		|| !query.ExigirVinculo
 		|| query.SlugsDoUsuario.Contains(encontrado.SetorSlug);
 }
