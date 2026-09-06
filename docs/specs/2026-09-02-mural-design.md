@@ -200,19 +200,22 @@ Teams e Slack postam **uma** mensagem no canal da empresa, não uma por pessoa: 
 é a configuração do tenant, não cada destinatário. Então uma publicação urgente que alcança
 500 pessoas por e-mail gera 500 entregas de e-mail e **uma** de Teams.
 
-### Falha de entrega assíncrona ainda não tem relatório
+### Relatório de falha de entrega
 
-Destino inválido é resolvido acima. O que sobra é a falha depois do aceite — SMTP fora do ar,
-endereço que existe no cadastro mas rejeita. O Hub sabe (`Pending`/`Sent`/`Failed` com
-`FailureReason`), mas só expõe `GetNotification` por id: montar o relatório custaria uma
-chamada por destinatário, que é o custo que o lote acabou de eliminar.
+Destino inválido é resolvido acima, antes da chamada. O que sobra é a falha **depois** do
+aceite — SMTP fora do ar, endereço que existe no cadastro mas rejeita. Só o Hub conhece, e ele
+passa a expor: `SearchNotifications`, busca paginada com filtros
+([secco-platform#23](https://github.com/rafsecco/secco-platform/issues/23), publicada no
+`Secco.NotificationHub.Client` **0.4.0**).
 
-A capacidade **existe**: o Hub ganhou `SearchNotifications`, busca paginada com filtros, na
-[secco-platform#23](https://github.com/rafsecco/secco-platform/issues/23). Falta apenas o
-`Secco.NotificationHub.Client` ser publicado com ela — o código está na main, o feed ainda não.
+O relatório é **preguiçoso, e por isso barato**. Toda notificação criada leva
+`Source = "mural"` e `Type = "<id da publicação>"` — campos que o Hub declaradamente nunca
+interpreta. Quando quem publicou abre a publicação, **uma** busca filtrada por esses dois
+campos devolve os status. Nada de polling, nada de trabalho no instante da publicação: a
+pergunta só é feita por quem quer a resposta.
 
-Enquanto o pacote não sai, nenhum polling é implementado aqui: a espera é por um release, não
-por um desenho, e improvisar agora criaria código para apagar depois.
+Na aba do setor, a publicação mostra então quantas notificações saíram e quantas falharam, com
+o motivo que o Hub registrou.
 
 Para o dia em que sair, a publicação já grava o rastro: `Source = "mural"` e
 `Type = "<id da publicação>"` em toda notificação criada — campos que o Hub declaradamente

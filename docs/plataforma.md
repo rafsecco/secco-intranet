@@ -18,7 +18,6 @@ Duas regras sustentam esta lista:
 | Demanda | O que trava aqui | Issue |
 |---|---|---|
 | Onde vive o console de operação (futuro do `Secco.AdminPortal`) | A área administrativa da Fase 2 não tem escopo definido: só o próprio tenant, ou também operação cross-tenant | [#4](https://github.com/rafsecco/secco-platform/issues/4) |
-| Publicar o `Secco.NotificationHub.Client` com a busca de notificações | A issue #23 foi **entregue na main** — `SearchNotifications` existe na API, no `openapi.json` e no client gerado —, mas nenhuma tag contém o commit e o feed segue em 0.3.0. Sem release, o relatório de falha de entrega do Mural continua impossível aqui | [#23](https://github.com/rafsecco/secco-platform/issues/23) |
 
 ## Atendidas
 
@@ -33,6 +32,7 @@ cada capacidade — informação que some se a linha for apagada.
 | Canal de comunicação corporativa (Teams, Slack) | `Secco.NotificationHub` (2026-09-06), ADR-0029 — `NotificationHubChannels` passou a reconhecer `teams` e `slack` | [#13](https://github.com/rafsecco/secco-platform/issues/13) |
 | Provider SendGrid para `IEmailSender` | `Secco.NotificationHub` (2026-09-06) | [#14](https://github.com/rafsecco/secco-platform/issues/14) |
 | Criação de notificação em lote | `Secco.NotificationHub` (2026-09-06) — `POST /batch`, um conteúdo para muitos destinos numa chamada | [#15](https://github.com/rafsecco/secco-platform/issues/15) |
+| Consulta de status de notificação em massa | `Secco.NotificationHub.Client` 0.4.0 (2026-09-06) — `SearchNotifications`, busca paginada com filtros. Torna o relatório de falha de entrega uma chamada só, filtrando por `Source` e `Type` | [#23](https://github.com/rafsecco/secco-platform/issues/23) |
 
 A auditoria ter vindo como recurso do LogStream, e não como um `Secco.Audit`, **não muda nada
 aqui** — a [ADR-0006](adr/secco-intranet-adrs.md) já previa a bifurcação e registrou que este
