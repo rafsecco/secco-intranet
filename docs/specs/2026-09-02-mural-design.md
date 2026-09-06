@@ -207,8 +207,12 @@ endereço que existe no cadastro mas rejeita. O Hub sabe (`Pending`/`Sent`/`Fail
 `FailureReason`), mas só expõe `GetNotification` por id: montar o relatório custaria uma
 chamada por destinatário, que é o custo que o lote acabou de eliminar.
 
-Fica **dependente de [secco-platform#23](https://github.com/rafsecco/secco-platform/issues/23)**,
-que pede consulta em massa. Enquanto não sai, nenhum polling é implementado aqui.
+A capacidade **existe**: o Hub ganhou `SearchNotifications`, busca paginada com filtros, na
+[secco-platform#23](https://github.com/rafsecco/secco-platform/issues/23). Falta apenas o
+`Secco.NotificationHub.Client` ser publicado com ela — o código está na main, o feed ainda não.
+
+Enquanto o pacote não sai, nenhum polling é implementado aqui: a espera é por um release, não
+por um desenho, e improvisar agora criaria código para apagar depois.
 
 Para o dia em que sair, a publicação já grava o rastro: `Source = "mural"` e
 `Type = "<id da publicação>"` em toda notificação criada — campos que o Hub declaradamente

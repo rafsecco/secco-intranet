@@ -18,7 +18,7 @@ Duas regras sustentam esta lista:
 | Demanda | O que trava aqui | Issue |
 |---|---|---|
 | Onde vive o console de operação (futuro do `Secco.AdminPortal`) | A área administrativa da Fase 2 não tem escopo definido: só o próprio tenant, ou também operação cross-tenant | [#4](https://github.com/rafsecco/secco-platform/issues/4) |
-| Consulta de status de notificação em massa | O Hub só expõe `GetNotification` por id. Dizer a quem publicou o que não chegou custaria uma chamada por destinatário — o custo de N que o lote da #15 acabou de eliminar, reaparecendo na leitura | [#23](https://github.com/rafsecco/secco-platform/issues/23) |
+| Publicar o `Secco.NotificationHub.Client` com a busca de notificações | A issue #23 foi **entregue na main** — `SearchNotifications` existe na API, no `openapi.json` e no client gerado —, mas nenhuma tag contém o commit e o feed segue em 0.3.0. Sem release, o relatório de falha de entrega do Mural continua impossível aqui | [#23](https://github.com/rafsecco/secco-platform/issues/23) |
 
 ## Atendidas
 
