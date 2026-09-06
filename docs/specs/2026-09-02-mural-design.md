@@ -1,7 +1,7 @@
 # Mural — desenho do recurso
 
 **Data:** 2026-09-02
-**Revisado:** 2026-09-05, depois da entrega da plataforma
+**Revisado:** 2026-09-06, depois da segunda entrega da plataforma
 **Estado:** aprovado, pronto para plano de implementação
 
 ## Problema
@@ -13,6 +13,10 @@ persistência, nem forma de publicar.
 
 Este documento fecha o desenho do recurso real — item da Fase 1 do roadmap.
 
+> **O que a revisão de 2026-09-06 mudou.** O Hub passou a ter criação em lote e canais Teams
+> e Slack, e as três demandas que este desenho abriu foram atendidas. Com o lote, **o Hangfire
+> saiu**: era a maior adição de infraestrutura da v1 e existia só para evitar N chamadas HTTP.
+>
 > **O que a revisão de 2026-09-05 mudou.** A versão original tratava auditoria como
 > capacidade inexistente e não previa notificação. A plataforma publicou o sink de log, a
 > trilha de auditoria e o agendamento de jobs, e o `Secco.NotificationHub` já entregava o
@@ -44,9 +48,9 @@ Este documento fecha o desenho do recurso real — item da Fase 1 do roadmap.
   publicação agendada para o futuro.
 - **Menção a pessoas** (`@nome` no corpo, notificando o mencionado). Exige varrer o texto e
   resolver nomes contra o diretório, que ainda não existe como recurso real.
-- **Canal Teams/Slack no nível Urgente.** O conjunto de canais do Hub é fechado e validado
-  (`email`, `in_app`); um canal novo é capacidade de plataforma, não código daqui — vira
-  demanda em [`plataforma.md`](../plataforma.md).
+- **Menção e anexos** já listados acima seguem fora. Nada mais: as três demandas que este
+  desenho tinha aberto na plataforma — canal Teams/Slack, provider SendGrid e criação em lote
+  — foram atendidas em 2026-09-06.
 
 ## Modelo
 
@@ -152,37 +156,43 @@ ninguém erra menos marcando caixinhas:
 |---|---|
 | `Normal` | `in_app` |
 | `Importante` | `in_app` + `email` |
-| `Urgente` | `in_app` + `email`, e destaque próprio no card do Mural |
+| `Urgente` | `in_app` + `email` + `teams`/`slack`, e destaque próprio no card do Mural |
 
-Teams/Slack no `Urgente` fica registrado como demanda de plataforma: o Hub valida o canal
-contra um conjunto fechado, então não há como a Intranet inventar um.
+O Hub passou a reconhecer `teams` e `slack` (ADR-0029 da plataforma), então o `Urgente`
+alcança a ferramenta onde a empresa conversa. Os dois só saem se o canal estiver configurado
+lá; a Intranet declara a intenção e não sabe se há webhook do outro lado.
 
-### O leque acontece fora da requisição
+### O leque é uma chamada só
 
-`CreateNotification` do Hub cria **uma** notificação por chamada — não há endpoint de lote.
-Publicar para 500 pessoas dentro do request seriam 500 chamadas HTTP, com o tempo de publicar
-crescendo com o tamanho da empresa e uma falha no meio deixando parte dela sem aviso.
+O Hub ganhou `POST /batch` (`DispatchNotificationBatch`): **um conteúdo, muitos destinos, uma
+requisição**, respondendo `202 Accepted`. Com isso cai a razão que justificava fila local — o
+custo de notificar deixou de crescer com o tamanho da empresa.
 
-Por isso a publicação apenas **enfileira**:
+**O Hangfire sai deste desenho.** A versão anterior previa `IBackgroundJobScheduler` e um banco
+de storage próprio para evitar 500 chamadas HTTP; com o lote, sobra uma. Publicar chama o Hub
+inline, e o Hub cuida de fila, retry e entrega — que é onde essa responsabilidade sempre
+pertenceu. Infraestrutura que se evita é infraestrutura que não se opera.
+
+Duas consequências a assumir, em vez de esconder:
+
+- **Um destino inválido reprova o lote inteiro** (é o contrato declarado do endpoint). Um
+  e-mail malformado no cadastro derruba o aviso para todo mundo, então o erro precisa chegar
+  a quem publicou, com o destino culpado, e não virar log silencioso.
+- **Se o Hub estiver fora do ar no instante da publicação**, a publicação é gravada e o aviso
+  não sai. O publicador é avisado disso na mesma tela — publicado, sem notificar. Fila local
+  para cobrir esse caso volta a ser discutida quando houver evidência de que acontece, não por
+  antecipação.
+
+O fluxo fica:
 
 ```text
-1. Publicação persistida            (síncrono, é o que o usuário espera ver)
-2. Enqueue<NotificarPublicacaoJob>  (síncrono, barato)
+1. Publicação persistida         (sincrono, e o que o usuario espera ver)
+2. Destinatarios resolvidos      ListUsers do SecureGate, 1 chamada,
+                                 filtro por role em memoria
+3. POST /batch no Hub            1 chamada, 202 Accepted
        ↓
-3. Job: resolve destinatários       ListUsers do SecureGate, 1 chamada,
-                                    filtro por role em memória
-4. Job: cria N notificações no Hub
-       ↓
-5. Hub: fila, retry, envio          nada disso é código nosso
+4. Hub: fila, retry, envio       nada disso e codigo nosso
 ```
-
-O agendamento usa `IBackgroundJobScheduler` do `Secco.SDK.AspNetCore` (ADR-0015), que restaura
-o tenant no escopo do job automaticamente — o job nunca lida com tenancy.
-
-**Custo a assumir:** `AddSeccoBackgroundJobs` é opt-in e traz o Hangfire, que exige **banco
-próprio de storage** — o Hangfire cria o schema, mas não o database. É a maior adição de
-infraestrutura desta v1, e precisa entrar no `docker-compose.yml` e na documentação de
-implantação.
 
 ### Destinatários
 
@@ -273,8 +283,8 @@ Mesma regra dos documentos, sem conceito novo:
 - `VisibilidadeDocumento` vira `Visibilidade`, compartilhado. Sem migration.
 - `SetorController` ganha a aba de avisos.
 - **O contrato de tema cresce**: parcial `_Notificacoes` para o sino.
-- **Infraestrutura nova**: Hangfire e seu banco de storage.
-- **Demandas novas para a plataforma**: canal Teams/Slack e provider SendGrid.
+- **Nenhuma infraestrutura nova.** A versão anterior deste desenho trazia Hangfire e um banco
+  de storage; o lote do Hub tornou os dois desnecessários.
 
 ## Testes
 
