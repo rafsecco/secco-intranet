@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
 
   <!-- Central Package Management: toda versão de pacote da solução é declarada aqui.
        Os .csproj usam PackageReference sem atributo Version. -->
@@ -23,6 +23,8 @@
   <ItemGroup Label="Web">
     <!-- Relying party OIDC (ADR-0023): o handler não vem implícito no FrameworkReference. -->
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.9" />
+    <!-- Markdown do mural. O pipeline desabilita HTML bruto, entao nao ha sanitizador a manter. -->
+    <PackageVersion Include="Markdig" Version="1.3.2" />
   </ItemGroup>
 
   <ItemGroup Label="EF Core / Migrations">

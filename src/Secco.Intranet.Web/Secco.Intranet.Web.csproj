@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <!-- Raiz de composição do monolito (ADR-0002): Secco.Intranet.Web consome a Application
        layer em processo, sem Api HTTP separada. Carrega os dois assemblies de migrations
@@ -7,6 +7,7 @@
     <PackageReference Include="Secco.SDK.AspNetCore" />
     <!-- Relying party OIDC (ADR-0023) — ver Authentication/IntranetAuthenticationExtensions.cs -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
+    <PackageReference Include="Markdig" />
   </ItemGroup>
 
   <ItemGroup>
