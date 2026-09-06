@@ -2,78 +2,81 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Secco.Intranet.Infrastructure.Contexts;
 
 #nullable disable
 
-namespace Secco.Intranet.Migrations.SqlServer.Migrations
+namespace Secco.Intranet.Migrations.Postgres.Migrations
 {
     [DbContext(typeof(IntranetDbContext))]
-    partial class IntranetDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260906191329_Publicacoes")]
+    partial class Publicacoes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "10.0.10")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Secco.Intranet.Domain.Documentos.Documento", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("uuid")
                         .HasColumnName("id_pk_documento");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasColumnName("fl_ativo");
 
                     b.Property<string>("CaminhoRelativo")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)")
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("ds_caminho_relativo");
 
                     b.Property<string>("ChaveEmbrulhada")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)")
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("ds_chave_embrulhada");
 
                     b.Property<string>("ContentType")
                         .IsRequired()
                         .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)")
+                        .HasColumnType("character varying(128)")
                         .HasColumnName("ds_content_type");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_created_at");
 
                     b.Property<string>("CriadoPor")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)")
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("ds_criado_por");
 
                     b.Property<string>("Descricao")
                         .HasMaxLength(4096)
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("character varying(4096)")
                         .HasColumnName("ds_descricao");
 
                     b.Property<string>("NomeArquivo")
                         .IsRequired()
                         .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)")
+                        .HasColumnType("character varying(512)")
                         .HasColumnName("ds_nome_arquivo");
 
                     b.Property<Guid>("SetorId")
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("uuid")
                         .HasColumnName("id_fk_setor");
 
                     b.Property<long>("Tamanho")
@@ -83,11 +86,11 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
                     b.Property<string>("Titulo")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)")
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("ds_titulo");
 
                     b.Property<int>("Visibilidade")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ie_visibilidade");
 
                     b.HasKey("Id")
@@ -109,61 +112,61 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("uuid")
                         .HasColumnName("id_pk_publicacao");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasColumnName("fl_ativo");
 
                     b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("datetimeoffset")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_atualizado_em");
 
                     b.Property<string>("Corpo")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)")
+                        .HasColumnType("character varying(4000)")
                         .HasColumnName("ds_corpo");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_created_at");
 
                     b.Property<string>("CriadoPor")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)")
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("ds_criado_por");
 
                     b.Property<DateTimeOffset?>("ExpiraEm")
-                        .HasColumnType("datetimeoffset")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_expira_em");
 
                     b.Property<int>("Prioridade")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ie_prioridade");
 
                     b.Property<DateTimeOffset>("PublicadoEm")
-                        .HasColumnType("datetimeoffset")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_publicado_em");
 
                     b.Property<Guid>("SetorId")
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("uuid")
                         .HasColumnName("id_fk_setor");
 
                     b.Property<int>("Tipo")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ie_tipo");
 
                     b.Property<string>("Titulo")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)")
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("ds_titulo");
 
                     b.Property<int>("Visibilidade")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ie_visibilidade");
 
                     b.HasKey("Id")
@@ -182,29 +185,29 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("uuid")
                         .HasColumnName("id_pk_setor");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasColumnName("fl_ativo");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_created_at");
 
                     b.Property<bool>("Fixo")
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasColumnName("fl_fixo");
 
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)")
+                        .HasColumnType("text")
                         .HasColumnName("ds_nome");
 
                     b.Property<string>("Slug")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)")
+                        .HasColumnType("text")
                         .HasColumnName("ds_slug");
 
                     b.HasKey("Id")

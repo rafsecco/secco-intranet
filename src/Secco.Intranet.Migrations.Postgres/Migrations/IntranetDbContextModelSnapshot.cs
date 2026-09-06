@@ -105,6 +105,79 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                     b.ToTable("tb_documentos");
                 });
 
+            modelBuilder.Entity("Secco.Intranet.Domain.Publicacoes.Publicacao", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id_pk_publicacao");
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean")
+                        .HasColumnName("fl_ativo");
+
+                    b.Property<DateTimeOffset?>("AtualizadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dt_atualizado_em");
+
+                    b.Property<string>("Corpo")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("ds_corpo");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dt_created_at");
+
+                    b.Property<string>("CriadoPor")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("ds_criado_por");
+
+                    b.Property<DateTimeOffset?>("ExpiraEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dt_expira_em");
+
+                    b.Property<int>("Prioridade")
+                        .HasColumnType("integer")
+                        .HasColumnName("ie_prioridade");
+
+                    b.Property<DateTimeOffset>("PublicadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dt_publicado_em");
+
+                    b.Property<Guid>("SetorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id_fk_setor");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("integer")
+                        .HasColumnName("ie_tipo");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("ds_titulo");
+
+                    b.Property<int>("Visibilidade")
+                        .HasColumnType("integer")
+                        .HasColumnName("ie_visibilidade");
+
+                    b.HasKey("Id")
+                        .HasName("pk_publicacoes");
+
+                    b.HasIndex("SetorId")
+                        .HasDatabaseName("idx_publicacoes_id_fk_setor");
+
+                    b.HasIndex("Ativo", "PublicadoEm")
+                        .HasDatabaseName("idx_publicacoes_fl_ativo_dt_publicado_em");
+
+                    b.ToTable("tb_publicacoes");
+                });
+
             modelBuilder.Entity("Secco.Intranet.Domain.Setores.Setor", b =>
                 {
                     b.Property<Guid>("Id")
@@ -158,6 +231,16 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_documentos_setor");
+                });
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Publicacoes.Publicacao", b =>
+                {
+                    b.HasOne("Secco.Intranet.Domain.Setores.Setor", null)
+                        .WithMany()
+                        .HasForeignKey("SetorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_publicacoes_setor");
                 });
 #pragma warning restore 612, 618
         }

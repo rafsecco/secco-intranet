@@ -48,9 +48,8 @@ Este documento fecha o desenho do recurso real — item da Fase 1 do roadmap.
   publicação agendada para o futuro.
 - **Menção a pessoas** (`@nome` no corpo, notificando o mencionado). Exige varrer o texto e
   resolver nomes contra o diretório, que ainda não existe como recurso real.
-- **Menção e anexos** já listados acima seguem fora. Nada mais: as três demandas que este
-  desenho tinha aberto na plataforma — canal Teams/Slack, provider SendGrid e criação em lote
-  — foram atendidas em 2026-09-06.
+Nada além disso: as três demandas que este desenho abriu na plataforma — canal Teams/Slack,
+provider SendGrid e criação em lote — foram atendidas em 2026-09-06.
 
 ## Modelo
 
