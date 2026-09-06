@@ -1,5 +1,6 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Documentos;
+using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Setores;
 
 namespace Secco.Intranet.Application;
@@ -25,6 +26,8 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ListarDocumentosHandler>();
 		services.AddScoped<BaixarDocumentoHandler>();
 		services.AddScoped<ArquivarDocumentoHandler>();
+
+		services.AddScoped<ListarMuralHandler>();
 
 		return services;
 	}
