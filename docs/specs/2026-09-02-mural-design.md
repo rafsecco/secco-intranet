@@ -173,25 +173,63 @@ de storage próprio para evitar 500 chamadas HTTP; com o lote, sobra uma. Public
 inline, e o Hub cuida de fila, retry e entrega — que é onde essa responsabilidade sempre
 pertenceu. Infraestrutura que se evita é infraestrutura que não se opera.
 
-Duas consequências a assumir, em vez de esconder:
+### Destino inválido não é acidente: é filtrado antes
 
-- **Um destino inválido reprova o lote inteiro** (é o contrato declarado do endpoint). Um
-  e-mail malformado no cadastro derruba o aviso para todo mundo, então o erro precisa chegar
-  a quem publicou, com o destino culpado, e não virar log silencioso.
-- **Se o Hub estiver fora do ar no instante da publicação**, a publicação é gravada e o aviso
-  não sai. O publicador é avisado disso na mesma tela — publicado, sem notificar. Fila local
-  para cobrir esse caso volta a ser discutida quando houver evidência de que acontece, não por
-  antecipação.
+O lote valida **todos** os destinos antes de qualquer escrita, e um inválido reprova o lote
+inteiro apontando a posição. Nada fica pela metade — ou tudo entra, ou nada entra. A escolha é
+deliberada do Hub, e está certa: gravar os válidos e reportar o resto deixaria o chamador sem
+saber o que repetir.
+
+Do nosso lado isso significa **particionar antes de chamar**, e sai de graça: já percorremos a
+lista de usuários para montar os destinos. Quem não tem e-mail cadastrado — com o canal
+`email` pedido — ou tem endereço malformado sai da lista, e o lote vai só com os válidos.
+
+O publicador vê o resultado na mesma tela: *publicado; 3 pessoas sem e-mail cadastrado não
+foram notificadas por e-mail*, com os nomes. Sem chamada extra, sem polling.
+
+### Acima de 500 destinos, o lote é fatiado
+
+`MaxBatchDestinations` é 500 no Hub. Público maior é dividido em blocos desse tamanho, uma
+chamada por bloco: mil pessoas viram duas chamadas, não mil. Cada bloco continua sendo
+tudo-ou-nada em si, o que é irrelevante depois da partição — os destinos que chegam ao Hub já
+passaram pela nossa validação.
+
+### Canal externo entrega uma vez, não N
+
+Teams e Slack postam **uma** mensagem no canal da empresa, não uma por pessoa: o destino deles
+é a configuração do tenant, não cada destinatário. Então uma publicação urgente que alcança
+500 pessoas por e-mail gera 500 entregas de e-mail e **uma** de Teams.
+
+### Falha de entrega assíncrona ainda não tem relatório
+
+Destino inválido é resolvido acima. O que sobra é a falha depois do aceite — SMTP fora do ar,
+endereço que existe no cadastro mas rejeita. O Hub sabe (`Pending`/`Sent`/`Failed` com
+`FailureReason`), mas só expõe `GetNotification` por id: montar o relatório custaria uma
+chamada por destinatário, que é o custo que o lote acabou de eliminar.
+
+Fica **dependente de [secco-platform#23](https://github.com/rafsecco/secco-platform/issues/23)**,
+que pede consulta em massa. Enquanto não sai, nenhum polling é implementado aqui.
+
+Para o dia em que sair, a publicação já grava o rastro: `Source = "mural"` e
+`Type = "<id da publicação>"` em toda notificação criada — campos que o Hub declaradamente
+nunca interpreta, e que tornam a consulta futura uma chamada só.
+
+### Se o Hub estiver fora do ar
+
+A publicação é gravada e o aviso não sai. O publicador é avisado disso na mesma tela —
+publicado, sem notificar. Fila local para cobrir esse caso volta a ser discutida quando houver
+evidência de que acontece, não por antecipação.
 
 O fluxo fica:
 
 ```text
-1. Publicação persistida         (sincrono, e o que o usuario espera ver)
-2. Destinatarios resolvidos      ListUsers do SecureGate, 1 chamada,
-                                 filtro por role em memoria
-3. POST /batch no Hub            1 chamada, 202 Accepted
+1. Publicacao persistida          (sincrono, e o que o usuario espera ver)
+2. Destinatarios resolvidos       ListUsers do SecureGate, 1 chamada,
+                                  filtro por role em memoria
+3. Destinos particionados         validos vao; invalidos viram relatorio
+4. POST /batch, em blocos de 500  1 chamada por bloco, 202 Accepted
        ↓
-4. Hub: fila, retry, envio       nada disso e codigo nosso
+5. Hub: fila, retry, envio        nada disso e codigo nosso
 ```
 
 ### Destinatários
