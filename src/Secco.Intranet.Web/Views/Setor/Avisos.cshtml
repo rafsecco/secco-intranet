@@ -1,0 +1,172 @@
+@using Secco.Intranet.Application.Publicacoes
+@using Secco.Intranet.Domain
+@using Secco.Intranet.Domain.Publicacoes
+@using Secco.Intranet.Web.Models.Publicacoes
+@model SetorAvisosViewModel
+@{
+    ViewData["Title"] = $"Avisos · {Model.Setor.Nome}";
+
+    var cabecalho = new PageHeaderModel(
+        Model.Setor.Nome,
+        "Avisos publicados por este setor no mural.",
+        Model.Setor.Slug);
+
+    var vazio = new EmptyStateModel(
+        "bi-megaphone",
+        "Nenhum aviso publicado",
+        Model.PodePublicar
+            ? "Escreva o primeiro no formulário acima."
+            : "Quando o setor publicar algum aviso, ele aparece aqui.");
+
+    BadgeModel Etiqueta(PublicacaoDto publicacao)
+    {
+        if (!publicacao.Ativo)
+        {
+            return new BadgeModel("Arquivada", BadgeVariante.Neutro);
+        }
+
+        if (publicacao.PublicadoEm > Model.Agora)
+        {
+            return new BadgeModel("Agendada", BadgeVariante.Aviso);
+        }
+
+        return publicacao.EstaNoAr(Model.Agora)
+            ? new BadgeModel("No ar", BadgeVariante.Sucesso)
+            : new BadgeModel("Expirada", BadgeVariante.Neutro);
+    }
+
+    var mensagem = TempData["Mensagem"] as string;
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<nav class="sc-tabs" aria-label="Recursos do setor">
+    <a class="sc-tabs__item" asp-action="Documentos" asp-route-slug="@Model.Setor.Slug">Documentos</a>
+    <a class="sc-tabs__item is-active" asp-action="Avisos" asp-route-slug="@Model.Setor.Slug" aria-current="page">Avisos</a>
+</nav>
+
+@if (!string.IsNullOrEmpty(mensagem))
+{
+    <div class="alert alert-success" role="status">@mensagem</div>
+}
+
+@if (Model.PodePublicar)
+{
+    <div class="sc-panel mb-3">
+        <h2 class="h6 mb-3">Publicar aviso</h2>
+
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+        <form method="post" asp-action="SalvarAviso" asp-route-slug="@Model.Setor.Slug">
+            <input type="hidden" asp-for="Form.Id" />
+
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label" asp-for="Form.Titulo">Título</label>
+                    <input class="form-control" asp-for="Form.Titulo" autocomplete="off" />
+                    <span class="text-danger" asp-validation-for="Form.Titulo"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" asp-for="Form.Tipo">Tipo</label>
+                    <select class="form-select" asp-for="Form.Tipo">
+                        <option value="@((int)TipoPublicacao.Aviso)">Aviso</option>
+                        <option value="@((int)TipoPublicacao.Evento)">Evento</option>
+                        <option value="@((int)TipoPublicacao.Noticia)">Notícia</option>
+                    </select>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label" asp-for="Form.Corpo">Corpo</label>
+                    <textarea class="form-control" asp-for="Form.Corpo" rows="8" data-sc-editor-markdown></textarea>
+                    <span class="text-danger" asp-validation-for="Form.Corpo"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" asp-for="Form.Visibilidade">Quem pode ver</label>
+                    <select class="form-select" asp-for="Form.Visibilidade">
+                        <option value="@((int)Visibilidade.Empresa)">Toda a empresa</option>
+                        <option value="@((int)Visibilidade.Setor)">Somente este setor</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" asp-for="Form.Prioridade">Urgência</label>
+                    <select class="form-select" asp-for="Form.Prioridade">
+                        <option value="@((int)PrioridadePublicacao.Normal)">Normal</option>
+                        <option value="@((int)PrioridadePublicacao.Importante)">Importante</option>
+                        <option value="@((int)PrioridadePublicacao.Urgente)">Urgente</option>
+                    </select>
+                    <div class="form-text">Urgente ganha destaque no mural.</div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" asp-for="Form.PublicadoEm">Entra no ar em</label>
+                    <input class="form-control" type="datetime-local" asp-for="Form.PublicadoEm" />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" asp-for="Form.ExpiraEm">Sai do ar em</label>
+                    <input class="form-control" type="datetime-local" asp-for="Form.ExpiraEm" />
+                </div>
+
+                <div class="col-12">
+                    <p class="form-text mb-0">
+                        A publicação aparece no mural a partir da data de entrada no ar e deixa de
+                        aparecer na data de saída. Deixe a saída em branco para não expirar.
+                    </p>
+                </div>
+            </div>
+
+            <div class="sc-form__actions">
+                <button class="btn btn-primary" type="submit">Salvar publicação</button>
+            </div>
+        </form>
+    </div>
+}
+
+@if (Model.Publicacoes.Count == 0)
+{
+    <partial name="_EmptyState" model="vazio" />
+}
+else
+{
+    <ul class="sc-list">
+        @foreach (var publicacao in Model.Publicacoes)
+        {
+            var etiqueta = Etiqueta(publicacao);
+
+            <li class="sc-list__item" style="--sc-setor-hue:@SetorHue.From(publicacao.SetorSlug)">
+                <span class="sc-list__icon" aria-hidden="true"><i class="bi bi-megaphone"></i></span>
+                <div class="sc-list__text">
+                    <p class="sc-list__title">@publicacao.Titulo</p>
+                    <span class="sc-list__sub">
+                        <span class="sc-meta">@publicacao.PublicadoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                        <partial name="_Badge" model="etiqueta" />
+                    </span>
+                </div>
+                @if (Model.PodePublicar && publicacao.Ativo)
+                {
+                    <div class="sc-list__actions">
+                        <form method="post" asp-action="ArquivarAviso"
+                              asp-route-slug="@Model.Setor.Slug" asp-route-id="@publicacao.Id">
+                            <button class="btn btn-outline-secondary btn-sm" type="submit"
+                                    title="Arquivar @publicacao.Titulo">
+                                <i class="bi bi-archive" aria-hidden="true"></i>
+                                <span class="visually-hidden">Arquivar @publicacao.Titulo</span>
+                            </button>
+                        </form>
+                    </div>
+                }
+            </li>
+        }
+    </ul>
+}
+
+@section Scripts {
+    <link rel="stylesheet" href="~/_content/Secco.Intranet.Themes.Vertical/vendor/css/toastui-editor.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/_content/Secco.Intranet.Themes.Vertical/vendor/css/toastui-editor-dark.css" asp-append-version="true" />
+    <script src="~/_content/Secco.Intranet.Themes.Vertical/vendor/js/toastui-editor.js" asp-append-version="true"></script>
+    <script src="~/_content/Secco.Intranet.Themes.Vertical/vendor/js/i18n/pt-br.js" asp-append-version="true"></script>
+    <script src="~/_content/Secco.Intranet.Themes.Vertical/js/editor.js" asp-append-version="true"></script>
+}

@@ -1,10 +1,28 @@
 @model ErrorViewModel
 @{
     ViewData["Title"] = "Erro";
+
+    var cabecalho = new PageHeaderModel(
+        "Não foi possível concluir a operação",
+        "Algo falhou ao processar a requisição. Tente de novo; se persistir, informe ao suporte o identificador abaixo.");
 }
-<h1 class="text-danger">Ocorreu um erro.</h1>
-<p>Um erro inesperado aconteceu ao processar a requisição.</p>
-@if (Model.ShowRequestId)
-{
-    <p><strong>Request Id:</strong> <code>@Model.RequestId</code></p>
-}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel">
+    @if (Model.ShowRequestId)
+    {
+        <p class="mb-1">Identificador da requisição</p>
+        <p class="sc-meta mb-0">@Model.RequestId</p>
+    }
+    else
+    {
+        <p class="mb-0">Nenhum identificador de requisição disponível.</p>
+    }
+</div>
+
+<p class="mt-3">
+    <a class="btn btn-outline-secondary" asp-controller="Mural" asp-action="Index">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i> Voltar para o mural
+    </a>
+</p>

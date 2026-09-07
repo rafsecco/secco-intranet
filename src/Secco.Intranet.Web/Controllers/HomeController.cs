@@ -4,11 +4,13 @@ using Secco.Intranet.Web.Models;
 
 namespace Secco.Intranet.Web.Controllers;
 
-/// <summary>Página inicial e tratamento de erro padrão do monolito (ADR-0002).</summary>
+/// <summary>Tratamento de erro padrão do monolito (ADR-0002).</summary>
 public sealed class HomeController : Controller
 {
-	/// <summary>Página inicial com links para os módulos disponíveis.</summary>
-	public IActionResult Index() => View();
+	/// <summary>
+	/// Mantida para os redirecionamentos existentes: a página inicial da Intranet é o Mural.
+	/// </summary>
+	public IActionResult Index() => RedirectToAction("Index", "Mural");
 
 	/// <summary>
 	/// Página de erro padrão (ADR-0020): nunca expõe stack trace ou mensagem de exceção,

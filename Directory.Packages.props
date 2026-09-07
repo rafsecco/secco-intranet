@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
 
   <!-- Central Package Management: toda versão de pacote da solução é declarada aqui.
        Os .csproj usam PackageReference sem atributo Version. -->
@@ -8,14 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup Label="Secco Platform (feed privado — versões conforme tags MinVer do monorepo)">
-    <PackageVersion Include="Secco.SharedKernel" Version="0.3.2" />
-    <PackageVersion Include="Secco.SDK.AspNetCore" Version="0.4.1" />
-    <!-- Tag sdk-efcore/v0.2.0 existe no monorepo, mas o feed só tem 0.1.0 publicado -->
-    <PackageVersion Include="Secco.SDK.EntityFrameworkCore" Version="0.1.0" />
-    <!-- 0.2.1 e não 0.2.0: o 0.2.0 foi empacotado com dependências prerelease não
-         publicadas (regra "tag estável exige tag da dependência no mesmo commit" do
-         monorepo); o 0.2.1 é o mesmo código, republicado contra as dependências estáveis -->
-    <PackageVersion Include="Secco.SecureGate.Client" Version="0.2.1" />
+    <PackageVersion Include="Secco.SharedKernel" Version="0.3.5" />
+    <!-- 0.5.0 acrescenta SeccoAmbientContext (espelho AsyncLocal de tenant e correlação),
+         que é o que permite um sink de log singleton enxergar o tenant da requisição. -->
+    <PackageVersion Include="Secco.SDK.AspNetCore" Version="0.5.1" />
+    <PackageVersion Include="Secco.SDK.EntityFrameworkCore" Version="0.4.0" />
+    <PackageVersion Include="Secco.SecureGate.Client" Version="0.3.0" />
   </ItemGroup>
 
   <ItemGroup Label="Application">
@@ -25,6 +23,8 @@
   <ItemGroup Label="Web">
     <!-- Relying party OIDC (ADR-0023): o handler não vem implícito no FrameworkReference. -->
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.9" />
+    <!-- Markdown do mural. O pipeline desabilita HTML bruto, entao nao ha sanitizador a manter. -->
+    <PackageVersion Include="Markdig" Version="1.3.2" />
   </ItemGroup>
 
   <ItemGroup Label="EF Core / Migrations">
@@ -41,6 +41,10 @@
          a partir da linha 9.x o namespace passou a ser AwesomeAssertions -->
     <PackageVersion Include="AwesomeAssertions" Version="9.4.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.10" />
+    <!-- Base das factories de integração da plataforma (ADR-0027): traz o Testcontainers
+         e a instância de SQL Server, então o produto não reescreve a própria factory. -->
+    <PackageVersion Include="Secco.SDK.Testing" Version="0.1.0" />
+    <!-- Versão fixada para o pinning transitivo; a referência direta saiu com o SDK.Testing. -->
     <PackageVersion Include="Testcontainers.MsSql" Version="4.14.0" />
   </ItemGroup>
 

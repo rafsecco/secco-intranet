@@ -1,0 +1,58 @@
+@using Secco.Intranet.Web.Models.Diretorio
+@model DiretorioViewModel
+@{
+    ViewData["Title"] = "Diretório";
+
+    var cabecalho = new PageHeaderModel(
+        "Diretório",
+        "Quem trabalha em cada setor, com ramal e e-mail.");
+
+    var vazio = new EmptyStateModel(
+        "bi-people",
+        "Ninguém encontrado com esse termo",
+        "Busque por nome, cargo ou setor.");
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<form method="get" asp-action="Index" class="row g-2 mb-3" role="search">
+    <div class="col-sm-auto flex-grow-1">
+        <label class="visually-hidden" for="busca">Buscar pessoa</label>
+        <input class="form-control" type="search" id="busca" name="busca" value="@Model.Busca"
+               placeholder="Buscar por nome, cargo ou setor" />
+    </div>
+    <div class="col-sm-auto">
+        <button class="btn btn-outline-secondary w-100" type="submit">Buscar</button>
+    </div>
+</form>
+
+@if (Model.Pessoas.Count == 0)
+{
+    <partial name="_EmptyState" model="vazio" />
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var pessoa in Model.Pessoas)
+        {
+            var badge = new BadgeModel(pessoa.SetorNome, BadgeVariante.Setor, pessoa.SetorSlug);
+
+            <div class="col-12 col-md-6 col-xl-4">
+                <article class="sc-card sc-card--setor h-100" style="--sc-setor-hue:@SetorHue.From(pessoa.SetorSlug)">
+                    <div class="d-flex gap-3">
+                        <span class="sc-avatar sc-avatar--lg flex-shrink-0" aria-hidden="true">@pessoa.Iniciais</span>
+                        <div class="min-w-0">
+                            <h3 class="sc-card__title">@pessoa.Nome</h3>
+                            <p class="mb-1 text-body-secondary small">@pessoa.Cargo</p>
+                            <partial name="_Badge" model="badge" />
+                            <p class="sc-meta mt-2 mb-0">
+                                @pessoa.Email<br />
+                                Ramal @pessoa.Ramal
+                            </p>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        }
+    </div>
+}

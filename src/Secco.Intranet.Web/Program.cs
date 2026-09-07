@@ -1,7 +1,10 @@
-using Secco.Intranet.Application;
+﻿using Secco.Intranet.Application;
 using Secco.Intranet.Infrastructure;
+using Secco.Intranet.Web;
 using Secco.Intranet.Web.Authentication;
+using Secco.Intranet.Web.Conteudo;
 using Secco.Intranet.Web.Tenancy;
+using Secco.Intranet.Web.Theming;
 using Secco.SDK.AspNetCore.Extensions;
 using Secco.SDK.EntityFrameworkCore.Seeding;
 
@@ -17,6 +20,20 @@ using Secco.SDK.EntityFrameworkCore.Seeding;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
+
+// Sistema de temas (ADR-0003/ADR-0004): o expander da precedencia as views do tema ativo.
+builder.Services.AddIntranetTheming();
+builder.Services.AddSingleton<IRenderizadorMarkdown, RenderizadorMarkdown>();
+
+// Paginas de demonstracao: desligadas por padrao (ver DemoOptions). Bind lazy, como o
+// restante da configuracao do produto.
+builder.Services.AddSingleton(serviceProvider =>
+{
+	var demoOptions = new DemoOptions();
+	serviceProvider.GetRequiredService<IConfiguration>().GetSection(DemoOptions.SectionKey).Bind(demoOptions);
+
+	return demoOptions;
+});
 
 // Cross-cutting individual do SDK (ADR-0004): correlação, tenancy (ADR-0005) e health
 // checks. Sem AddSeccoAuthentication()/AddSeccoAuthorization() — ver comentário acima.
@@ -68,7 +85,7 @@ if (IntranetAuthenticationExtensions.IsConfigured(app.Configuration))
 app.MapSeccoHealthChecks();
 app.MapControllerRoute(
 	name: "default",
-	pattern: "{controller=Home}/{action=Index}/{id?}");
+	pattern: "{controller=Mural}/{action=Index}/{id?}");
 
 if (app.Environment.IsDevelopment())
 {

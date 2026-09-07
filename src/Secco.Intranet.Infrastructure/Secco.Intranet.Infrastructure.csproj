@@ -18,4 +18,10 @@
     <ProjectReference Include="..\Secco.Intranet.Application\Secco.Intranet.Application.csproj" />
   </ItemGroup>
 
+  <!-- A cifragem em envelope e o armazenamento sao detalhes internos, mas precisam de teste
+       direto: sao o tipo de codigo em que um erro silencioso custa caro. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Secco.Intranet.Tests" />
+  </ItemGroup>
+
 </Project>

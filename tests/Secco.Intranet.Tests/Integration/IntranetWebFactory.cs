@@ -1,26 +1,36 @@
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
-using Testcontainers.MsSql;
-using Xunit;
+using Secco.Intranet.Infrastructure;
+using Secco.SDK.Testing;
 
 namespace Secco.Intranet.Tests.Integration;
 
 /// <summary>
-/// Sobe o monolito real (<c>Secco.Intranet.Web</c>, ADR-0002) no ambiente <c>Testing</c>
-/// (sem migrations/seed automáticos de DEV) com um SQL Server real via Testcontainers
-/// (ADR-0012) e dois tenants no catálogo apontando para bancos distintos (ADR-0005).
-/// Sem token/JWT de teste: o host atual não registra autenticação — a integração OIDC com
-/// o Secco.SecureGate ainda é item futuro do roadmap (ver comentário no Program.cs do Web).
+/// Sobe o monolito real (<c>Secco.Intranet.Web</c>, ADR-0002) sobre a base de factories da
+/// plataforma (ADR-0027), com dois tenants apontando para bancos distintos (ADR-0005).
 /// </summary>
-public sealed class IntranetWebFactory : WebApplicationFactory<Program>, IAsyncLifetime
+/// <remarks>
+/// <para>
+/// Herdar de <see cref="SeccoApiFactory{TProgram}"/> traz a instância de SQL Server — container
+/// próprio ou servidor externo via <c>SECCO_TEST_SQLSERVER</c>, com sufixo de execução por
+/// instância —, a trava de migration e a montagem do catálogo de tenants. A ADR-0027 é explícita
+/// em que produto novo herde daqui em vez de manter a própria cópia.
+/// </para>
+/// <para>
+/// Um descasamento a registrar: a base foi desenhada para resource server JWT, e a Intranet é
+/// um relying party de cookie (ADR-0023) — ela nunca chama <c>AddSeccoAuthentication()</c>.
+/// Por isso o <see cref="Audience"/> abaixo e as chaves <c>Secco:Authentication:*</c> que a base
+/// injeta não são lidos por ninguém aqui; existem para satisfazer o contrato da classe base.
+/// Os testes deste produto não usam <c>CreateToken</c>: a autenticação não é registrada no
+/// ambiente <c>Testing</c>, e o host roda em modo aberto.
+/// </para>
+/// </remarks>
+public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 {
-	// Testcontainers 4.13+: imagem explícita obrigatória (construtor sem imagem é obsoleto)
-	private readonly MsSqlContainer _container =
-		new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04").Build();
-	private readonly SemaphoreSlim _migrationLock = new(1, 1);
-	private bool _migrated;
+	/// <summary>
+	/// Raiz do armazenamento de documentos desta instância. Sai do diretório de saída da
+	/// compilação de propósito: arquivo de teste não deve sujar o bin do produto.
+	/// </summary>
+	private readonly string _raizDeArquivos = Path.Combine(
+		Path.GetTempPath(), "secco-intranet-testes", Guid.NewGuid().ToString("N"));
 
 	/// <summary>Identificador do tenant "Alfa" usado nos testes.</summary>
 	public Guid TenantAlfa { get; } = Guid.NewGuid();
@@ -28,55 +38,43 @@ public sealed class IntranetWebFactory : WebApplicationFactory<Program>, IAsyncL
 	/// <summary>Identificador do tenant "Beta" usado nos testes.</summary>
 	public Guid TenantBeta { get; } = Guid.NewGuid();
 
-	/// <summary>Monta a connection string de um banco de tenant dentro do container de testes.</summary>
-	/// <param name="databaseName">Nome do banco do tenant.</param>
-	public string GetTenantConnectionString(string databaseName) =>
-		new SqlConnectionStringBuilder(_container.GetConnectionString())
-		{
-			InitialCatalog = databaseName,
-		}.ConnectionString;
+	/// <inheritdoc />
+	protected override string Audience => "secco-intranet";
 
-	/// <summary>Aplica as migrations nos bancos de tenant uma única vez por factory.</summary>
-	public async Task EnsureTenantDatabasesMigratedAsync()
+	/// <inheritdoc />
+	protected override void ConfigureTestConfiguration(IDictionary<string, string?> settings)
 	{
-		await _migrationLock.WaitAsync();
+		AddTenant(settings, TenantAlfa, GetConnectionStringFor("secco_intranet_alfa"));
+		AddTenant(settings, TenantBeta, GetConnectionStringFor("secco_intranet_beta"));
+
+		settings["Intranet:Documentos:Armazenamento:Raiz"] = _raizDeArquivos;
+	}
+
+	/// <inheritdoc />
+	protected override void Dispose(bool disposing)
+	{
+		base.Dispose(disposing);
+
+		if (!disposing || !Directory.Exists(_raizDeArquivos))
+		{
+			return;
+		}
 
 		try
 		{
-			if (!_migrated)
-			{
-				await Secco.Intranet.Infrastructure.IntranetInfrastructureExtensions
-					.MigrateIntranetTenantDatabasesAsync(Services);
-				_migrated = true;
-			}
+			Directory.Delete(_raizDeArquivos, recursive: true);
 		}
-		finally
+		catch (IOException)
 		{
-			_migrationLock.Release();
+			// Limpeza é best-effort: um arquivo ainda aberto não pode derrubar a suíte.
+		}
+		catch (UnauthorizedAccessException)
+		{
+			// Idem.
 		}
 	}
 
 	/// <inheritdoc />
-	protected override void ConfigureWebHost(IWebHostBuilder builder)
-	{
-		builder.UseEnvironment("Testing");
-
-		builder.ConfigureAppConfiguration((_, configuration) =>
-			configuration.AddInMemoryCollection(new Dictionary<string, string?>
-			{
-				[$"Secco:Tenancy:Tenants:{TenantAlfa}:ConnectionString"] =
-					GetTenantConnectionString("secco_intranet_alfa"),
-				[$"Secco:Tenancy:Tenants:{TenantBeta}:ConnectionString"] =
-					GetTenantConnectionString("secco_intranet_beta"),
-			}));
-	}
-
-	/// <inheritdoc />
-	public async Task InitializeAsync() => await _container.StartAsync();
-
-	async Task IAsyncLifetime.DisposeAsync()
-	{
-		await base.DisposeAsync();
-		await _container.DisposeAsync();
-	}
+	protected override Task MigrateAsync(IServiceProvider services) =>
+		services.MigrateIntranetTenantDatabasesAsync();
 }

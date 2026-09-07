@@ -72,7 +72,12 @@
   "markdownlint.config": {
     "MD013": false,
     "MD024": { "siblings_only": true },
-    "MD033": false
+    "MD033": false,
+    // MD060 exige espaco no separador de tabela (| --- |). Todas as tabelas deste
+    // repositorio usam a forma compacta (|---|), que e valida e mais legivel no fonte.
+    // Padronizar todas de uma vez e tarefa propria, registrada no roadmap; ate la a regra
+    // so produziria ruido em todo arquivo aberto.
+    "MD060": false
   },
 
   "cSpell.language": "en,pt,pt-BR",

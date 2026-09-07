@@ -1,5 +1,20 @@
 # Secco.Intranet
 
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?style=flat-square&logo=dotnet&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-239120?style=flat-square)
+![ASP.NET Core MVC](https://img.shields.io/badge/ASP.NET%20Core%20MVC-512BD4?style=flat-square&logo=dotnet&logoColor=white)
+![EF Core](https://img.shields.io/badge/EF%20Core-10.0-512BD4?style=flat-square&logo=dotnet&logoColor=white)
+![SQL Server](https://img.shields.io/badge/SQL%20Server-CC2927?style=flat-square)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
+
+![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=flat-square&logo=bootstrap&logoColor=white)
+![Sass](https://img.shields.io/badge/Sass-CC6699?style=flat-square&logo=sass&logoColor=white)
+![OIDC](https://img.shields.io/badge/OIDC-relying%20party-0B7285?style=flat-square)
+![xUnit](https://img.shields.io/badge/xUnit-5E5E5E?style=flat-square)
+![Testcontainers](https://img.shields.io/badge/Testcontainers-2496ED?style=flat-square)
+![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-green?style=flat-square)
+
 Produto de intranet corporativa, open source, do ecossistema Secco Platform. Repositório
 **standalone** (não faz parte do monorepo `secco-platform`) — consome `Secco.SecureGate`,
 `Secco.LogStream` e `Secco.NotificationHub` como pacotes NuGet publicados pelo monorepo,
@@ -12,10 +27,30 @@ partir do conteúdo do template `secco-service` do secco-platform, adaptado para
 próprio — **sem** os projetos Api e Client do template: pela decisão de monolito (ADR-0002
 deste produto), não há Api HTTP separada nem, portanto, contrato OpenAPI/client NSwag.
 
-Decisões arquiteturais específicas deste produto (Setor = Role, monolito, sistema de temas)
-estão documentadas em [`docs/adr/secco-intranet-adrs.md`](docs/adr/secco-intranet-adrs.md) —
-consultar antes de mudanças estruturais. O plano de fases está em
-[`docs/roadmap.md`](docs/roadmap.md).
+Decisões arquiteturais específicas deste produto (Setor = Role, monolito, sistema de temas,
+armazenamento de documentos) estão documentadas em
+[`docs/adr/secco-intranet-adrs.md`](docs/adr/secco-intranet-adrs.md) — consultar antes de
+mudanças estruturais. O plano de fases está em [`docs/roadmap.md`](docs/roadmap.md), e o guia
+para escrever um tema em [`docs/temas.md`](docs/temas.md).
+
+O que este produto espera da plataforma e ainda não existe — com o link da issue onde cada
+lacuna é discutida — está em [`docs/plataforma.md`](docs/plataforma.md). Capacidade transversal
+(logging, auditoria, provisionamento de banco) é pedida ao monorepo, nunca reimplementada aqui:
+ver ADR-0006 e ADR-0007.
+
+## Tecnologias
+
+| Camada | O que é usado | Por quê |
+|---|---|---|
+| Aplicação | .NET 10, C#, ASP.NET Core MVC | Monolito servindo HTML, sem Api HTTP separada (ADR-0002) |
+| Dados | EF Core 10, SQL Server (padrão) e PostgreSQL | Dois providers com migrations em assemblies próprios (ADR-0018) |
+| Multi-tenancy | `Secco.SDK.AspNetCore` | Um banco por tenant, resolvido por requisição (ADR-0005 da plataforma) |
+| Identidade | OpenID Connect contra o `Secco.SecureGate` | Relying party com cookie de sessão; setor é Role (ADR-0001) |
+| Interface | Razor Class Library por tema, Bootstrap 5.3 compilado por Sass | Tema é pacote independente; o core não impõe framework CSS (ADR-0003) |
+| Tipografia e ícones | Instrument Sans, Inter, JetBrains Mono, Bootstrap Icons | Auto-hospedados: a intranet precisa renderizar sem internet |
+| Criptografia | AES-256-GCM em envelope, `System.Security.Cryptography` | Documento cifrado em repouso, sem dependência externa (ADR-0005) |
+| Testes | xUnit, AwesomeAssertions, Testcontainers, `Secco.SDK.Testing` | Integração contra SQL Server real, sobre o host de verdade (ADR-0012) |
+| Ambiente | Docker Compose, Node apenas para compilar os assets do tema | O CSS compilado é versionado: `dotnet run` funciona sem Node |
 
 ## Pré-requisitos
 
@@ -188,3 +223,16 @@ por setor).
 - `AvisoUsuario`: central de notificação in-app (toast + área de avisos), consumindo o
   canal in-app do `Secco.NotificationHub`.
 - Motor de processos (Fase 2): `ProcessoDefinicao` → `Etapa[]` → `ProcessoInstancia`.
+
+## Contribuindo
+
+O roteiro está em [`CONTRIBUTING.md`](CONTRIBUTING.md): o que não se negocia, como uma
+capacidade de plataforma é pedida em vez de reimplementada, e o que rodar antes de dizer que
+terminou.
+
+Vulnerabilidade **não** vai em issue pública — o canal privado e o escopo do que interessa
+estão em [`SECURITY.md`](SECURITY.md).
+
+## Licença
+
+[MIT](LICENSE). Copyright (c) 2026 Rafael Secco.

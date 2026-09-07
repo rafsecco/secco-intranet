@@ -1,0 +1,42 @@
+@using Secco.Intranet.Web.Models.Diretorio
+@model PessoaViewModel
+@{
+    ViewData["Title"] = "Meu perfil";
+
+    var cabecalho = new PageHeaderModel(
+        "Meu perfil",
+        "Seus dados de cadastro e o setor ao qual você pertence.",
+        Model.SetorSlug);
+
+    var badge = new BadgeModel(Model.SetorNome, BadgeVariante.Setor, Model.SetorSlug);
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel" style="--sc-setor-hue:@SetorHue.From(Model.SetorSlug)">
+    <div class="d-flex gap-3 align-items-center mb-4">
+        <span class="sc-avatar sc-avatar--lg" aria-hidden="true">@Model.Iniciais</span>
+        <div>
+            <h2 class="h5 mb-1">@Model.Nome</h2>
+            <p class="mb-1 text-body-secondary small">@Model.Cargo</p>
+            <partial name="_Badge" model="badge" />
+        </div>
+    </div>
+
+    <dl class="row mb-0">
+        <dt class="col-sm-3">E-mail</dt>
+        <dd class="col-sm-9"><span class="sc-meta">@Model.Email</span></dd>
+
+        <dt class="col-sm-3">Ramal</dt>
+        <dd class="col-sm-9"><span class="sc-meta">@Model.Ramal</span></dd>
+
+        <dt class="col-sm-3">Setor</dt>
+        <dd class="col-sm-9 mb-0">
+            <a asp-controller="Setor" asp-action="Documentos" asp-route-slug="@Model.SetorSlug">@Model.SetorNome</a>
+        </dd>
+    </dl>
+</div>
+
+<p class="mt-3 text-body-secondary small">
+    Dados de cadastro são mantidos pelo setor de Recursos Humanos. Para corrigir algo, abra um chamado.
+</p>
