@@ -141,6 +141,11 @@ public static class IntranetInfrastructureExtensions
 				? ActivatorUtilities.CreateInstance<CaixaVazia>(serviceProvider)
 				: ActivatorUtilities.CreateInstance<NotificationHubCaixaDeNotificacoes>(serviceProvider));
 
+		services.AddScoped<IConsultaDeEntregas>(serviceProvider =>
+			string.IsNullOrWhiteSpace(serviceProvider.GetRequiredService<NotificacaoOptions>().HubUrl)
+				? ActivatorUtilities.CreateInstance<ConsultaDeEntregasVazia>(serviceProvider)
+				: ActivatorUtilities.CreateInstance<NotificationHubConsultaDeEntregas>(serviceProvider));
+
 		return services;
 	}
 

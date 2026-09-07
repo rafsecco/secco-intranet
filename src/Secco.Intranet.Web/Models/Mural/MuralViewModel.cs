@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Html;
+using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Domain.Publicacoes;
 using Secco.SharedKernel.Pagination;
 
@@ -30,4 +31,10 @@ public sealed record MuralViewModel(PagedResult<PublicacaoViewModel> Pagina, Tip
 
 /// <summary>Modelo da página de uma publicação.</summary>
 /// <param name="Publicacao">A publicação, com o corpo já renderizado.</param>
-public sealed record PublicacaoDetalheViewModel(PublicacaoViewModel Publicacao);
+/// <param name="Entrega">
+/// Resumo da entrega dos avisos, só para quem administra o setor. Nulo quando o usuário não
+/// administra, quando não há Hub configurado, ou quando a consulta falhou.
+/// </param>
+public sealed record PublicacaoDetalheViewModel(
+	PublicacaoViewModel Publicacao,
+	ResumoDeEntrega? Entrega);

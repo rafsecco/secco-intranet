@@ -41,8 +41,11 @@ processos (maior risco técnico) só entra com a base já sólida.
 ## Fase 1 — MVP visível
 
 - [x] Mural de avisos: publicação por setor, com visibilidade, agendamento, expiração,
-      edição e arquivamento — [spec](specs/2026-09-02-mural-design.md). Notificação e
-      auditoria ficam para os planos seguintes
+      edição e arquivamento — [spec](specs/2026-09-02-mural-design.md). Auditoria fica para
+      o plano seguinte
+- [x] Notificação do Mural: sino, e-mail e canal corporativo conforme a urgência, com
+      entrega na data de entrada no ar e permalink por publicação —
+      [spec](specs/2026-09-07-notificacao-mural-design.md)
       (entidade, publicação, edição). Um recurso só, com discriminador de tipo
       (aviso, evento, notícia)
 - [ ] Diretório organizacional (perfil de colaborador, organograma básico) — telas

@@ -38,3 +38,17 @@
 
     <div class="sc-card__body mt-2">@publicacao.Corpo</div>
 </article>
+
+@if (Model.Entrega is not null)
+{
+    <div class="sc-panel mt-3">
+        <h2 class="h6 mb-2">Entrega do aviso</h2>
+        <p class="mb-0 text-body-secondary small">
+            @Model.Entrega.Enviadas entregue(s).
+            @if (Model.Entrega.Falharam > 0)
+            {
+                <span class="text-danger">@Model.Entrega.Falharam não chegaram.</span>
+            }
+        </p>
+    </div>
+}

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Mvc;
 using Secco.Intranet.Application.Publicacoes;
+using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Domain.Publicacoes;
 using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Conteudo;
@@ -106,14 +107,24 @@ public sealed class MuralController(
 
 		var publicacao = resultado.Value;
 
-		return View(new PublicacaoDetalheViewModel(new PublicacaoViewModel(
-			publicacao.Id,
-			publicacao.Titulo,
-			renderizador.Renderizar(publicacao.Corpo),
-			publicacao.Tipo,
-			publicacao.Prioridade,
-			publicacao.PublicadoEm,
-			publicacao.SetorNome,
-			publicacao.SetorSlug)));
+		// Preguiçoso por desenho: a pergunta só é feita por quem pode agir sobre a resposta.
+		var entrega = SetorAcesso.AdministraSetor(User, publicacao.SetorSlug)
+			? await serviceProvider
+				.GetRequiredService<IConsultaDeEntregas>()
+				.DaPublicacaoAsync(publicacao.Id, cancellationToken)
+				.ConfigureAwait(false)
+			: null;
+
+		return View(new PublicacaoDetalheViewModel(
+			new PublicacaoViewModel(
+				publicacao.Id,
+				publicacao.Titulo,
+				renderizador.Renderizar(publicacao.Corpo),
+				publicacao.Tipo,
+				publicacao.Prioridade,
+				publicacao.PublicadoEm,
+				publicacao.SetorNome,
+				publicacao.SetorSlug),
+			entrega));
 	}
 }
