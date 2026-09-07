@@ -28,6 +28,10 @@ processos (maior risco técnico) só entra com a base já sólida.
       ([secco-platform#1](https://github.com/rafsecco/secco-platform/issues/1))
 - [x] Sistema de temas: RCL resolvida por `IViewLocationExpander`, contrato de tema em
       `Secco.Intranet.Web.Theming` e o tema de saída `Vertical` — ADR-0003/ADR-0004
+- [x] Segundo tema de saída oficial, `Secco.Intranet.Themes.Horizontal` (menu no topo,
+      paleta e tipografia próprias) — adiantado da Fase 5: um contrato provado por um único
+      tema não está provado, e o produto já tinha consumidor suficiente (Mural, Documentos,
+      administração de setor) para expor um vício de acoplamento ao Vertical, se houvesse
 - [ ] Tirar o SA do ambiente de desenvolvimento: script de init no `docker-compose.yml` criando
       usuário de aplicação com privilégio mínimo, e `.env.example` deixando de usar `sa` na
       connection string do tenant. Dívida registrada pela ADR-0007; independe da plataforma —
@@ -91,8 +95,6 @@ processos (maior risco técnico) só entra com a base já sólida.
 
 - [ ] Motor de processos v2: etapas paralelas, condicionais
 - [ ] Marketplace de temas (empacotamento + documentação para terceiros)
-- [ ] Segundo tema de saída oficial: `Secco.Intranet.Themes.Horizontal` (menu no topo) —
-      o padrão (`Vertical`) sai antes, na Fase 0/1
 - [ ] Automação opcional de clonagem de perfis admin/user por setor, se um caso de uso
       concreto justificar (ver ADR-0001)
 - [ ] Pesquisas de clima organizacional, outros extras

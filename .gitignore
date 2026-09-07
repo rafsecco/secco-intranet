@@ -105,3 +105,7 @@ logs/
 
 # Dependencias de build de assets dos temas (o CSS compilado e versionado)
 node_modules/
+
+# Saida de verificacao manual no navegador (screenshots, snapshots de acessibilidade) —
+# nunca e para versionar, e um `git add -A` distraido ja pegou isso uma vez.
+.playwright-mcp/

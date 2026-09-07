@@ -9,6 +9,13 @@ e [ADR-0004](adr/secco-intranet-adrs.md#adr-0004-contrato-de-tema-em-projeto-pr�
 O core não sabe qual framework CSS você usa — carrega o que o seu tema declarar no
 `_Layout`. O tema padrão usa Bootstrap, mas isso não é exigência.
 
+Dois temas de saída existem hoje, e vale ler os dois antes de escrever o seu:
+`Secco.Intranet.Themes.Vertical` (padrão, menu lateral) e `Secco.Intranet.Themes.Horizontal`
+(menu no topo, paleta e tipografia próprias). São a prova de que o contrato abaixo não
+esconde uma suposição do primeiro tema — o segundo reaproveita `_PageHeader`, `_Card`,
+`_Badge`, `_EmptyState` e `_Pagination` **sem alterar uma linha**, e reescreve só o que é
+genuinamente estrutural: cabeçalho, navegação e a folha de estilo.
+
 ## Estrutura
 
 Um tema é uma Razor Class Library que referencia **apenas** `Secco.Intranet.Web.Theming`:
