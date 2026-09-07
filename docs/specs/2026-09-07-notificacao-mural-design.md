@@ -196,7 +196,9 @@ Integração: permalink devolve o mesmo erro para inexistente e para sem acesso.
 
 ## Fora de escopo
 
-- **`ScheduledFor` no Hub** — demanda de plataforma; até sair, agendada não notifica.
+- **`ScheduledFor` no Hub** — demanda de plataforma
+  ([secco-platform#24](https://github.com/rafsecco/secco-platform/issues/24)); até sair,
+  agendada não notifica.
 - **Re-notificar em edição** — recusado acima; entra com caso real, se houver.
 - **Notificação de arquivamento** — tirar do ar não é evento que interrompe ninguém.
 - **Preferências por usuário** (silenciar setor, resumo diário) — sem evidência de demanda.
