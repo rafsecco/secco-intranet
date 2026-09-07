@@ -19,4 +19,11 @@ public sealed class NotificacaoOptions
 
 	/// <summary>Teto do resumo enviado na notificação, em caracteres.</summary>
 	public int TamanhoDoResumo { get; set; } = 300;
+
+	/// <summary>
+	/// URL base do NotificationHub. Vazia desliga o envio e o sino — é o modo DEV/Testing,
+	/// em que publicar funciona e o relatório sai zerado, que é a verdade: não há para onde
+	/// enviar.
+	/// </summary>
+	public string HubUrl { get; set; } = string.Empty;
 }

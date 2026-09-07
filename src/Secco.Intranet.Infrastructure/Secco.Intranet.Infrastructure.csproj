@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <!-- Infrastructure (ADR-0002): EF Core + implementações de portas.
        Dois providers suportados (ADR-0018): SQL Server (padrão) e PostgreSQL;
@@ -12,6 +12,7 @@
     <PackageReference Include="Secco.SDK.AspNetCore" />
     <!-- Client administrativo do SecureGate: provisionamento das Roles de setor (ADR-0001) -->
     <PackageReference Include="Secco.SecureGate.Client" />
+    <PackageReference Include="Secco.NotificationHub.Client" />
   </ItemGroup>
 
   <ItemGroup>

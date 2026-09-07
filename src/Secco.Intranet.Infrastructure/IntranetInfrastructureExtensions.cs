@@ -4,17 +4,19 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Secco.Intranet.Application;
 using Secco.Intranet.Application.Documentos;
-using Secco.Intranet.Application.Publicacoes.Notificacao;
-using Secco.Intranet.Infrastructure.Notificacao;
 using Secco.Intranet.Application.Publicacoes;
+using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Infrastructure.Access;
 using Secco.Intranet.Infrastructure.Armazenamento;
 using Secco.Intranet.Infrastructure.Contexts;
+using Secco.Intranet.Infrastructure.Notificacao;
 using Secco.Intranet.Infrastructure.Repositories;
 using Secco.Intranet.Infrastructure.Seeding;
-using Secco.SDK.EntityFrameworkCore.Seeding;
+using Secco.NotificationHub.Client;
+using Secco.SDK.AspNetCore.Authentication;
 using Secco.SDK.AspNetCore.Tenancy;
+using Secco.SDK.EntityFrameworkCore.Seeding;
 using Secco.SecureGate.Client.Administration;
 using Secco.SecureGate.Client.Catalog;
 
@@ -86,12 +88,58 @@ public static class IntranetInfrastructureExtensions
 				: ActivatorUtilities.CreateInstance<NullSetorAccessProvisioner>(serviceProvider);
 		});
 
-		// Os adaptadores reais do NotificationHub chegam com o pacote; até lá o produto usa os
-		// no-op: publicar funciona e o relatório sai zerado, que é a verdade — não há para
-		// onde enviar.
-		services.AddScoped<IDiretorioDeUsuarios, DiretorioVazio>();
-		services.AddScoped<INotificadorDeMensagens, NotificadorSilencioso>();
-		services.AddScoped<ICaixaDeNotificacoes, CaixaVazia>();
+		// Store próprio para o Hub: um por recurso/scope (least privilege), como o SecureGate
+		// faz. O client é registrado sempre e lê a URL na resolução — quem decide entre
+		// adapter real e no-op são as options, não a presença do registro.
+		var tokenStoreDoHub = new SeccoAccessTokenStore();
+
+		services.AddHttpClient<INotificationHubClient, NotificationHubClient>()
+			.ConfigureHttpClient((serviceProvider, client) =>
+			{
+				var notificacao = serviceProvider.GetRequiredService<NotificacaoOptions>();
+
+				if (!string.IsNullOrWhiteSpace(notificacao.HubUrl))
+				{
+					client.BaseAddress = new Uri(notificacao.HubUrl, UriKind.Absolute);
+				}
+			})
+			.ConfigureAdditionalHttpMessageHandlers((handlers, serviceProvider) =>
+			{
+				// AddNotificationHubClient() do pacote só aceita BaseUrl, mas todo endpoint do
+				// Hub exige permissão — então o handler de credenciais entra à mão aqui.
+				var credenciais = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();
+
+				// Validate() do pacote é internal, então a guarda aqui é IsConfigured, que já
+				// exige BaseUrl, ClientId e ClientSecret juntos.
+				if (credenciais.IsConfigured)
+				{
+					handlers.Add(new SeccoClientCredentialsHandler(
+						credenciais.BaseUrl!,
+						credenciais.ClientId!,
+						credenciais.ClientSecret!,
+						"notifications:read notifications:write",
+						tokenStoreDoHub));
+				}
+			});
+
+		services.AddScoped<IDiretorioDeUsuarios>(serviceProvider =>
+		{
+			var credenciais = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();
+
+			return credenciais.IsConfigured
+				? ActivatorUtilities.CreateInstance<SecureGateDiretorioDeUsuarios>(serviceProvider)
+				: ActivatorUtilities.CreateInstance<DiretorioVazio>(serviceProvider);
+		});
+
+		services.AddScoped<INotificadorDeMensagens>(serviceProvider =>
+			string.IsNullOrWhiteSpace(serviceProvider.GetRequiredService<NotificacaoOptions>().HubUrl)
+				? ActivatorUtilities.CreateInstance<NotificadorSilencioso>(serviceProvider)
+				: ActivatorUtilities.CreateInstance<NotificationHubNotificador>(serviceProvider));
+
+		services.AddScoped<ICaixaDeNotificacoes>(serviceProvider =>
+			string.IsNullOrWhiteSpace(serviceProvider.GetRequiredService<NotificacaoOptions>().HubUrl)
+				? ActivatorUtilities.CreateInstance<CaixaVazia>(serviceProvider)
+				: ActivatorUtilities.CreateInstance<NotificationHubCaixaDeNotificacoes>(serviceProvider));
 
 		return services;
 	}
