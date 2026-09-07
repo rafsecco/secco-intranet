@@ -581,7 +581,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 // Publicacao urgente: o filete do setor continua dizendo de quem e, e o anel diz que corre.
-.sc-urgente .sc-card {
+// O anel vale para o card na listagem e para o painel na pagina da publicacao, onde nao ha
+// card: o cabecalho ja identifica o comunicado, e repetir titulo e meta seria duplicata.
+.sc-urgente .sc-card,
+.sc-panel.sc-urgente {
   border-color: var(--bs-danger-border-subtle);
   box-shadow: 0 0 0 3px var(--bs-danger-bg-subtle);
 }

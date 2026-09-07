@@ -17,29 +17,24 @@
 
     var cabecalho = new PageHeaderModel(
         publicacao.Titulo,
-        $"{Rotulo(publicacao.Tipo)} · {publicacao.SetorNome} · {publicacao.PublicadoEm.ToLocalTime():dd/MM/yyyy}",
+        $"{Rotulo(publicacao.Tipo)} · {publicacao.PublicadoEm.ToLocalTime():dd/MM/yyyy}",
         publicacao.SetorSlug,
         new[] { voltar });
 
-    var card = new CardModel(
-        Titulo: publicacao.Titulo,
-        Meta: $"{Rotulo(publicacao.Tipo)} · {publicacao.PublicadoEm.ToLocalTime():dd/MM/yyyy}",
-        SetorSlug: publicacao.SetorSlug,
-        SetorNome: publicacao.SetorNome,
-        Corpo: publicacao.Corpo);
+    var badgeDoSetor = new BadgeModel(publicacao.SetorNome, BadgeVariante.Setor, publicacao.SetorSlug);
 
-    var urgente = publicacao.Prioridade == PrioridadePublicacao.Urgente;
+    // O corpo NÃO usa o _Card: o card repete título e meta, que é útil numa listagem — onde o
+    // título distingue um item entre muitos — e vira duplicata numa página que já tem
+    // cabeçalho próprio.
+    var classes = publicacao.Prioridade == PrioridadePublicacao.Urgente
+        ? "sc-panel sc-urgente"
+        : "sc-panel";
 }
 
 <partial name="_PageHeader" model="cabecalho" />
 
-@if (urgente)
-{
-    <div class="sc-urgente">
-        <partial name="_Card" model="card" />
-    </div>
-}
-else
-{
-    <partial name="_Card" model="card" />
-}
+<article class="@classes" style="--sc-setor-hue:@SetorHue.From(publicacao.SetorSlug)">
+    <partial name="_Badge" model="badgeDoSetor" />
+
+    <div class="sc-card__body mt-2">@publicacao.Corpo</div>
+</article>
