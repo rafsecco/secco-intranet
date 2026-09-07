@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Html;
+﻿using Microsoft.AspNetCore.Html;
 using Secco.Intranet.Domain.Publicacoes;
 using Secco.SharedKernel.Pagination;
 
@@ -27,3 +27,7 @@ public sealed record PublicacaoViewModel(
 /// <param name="Pagina">Página de publicações.</param>
 /// <param name="Filtro">Tipo selecionado; nulo é todos.</param>
 public sealed record MuralViewModel(PagedResult<PublicacaoViewModel> Pagina, TipoPublicacao? Filtro);
+
+/// <summary>Modelo da página de uma publicação.</summary>
+/// <param name="Publicacao">A publicação, com o corpo já renderizado.</param>
+public sealed record PublicacaoDetalheViewModel(PublicacaoViewModel Publicacao);

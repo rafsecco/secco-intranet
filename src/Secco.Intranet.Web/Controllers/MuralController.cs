@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Mvc;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Domain.Publicacoes;
@@ -76,5 +76,44 @@ public sealed class MuralController(
 		return View(new MuralViewModel(
 			PagedResult.Create(itens, new PageRequest(pagina.Page, pagina.Size), pagina.TotalCount),
 			tipo));
+	}
+
+	/// <summary>Página de uma publicação — o destino do aviso e o endereço de compartilhamento.</summary>
+	/// <param name="id">Identificador da publicação.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpGet("/publicacoes/{id:guid}")]
+	public async Task<IActionResult> Detalhe(Guid id, CancellationToken cancellationToken = default)
+	{
+		if (!tenantContext.IsResolved)
+		{
+			return NotFound();
+		}
+
+		var resultado = await serviceProvider
+			.GetRequiredService<ObterPublicacaoHandler>()
+			.HandleAsync(
+				new ObterPublicacaoQuery(
+					id,
+					[.. SetorAcesso.SlugsDoUsuario(User)],
+					ExigirVisibilidade: IntranetAuthenticationExtensions.IsConfigured(configuration)),
+				cancellationToken)
+			.ConfigureAwait(false);
+
+		if (resultado.IsFailure)
+		{
+			return NotFound();
+		}
+
+		var publicacao = resultado.Value;
+
+		return View(new PublicacaoDetalheViewModel(new PublicacaoViewModel(
+			publicacao.Id,
+			publicacao.Titulo,
+			renderizador.Renderizar(publicacao.Corpo),
+			publicacao.Tipo,
+			publicacao.Prioridade,
+			publicacao.PublicadoEm,
+			publicacao.SetorNome,
+			publicacao.SetorSlug)));
 	}
 }

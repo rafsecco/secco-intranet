@@ -1,0 +1,45 @@
+@using Secco.Intranet.Domain.Publicacoes
+@using Secco.Intranet.Web.Models.Mural
+@model PublicacaoDetalheViewModel
+@{
+    var publicacao = Model.Publicacao;
+
+    ViewData["Title"] = publicacao.Titulo;
+
+    static string Rotulo(TipoPublicacao tipo) => tipo switch
+    {
+        TipoPublicacao.Aviso => "Aviso",
+        TipoPublicacao.Evento => "Evento",
+        _ => "Notícia",
+    };
+
+    var voltar = new PageActionModel("Voltar ao mural", Url.Action("Index", "Mural")!, "bi-arrow-left");
+
+    var cabecalho = new PageHeaderModel(
+        publicacao.Titulo,
+        $"{Rotulo(publicacao.Tipo)} · {publicacao.SetorNome} · {publicacao.PublicadoEm.ToLocalTime():dd/MM/yyyy}",
+        publicacao.SetorSlug,
+        new[] { voltar });
+
+    var card = new CardModel(
+        Titulo: publicacao.Titulo,
+        Meta: $"{Rotulo(publicacao.Tipo)} · {publicacao.PublicadoEm.ToLocalTime():dd/MM/yyyy}",
+        SetorSlug: publicacao.SetorSlug,
+        SetorNome: publicacao.SetorNome,
+        Corpo: publicacao.Corpo);
+
+    var urgente = publicacao.Prioridade == PrioridadePublicacao.Urgente;
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+@if (urgente)
+{
+    <div class="sc-urgente">
+        <partial name="_Card" model="card" />
+    </div>
+}
+else
+{
+    <partial name="_Card" model="card" />
+}
