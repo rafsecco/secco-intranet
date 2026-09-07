@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Secco.Intranet.Application;
 using Secco.Intranet.Application.Documentos;
+using Secco.Intranet.Application.Publicacoes.Notificacao;
+using Secco.Intranet.Infrastructure.Notificacao;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Infrastructure.Access;
@@ -37,6 +39,7 @@ public static class IntranetInfrastructureExtensions
 		services.AddSingleton(sp => BindSection(sp, DocumentoOptions.SectionKey, new DocumentoOptions()));
 		services.AddSingleton(sp => BindSection(sp, ArquivoStoreOptions.SectionKey, new ArquivoStoreOptions()));
 		services.AddSingleton(sp => BindSection(sp, ChaveMestraOptions.SectionKey, new ChaveMestraOptions()));
+		services.AddSingleton(sp => BindSection(sp, NotificacaoOptions.SectionKey, new NotificacaoOptions()));
 
 		// A cifragem em envelope nao depende do tenant: uma instancia serve a aplicacao toda.
 		services.AddSingleton<EnvelopeCipher>();
@@ -82,6 +85,12 @@ public static class IntranetInfrastructureExtensions
 				? ActivatorUtilities.CreateInstance<SecureGateSetorAccessProvisioner>(serviceProvider)
 				: ActivatorUtilities.CreateInstance<NullSetorAccessProvisioner>(serviceProvider);
 		});
+
+		// Os adaptadores reais do NotificationHub chegam com o pacote; até lá o produto usa os
+		// no-op: publicar funciona e o relatório sai zerado, que é a verdade — não há para
+		// onde enviar.
+		services.AddScoped<IDiretorioDeUsuarios, DiretorioVazio>();
+		services.AddScoped<INotificadorDeMensagens, NotificadorSilencioso>();
 
 		return services;
 	}

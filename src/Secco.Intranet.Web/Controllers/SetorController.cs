@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Publicacoes;
+using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Models.Documentos;
 using Secco.Intranet.Web.Models.Publicacoes;
 using Secco.Intranet.Web.Navigation;
+using Secco.SharedKernel.Constants;
 
 namespace Secco.Intranet.Web.Controllers;
 
@@ -179,29 +181,68 @@ public sealed class SetorController(
 			? null
 			: new DateTimeOffset(form.ExpiraEm.Value, DateTimeOffset.Now.Offset);
 
-		var resultado = form.Id == Guid.Empty
-			? await publicarPublicacaoHandler.HandleAsync(
+		// Publicar e editar deixaram de devolver o mesmo tipo: publicar traz o relatório do
+		// aviso junto, e editar nunca notifica.
+		string titulo;
+		RelatorioDeNotificacao? relatorio = null;
+
+		if (form.Id == Guid.Empty)
+		{
+			var publicado = await publicarPublicacaoHandler.HandleAsync(
 				new PublicarPublicacaoCommand(slug, form.Titulo, form.Corpo, form.Tipo, form.Visibilidade,
-					form.Prioridade, publicadoEm, expiraEm, User.Identity?.Name ?? "desconhecido"),
-				cancellationToken).ConfigureAwait(false)
-			: await editarPublicacaoHandler.HandleAsync(
+					form.Prioridade, publicadoEm, expiraEm, User.Identity?.Name ?? "desconhecido",
+					IdDoUsuarioAtual()),
+				cancellationToken).ConfigureAwait(false);
+
+			if (publicado.IsFailure)
+			{
+				return await ComErroAsync(slug, form, publicado.Error.Description, cancellationToken)
+					.ConfigureAwait(false);
+			}
+
+			titulo = publicado.Value.Publicacao.Titulo;
+			relatorio = publicado.Value.Notificacao;
+		}
+		else
+		{
+			var editado = await editarPublicacaoHandler.HandleAsync(
 				new EditarPublicacaoCommand(form.Id, SetorAcesso.SlugsAdministrados(User), exigirVinculo,
 					form.Titulo, form.Corpo, form.Tipo, form.Visibilidade, form.Prioridade,
 					publicadoEm, expiraEm),
 				cancellationToken).ConfigureAwait(false);
 
-		if (resultado.IsFailure)
-		{
-			ModelState.AddModelError(string.Empty, resultado.Error.Description);
+			if (editado.IsFailure)
+			{
+				return await ComErroAsync(slug, form, editado.Error.Description, cancellationToken)
+					.ConfigureAwait(false);
+			}
 
-			var comErro = await MontarAvisosAsync(slug, form, cancellationToken).ConfigureAwait(false);
-
-			return comErro is null ? NotFound() : View(nameof(Avisos), comErro);
+			titulo = editado.Value.Titulo;
 		}
 
-		TempData["Mensagem"] = $"Publicação \"{resultado.Value.Titulo}\" salva.";
+		TempData["Mensagem"] = MensagemDeSalvamento.Montar(titulo, relatorio);
 
 		return RedirectToAction(nameof(Avisos), new { slug });
+	}
+
+	/// <summary>
+	/// Identificador do usuário atual, quando a autenticação está ativa. Sem ele — o modo
+	/// aberto de DEV — ninguém é excluído do próprio aviso, o que é inofensivo.
+	/// </summary>
+	private Guid? IdDoUsuarioAtual() =>
+		Guid.TryParse(User.FindFirst(SeccoClaims.Subject)?.Value, out var id) ? id : null;
+
+	private async Task<IActionResult> ComErroAsync(
+		string slug,
+		PublicacaoFormViewModel form,
+		string mensagem,
+		CancellationToken cancellationToken)
+	{
+		ModelState.AddModelError(string.Empty, mensagem);
+
+		var model = await MontarAvisosAsync(slug, form, cancellationToken).ConfigureAwait(false);
+
+		return model is null ? NotFound() : View(nameof(Avisos), model);
 	}
 
 	/// <summary>Tira um aviso de circulação.</summary>

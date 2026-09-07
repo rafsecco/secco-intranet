@@ -1,9 +1,12 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <!-- Application (ADR-0002): casos de uso e portas; retorna Result<T>.
-       Única dependência externa: abstrações de DI (puras, sem I/O). -->
+       Dependências externas: abstrações de DI e o Markdig — as duas puras, sem I/O.
+       O Markdig entra porque o resumo enviado na notificação é texto puro extraído do
+       corpo em Markdown, e transformar texto é regra do caso de uso, não da borda. -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Markdig" />
   </ItemGroup>
 
   <ItemGroup>
