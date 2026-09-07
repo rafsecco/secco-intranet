@@ -35,12 +35,22 @@ public sealed class PublicacaoFormViewModel
 	/// Entrada no ar. O formulário usa <c>datetime-local</c>, que não carrega offset: o valor
 	/// é interpretado no fuso do servidor (limitação registrada no spec).
 	/// </summary>
+	/// <remarks>
+	/// O formato explícito para no minuto. Sem ele o campo nasce mostrando segundos e
+	/// milissegundos — <c>02:36:50,955</c> —, precisão que ninguém digita e que a regra do
+	/// mural não usa.
+	/// </remarks>
 	[DataType(DataType.DateTime)]
-	public DateTime PublicadoEm { get; set; } = DateTime.Now;
+	[DisplayFormat(DataFormatString = "{0:yyyy-MM-ddTHH:mm}", ApplyFormatInEditMode = true)]
+	public DateTime PublicadoEm { get; set; } = TruncarNoMinuto(DateTime.Now);
 
 	/// <summary>Expiração; vazio não expira.</summary>
 	[DataType(DataType.DateTime)]
+	[DisplayFormat(DataFormatString = "{0:yyyy-MM-ddTHH:mm}", ApplyFormatInEditMode = true)]
 	public DateTime? ExpiraEm { get; set; }
+
+	private static DateTime TruncarNoMinuto(DateTime valor) =>
+		valor.AddTicks(-(valor.Ticks % TimeSpan.TicksPerMinute));
 }
 
 /// <summary>Modelo da aba de avisos do setor.</summary>
