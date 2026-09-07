@@ -1,0 +1,86 @@
+// Tokens do tema como custom properties. Toda cor tem definicao no :root claro; o bloco
+// escuro so REDEFINE — nenhuma cor existe apenas dentro de uma media query ou de um
+// seletor de tema (contrato da ADR-0003).
+
+:root {
+  --sc-primary:          #3452D9;
+  --sc-primary-hover:    #2A42B3;
+  --sc-primary-soft:     #E6EAFB;
+  --sc-on-primary:       #FFFFFF;
+
+  --sc-text:             #111827;
+  --sc-text-muted:       #5B6472;
+  --sc-surface:          #FFFFFF;
+  --sc-surface-muted:    #EEF0F7;
+  --sc-bg:               #F5F6FA;
+  --sc-border:           #E1E4EE;
+
+  --sc-shadow: 0 1px 2px rgb(17 24 39 / 4%), 0 8px 24px rgb(17 24 39 / 6%);
+
+  // Matiz de setor: o slug define --sc-setor-hue no elemento (ver SetorHue); saturacao e
+  // luminosidade sao fixas por modo, para o contraste nao depender da cor sorteada. Mesmos
+  // valores do Vertical — a identidade de setor e do produto, nao da marca do tema.
+  --sc-setor-saturation: 58%;
+  --sc-setor-lightness:  32%;
+  --sc-setor-soft-light: 94%;
+
+  // Sem largura de barra lateral: o Horizontal nao tem uma. O topo e mais alto que o do
+  // Vertical porque hospeda a navegacao inline, nao so a marca e as acoes.
+  --sc-header-height: 64px;
+}
+
+// A media query cobre o modo "sistema" (nenhum data-theme cravado); o :not() garante que
+// uma escolha explicita por claro vence a preferencia do sistema.
+@media (prefers-color-scheme: dark) {
+  :root:not([data-bs-theme="light"]) {
+    --sc-primary:       #7C9BFF;
+    --sc-primary-hover: #96AFFF;
+    --sc-primary-soft:  #1B2340;
+    --sc-on-primary:    #0B1030;
+
+    --sc-text:          #E5E7F0;
+    --sc-text-muted:    #8B93A7;
+    --sc-surface:       #161A26;
+    --sc-surface-muted: #1F2433;
+    --sc-bg:            #10131C;
+    --sc-border:        #232838;
+
+    --sc-shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 30%);
+
+    --sc-setor-saturation: 52%;
+    --sc-setor-lightness:  66%;
+    --sc-setor-soft-light: 17%;
+  }
+}
+
+[data-bs-theme="dark"] {
+  --sc-primary:       #7C9BFF;
+  --sc-primary-hover: #96AFFF;
+  --sc-primary-soft:  #1B2340;
+  --sc-on-primary:    #0B1030;
+
+  --sc-text:          #E5E7F0;
+  --sc-text-muted:    #8B93A7;
+  --sc-surface:       #161A26;
+  --sc-surface-muted: #1F2433;
+  --sc-bg:            #10131C;
+  --sc-border:        #232838;
+
+  --sc-shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 30%);
+
+  --sc-setor-saturation: 52%;
+  --sc-setor-lightness:  66%;
+  --sc-setor-soft-light: 17%;
+
+  // O Bootstrap nao troca a primaria sozinho no modo escuro.
+  --bs-primary: #7C9BFF;
+  --bs-link-color: #7C9BFF;
+  --bs-link-hover-color: #96AFFF;
+}
+
+// Cores derivadas do matiz do setor. Sem --sc-setor-hue o elemento cai no matiz base.
+[style*="--sc-setor-hue"],
+.sc-setor {
+  --sc-setor:      hsl(var(--sc-setor-hue, 231) var(--sc-setor-saturation) var(--sc-setor-lightness));
+  --sc-setor-soft: hsl(var(--sc-setor-hue, 231) var(--sc-setor-saturation) var(--sc-setor-soft-light));
+}

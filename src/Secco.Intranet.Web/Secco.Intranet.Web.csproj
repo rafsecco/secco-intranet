@@ -12,9 +12,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Secco.Intranet.Web.Theming\Secco.Intranet.Web.Theming.csproj" />
-    <!-- Tema de saida padrao (ADR-0003): entra por referencia para que os assets da RCL
-         sejam publicados; qual tema fica ativo e decidido em Intranet:Theme. -->
+    <!-- Temas de saida (ADR-0003): entram por referencia para que os assets de cada RCL
+         sejam publicados; qual tema fica ativo e decidido em Intranet:Theme. Vertical e o
+         padrao; Horizontal e o segundo tema oficial que a ADR-0003 ja previa. -->
     <ProjectReference Include="..\Secco.Intranet.Themes.Vertical\Secco.Intranet.Themes.Vertical.csproj" />
+    <ProjectReference Include="..\Secco.Intranet.Themes.Horizontal\Secco.Intranet.Themes.Horizontal.csproj" />
     <ProjectReference Include="..\Secco.Intranet.Application\Secco.Intranet.Application.csproj" />
     <ProjectReference Include="..\Secco.Intranet.Infrastructure\Secco.Intranet.Infrastructure.csproj" />
     <!-- Assemblies de migrations por engine (ADR-0018): a raiz de composição os carrega -->

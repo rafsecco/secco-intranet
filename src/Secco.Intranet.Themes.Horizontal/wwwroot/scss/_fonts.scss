@@ -1,0 +1,25 @@
+// Fontes auto-hospedadas: uma intranet precisa renderizar sem acesso a internet.
+// Os arquivos sao copiados de node_modules por scripts/copy-assets.mjs.
+//
+// Uma familia so (Inter, por peso) — o Vertical usa um par de tipografias; aqui a
+// hierarquia de titulo vem do peso 700, nao de uma segunda familia.
+
+@each $weight in (400, 500, 600, 700) {
+  @font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: $weight;
+    font-display: swap;
+    src: url("../vendor/fonts/inter-latin-#{$weight}-normal.woff2") format("woff2");
+  }
+}
+
+@each $weight in (400, 500) {
+  @font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: $weight;
+    font-display: swap;
+    src: url("../vendor/fonts/jetbrains-mono-latin-#{$weight}-normal.woff2") format("woff2");
+  }
+}

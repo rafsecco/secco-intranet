@@ -1,0 +1,36 @@
+@model PageHeaderModel
+@{
+    var temSetor = !string.IsNullOrWhiteSpace(Model.SetorSlug);
+    string? estilo = temSetor ? $"--sc-setor-hue:{SetorHue.From(Model.SetorSlug)}" : null;
+}
+<div class="sc-page-header" style="@estilo">
+    <div class="sc-page-header__text">
+        <h1 class="sc-page-header__title">
+            @if (temSetor)
+            {
+                <span class="sc-nav__dot" aria-hidden="true"></span>
+            }
+            @Model.Titulo
+        </h1>
+        @if (Model.Subtitulo is not null)
+        {
+            <p class="sc-page-header__subtitle">@Model.Subtitulo</p>
+        }
+    </div>
+
+    @if (Model.Acoes is { Count: > 0 })
+    {
+        <div class="sc-page-header__actions">
+            @foreach (var acao in Model.Acoes)
+            {
+                <a class="btn @(acao.Primaria ? "btn-primary" : "btn-outline-secondary")" href="@acao.Url">
+                    @if (acao.Icone is not null)
+                    {
+                        <i class="bi @acao.Icone" aria-hidden="true"></i>
+                    }
+                    @acao.Texto
+                </a>
+            }
+        </div>
+    }
+</div>

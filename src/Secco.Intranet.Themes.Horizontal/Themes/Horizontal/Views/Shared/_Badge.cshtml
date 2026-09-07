@@ -1,0 +1,16 @@
+@model BadgeModel
+@{
+    var variante = Model.Variante switch
+    {
+        BadgeVariante.Setor => "sc-badge--setor",
+        BadgeVariante.Sucesso => "sc-badge--sucesso",
+        BadgeVariante.Aviso => "sc-badge--aviso",
+        BadgeVariante.Perigo => "sc-badge--perigo",
+        _ => null,
+    };
+
+    string? estilo = Model.Variante == BadgeVariante.Setor
+        ? $"--sc-setor-hue:{SetorHue.From(Model.SetorSlug)}"
+        : null;
+}
+<span class="sc-badge @variante" style="@estilo">@Model.Texto</span>

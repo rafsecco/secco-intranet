@@ -1,6 +1,7 @@
 # Notificação do Mural — desenho do recurso
 
 **Data:** 2026-09-07
+**Revisado:** 2026-09-07, depois de a plataforma entregar `ScheduledFor`
 **Estado:** aprovado, pronto para plano de implementação
 
 ## Problema
@@ -14,13 +15,23 @@ preguiçoso de falha de entrega.
 Este documento fecha o que aquele deixou em aberto e corrige uma contradição que só apareceu
 com o recurso pronto.
 
-### A contradição
+### A contradição, e como ela foi resolvida
 
 O fluxo original notificava dentro do `PublicarPublicacaoHandler`, logo após persistir. Mas o
 estado "no ar" do Mural é **derivado do relógio** — foi essa decisão que dispensou job de
 transição e, com ela, o Hangfire. Consequência não percebida: uma publicação agendada para a
 semana que vem dispararia e-mail hoje, avisando sobre algo que ninguém consegue abrir, e
 **nada** aconteceria na data de entrada no ar, porque não existe evento nesse instante.
+
+A saída foi pedir a entrega futura ao Hub, e ela chegou. O `IBackgroundJobScheduler` do SDK
+ganhou `Schedule(..., DateTimeOffset enqueueAt)` ao lado do `Enqueue`, e os dois DTOs de
+despacho ganharam `ScheduledFor`.
+
+A entrega cobriu um caso que a própria demanda não tinha visto: **o canal in-app não tem job
+de entrega**. O item do inbox era gravado no instante do despacho, então agendar o e-mail e
+não o sino faria a notificação aparecer na hora — reproduzindo, no sino, exatamente o problema
+que o agendamento existia para resolver. O Hub passou a esconder do inbox o que ainda não
+chegou a hora.
 
 ## O que o levantamento apurou
 
@@ -29,7 +40,7 @@ Verificado na fonte, não presumido:
 | Pergunta | Resposta |
 |---|---|
 | Quem guarda o "lida" do sino? | O Hub. `CountUnreadInAppNotifications`, `GetUnreadInAppNotifications` e `MarkInAppNotificationAsRead` existem e estão no client |
-| O Hub entrega em data futura? | **Não.** `DispatchNotificationBatchRequest` tem `Title`, `Message`, `Source`, `Type`, `Link`, `Channels` e `Destinations` — nenhum campo de agendamento |
+| O Hub entrega em data futura? | **Sim, desde 2026-09-07** ([secco-platform#24](https://github.com/rafsecco/secco-platform/issues/24)). `ScheduledFor` é `DateTimeOffset?` nos dois DTOs de despacho |
 | Há como agendar localmente? | Sim. `IBackgroundJobScheduler` e `AddSeccoBackgroundJobs()` já vêm no `Secco.SDK.AspNetCore` 0.5.1, que este produto já referencia |
 | `ListUsers` está publicado? | Sim, no `Secco.SecureGate.Client` 0.3.0. `UserDto` traz `Id`, `Email`, `TenantId` e `Roles` |
 | Existe endereço por publicação? | **Não.** O Mural é só a listagem paginada em `/` |
@@ -38,7 +49,7 @@ Verificado na fonte, não presumido:
 
 | Eixo | Decisão |
 |---|---|
-| Publicação agendada | Não notifica até o Hub entregar `ScheduledFor`; o formulário avisa antes de salvar |
+| Publicação agendada | Notifica **na entrada no ar**, via `ScheduledFor` do Hub |
 | Onde a entrega futura mora | No Hub, como demanda de plataforma — não em agendador local |
 | Edição | **Nunca** re-notifica |
 | Estado de lida | É do Hub; a Intranet só consome |
@@ -81,7 +92,7 @@ onde é testável sem HTTP.
 ```text
 PublicarPublicacaoHandler
   1. persiste a publicacao                  (o que o usuario espera ver)
-  2. agendada? -> encerra sem notificar      guarda interina
+  2. agendada? -> ScheduledFor = PublicadoEm  o Hub segura ate a hora
   3. canais <- prioridade                    tabela do desenho do Mural
   4. usuarios <- IDiretorioDeUsuarios        1 chamada
   5. filtra por visibilidade e exclui autor  em memoria
@@ -158,12 +169,22 @@ silenciosa do menu.
 | Situação | O que acontece |
 |---|---|
 | Hub fora do ar | Publicação gravada; a tela diz "publicado, sem notificar" |
-| Usuário sem e-mail, canal `email` pedido | Sai da lista antes da chamada; vira relatório nominal na mesma tela |
+| Usuário sem e-mail, canal `email` pedido | Sai da lista antes da chamada; entra na **contagem** do relatório |
 | E-mail malformado no cadastro | Idem — o lote do Hub é tudo-ou-nada, então a partição é nossa |
 | Falha depois do aceite (SMTP, rejeição) | Só o Hub sabe; aparece no permalink via `SearchNotifications` |
 
 **Notificar nunca derruba publicar.** A publicação é o que o usuário pediu; o aviso é
 consequência.
+
+### O relatório conta, não nomeia
+
+O desenho do Mural prometia listar *quem* ficou sem e-mail, com os nomes. Não dá: o `UserDto`
+do SecureGate expõe `Id`, `Email`, `TenantId` e `Roles` — **não há nome**. Nomear exigiria uma
+segunda consulta por usuário, e para pessoas cuja falta de e-mail é justamente o problema.
+
+O relatório mostra a contagem: *publicado; 3 pessoas sem e-mail cadastrado não foram
+notificadas por e-mail*. Quem precisa dos nomes tem a lista de usuários do SecureGate, que é
+onde o cadastro se corrige de qualquer forma.
 
 ## Testes
 
@@ -177,9 +198,9 @@ Fakes das duas portas cobrem a regra inteira em unidade, sem HTTP:
 | Visibilidade `Setor` | só quem tem `{slug}-admin` ou `{slug}-user` |
 | Visibilidade `Empresa` | todos do tenant |
 | Autor da publicação | nunca entre os destinos |
-| Usuário sem e-mail, canal `email` | fora do lote, dentro do relatório |
+| Usuário sem e-mail, canal `email` | fora do lote, contado no relatório |
 | 501 destinatários | dois lotes, não 501 chamadas |
-| Publicação agendada | nenhuma chamada ao Hub |
+| Publicação agendada | um lote, com `ScheduledFor` igual à entrada no ar |
 | Hub lançando exceção | publicação persistida, relatório acusa |
 
 Integração: permalink devolve o mesmo erro para inexistente e para sem acesso.
@@ -196,9 +217,6 @@ Integração: permalink devolve o mesmo erro para inexistente e para sem acesso.
 
 ## Fora de escopo
 
-- **`ScheduledFor` no Hub** — demanda de plataforma
-  ([secco-platform#24](https://github.com/rafsecco/secco-platform/issues/24)); até sair,
-  agendada não notifica.
 - **Re-notificar em edição** — recusado acima; entra com caso real, se houver.
 - **Notificação de arquivamento** — tirar do ar não é evento que interrompe ninguém.
 - **Preferências por usuário** (silenciar setor, resumo diário) — sem evidência de demanda.

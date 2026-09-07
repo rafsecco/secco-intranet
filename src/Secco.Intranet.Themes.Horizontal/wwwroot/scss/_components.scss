@@ -1,0 +1,641 @@
+// Componentes do tema Horizontal. Tudo sob o prefixo .sc- para nao colidir com o Bootstrap.
+// Boa parte destas regras e identica ao Vertical de proposito: card, badge, lista, vazio,
+// paginacao, abas e formulario nao dependem de menu lateral ou no topo. So cabecalho,
+// estrutura e navegacao mudam — sao a parte estrutural que diferencia os dois temas.
+
+// --- Base ------------------------------------------------------------------
+body {
+  background-color: var(--sc-bg);
+  color: var(--sc-text);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -.01em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--sc-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+  }
+}
+
+.sc-skip {
+  position: absolute;
+  top: .5rem;
+  left: .5rem;
+  z-index: 1100;
+  padding: .5rem .875rem;
+  border-radius: var(--bs-border-radius);
+  background-color: var(--sc-primary);
+  color: var(--sc-on-primary);
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+  transition: transform .15s ease;
+
+  &:focus {
+    transform: translateY(0);
+  }
+}
+
+// Dado tabular: data, tamanho, contagem. Numeros alinham em coluna.
+.sc-meta {
+  color: var(--sc-text-muted);
+  font-family: var(--bs-font-monospace);
+  font-size: .75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+// --- Cabecalho ---------------------------------------------------------------
+// A diferenca estrutural do Horizontal: a navegacao mora AQUI, entre a marca e as acoes —
+// nao numa barra lateral. Em telas estreitas ela vira um painel suspenso (ver abaixo).
+.sc-header {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  height: var(--sc-header-height);
+  padding-inline: 1rem;
+  border-bottom: 1px solid var(--sc-border);
+  background-color: var(--sc-surface);
+}
+
+.sc-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  color: var(--sc-text);
+  font-weight: 700;
+  letter-spacing: -.01em;
+  text-decoration: none;
+
+  &__mark {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--bs-border-radius-sm);
+    background-color: var(--sc-primary);
+    color: var(--sc-on-primary);
+    font-size: .75rem;
+    letter-spacing: 0;
+  }
+}
+
+.sc-header__actions {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+  margin-left: auto;
+}
+
+.sc-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--bs-border-radius-sm);
+  background-color: transparent;
+  color: var(--sc-text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease;
+
+  &:hover {
+    background-color: var(--sc-surface-muted);
+    color: var(--sc-text);
+  }
+}
+
+.sc-avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--sc-primary-soft);
+  color: var(--sc-primary);
+  font-size: .75rem;
+  font-weight: 600;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+}
+
+.sc-avatar--lg {
+  width: 48px;
+  height: 48px;
+  font-size: 1rem;
+  background-color: var(--sc-setor-soft, var(--sc-primary-soft));
+  color: var(--sc-setor, var(--sc-primary));
+}
+
+// --- Estrutura ---------------------------------------------------------------
+// Sem barra lateral: o conteudo e a unica coluna, abaixo do cabecalho.
+.sc-main {
+  max-width: 1180px;
+  margin-inline: auto;
+  padding: 1.5rem 1rem;
+}
+
+// --- Navegacao ---------------------------------------------------------------
+.sc-topnav {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-x: auto;
+}
+
+.sc-nav {
+  display: flex;
+  align-items: center;
+  gap: .125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__divider {
+    flex: 0 0 auto;
+    width: 1px;
+    height: 1.25rem;
+    margin-inline: .375rem;
+    background-color: var(--sc-border);
+  }
+
+  &__group-title {
+    flex: 0 0 auto;
+    padding-inline: .375rem;
+    color: var(--sc-text-muted);
+    font-family: var(--bs-font-monospace);
+    font-size: .6875rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem .75rem;
+    border-radius: var(--bs-border-radius);
+    color: var(--sc-text-muted);
+    font-size: .875rem;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
+
+    &:hover {
+      background-color: var(--sc-surface-muted);
+      color: var(--sc-text);
+    }
+
+    // Sublinhado por inset shadow, nao filete lateral — o filete pertencia a barra vertical.
+    &.is-active {
+      background-color: var(--sc-primary-soft);
+      color: var(--sc-primary);
+      font-weight: 600;
+      box-shadow: inset 0 -2px 0 var(--sc-primary);
+    }
+  }
+
+  &__icon {
+    flex: 0 0 auto;
+    width: 1rem;
+    font-size: 1rem;
+    line-height: 1;
+    text-align: center;
+  }
+
+  // Ponto na cor do setor: a mesma cor que marca o conteudo dele nos cards.
+  &__dot {
+    flex: 0 0 auto;
+    width: .5rem;
+    height: .5rem;
+    border-radius: 50%;
+    background-color: var(--sc-setor, var(--sc-text-muted));
+  }
+
+  &__label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// Em tela estreita a navegacao sai da linha do cabecalho e vira um painel suspenso,
+// aberto pelo botao de menu. Mesmo padrao de gaveta+fundo do Vertical, so que cai de cima
+// em vez de entrar pela lateral.
+@media (max-width: 767.98px) {
+  .sc-topnav {
+    display: none;
+    position: fixed;
+    top: var(--sc-header-height);
+    left: 0;
+    right: 0;
+    z-index: 1040;
+    max-height: calc(100vh - var(--sc-header-height));
+    overflow-y: auto;
+    padding: .5rem;
+    border-bottom: 1px solid var(--sc-border);
+    background-color: var(--sc-surface);
+    box-shadow: var(--sc-shadow);
+  }
+
+  .sc-topnav.is-open {
+    display: block;
+  }
+
+  .sc-topnav .sc-nav {
+    flex-direction: column;
+    align-items: stretch;
+    overflow-x: visible;
+  }
+
+  .sc-topnav .sc-nav__divider {
+    display: none;
+  }
+
+  .sc-topnav .sc-nav__group-title {
+    padding-block: .5rem .25rem;
+  }
+
+  .sc-main {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .sc-header__menu,
+  .sc-backdrop {
+    display: none;
+  }
+}
+
+// --- Cabecalho de pagina -----------------------------------------------------
+.sc-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+
+  &__text {
+    flex: 1 1 16rem;
+    min-width: 0;
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  &__subtitle {
+    margin: .25rem 0 0;
+    color: var(--sc-text-muted);
+    font-size: .875rem;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+}
+
+// --- Card ----------------------------------------------------------------------
+.sc-card {
+  position: relative;
+  overflow: hidden;
+  padding: 1rem 1.125rem;
+  border: 1px solid var(--sc-border);
+  border-radius: var(--bs-border-radius);
+  background-color: var(--sc-surface);
+  box-shadow: var(--sc-shadow);
+
+  // O filete diz de quem e o conteudo — so aparece quando ha setor.
+  &--setor::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 3px;
+    background-color: var(--sc-setor);
+    content: "";
+  }
+
+  &--navegavel {
+    transition: border-color .15s ease;
+  }
+
+  &--navegavel:hover {
+    border-color: var(--sc-setor, var(--sc-primary));
+  }
+
+  &__head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  &__body {
+    margin-top: .5rem;
+    color: var(--sc-text-muted);
+    font-size: .875rem;
+  }
+
+  &__body > :last-child {
+    margin-bottom: 0;
+  }
+
+  &__link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  &__link::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+  }
+}
+
+.sc-stack {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+// --- Badge -----------------------------------------------------------------
+.sc-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: .125rem .5rem;
+  border-radius: var(--bs-border-radius-pill);
+  background-color: var(--sc-surface-muted);
+  color: var(--sc-text-muted);
+  font-size: .6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &--setor {
+    background-color: var(--sc-setor-soft);
+    color: var(--sc-setor);
+  }
+
+  &--sucesso {
+    background-color: var(--bs-success-bg-subtle);
+    color: var(--bs-success-text-emphasis);
+  }
+
+  &--aviso {
+    background-color: var(--bs-warning-bg-subtle);
+    color: var(--bs-warning-text-emphasis);
+  }
+
+  &--perigo {
+    background-color: var(--bs-danger-bg-subtle);
+    color: var(--bs-danger-text-emphasis);
+  }
+}
+
+// --- Lista de itens ----------------------------------------------------------
+.sc-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--sc-border);
+  border-radius: var(--bs-border-radius);
+  background-color: var(--sc-surface);
+  list-style: none;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: .875rem;
+    padding: .75rem 1rem;
+    border-top: 1px solid var(--sc-border);
+  }
+
+  &__item:first-child {
+    border-top: 0;
+  }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--bs-border-radius-sm);
+    background-color: var(--sc-surface-muted);
+    color: var(--sc-text-muted);
+    font-size: 1.125rem;
+  }
+
+  &__text {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: .9375rem;
+    font-weight: 600;
+  }
+
+  &__sub {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: center;
+    margin-top: .125rem;
+  }
+
+  &__actions {
+    flex: 0 0 auto;
+  }
+}
+
+// --- Vazio -------------------------------------------------------------------
+.sc-empty {
+  padding: 3rem 1.5rem;
+  border: 1px dashed var(--sc-border);
+  border-radius: var(--bs-border-radius);
+  text-align: center;
+
+  &__icon {
+    color: var(--sc-text-muted);
+    font-size: 1.75rem;
+  }
+
+  &__title {
+    margin: .75rem 0 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  &__text {
+    margin: .25rem auto 0;
+    max-width: 34rem;
+    color: var(--sc-text-muted);
+    font-size: .875rem;
+  }
+
+  &__action {
+    margin-top: 1rem;
+  }
+}
+
+// --- Paginacao -----------------------------------------------------------------
+.sc-pagination {
+  display: flex;
+  gap: .75rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.25rem;
+}
+
+// --- Abas ------------------------------------------------------------------
+.sc-tabs {
+  display: flex;
+  gap: .25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--sc-border);
+
+  &__item {
+    padding: .5rem .75rem;
+    border-bottom: 2px solid transparent;
+    color: var(--sc-text-muted);
+    font-size: .875rem;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  &__item:hover {
+    color: var(--sc-text);
+  }
+
+  &__item.is-active {
+    border-bottom-color: var(--sc-primary);
+    color: var(--sc-primary);
+    font-weight: 600;
+  }
+}
+
+// --- Formulario ------------------------------------------------------------
+.sc-form {
+  max-width: 40rem;
+
+  &__field {
+    margin-bottom: 1rem;
+  }
+
+  &__actions {
+    display: flex;
+    gap: .5rem;
+    margin-top: 1.5rem;
+  }
+}
+
+.sc-panel {
+  padding: 1.25rem;
+  border: 1px solid var(--sc-border);
+  border-radius: var(--bs-border-radius);
+  background-color: var(--sc-surface);
+}
+
+// --- Fundo do painel de navegacao em telas estreitas --------------------------
+.sc-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1035;
+  background-color: rgb(17 24 39 / 45%);
+}
+
+// Publicacao urgente: o filete do setor continua dizendo de quem e, e o anel diz que corre.
+.sc-urgente .sc-card {
+  border-color: var(--bs-danger-border-subtle);
+  box-shadow: 0 0 0 3px var(--bs-danger-bg-subtle);
+}
+
+// Corpo vindo do markdown: o Razor nao controla essas tags, entao o espacamento vem daqui.
+.sc-card__body {
+  p:last-child,
+  ul:last-child,
+  ol:last-child {
+    margin-bottom: 0;
+  }
+
+  ul,
+  ol {
+    padding-left: 1.25rem;
+  }
+}
+
+// Legenda da sintaxe de markdown, ao lado do editor.
+.sc-legenda {
+  position: relative;
+  margin-top: .5rem;
+
+  &__botao {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--sc-text-muted);
+    font-size: .8125rem;
+    cursor: pointer;
+  }
+
+  &__botao:hover {
+    color: var(--sc-text);
+  }
+
+  &__conteudo {
+    position: absolute;
+    z-index: 10;
+    min-width: 18rem;
+    margin-top: .375rem;
+    padding: .75rem 1rem;
+    border: 1px solid var(--sc-border);
+    border-radius: var(--bs-border-radius);
+    background-color: var(--sc-surface);
+    box-shadow: var(--sc-shadow);
+    font-size: .8125rem;
+  }
+
+  &__conteudo p {
+    margin-bottom: .375rem;
+  }
+
+  &__conteudo p:last-child {
+    margin-bottom: 0;
+  }
+}

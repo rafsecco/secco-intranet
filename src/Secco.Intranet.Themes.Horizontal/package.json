@@ -1,0 +1,23 @@
+{
+  "name": "secco-intranet-theme-horizontal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Build dos assets do tema Horizontal: Sass do Bootstrap, icones e fontes auto-hospedadas.",
+  "license": "MIT",
+  "scripts": {
+    "build": "npm run copy:assets && npm run build:js && npm run build:css",
+    "build:css": "sass wwwroot/scss/theme.scss wwwroot/css/theme.css --style=compressed --no-source-map --quiet-deps --silence-deprecation=import --load-path=node_modules",
+    "build:js": "esbuild scripts/editor-bundle.js --bundle --minify --format=iife --global-name=toastui --outfile=wwwroot/vendor/js/toastui-editor.js --log-level=warning",
+    "copy:assets": "node scripts/copy-assets.mjs",
+    "watch:css": "sass --watch wwwroot/scss/theme.scss wwwroot/css/theme.css --quiet-deps --silence-deprecation=import --load-path=node_modules"
+  },
+  "devDependencies": {
+    "@fontsource/inter": "5.3.0",
+    "@fontsource/jetbrains-mono": "5.3.0",
+    "@toast-ui/editor": "^3.2.2",
+    "bootstrap": "5.3.8",
+    "bootstrap-icons": "1.13.1",
+    "esbuild": "^0.28.2",
+    "sass": "1.103.1"
+  }
+}

@@ -81,6 +81,11 @@ public sealed record DestinoDaMensagem(Guid UsuarioId, string? Email);
 /// <param name="Origem">Vai no campo <c>Source</c> do Hub.</param>
 /// <param name="Tipo">Vai no campo <c>Type</c> do Hub.</param>
 /// <param name="Destinos">Destinos deste lote, no máximo 500.</param>
+/// <param name="ProgramadaPara">
+/// Instante da entrega; nulo entrega agora. O Hub segura e-mail <b>e</b> item do sino até a
+/// hora — sem isso, o aviso apareceria no sino avisando sobre algo que o mural ainda não
+/// mostra.
+/// </param>
 public sealed record MensagemParaEnviar(
 	string Titulo,
 	string Resumo,
@@ -88,7 +93,8 @@ public sealed record MensagemParaEnviar(
 	IReadOnlyList<string> Canais,
 	string Origem,
 	string Tipo,
-	IReadOnlyList<DestinoDaMensagem> Destinos);
+	IReadOnlyList<DestinoDaMensagem> Destinos,
+	DateTimeOffset? ProgramadaPara);
 
 /// <summary>
 /// Porta de envio. Fila, retry e entrega são do Hub (ADR-0006) — daqui sai uma chamada por
@@ -144,24 +150,23 @@ namespace Secco.Intranet.Application.Publicacoes.Notificacao;
 /// </summary>
 /// <param name="Notificados">Quantas pessoas entraram nos lotes enviados.</param>
 /// <param name="SemEmail">Quantas ficaram fora do canal de e-mail por não ter endereço cadastrado.</param>
-/// <param name="Agendada">A publicação entra no ar no futuro, então o aviso não saiu.</param>
+/// <param name="ProgramadaPara">
+/// Quando a entrega acontece, se for no futuro. Nulo significa que já saiu.
+/// </param>
 /// <param name="Indisponivel">O Hub não aceitou o lote; a publicação foi gravada mesmo assim.</param>
 public sealed record RelatorioDeNotificacao(
 	int Notificados,
 	int SemEmail,
-	bool Agendada,
+	DateTimeOffset? ProgramadaPara,
 	bool Indisponivel)
 {
-	/// <summary>Nada foi enviado porque a publicação está agendada.</summary>
-	public static RelatorioDeNotificacao DeAgendada() => new(0, 0, Agendada: true, Indisponivel: false);
-
 	/// <summary>Nada foi enviado porque o Hub não respondeu.</summary>
 	/// <param name="semEmail">Quantos já haviam sido descartados por falta de e-mail.</param>
 	public static RelatorioDeNotificacao DeIndisponivel(int semEmail) =>
-		new(0, semEmail, Agendada: false, Indisponivel: true);
+		new(0, semEmail, ProgramadaPara: null, Indisponivel: true);
 
 	/// <summary>Nenhum aviso a dar: publicação sem destinatários e sem falha.</summary>
-	public static RelatorioDeNotificacao Silencioso() => new(0, 0, false, false);
+	public static RelatorioDeNotificacao Silencioso() => new(0, 0, null, false);
 }
 ```
 
@@ -447,17 +452,28 @@ public class AvisoDePublicacaoTests
 	}
 
 	[Fact]
-	public async Task Agendada_NaoNotifica()
+	public async Task Agendada_EntregaNaEntradaNoAr()
+	{
+		var entradaNoAr = DateTimeOffset.UtcNow.AddDays(1);
+		var (handler, notificador) = Montar(Usuario("a@x.com", "financeiro-user"));
+
+		var resultado = await handler.HandleAsync(Comando(publicadoEm: entradaNoAr));
+
+		notificador.Lotes.Should().ContainSingle()
+			.Which.ProgramadaPara.Should().Be(entradaNoAr,
+				"o Hub segura e-mail e sino até a hora, então o aviso nunca aponta para algo invisível");
+		resultado.Value.Notificacao.ProgramadaPara.Should().Be(entradaNoAr);
+	}
+
+	[Fact]
+	public async Task PublicadaAgora_NaoProgramaEntrega()
 	{
 		var (handler, notificador) = Montar(Usuario("a@x.com", "financeiro-user"));
 
-		var resultado = await handler.HandleAsync(
-			Comando(publicadoEm: DateTimeOffset.UtcNow.AddDays(1)));
+		var resultado = await handler.HandleAsync(Comando());
 
-		resultado.IsSuccess.Should().BeTrue();
-		notificador.Lotes.Should().BeEmpty(
-			"o Hub ainda não entrega em data futura, e avisar hoje apontaria para algo invisível");
-		resultado.Value.Notificacao.Agendada.Should().BeTrue();
+		notificador.Lotes.Should().ContainSingle().Which.ProgramadaPara.Should().BeNull();
+		resultado.Value.Notificacao.ProgramadaPara.Should().BeNull();
 	}
 
 	[Fact]
@@ -752,13 +768,11 @@ public sealed class PublicarPublicacaoHandler(
 		Guid? autorId,
 		CancellationToken cancellationToken)
 	{
-		// O Hub ainda não entrega em data futura (secco-platform#24). Avisar agora apontaria
-		// para uma publicação que o Mural não mostra, então a agendada sai sem aviso e o
-		// formulário diz isso antes de salvar.
-		if (publicacao.PublicadoEm > DateTimeOffset.UtcNow)
-		{
-			return RelatorioDeNotificacao.DeAgendada();
-		}
+		// Publicação agendada não sai sem aviso, e o aviso não sai antes da hora: o Hub
+		// entrega no instante pedido, segurando e-mail E item do sino (secco-platform#24).
+		var programadaPara = publicacao.PublicadoEm > DateTimeOffset.UtcNow
+			? publicacao.PublicadoEm
+			: (DateTimeOffset?)null;
 
 		var canais = CanaisDaPrioridade.De(publicacao.Prioridade);
 		var usuarios = await diretorio.ListarDoTenantAtualAsync(cancellationToken).ConfigureAwait(false);
@@ -770,7 +784,7 @@ public sealed class PublicarPublicacaoHandler(
 
 		if (validos.Count == 0)
 		{
-			return new RelatorioDeNotificacao(0, semEmail, false, false);
+			return new RelatorioDeNotificacao(0, semEmail, programadaPara, false);
 		}
 
 		var resumo = Resumir(publicacao.Corpo);
@@ -784,7 +798,7 @@ public sealed class PublicarPublicacaoHandler(
 					.EnviarLoteAsync(
 						new MensagemParaEnviar(
 							publicacao.Titulo, resumo, link, canais,
-							AvisoDePublicacao.Origem, publicacao.Id.ToString(), bloco),
+							AvisoDePublicacao.Origem, publicacao.Id.ToString(), bloco, programadaPara),
 						cancellationToken)
 					.ConfigureAwait(false);
 			}
@@ -794,7 +808,7 @@ public sealed class PublicarPublicacaoHandler(
 			return RelatorioDeNotificacao.DeIndisponivel(semEmail);
 		}
 
-		return new RelatorioDeNotificacao(validos.Count, semEmail, false, false);
+		return new RelatorioDeNotificacao(validos.Count, semEmail, programadaPara, false);
 	}
 
 	private string MontarLink(Guid publicacaoId)
@@ -943,9 +957,10 @@ public static class MensagemDeSalvamento
 			return mensagem;
 		}
 
-		if (relatorio.Agendada)
+		if (relatorio.ProgramadaPara is not null)
 		{
-			return mensagem + " Publicações agendadas ainda não enviam aviso: ele sai quando você publica com a data atual.";
+			return mensagem
+				+ $" O aviso será enviado em {relatorio.ProgramadaPara.Value.ToLocalTime():dd/MM/yyyy 'às' HH:mm}, quando a publicação entrar no ar.";
 		}
 
 		if (relatorio.Indisponivel)
@@ -968,22 +983,76 @@ public static class MensagemDeSalvamento
 }
 ```
 
-- [ ] **Step 9: Registrar os fakes de DI para o build passar**
+- [ ] **Step 9: Os adaptadores no-op**
 
-A Application agora exige `IDiretorioDeUsuarios`, `INotificadorDeMensagens` e `NotificacaoOptions` no contêiner. A Task 3 traz os adaptadores reais; para este commit ficar verde, registre no `IntranetInfrastructureExtensions.cs`, junto das outras options:
+Sem eles a Application não resolve as portas e a suíte de integração quebra. Não dependem de
+pacote nenhum, então entram aqui e não na tarefa dos adaptadores reais.
+
+```csharp
+using Microsoft.Extensions.Logging;
+using Secco.Intranet.Application.Publicacoes.Notificacao;
+
+namespace Secco.Intranet.Infrastructure.Notificacao;
+
+/// <summary>
+/// Adapter no-op de <see cref="INotificadorDeMensagens"/> — modo DEV/Testing, quando a seção
+/// <c>Intranet:Notificacao:Hub</c> não está configurada. Publicar continua funcionando e o
+/// relatório sai zerado, que é a verdade: não há para onde enviar.
+/// </summary>
+/// <param name="logger">Log em nível Debug.</param>
+public sealed class NotificadorSilencioso(ILogger<NotificadorSilencioso> logger) : INotificadorDeMensagens
+{
+	/// <inheritdoc />
+	public Task EnviarLoteAsync(MensagemParaEnviar mensagem, CancellationToken cancellationToken = default)
+	{
+		logger.LogDebug("notificação desativada — seção Intranet:Notificacao:Hub ausente");
+
+		return Task.CompletedTask;
+	}
+}
+```
+
+```csharp
+using Secco.Intranet.Application.Publicacoes.Notificacao;
+
+namespace Secco.Intranet.Infrastructure.Notificacao;
+
+/// <summary>
+/// Adapter no-op de <see cref="IDiretorioDeUsuarios"/> — sem SecureGate configurado não há
+/// cadastro a consultar, e ninguém é destinatário.
+/// </summary>
+public sealed class DiretorioVazio : IDiretorioDeUsuarios
+{
+	/// <inheritdoc />
+	public Task<IReadOnlyList<UsuarioDoTenant>> ListarDoTenantAtualAsync(
+		CancellationToken cancellationToken = default) =>
+		Task.FromResult<IReadOnlyList<UsuarioDoTenant>>([]);
+}
+```
+
+- [ ] **Step 10: Registrar as options e as portas**
+
+A Application agora exige `IDiretorioDeUsuarios`, `INotificadorDeMensagens` e `NotificacaoOptions` no contêiner. Registre no `IntranetInfrastructureExtensions.cs`, junto das outras options:
 
 ```csharp
 		services.AddSingleton(sp => BindSection(sp, NotificacaoOptions.SectionKey, new NotificacaoOptions()));
+
+		// Os adaptadores reais chegam na Task 3, com o pacote do Hub. Até lá o produto usa os
+		// no-op: publicar funciona e o relatório sai zerado, que é a verdade — não há para
+		// onde enviar.
+		services.AddScoped<IDiretorioDeUsuarios, DiretorioVazio>();
+		services.AddScoped<INotificadorDeMensagens, NotificadorSilencioso>();
 ```
 
-E a composição dos adaptadores entra na Task 3 — até lá, o build da Application e os testes de unidade passam, mas os testes de integração que sobem o host vão falhar por dependência não registrada. **Faça as Tasks 2 e 3 em sequência antes de rodar a suíte inteira**; o commit da Task 2 roda apenas os testes de unidade.
+Esta tarefa fecha verde por conta própria: nada aqui depende do `Secco.NotificationHub.Client`.
 
-- [ ] **Step 10: Rodar os testes de unidade**
+- [ ] **Step 11: Rodar a suíte**
 
-Run: `dotnet test --filter FullyQualifiedName~AvisoDePublicacaoTests`
-Expected: PASS, 14 testes.
+Run: `dotnet build && dotnet test`
+Expected: build com 0 avisos e a suíte inteira verde, incluindo os 15 testes novos de
+`AvisoDePublicacaoTests`.
 
-- [ ] **Step 11: Commit**
+- [ ] **Step 12: Commit**
 
 ```bash
 git add -A
@@ -1013,13 +1082,25 @@ Publicacao agendada nao notifica: o Hub ainda nao entrega em data futura
 - Consumes: `IDiretorioDeUsuarios`, `INotificadorDeMensagens`, `NotificacaoIndisponivelException` (Task 1).
 - Produces: registro de DI que resolve o adaptador real quando configurado e o no-op quando não.
 
-- [ ] **Step 1: Adicionar o pacote**
+- [ ] **Step 1: Apurar a versão publicada e adicionar o pacote**
+
+O `ScheduledFor` entrou no monorepo **depois** da tag `notificationhub-client/v0.4.0`, então a
+0.4.0 não serve. Descubra a versão que a release publicou antes de fixar — issue fechada não é
+pacote publicado:
+
+```bash
+MSYS_NO_PATHCONV=1 gh api "user/packages/nuget/Secco.NotificationHub.Client/versions" --jq '.[].name'
+```
+
+Use a maior versão listada. Se ainda for `0.4.0`, **pare**: a release não saiu, e esta tarefa
+não pode ser feita.
 
 Em `Directory.Packages.props`, no `ItemGroup Label="Secco Platform"`:
 
 ```xml
-    <!-- 0.4.0 traz SearchNotifications, que torna o relatorio de entrega uma chamada so. -->
-    <PackageVersion Include="Secco.NotificationHub.Client" Version="0.4.0" />
+    <!-- SearchNotifications (relatorio de entrega numa chamada) e ScheduledFor (entrega na
+         entrada no ar). -->
+    <PackageVersion Include="Secco.NotificationHub.Client" Version="<versão apurada abaixo>" />
 ```
 
 Em `src/Secco.Intranet.Infrastructure/Secco.Intranet.Infrastructure.csproj`:
@@ -1124,6 +1205,7 @@ public sealed class NotificationHubNotificador(
 			Source = mensagem.Origem,
 			Type = mensagem.Tipo,
 			Channels = [.. mensagem.Canais],
+			ScheduledFor = mensagem.ProgramadaPara,
 			Destinations =
 			[
 				.. mensagem.Destinos.Select(destino => new NotificationDestination
@@ -1162,51 +1244,7 @@ public sealed class NotificationHubNotificador(
 }
 ```
 
-- [ ] **Step 4: Os no-op**
-
-```csharp
-using Microsoft.Extensions.Logging;
-using Secco.Intranet.Application.Publicacoes.Notificacao;
-
-namespace Secco.Intranet.Infrastructure.Notificacao;
-
-/// <summary>
-/// Adapter no-op de <see cref="INotificadorDeMensagens"/> — modo DEV/Testing, quando a seção
-/// <c>Intranet:Notificacao:Hub</c> não está configurada. Publicar continua funcionando e o
-/// relatório sai zerado, que é a verdade: não há para onde enviar.
-/// </summary>
-/// <param name="logger">Log em nível Debug.</param>
-public sealed class NotificadorSilencioso(ILogger<NotificadorSilencioso> logger) : INotificadorDeMensagens
-{
-	/// <inheritdoc />
-	public Task EnviarLoteAsync(MensagemParaEnviar mensagem, CancellationToken cancellationToken = default)
-	{
-		logger.LogDebug("notificação desativada — seção Intranet:Notificacao:Hub ausente");
-
-		return Task.CompletedTask;
-	}
-}
-```
-
-```csharp
-using Secco.Intranet.Application.Publicacoes.Notificacao;
-
-namespace Secco.Intranet.Infrastructure.Notificacao;
-
-/// <summary>
-/// Adapter no-op de <see cref="IDiretorioDeUsuarios"/> — sem SecureGate configurado não há
-/// cadastro a consultar, e ninguém é destinatário.
-/// </summary>
-public sealed class DiretorioVazio : IDiretorioDeUsuarios
-{
-	/// <inheritdoc />
-	public Task<IReadOnlyList<UsuarioDoTenant>> ListarDoTenantAtualAsync(
-		CancellationToken cancellationToken = default) =>
-		Task.FromResult<IReadOnlyList<UsuarioDoTenant>>([]);
-}
-```
-
-- [ ] **Step 5: Compor no DI**
+- [ ] **Step 4: Compor no DI**
 
 Em `NotificacaoOptions`, acrescente a URL do Hub:
 
@@ -1281,12 +1319,12 @@ Acrescente os `using` necessários no topo: `Secco.Intranet.Application.Publicac
 `Secco.Intranet.Infrastructure.Notificacao`, `Secco.NotificationHub.Client`,
 `Secco.SDK.AspNetCore.Authentication`, `Secco.SecureGate.Client`.
 
-- [ ] **Step 6: Rodar a suíte inteira**
+- [ ] **Step 5: Rodar a suíte inteira**
 
 Run: `dotnet build && dotnet test`
 Expected: build com 0 avisos, suíte verde. Os testes de integração voltam a passar — o host resolve os no-op, porque nem `Secco:SecureGate` nem `Intranet:Notificacao:Hub` estão configurados em Testing.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add -A
@@ -2238,8 +2276,8 @@ Em `Views/Setor/Avisos.cshtml`, substitua o parágrafo de legenda das datas por:
                     </p>
                     <p class="form-text mb-0">
                         <i class="bi bi-info-circle" aria-hidden="true"></i>
-                        Publicações agendadas ainda <strong>não enviam aviso</strong>: quem precisa
-                        alcançar as pessoas deve publicar com a data atual.
+                        O aviso é enviado <strong>na data de entrada no ar</strong>, não no momento
+                        de salvar — publicação agendada avisa na hora certa.
                     </p>
                 </div>
 ```
@@ -2249,9 +2287,8 @@ Em `Views/Setor/Avisos.cshtml`, substitua o parágrafo de legenda das datas por:
 Em `docs/roadmap.md`, logo abaixo da linha do Mural, acrescente:
 
 ```markdown
-- [x] Notificação do Mural: sino, e-mail e canal corporativo conforme a urgência —
-      [spec](specs/2026-09-07-notificacao-mural-design.md). Publicação agendada não notifica
-      até [secco-platform#24](https://github.com/rafsecco/secco-platform/issues/24)
+- [x] Notificação do Mural: sino, e-mail e canal corporativo conforme a urgência, com entrega
+      na data de entrada no ar — [spec](specs/2026-09-07-notificacao-mural-design.md)
 ```
 
 - [ ] **Step 3: Atualizar o README**
@@ -2272,7 +2309,7 @@ Expected: build com 0 avisos e a suíte verde.
 
 Suba a aplicação e confira:
 
-1. `/setor/<slug>/avisos` mostra o aviso sobre publicação agendada.
+1. `/setor/<slug>/avisos` diz que o aviso sai na data de entrada no ar.
 2. Publicar com data atual redireciona com a mensagem de quantas pessoas foram avisadas — em DEV, sem Hub configurado, a contagem é zero e nenhuma exceção aparece.
 3. `/publicacoes/<id>` abre com o corpo renderizado, e o painel de entrega **não** aparece sem Hub.
 4. O sino **não** aparece em DEV, porque não há claim `sub`.
@@ -2292,5 +2329,4 @@ comunicado dela nao alcancou ninguem."
 ## Depois deste plano
 
 1. **Auditoria transversal** — cliente do LogStream, token de máquina, política de indisponibilidade, cobrindo Mural **e** Documentos. Os verbos do Mural já estão definidos no spec do Mural; os de Documentos ainda não existem, e a decisão de auditar ou não `documento.baixar` continua aberta.
-2. **Quando `secco-platform#24` sair** — a guarda de agendamento no `PublicarPublicacaoHandler` vira um `ScheduledFor` no request, o aviso do formulário some, e o teste `Agendada_NaoNotifica` passa a afirmar o contrário.
-3. **Composição do client do Hub** — vale abrir demanda para `AddNotificationHubClient` aceitar client credentials, como as três extensões do SecureGate aceitam. Hoje cada adotante registra o `HttpClient` à mão para anexar o `SeccoClientCredentialsHandler`.
+2. **Composição do client do Hub** — vale abrir demanda para `AddNotificationHubClient` aceitar client credentials, como as três extensões do SecureGate aceitam. Hoje cada adotante registra o `HttpClient` à mão para anexar o `SeccoClientCredentialsHandler`.

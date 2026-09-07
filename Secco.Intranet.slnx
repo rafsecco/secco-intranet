@@ -8,6 +8,7 @@
     <Project Path="src/Secco.Intranet.Web/Secco.Intranet.Web.csproj" />
     <Project Path="src/Secco.Intranet.Web.Theming/Secco.Intranet.Web.Theming.csproj" />
     <Project Path="src/Secco.Intranet.Themes.Vertical/Secco.Intranet.Themes.Vertical.csproj" />
+    <Project Path="src/Secco.Intranet.Themes.Horizontal/Secco.Intranet.Themes.Horizontal.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Secco.Intranet.Tests/Secco.Intranet.Tests.csproj" />

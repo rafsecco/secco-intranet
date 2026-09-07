@@ -1,0 +1,45 @@
+// Overrides das variaveis do Bootstrap. Precisa vir ANTES do import do Bootstrap.
+// A identidade visual do tema mora aqui e em _tokens.scss (ADR-0003).
+
+// --- Cor -------------------------------------------------------------------
+// Indigo em vez do verde do Vertical: os dois temas de saida precisam ser reconhecidos a
+// distancia, nao so por estrutura (menu no topo vs. lateral).
+$primary:               #3452D9;
+$body-color:            #111827;
+$body-bg:               #F5F6FA;
+$border-color:          #E1E4EE;
+$secondary-color:       #5B6472;
+
+// Variante escura: a primaria clareia em vez de escurecer, mesmo principio do Vertical —
+// indigo saturado sobre fundo escuro perde contraste (ADR-0003).
+$body-color-dark:       #E5E7F0;
+$body-bg-dark:          #10131C;
+$border-color-dark:     #232838;
+$secondary-color-dark:  #8B93A7;
+
+// --- Forma -----------------------------------------------------------------
+// Cantos mais retos que o Vertical: a segunda marca da diferenca estrutural, ao lado do
+// menu no topo.
+$border-radius:         .375rem;
+$border-radius-sm:      .25rem;
+$border-radius-lg:      .5rem;
+$border-radius-xl:      .625rem;
+$border-radius-pill:    50rem;
+
+// A borda de 1px e o que segura a superficie no modo escuro, onde a sombra some.
+$enable-shadows:        false;
+
+// --- Tipografia ------------------------------------------------------------
+// Uma familia so, por peso — ao contrario do par Instrument Sans/Inter do Vertical.
+// Titulo ganha peso 700 em vez de tipografia propria: contraste por peso, nao por par.
+$font-family-sans-serif: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+$font-family-monospace:  "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+$headings-font-family:   $font-family-sans-serif;
+
+$font-size-base:        .9375rem;
+$headings-font-weight:  700;
+$headings-line-height:  1.25;
+
+// --- Icones ----------------------------------------------------------------
+// Só woff2: e o unico formato copiado para wwwroot/vendor (todo navegador alvo suporta).
+$bootstrap-icons-font-src: url("../vendor/fonts/bootstrap-icons.woff2") format("woff2");

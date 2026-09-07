@@ -1,0 +1,64 @@
+@{
+    var titulo = ViewData["Title"] as string;
+    const string Assets = "~/_content/Secco.Intranet.Themes.Horizontal";
+}
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="horizontal">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@(string.IsNullOrWhiteSpace(titulo) ? "Secco Intranet" : titulo + " · Secco Intranet")</title>
+
+    @* Aplica as preferencias antes da primeira pintura: sem isso a pagina pisca no modo
+       errado a cada carregamento. Precisa ser inline e vir antes do CSS. *@
+    <script>
+        (function () {
+            try {
+                var tema = localStorage.getItem('sc-theme');
+                if (tema === 'dark' || tema === 'light') {
+                    document.documentElement.setAttribute('data-bs-theme', tema);
+                }
+            } catch (erro) {
+                // Sem armazenamento: segue a preferencia do sistema operacional.
+            }
+        })();
+    </script>
+
+    <link rel="icon" href="@Url.Content(Assets + "/favicon.svg")" type="image/svg+xml" />
+    <link rel="stylesheet" href="@Assets/css/theme.css" asp-append-version="true" />
+</head>
+<body>
+    <a class="sc-skip" href="#conteudo">Ir para o conteúdo</a>
+
+    <header class="sc-header">
+        <button class="sc-icon-btn sc-header__menu" type="button"
+                data-sc-nav-open aria-controls="sc-topnav" aria-expanded="false" aria-label="Abrir menu">
+            <i class="bi bi-list" aria-hidden="true"></i>
+        </button>
+
+        <a class="sc-brand" asp-controller="Mural" asp-action="Index">
+            <span class="sc-brand__mark" aria-hidden="true">SI</span>
+            <span>Secco Intranet</span>
+        </a>
+
+        <nav class="sc-topnav" id="sc-topnav" aria-label="Navegação principal">
+            @await Component.InvokeAsync("Navigation")
+        </nav>
+
+        <div class="sc-header__actions">
+            <button class="sc-icon-btn" type="button" data-sc-theme-toggle aria-label="Alternar entre tema claro e escuro">
+                <i class="bi bi-circle-half" aria-hidden="true"></i>
+            </button>
+            @await Component.InvokeAsync("UserMenu")
+        </div>
+    </header>
+
+    <main class="sc-main" id="conteudo">
+        @RenderBody()
+    </main>
+
+    <script src="@Assets/vendor/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
+    <script src="@Assets/js/theme.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

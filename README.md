@@ -1,4 +1,4 @@
-# Secco.Intranet
+# Secco Intranet
 
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?style=flat-square&logo=dotnet&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-239120?style=flat-square)
@@ -40,17 +40,17 @@ ver ADR-0006 e ADR-0007.
 
 ## Tecnologias
 
-| Camada | O que é usado | Por quê |
-|---|---|---|
-| Aplicação | .NET 10, C#, ASP.NET Core MVC | Monolito servindo HTML, sem Api HTTP separada (ADR-0002) |
-| Dados | EF Core 10, SQL Server (padrão) e PostgreSQL | Dois providers com migrations em assemblies próprios (ADR-0018) |
-| Multi-tenancy | `Secco.SDK.AspNetCore` | Um banco por tenant, resolvido por requisição (ADR-0005 da plataforma) |
-| Identidade | OpenID Connect contra o `Secco.SecureGate` | Relying party com cookie de sessão; setor é Role (ADR-0001) |
-| Interface | Razor Class Library por tema, Bootstrap 5.3 compilado por Sass | Tema é pacote independente; o core não impõe framework CSS (ADR-0003) |
-| Tipografia e ícones | Instrument Sans, Inter, JetBrains Mono, Bootstrap Icons | Auto-hospedados: a intranet precisa renderizar sem internet |
-| Criptografia | AES-256-GCM em envelope, `System.Security.Cryptography` | Documento cifrado em repouso, sem dependência externa (ADR-0005) |
-| Testes | xUnit, AwesomeAssertions, Testcontainers, `Secco.SDK.Testing` | Integração contra SQL Server real, sobre o host de verdade (ADR-0012) |
-| Ambiente | Docker Compose, Node apenas para compilar os assets do tema | O CSS compilado é versionado: `dotnet run` funciona sem Node |
+| Camada              | O que é usado                                                  | Por quê                                                                |
+| ------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Aplicação           | .NET 10, C#, ASP.NET Core MVC                                  | Monolito servindo HTML, sem Api HTTP separada (ADR-0002)               |
+| Dados               | EF Core 10, SQL Server (padrão) e PostgreSQL                   | Dois providers com migrations em assemblies próprios (ADR-0018)        |
+| Multi-tenancy       | `Secco.SDK.AspNetCore`                                         | Um banco por tenant, resolvido por requisição (ADR-0005 da plataforma) |
+| Identidade          | OpenID Connect contra o `Secco.SecureGate`                     | Relying party com cookie de sessão; setor é Role (ADR-0001)            |
+| Interface           | Razor Class Library por tema, Bootstrap 5.3 compilado por Sass | Tema é pacote independente; o core não impõe framework CSS (ADR-0003)  |
+| Tipografia e ícones | Instrument Sans, Inter, JetBrains Mono, Bootstrap Icons        | Auto-hospedados: a intranet precisa renderizar sem internet            |
+| Criptografia        | AES-256-GCM em envelope, `System.Security.Cryptography`        | Documento cifrado em repouso, sem dependência externa (ADR-0005)       |
+| Testes              | xUnit, AwesomeAssertions, Testcontainers, `Secco.SDK.Testing`  | Integração contra SQL Server real, sobre o host de verdade (ADR-0012)  |
+| Ambiente            | Docker Compose, Node apenas para compilar os assets do tema    | O CSS compilado é versionado: `dotnet run` funciona sem Node           |
 
 ## Pré-requisitos
 
@@ -185,10 +185,10 @@ a seção `Secco:SecureGate` configurada, esse provisionamento cai num adapter n
 
 1. [feito] **Gerar as migrations iniciais** (uma por engine, ADR-0018) — `Initial` existe
    nos dois projetos de migration:
-   ```bash
-   dotnet ef migrations add Initial --project src/Secco.Intranet.Migrations.SqlServer --output-dir Migrations
-   dotnet ef migrations add Initial --project src/Secco.Intranet.Migrations.Postgres --output-dir Migrations
-   ```
+    ```bash
+    dotnet ef migrations add Initial --project src/Secco.Intranet.Migrations.SqlServer --output-dir Migrations
+    dotnet ef migrations add Initial --project src/Secco.Intranet.Migrations.Postgres --output-dir Migrations
+    ```
 2. [feito] **Montar a solution** — `Secco.Intranet.slnx`, no formato XML novo em vez do
    `.sln` clássico.
 3. [feito] **Apontar o `nuget.config`** para o feed onde `Secco.SecureGate.Client`,

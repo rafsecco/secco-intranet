@@ -1,0 +1,34 @@
+@model UserMenuModel
+<div class="dropdown">
+    <button class="sc-avatar" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+            aria-label="@(Model.Autenticado ? $"Menu de {Model.Nome}" : "Menu do usuário")">
+        @Model.Iniciais
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        @if (Model.Autenticado)
+        {
+            <li><h6 class="dropdown-header">@Model.Nome</h6></li>
+            @if (Model.UrlPerfil is not null)
+            {
+                <li><a class="dropdown-item" href="@Model.UrlPerfil">Meu perfil</a></li>
+            }
+        }
+
+        @if (Model.AutenticacaoHabilitada)
+        {
+            <li><hr class="dropdown-divider" /></li>
+            @if (Model.Autenticado)
+            {
+                <li>
+                    <form asp-controller="Conta" asp-action="Sair" method="post">
+                        <button class="dropdown-item" type="submit">Sair</button>
+                    </form>
+                </li>
+            }
+            else
+            {
+                <li><a class="dropdown-item" asp-controller="Conta" asp-action="Entrar">Entrar</a></li>
+            }
+        }
+    </ul>
+</div>

@@ -1,0 +1,19 @@
+@model PaginationModel
+@if (Model.TotalPaginas > 1)
+{
+    <nav class="sc-pagination" aria-label="Paginação">
+        @if (Model.UrlAnterior is not null)
+        {
+            <a class="btn btn-outline-secondary btn-sm" href="@Model.UrlAnterior">
+                <i class="bi bi-chevron-left" aria-hidden="true"></i> Anterior
+            </a>
+        }
+        <span class="sc-meta">Página @Model.Pagina de @Model.TotalPaginas</span>
+        @if (Model.UrlProxima is not null)
+        {
+            <a class="btn btn-outline-secondary btn-sm" href="@Model.UrlProxima">
+                Próxima <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+        }
+    </nav>
+}

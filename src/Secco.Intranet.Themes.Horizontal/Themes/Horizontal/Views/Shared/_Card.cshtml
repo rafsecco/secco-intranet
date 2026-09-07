@@ -1,0 +1,48 @@
+@model CardModel
+@{
+    var temSetor = !string.IsNullOrWhiteSpace(Model.SetorSlug);
+    var navegavel = !string.IsNullOrWhiteSpace(Model.Href);
+
+    var classes = string.Join(' ', new[]
+    {
+        "sc-card",
+        temSetor ? "sc-card--setor" : null,
+        navegavel ? "sc-card--navegavel" : null,
+    }.Where(classe => classe is not null));
+
+    string? estilo = temSetor ? $"--sc-setor-hue:{SetorHue.From(Model.SetorSlug)}" : null;
+}
+<article class="@classes" style="@estilo">
+    <div class="sc-card__head">
+        <h3 class="sc-card__title">
+            @if (navegavel)
+            {
+                <a class="sc-card__link" href="@Model.Href">@Model.Titulo</a>
+            }
+            else
+            {
+                @Model.Titulo
+            }
+        </h3>
+        @if (Model.Meta is not null)
+        {
+            <span class="sc-meta">@Model.Meta</span>
+        }
+    </div>
+
+    @if (Model.SetorNome is not null)
+    {
+        <div class="mt-1">
+            <partial name="_Badge" model="new BadgeModel(Model.SetorNome, BadgeVariante.Setor, Model.SetorSlug)" />
+        </div>
+    }
+
+    @if (Model.Corpo is not null)
+    {
+        <div class="sc-card__body">@Model.Corpo</div>
+    }
+    else if (Model.Texto is not null)
+    {
+        <div class="sc-card__body">@Model.Texto</div>
+    }
+</article>
