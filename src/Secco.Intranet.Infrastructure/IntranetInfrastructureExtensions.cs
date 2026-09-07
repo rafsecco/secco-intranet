@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -64,6 +64,7 @@ public static class IntranetInfrastructureExtensions
 
 		// Guarda dupla da ADR-0019 (Development + flag) e aplicada pelo SeedSeccoDataAsync.
 		services.AddScoped<IDevelopmentDataSeeder, SetoresDesenvolvimentoSeeder>();
+		services.AddScoped<IDevelopmentDataSeeder, PublicacoesDesenvolvimentoSeeder>();
 
 		// Composição lazy por configuração (mesmo padrão de AddSecureGateTenantCatalog na
 		// plataforma): AddSecureGateAdminClient() já é seguro chamar sempre — o HttpClient só

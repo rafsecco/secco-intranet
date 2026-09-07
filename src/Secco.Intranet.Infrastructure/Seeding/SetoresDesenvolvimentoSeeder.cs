@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Secco.Intranet.Domain.Setores;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SDK.EntityFrameworkCore.Seeding;
@@ -29,6 +29,11 @@ internal sealed class SetoresDesenvolvimentoSeeder(
 		("Diretoria", "diretoria", false),
 	];
 
+	/// <summary>Roda primeiro: as publicações de amostra dependem dos setores.</summary>
+	public int Order => 0;
+
+	/// <summary>Aplica o seed de setores de amostra em cada tenant do catálogo.</summary>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
 	public async Task SeedAsync(CancellationToken cancellationToken = default)
 	{
 		foreach (var tenant in await catalog.ListAsync(cancellationToken).ConfigureAwait(false))
