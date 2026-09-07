@@ -1,0 +1,32 @@
+@model NotificacoesModel
+@if (Model.Habilitado)
+{
+    <div class="sc-sino dropdown">
+        <button class="sc-sino__botao" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                aria-label="@(Model.NaoLidas == 0 ? "Notificações" : $"Notificações, {Model.NaoLidas} não lidas")">
+            <i class="bi bi-bell" aria-hidden="true"></i>
+            @if (Model.NaoLidas > 0)
+            {
+                <span class="sc-sino__contador">@(Model.NaoLidas > 99 ? "99+" : Model.NaoLidas.ToString())</span>
+            }
+        </button>
+
+        <div class="dropdown-menu dropdown-menu-end sc-sino__lista">
+            @if (Model.Itens.Count == 0)
+            {
+                <p class="sc-sino__vazio">Nenhuma notificação nova.</p>
+            }
+            else
+            {
+                @foreach (var item in Model.Itens)
+                {
+                    <a class="sc-sino__item" href="@(item.Link ?? "#")" data-sc-notificacao="@item.Id">
+                        <span class="sc-sino__titulo">@item.Titulo</span>
+                        <span class="sc-sino__mensagem">@item.Mensagem</span>
+                        <span class="sc-meta">@item.Quando</span>
+                    </a>
+                }
+            }
+        </div>
+    </div>
+}

@@ -91,6 +91,7 @@ public static class IntranetInfrastructureExtensions
 		// onde enviar.
 		services.AddScoped<IDiretorioDeUsuarios, DiretorioVazio>();
 		services.AddScoped<INotificadorDeMensagens, NotificadorSilencioso>();
+		services.AddScoped<ICaixaDeNotificacoes, CaixaVazia>();
 
 		return services;
 	}

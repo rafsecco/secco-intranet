@@ -673,3 +673,75 @@ h1, h2, h3, h4, h5, h6 {
     margin-bottom: 0;
   }
 }
+
+// Sino de notificacoes na barra superior.
+.sc-sino {
+  &__botao {
+    position: relative;
+    padding: .375rem;
+    border: 0;
+    border-radius: var(--bs-border-radius);
+    background: transparent;
+    color: var(--sc-text-muted);
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  &__botao:hover {
+    color: var(--sc-text);
+  }
+
+  &__contador {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 1rem;
+    padding: 0 .25rem;
+    border-radius: 1rem;
+    background-color: var(--bs-danger);
+    color: #fff;
+    font-size: .625rem;
+    font-weight: 600;
+    line-height: 1rem;
+  }
+
+  &__lista {
+    width: 22rem;
+    max-height: 24rem;
+    overflow-y: auto;
+    padding: .25rem;
+  }
+
+  &__vazio {
+    margin: 0;
+    padding: 1rem;
+    color: var(--sc-text-muted);
+    font-size: .8125rem;
+    text-align: center;
+  }
+
+  &__item {
+    display: block;
+    padding: .625rem .75rem;
+    border-radius: var(--bs-border-radius);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  &__item:hover {
+    background-color: rgba(127, 127, 127, .08);
+  }
+
+  &__titulo {
+    display: block;
+    font-weight: 600;
+    font-size: .8125rem;
+  }
+
+  &__mensagem {
+    display: block;
+    margin: .125rem 0;
+    color: var(--sc-text-muted);
+    font-size: .8125rem;
+  }
+}

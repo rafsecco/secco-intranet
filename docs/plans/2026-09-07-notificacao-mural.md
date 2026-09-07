@@ -1635,14 +1635,20 @@ Cresce o contrato de tema. É o primeiro item novo desde que o contrato nasceu.
 
 **Files:**
 - Create: `src/Secco.Intranet.Application/Publicacoes/Notificacao/ICaixaDeNotificacoes.cs`
-- Create: `src/Secco.Intranet.Infrastructure/Notificacao/NotificationHubCaixaDeNotificacoes.cs`
 - Create: `src/Secco.Intranet.Infrastructure/Notificacao/CaixaVazia.cs`
 - Create: `src/Secco.Intranet.Web.Theming/Contracts/NotificacoesModel.cs`
 - Create: `src/Secco.Intranet.Web/ViewComponents/NotificacoesViewComponent.cs`
 - Create: `src/Secco.Intranet.Themes.Vertical/Themes/Vertical/Views/Shared/Components/Notificacoes/Default.cshtml`
-- Modify: `src/Secco.Intranet.Themes.Vertical/Themes/Vertical/Views/Shared/_Layout.cshtml`
-- Modify: `src/Secco.Intranet.Themes.Vertical/wwwroot/scss/_components.scss`
+- Create: `src/Secco.Intranet.Themes.Horizontal/Themes/Horizontal/Views/Shared/Components/Notificacoes/Default.cshtml`
+- Modify: os dois `_Layout.cshtml` e os dois `wwwroot/scss/_components.scss`
 - Modify: `docs/temas.md`
+
+> **Existem dois temas.** `Vertical` e `Horizontal` implementam o contrato inteiro, e o core
+> não tem view de fallback: um tema sem `Components/Notificacoes/Default.cshtml` quebra em
+> toda página no instante em que o layout invocar o componente. O sino entra nos **dois**.
+>
+> O adaptador real do Hub (`NotificationHubCaixaDeNotificacoes`) fica na Task 3, junto dos
+> outros que dependem do pacote. Aqui vai só o no-op, então esta tarefa fecha verde sem ele.
 
 **Interfaces:**
 - Consumes: `INotificationHubClient` (Task 3).
@@ -1686,77 +1692,7 @@ public interface ICaixaDeNotificacoes
 }
 ```
 
-- [ ] **Step 2: Adaptadores**
-
-```csharp
-using Microsoft.Extensions.Logging;
-using Secco.Intranet.Application.Publicacoes.Notificacao;
-using Secco.NotificationHub.Client;
-
-namespace Secco.Intranet.Infrastructure.Notificacao;
-
-/// <summary>
-/// Adapter real de <see cref="ICaixaDeNotificacoes"/>. O Hub expõe três operações in-app:
-/// contar não lidas, listar não lidas e marcar <b>uma</b> como lida — por isso o sino mostra
-/// só não lidas e não oferece "marcar todas", que seriam N chamadas.
-/// </summary>
-/// <param name="client">Client do NotificationHub.</param>
-/// <param name="logger">Log de falhas, sem dado sensível (ADR-0020).</param>
-public sealed class NotificationHubCaixaDeNotificacoes(
-	INotificationHubClient client,
-	ILogger<NotificationHubCaixaDeNotificacoes> logger) : ICaixaDeNotificacoes
-{
-	/// <inheritdoc />
-	public async Task<IReadOnlyList<NotificacaoDaCaixa>> NaoLidasAsync(
-		Guid usuarioId,
-		CancellationToken cancellationToken = default)
-	{
-		try
-		{
-			var itens = await client
-				.GetUnreadInAppNotificationsAsync(usuarioId, cancellationToken)
-				.ConfigureAwait(false);
-
-			return [.. itens.Select(item => new NotificacaoDaCaixa(
-				item.Id, item.Title, item.Message, item.Link, item.CreatedAt))];
-		}
-		catch (ApiException apiException)
-		{
-			// O sino não pode derrubar o layout: ele está em toda página.
-			logger.LogWarning(
-				"Falha ao ler o inbox in-app (status {StatusCode}).", apiException.StatusCode);
-
-			return [];
-		}
-		catch (HttpRequestException httpRequestException)
-		{
-			logger.LogWarning(httpRequestException, "Falha de rede ao ler o inbox in-app.");
-
-			return [];
-		}
-	}
-
-	/// <inheritdoc />
-	public async Task MarcarComoLidaAsync(Guid notificacaoId, CancellationToken cancellationToken = default)
-	{
-		try
-		{
-			await client.MarkInAppNotificationAsReadAsync(notificacaoId, cancellationToken).ConfigureAwait(false);
-		}
-		catch (ApiException apiException)
-		{
-			logger.LogWarning(
-				"Falha ao marcar notificação como lida (status {StatusCode}).", apiException.StatusCode);
-		}
-		catch (HttpRequestException httpRequestException)
-		{
-			logger.LogWarning(httpRequestException, "Falha de rede ao marcar notificação como lida.");
-		}
-	}
-}
-```
-
-> Verificado no client gerado: o método é `MarkInAppNotificationAsReadAsync(Guid id, CancellationToken)`, e `InAppNotificationDto` traz `Id`, `UserId`, `Source`, `Type`, `Title`, `Message`, `Link`, `IsRead`, `CreatedAt` e `ReadAt`.
+- [ ] **Step 2: O no-op da caixa**
 
 ```csharp
 using Secco.Intranet.Application.Publicacoes.Notificacao;

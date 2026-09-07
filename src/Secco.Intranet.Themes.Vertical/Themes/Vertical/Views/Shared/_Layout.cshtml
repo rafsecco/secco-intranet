@@ -48,6 +48,7 @@
             <button class="sc-icon-btn" type="button" data-sc-theme-toggle aria-label="Alternar entre tema claro e escuro">
                 <i class="bi bi-circle-half" aria-hidden="true"></i>
             </button>
+            @await Component.InvokeAsync("Notificacoes")
             @await Component.InvokeAsync("UserMenu")
         </div>
     </header>

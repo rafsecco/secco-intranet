@@ -55,8 +55,18 @@ Cada arquivo acima recebe um modelo de `Secco.Intranet.Web.Theming.Contracts`:
 | `_Pagination.cshtml` | `PaginationModel` | Navegação entre páginas |
 | `Components/Navigation/Default.cshtml` | `NavigationModel` | Menu já resolvido para o usuário |
 | `Components/UserMenu/Default.cshtml` | `UserMenuModel` | Identidade e menu do avatar |
+| `Components/Notificacoes/Default.cshtml` | `NotificacoesModel` | Sino de notificações da barra superior |
 
-A lógica dos dois view components fica no core — o tema entrega só o markup. Por isso
+O sino mostra **apenas notificações não lidas**, e não oferece "marcar todas como lidas": o
+`Secco.NotificationHub` expõe contar não lidas, listar não lidas e marcar **uma** como lida, e
+um botão de marcar todas viraria uma chamada por item. Um tema pode mudar a aparência do sino
+à vontade, mas não deve prometer o que a capacidade não entrega.
+
+Não existe view de fallback no core: um tema que não traga um destes arquivos quebra em toda
+página que o use. Ao acrescentar um item a este contrato, acrescente nos **dois** temas
+publicados.
+
+A lógica dos view components fica no core — o tema entrega só o markup. Por isso
 nenhuma view de tema injeta serviço.
 
 O `_Layout` precisa expor uma âncora `id="conteudo"` para o link de pular navegação, e
