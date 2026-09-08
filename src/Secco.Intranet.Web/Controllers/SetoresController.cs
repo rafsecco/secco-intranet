@@ -11,10 +11,12 @@ namespace Secco.Intranet.Web.Controllers;
 /// Application layer, que carregam toda a regra de negócio (regra 3).
 /// </summary>
 /// <param name="createHandler">Caso de uso de criação de setor.</param>
+/// <param name="editarHandler">Caso de uso de edição de setor.</param>
 /// <param name="getByIdHandler">Caso de uso de leitura pontual de setor.</param>
 /// <param name="searchHandler">Caso de uso de busca paginada de setores.</param>
 public sealed class SetoresController(
 	CreateSetorHandler createHandler,
+	EditarSetorHandler editarHandler,
 	GetSetorByIdHandler getByIdHandler,
 	SearchSetoresHandler searchHandler) : Controller
 {
@@ -41,6 +43,61 @@ public sealed class SetoresController(
 		var result = await getByIdHandler.HandleAsync(id, cancellationToken);
 
 		return result.IsSuccess ? View(result.Value) : NotFound();
+	}
+
+	/// <summary>Formulário de edição de setor.</summary>
+	/// <param name="id">Identificador do setor.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpGet]
+	public async Task<IActionResult> Edit(Guid id, CancellationToken cancellationToken = default)
+	{
+		var resultado = await getByIdHandler.HandleAsync(id, cancellationToken);
+
+		if (resultado.IsFailure)
+		{
+			return NotFound();
+		}
+
+		var setor = resultado.Value;
+
+		return View(new SetorEditViewModel
+		{
+			Id = setor.Id,
+			Slug = setor.Slug,
+			Fixo = setor.Fixo,
+			Nome = setor.Nome,
+			Icone = setor.Icone,
+			Ativo = setor.Ativo,
+		});
+	}
+
+	/// <summary>Processa a edição de um setor.</summary>
+	/// <param name="form">Dados do formulário.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> Edit(SetorEditViewModel form, CancellationToken cancellationToken = default)
+	{
+		ArgumentNullException.ThrowIfNull(form);
+
+		if (!ModelState.IsValid)
+		{
+			return View(form);
+		}
+
+		var resultado = await editarHandler.HandleAsync(
+			new EditarSetorCommand(form.Id, form.Nome, form.Icone, form.Ativo), cancellationToken);
+
+		if (resultado.IsFailure)
+		{
+			ModelState.AddModelError(string.Empty, resultado.Error.Description);
+
+			return View(form);
+		}
+
+		TempData["Mensagem"] = $"Setor \"{resultado.Value.Nome}\" salvo.";
+
+		return RedirectToAction(nameof(Details), new { id = form.Id });
 	}
 
 	/// <summary>Formulário de criação de setor.</summary>

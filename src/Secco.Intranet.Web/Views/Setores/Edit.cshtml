@@ -1,0 +1,75 @@
+@model SetorEditViewModel
+@{
+    ViewData["Title"] = $"Editar {Model.Nome}";
+
+    var cabecalho = new PageHeaderModel(
+        $"Editar {Model.Nome}",
+        "Nome, ícone do menu e situação. O slug não muda.",
+        Model.Slug);
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel sc-form">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <form method="post" asp-action="Edit">
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="Fixo" />
+        @* Campo desabilitado nao e enviado no POST; o hidden preserva o slug quando o
+           formulario volta com erro de validacao. *@
+        <input type="hidden" asp-for="Slug" />
+
+        <div class="sc-form__field">
+            <label class="form-label" asp-for="Nome">Nome</label>
+            <input class="form-control" asp-for="Nome" autocomplete="off" />
+            <span class="text-danger" asp-validation-for="Nome"></span>
+        </div>
+
+        <div class="sc-form__field">
+            <label class="form-label" asp-for="Slug">Slug</label>
+            <input class="form-control font-monospace" asp-for="Slug" disabled />
+            <div class="form-text">
+                O slug é a base dos perfis de acesso <code>@(Model.Slug)-admin</code> e
+                <code>@(Model.Slug)-user</code>. Trocá-lo desvincularia todos os usuários do setor,
+                por isso ele não é editável.
+            </div>
+        </div>
+
+        <div class="sc-form__field">
+            <label class="form-label" asp-for="Icone">Ícone do menu</label>
+            <input class="form-control font-monospace" asp-for="Icone" autocomplete="off"
+                   placeholder="bi-cash-coin" />
+            <div class="form-text">
+                Classe do <a href="https://icons.getbootstrap.com/" target="_blank" rel="noopener">Bootstrap Icons</a>,
+                como <code>bi-cash-coin</code>. Em branco usa o ícone padrão de setor.
+            </div>
+            <span class="text-danger" asp-validation-for="Icone"></span>
+        </div>
+
+        @if (Model.Fixo)
+        {
+            @* Sem caixa: desabilitada, ela nao seria enviada, o Ativo chegaria false e o
+               proprio handler recusaria a edicao inteira de um setor fixo. *@
+            <input type="hidden" asp-for="Ativo" value="true" />
+
+            <p class="form-text mb-0">
+                <i class="bi bi-lock" aria-hidden="true"></i>
+                Este é um setor fixo do sistema: continua editável, mas não pode ser desativado.
+            </p>
+        }
+        else
+        {
+            <div class="form-check">
+                <input class="form-check-input" asp-for="Ativo" />
+                <label class="form-check-label" asp-for="Ativo">Setor ativo</label>
+                <div class="form-text">Setor inativo some do menu e das telas de vínculo de usuário.</div>
+            </div>
+        }
+
+        <div class="sc-form__actions">
+            <button class="btn btn-primary" type="submit">Salvar setor</button>
+            <a class="btn btn-outline-secondary" asp-action="Details" asp-route-id="@Model.Id">Cancelar</a>
+        </div>
+    </form>
+</div>

@@ -127,8 +127,8 @@ RCL sejam publicados. Trocar de tema é configuração — não exige deploy de 
 
 ## Assets do tema padrão
 
-O tema `Vertical` compila Bootstrap e Bootstrap Icons por Sass e auto-hospeda as fontes,
-porque uma intranet precisa renderizar sem acesso à internet:
+O tema `Vertical` compila Bootstrap e Bootstrap Icons por Sass e auto-hospeda as fontes.
+A razão não é falta de internet — a aplicação tem saída para fora: é que nenhum CDN de terceiro recebe requisição do navegador de quem usa a intranet — e portanto não observa quem acessou, de onde e quando —, e o build fica determinístico, sem depender de um host externo continuar no ar:
 
 ```bash
 npm --prefix src/Secco.Intranet.Themes.Vertical install

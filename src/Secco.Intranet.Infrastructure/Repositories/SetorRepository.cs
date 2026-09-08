@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Setores;
 using Secco.Intranet.Infrastructure.Contexts;
@@ -14,6 +14,14 @@ internal sealed class SetorRepository(IntranetDbContext context) : ISetorReposit
 		context.Setores.Add(setor);
 		await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 	}
+
+	public async Task<Setor?> GetParaEdicaoAsync(Guid id, CancellationToken cancellationToken = default) =>
+		await context.Setores
+			.FirstOrDefaultAsync(setor => setor.Id == id, cancellationToken)
+			.ConfigureAwait(false);
+
+	public async Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
+		await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
 	public async Task<Setor?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
 		await context.Setores

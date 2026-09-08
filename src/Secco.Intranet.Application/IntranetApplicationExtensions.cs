@@ -18,6 +18,7 @@ public static class IntranetApplicationExtensions
 		ArgumentNullException.ThrowIfNull(services);
 
 		services.AddScoped<CreateSetorHandler>();
+		services.AddScoped<EditarSetorHandler>();
 		services.AddScoped<GetSetorByIdHandler>();
 		services.AddScoped<GetSetorBySlugHandler>();
 		services.AddScoped<SearchSetoresHandler>();

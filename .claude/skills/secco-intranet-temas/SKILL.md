@@ -66,7 +66,9 @@ inversão automática não serve, cor saturada perde contraste sobre fundo escur
 superfícies — é a borda que segura o card no modo escuro, onde a sombra some.
 
 **Tipografia:** Instrument Sans (títulos), Inter (corpo), JetBrains Mono (data, tamanho,
-contagem, slug). Todas auto-hospedadas: a intranet precisa renderizar sem internet.
+contagem, slug). Todas auto-hospedadas — não por falta de internet, que a aplicação tem,
+mas porque nenhum CDN de terceiro deve observar quem acessa a intranet, e o build não deve
+depender de um host externo continuar no ar.
 
 ## Dark/light é obrigatório em todo tema publicado
 

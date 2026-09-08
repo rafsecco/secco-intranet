@@ -93,6 +93,14 @@ processos (maior risco técnico) só entra com a base já sólida.
       independentes, priorizar por demanda real)
 - [ ] Analytics em cima do LogStream. Depende da trilha de auditoria da Fase 1, que deixou de
       estar bloqueada em 2026-09-05
+- [ ] **Identidade corporativa e exposição de rede.** A intranet não deve ser alcançável de
+      fora da rede da empresa — a restrição é de rede, não de código, e o produto não a
+      implementa sozinho. Dentro da rede, o usuário deve ser reconhecido pelo diretório
+      corporativo (Active Directory / Azure Entra ID) em vez de digitar credencial; uma tela
+      de login entra só para quem estiver fora. Federar AD/Entra é capacidade do
+      `Secco.SecureGate` (ADR-0006), não deste repositório: vira demanda de plataforma quando
+      o desenho existir. A aplicação **tem** saída para a internet; o que não deve existir é
+      entrada de fora
 
 ## Fase 5 — Comunidade (pós-lançamento open source)
 

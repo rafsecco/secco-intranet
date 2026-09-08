@@ -144,4 +144,9 @@ public sealed class Setor : BaseEntity
 
 	/// <summary>Reativa o setor.</summary>
 	public void Ativar() => Ativo = true;
+
+	/// <summary>Troca o ícone exibido no menu.</summary>
+	/// <param name="icone">Classe do Bootstrap Icons; vazio volta ao <see cref="IconePadrao"/>.</param>
+	/// <exception cref="DomainInvariantException">Se o ícone não for uma classe do Bootstrap Icons.</exception>
+	public void DefinirIcone(string? icone) => Icone = NormalizarIcone(icone);
 }

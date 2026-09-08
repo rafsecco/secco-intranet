@@ -15,6 +15,8 @@ public class CreateSetorHandlerTests
 	{
 		public List<Setor> Added { get; } = [];
 
+		public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
 		public Task AddAsync(Setor setor, CancellationToken cancellationToken = default)
 		{
 			Added.Add(setor);
@@ -22,6 +24,9 @@ public class CreateSetorHandlerTests
 		}
 
 		public Task<Setor?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+			Task.FromResult(Added.FirstOrDefault(setor => setor.Id == id));
+
+		public Task<Setor?> GetParaEdicaoAsync(Guid id, CancellationToken cancellationToken = default) =>
 			Task.FromResult(Added.FirstOrDefault(setor => setor.Id == id));
 
 		public Task<Setor?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default) =>

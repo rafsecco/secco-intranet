@@ -1,4 +1,4 @@
-using Secco.Intranet.Domain.Setores;
+﻿using Secco.Intranet.Domain.Setores;
 using Secco.SharedKernel.Pagination;
 
 namespace Secco.Intranet.Application.Setores;
@@ -43,4 +43,18 @@ public interface ISetorRepository
 	/// <param name="criteria">Filtros e paginação.</param>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
 	Task<PagedResult<Setor>> SearchAsync(SetorSearchCriteria criteria, CancellationToken cancellationToken = default);
+
+	/// <summary>
+	/// Busca um setor <b>rastreado</b>, para alteração. Diferente de
+	/// <see cref="GetByIdAsync"/>, que devolve desrastreado por ser caminho de leitura:
+	/// alterar aquele resultado e chamar <see cref="SaveChangesAsync"/> não gravaria nada, e
+	/// o caso de uso devolveria sucesso sem ter salvo.
+	/// </summary>
+	/// <param name="id">Identificador do setor.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	Task<Setor?> GetParaEdicaoAsync(Guid id, CancellationToken cancellationToken = default);
+
+	/// <summary>Grava alterações pendentes de um setor já rastreado.</summary>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

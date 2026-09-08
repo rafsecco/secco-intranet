@@ -24,6 +24,12 @@ public static class IntranetErrors
 		public static Error SlugAlreadyExists(string slug) =>
 			Error.Conflict("Intranet.Setor.SlugAlreadyExists", $"Já existe um setor com o slug '{slug}'.");
 
+		/// <summary>Tentativa de desativar um setor fixo do sistema.</summary>
+		public static readonly Error FixoNaoDesativa =
+			Error.Validation(
+				"Intranet.Setor.FixoNaoDesativa",
+				"Um setor fixo do sistema não pode ser desativado.");
+
 		/// <summary>Ícone fora do formato do Bootstrap Icons.</summary>
 		public static readonly Error IconeInvalido =
 			Error.Validation(

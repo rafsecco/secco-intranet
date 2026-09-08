@@ -70,6 +70,9 @@ public class AvisoDePublicacaoTests
 		public Task<Setor?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
 			Task.FromResult<Setor?>(null);
 
+		public Task<Setor?> GetParaEdicaoAsync(Guid id, CancellationToken cancellationToken = default) =>
+			Task.FromResult<Setor?>(null);
+
 		public Task<Setor?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default) =>
 			Task.FromResult<Setor?>(new Setor("Financeiro", "financeiro"));
 
@@ -79,6 +82,8 @@ public class AvisoDePublicacaoTests
 		public Task<PagedResult<Setor>> SearchAsync(
 			SetorSearchCriteria criteria, CancellationToken cancellationToken = default) =>
 			Task.FromResult(PagedResult.Empty<Setor>(new PageRequest(1)));
+
+		public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 	}
 
 	private static PublicarPublicacaoCommand Comando(
