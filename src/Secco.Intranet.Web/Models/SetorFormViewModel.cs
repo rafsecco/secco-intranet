@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Secco.Intranet.Web.Models;
 
@@ -19,6 +19,16 @@ public sealed class SetorFormViewModel
 	[Required(ErrorMessage = "O slug é obrigatório.")]
 	[StringLength(64)]
 	public string? Slug { get; set; }
+
+	/// <summary>
+	/// Classe do Bootstrap Icons exibida no menu, como <c>bi-cash-coin</c>. Em branco usa o
+	/// ícone padrão.
+	/// </summary>
+	[StringLength(64)]
+	[RegularExpression(
+		"^bi-[a-z0-9-]+$",
+		ErrorMessage = "O ícone precisa ser uma classe do Bootstrap Icons, como 'bi-cash-coin'.")]
+	public string? Icone { get; set; }
 
 	/// <summary>Se o setor nasce como fixo do sistema (não pode ser desativado/excluído).</summary>
 	public bool Fixo { get; set; }

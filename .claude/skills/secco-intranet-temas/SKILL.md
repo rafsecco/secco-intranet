@@ -84,7 +84,12 @@ Todo conteúdo pertence a um setor (ADR-0001). `SetorHue.From(slug)` devolve um 
 (FNV-1a, nunca `GetHashCode` — o do runtime é aleatorizado por processo), exposto como
 `--sc-setor-hue` no elemento. Saturação e luminosidade são fixas por modo. O matiz aparece em
 três lugares e só neles: o badge do card, o filete de 3px na borda esquerda do card, e o
-ponto ao lado do item de menu.
+ícone do item de menu do setor.
+
+O menu já não usa ponto: o setor tem ícone próprio, escolhido no cadastro (coluna
+`ds_icone`, classe do Bootstrap Icons). O matiz passou a tingir esse ícone — a cor continua
+dizendo de quem é o item, e o glifo passou a dizer o que ele é. O ponto continua vivo no
+`_PageHeader`, marcando o título da página do setor.
 
 ## Layout do tema `Vertical`
 

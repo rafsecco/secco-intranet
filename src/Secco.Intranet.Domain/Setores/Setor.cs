@@ -1,3 +1,4 @@
+﻿using System.Text.RegularExpressions;
 using Secco.SharedKernel.Entities;
 using Secco.SharedKernel.Exceptions;
 
@@ -17,6 +18,7 @@ public sealed class Setor : BaseEntity
 		// Construtor de rehidratação do EF Core
 		Nome = string.Empty;
 		Slug = string.Empty;
+		Icone = IconePadrao;
 	}
 
 	/// <summary>Cria um setor.</summary>
@@ -26,8 +28,15 @@ public sealed class Setor : BaseEntity
 	/// Quando <c>true</c>, o setor não pode ser desabilitado nem excluído pela tela de
 	/// administração (caso do setor de Infraestrutura, dono nato do recurso de Inventário).
 	/// </param>
-	/// <exception cref="DomainInvariantException">Se nome ou slug forem nulos ou vazios.</exception>
-	public Setor(string nome, string slug, bool fixo = false)
+	/// <param name="icone">
+	/// Classe do Bootstrap Icons exibida no menu, como <c>bi-cash-coin</c>. Vazio usa
+	/// <see cref="IconePadrao"/>.
+	/// </param>
+	/// <exception cref="DomainInvariantException">
+	/// Se nome ou slug forem nulos ou vazios, ou se o ícone não for uma classe do Bootstrap
+	/// Icons.
+	/// </exception>
+	public Setor(string nome, string slug, bool fixo = false, string? icone = null)
 	{
 		if (string.IsNullOrWhiteSpace(nome))
 		{
@@ -42,8 +51,42 @@ public sealed class Setor : BaseEntity
 		Nome = nome;
 		Slug = slug.Trim().ToLowerInvariant();
 		Fixo = fixo;
+		Icone = NormalizarIcone(icone);
 		Ativo = true;
 		CreatedAt = DateTimeOffset.UtcNow;
+	}
+
+	/// <summary>Ícone usado quando o setor não escolhe um.</summary>
+	public const string IconePadrao = "bi-diagram-3";
+
+	/// <summary>
+	/// Só o formato do Bootstrap Icons entra. A validação existe porque o valor vai direto
+	/// para o atributo <c>class</c> do item de menu: sem ela, qualquer texto viraria classe
+	/// CSS arbitrária, e um <c>d-none</c> digitado por engano sumiria com o próprio item.
+	/// </summary>
+	private static readonly Regex FormatoDoIcone = new("^bi-[a-z0-9-]+$", RegexOptions.Compiled);
+
+	/// <summary>
+	/// Indica se o ícone informado é aceitável. Existe para a camada de aplicação decidir sem
+	/// provocar exceção — entrada de usuário vira <c>Result</c> (ADR-0004).
+	/// </summary>
+	/// <param name="icone">Classe informada; vazio é válido e cai no padrão.</param>
+	public static bool IconeEhValido(string? icone) =>
+		string.IsNullOrWhiteSpace(icone) || FormatoDoIcone.IsMatch(icone.Trim().ToLowerInvariant());
+
+	private static string NormalizarIcone(string? icone)
+	{
+		if (string.IsNullOrWhiteSpace(icone))
+		{
+			return IconePadrao;
+		}
+
+		var normalizado = icone.Trim().ToLowerInvariant();
+
+		return FormatoDoIcone.IsMatch(normalizado)
+			? normalizado
+			: throw new DomainInvariantException(
+				"O ícone precisa ser uma classe do Bootstrap Icons, como 'bi-cash-coin'.");
 	}
 
 	/// <summary>Nome de exibição (coluna <c>ds_nome</c>).</summary>
@@ -60,6 +103,11 @@ public sealed class Setor : BaseEntity
 	/// (coluna <c>fl_fixo</c>).
 	/// </summary>
 	public bool Fixo { get; private set; }
+
+	/// <summary>
+	/// Classe do Bootstrap Icons exibida no menu (coluna <c>ds_icone</c>).
+	/// </summary>
+	public string Icone { get; private set; } = IconePadrao;
 
 	/// <summary>Setor ativo (coluna <c>fl_ativo</c>).</summary>
 	public bool Ativo { get; private set; }

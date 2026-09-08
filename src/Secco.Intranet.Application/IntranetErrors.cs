@@ -24,6 +24,12 @@ public static class IntranetErrors
 		public static Error SlugAlreadyExists(string slug) =>
 			Error.Conflict("Intranet.Setor.SlugAlreadyExists", $"Já existe um setor com o slug '{slug}'.");
 
+		/// <summary>Ícone fora do formato do Bootstrap Icons.</summary>
+		public static readonly Error IconeInvalido =
+			Error.Validation(
+				"Intranet.Setor.IconeInvalido",
+				"O ícone precisa ser uma classe do Bootstrap Icons, como 'bi-cash-coin'.");
+
 		/// <summary>Registro não encontrado no banco do tenant atual.</summary>
 		public static readonly Error NotFound =
 			Error.NotFound("Intranet.Setor.NotFound", "Setor não encontrado.");

@@ -221,13 +221,20 @@ h1, h2, h3, h4, h5, h6 {
     text-align: center;
   }
 
-  // Ponto na cor do setor: a mesma cor que marca o conteudo dele nos cards.
+  // Ponto na cor do setor. Saiu do menu quando o setor ganhou icone proprio - manter os dois
+  // seria ruido -, mas continua no _PageHeader, marcando o titulo da pagina do setor.
   &__dot {
     flex: 0 0 auto;
     width: .5rem;
     height: .5rem;
     border-radius: 50%;
     background-color: var(--sc-setor, var(--sc-text-muted));
+  }
+
+  // No menu, quem carrega a cor do setor passa a ser o proprio icone: a cor diz de quem e o
+  // item, o glifo diz o que e.
+  &__icon--setor {
+    color: var(--sc-setor, var(--sc-text-muted));
   }
 
   &__label {

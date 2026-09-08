@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Web.Models;
 using Secco.SharedKernel.Pagination;
@@ -62,7 +62,7 @@ public sealed class SetoresController(
 		}
 
 		var result = await createHandler.HandleAsync(
-			new CreateSetorCommand(form.Nome, form.Slug, form.Fixo), cancellationToken);
+			new CreateSetorCommand(form.Nome, form.Slug, form.Fixo, form.Icone), cancellationToken);
 
 		if (result.IsFailure)
 		{

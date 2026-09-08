@@ -2,10 +2,13 @@ namespace Secco.Intranet.Web.Theming.Contracts;
 
 /// <summary>Um item de menu já resolvido para o usuário atual.</summary>
 /// <param name="Texto">Rótulo exibido.</param>
-/// <param name="Icone">Classe do ícone (ex: <c>bi-megaphone</c>).</param>
+/// <param name="Icone">
+/// Classe do Bootstrap Icons (ex: <c>bi-megaphone</c>). Nos itens de setor, vem do cadastro
+/// do próprio setor; nos fixos, do core.
+/// </param>
 /// <param name="Url">Destino do link.</param>
 /// <param name="Ativo">Se corresponde à página atual.</param>
-/// <param name="SetorSlug">Slug do setor, quando o item representa um; define o matiz do ponto.</param>
+/// <param name="SetorSlug">Slug do setor, quando o item representa um; define o matiz do ícone.</param>
 public sealed record NavigationItemModel(
 	string Texto,
 	string Icone,

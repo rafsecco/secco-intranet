@@ -1,4 +1,4 @@
-using Secco.Intranet.Domain.Setores;
+﻿using Secco.Intranet.Domain.Setores;
 using Secco.SharedKernel.Results;
 
 namespace Secco.Intranet.Application.Setores;
@@ -7,7 +7,8 @@ namespace Secco.Intranet.Application.Setores;
 /// <param name="Nome">Nome de exibição. Obrigatório.</param>
 /// <param name="Slug">Identificador curto. Obrigatório, único por tenant.</param>
 /// <param name="Fixo">Se o setor nasce como fixo do sistema. Default <c>false</c>.</param>
-public sealed record CreateSetorCommand(string? Nome, string? Slug, bool Fixo = false);
+/// <param name="Icone">Classe do Bootstrap Icons para o menu; vazio usa o padrão.</param>
+public sealed record CreateSetorCommand(string? Nome, string? Slug, bool Fixo = false, string? Icone = null);
 
 /// <summary>
 /// Caso de uso: valida unicidade do slug (ADR-0020), provisiona as Roles do setor no
@@ -41,6 +42,15 @@ public sealed class CreateSetorHandler(
 			return IntranetErrors.Setores.SlugRequired;
 		}
 
+		// A entidade recusa ícone fora do formato com exceção, que é a rede de segurança para
+		// chamador interno. Entrada de usuário vira Result (ADR-0004), então a checagem
+		// acontece aqui — e antes de provisionar Roles, para não deixar Role órfã por causa
+		// de um campo mal digitado.
+		if (!Setor.IconeEhValido(command.Icone))
+		{
+			return IntranetErrors.Setores.IconeInvalido;
+		}
+
 		if (await repository.ExistsBySlugAsync(command.Slug, cancellationToken).ConfigureAwait(false))
 		{
 			return IntranetErrors.Setores.SlugAlreadyExists(command.Slug);
@@ -60,7 +70,7 @@ public sealed class CreateSetorHandler(
 			return provisioningResult.Error;
 		}
 
-		var setor = new Setor(command.Nome, command.Slug, command.Fixo);
+		var setor = new Setor(command.Nome, command.Slug, command.Fixo, command.Icone);
 
 		await repository.AddAsync(setor, cancellationToken).ConfigureAwait(false);
 

@@ -23,14 +23,10 @@
                    href="@item.Url"
                    style="@estilo"
                    aria-current="@(item.Ativo ? "page" : null)">
-                    @if (temSetor)
-                    {
-                        <span class="sc-nav__dot" aria-hidden="true"></span>
-                    }
-                    else
-                    {
-                        <i class="bi @item.Icone sc-nav__icon" aria-hidden="true"></i>
-                    }
+                    @* O icone do setor herda o matiz dele: a cor continua dizendo de quem e
+                       o item, e o glifo passa a dizer o que e. *@
+                    <i class="bi @item.Icone sc-nav__icon @(temSetor ? "sc-nav__icon--setor" : null)"
+                       aria-hidden="true"></i>
                     <span class="sc-nav__label">@item.Texto</span>
                 </a>
             </li>

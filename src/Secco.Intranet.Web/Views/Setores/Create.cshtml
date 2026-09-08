@@ -26,6 +26,17 @@
             <span class="text-danger" asp-validation-for="Slug"></span>
         </div>
 
+        <div class="sc-form__field">
+            <label class="form-label" asp-for="Icone">Ícone do menu</label>
+            <input class="form-control font-monospace" asp-for="Icone" autocomplete="off"
+                   placeholder="bi-cash-coin" />
+            <div class="form-text">
+                Classe do <a href="https://icons.getbootstrap.com/" target="_blank" rel="noopener">Bootstrap Icons</a>,
+                como <code>bi-cash-coin</code>. Em branco usa o ícone padrão de setor.
+            </div>
+            <span class="text-danger" asp-validation-for="Icone"></span>
+        </div>
+
         <div class="form-check">
             <input class="form-check-input" asp-for="Fixo" />
             <label class="form-check-label" asp-for="Fixo">Setor fixo do sistema</label>

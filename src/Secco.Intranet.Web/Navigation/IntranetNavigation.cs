@@ -1,4 +1,4 @@
-using Secco.Intranet.Application.Setores;
+﻿using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Web.Theming.Contracts;
 
 namespace Secco.Intranet.Web.Navigation;
@@ -43,7 +43,7 @@ public static class IntranetNavigation
 		var setores = request.Setores
 			.Select(setor => new NavigationItemModel(
 				setor.Nome,
-				"bi-diagram-3",
+				setor.Icone,
 				$"/setor/{setor.Slug}",
 				Corresponde(caminho, $"/setor/{setor.Slug}"),
 				setor.Slug))

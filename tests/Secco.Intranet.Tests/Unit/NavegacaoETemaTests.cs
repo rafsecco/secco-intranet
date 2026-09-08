@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using AwesomeAssertions;
 using Microsoft.AspNetCore.Mvc.Razor;
+using Secco.Intranet;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Web.Navigation;
 using Secco.Intranet.Web.Theming;
@@ -21,7 +22,8 @@ public class NavegacaoETemaTests
 			authenticationType: "Teste"));
 
 	private static SetorDto Setor(string nome, string slug, bool ativo = true) =>
-		new(Guid.NewGuid(), nome, slug, Fixo: false, Ativo: ativo, DateTimeOffset.UtcNow);
+		new(Guid.NewGuid(), nome, slug, Domain.Setores.Setor.IconePadrao, Fixo: false, Ativo: ativo,
+			CreatedAt: DateTimeOffset.UtcNow);
 
 	[Fact]
 	public void ExpandViewLocations_ComTemaAtivo_ColocaAsViewsDoTemaAntesDasDoCore()

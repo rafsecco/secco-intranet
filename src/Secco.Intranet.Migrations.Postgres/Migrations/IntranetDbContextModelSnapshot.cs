@@ -197,6 +197,12 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("fl_fixo");
 
+                    b.Property<string>("Icone")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("ds_icone");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasColumnType("text")

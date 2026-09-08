@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Secco.Intranet.Domain.Setores;
 
@@ -13,6 +13,9 @@ internal sealed class SetorConfiguration : IEntityTypeConfiguration<Setor>
 {
 	public void Configure(EntityTypeBuilder<Setor> builder)
 	{
+		// Classe do Bootstrap Icons: o nome mais longo do catalogo tem folga de sobra em 64.
+		builder.Property(setor => setor.Icone).HasMaxLength(64);
+
 		builder.HasIndex(setor => setor.Slug).IsUnique();
 		builder.HasIndex(setor => setor.Nome);
 		builder.HasIndex(setor => setor.Ativo);
