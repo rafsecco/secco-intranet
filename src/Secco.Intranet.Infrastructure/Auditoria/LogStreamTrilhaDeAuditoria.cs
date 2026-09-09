@@ -68,5 +68,14 @@ public sealed class LogStreamTrilhaDeAuditoria(
 				"Falha de rede ao registrar {Verbo} no LogStream.",
 				registro.Verbo);
 		}
+		catch (OperationCanceledException operationCanceledException) when (!cancellationToken.IsCancellationRequested)
+		{
+			// Timeout do HttpClient, não cancelamento pedido pelo chamador: mesma falha
+			// aberta das demais — o LogStream aceitou a conexão e não respondeu a tempo.
+			logger.LogWarning(
+				operationCanceledException,
+				"Timeout ao registrar {Verbo} no LogStream.",
+				registro.Verbo);
+		}
 	}
 }

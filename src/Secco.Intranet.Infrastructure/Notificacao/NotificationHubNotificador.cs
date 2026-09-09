@@ -63,5 +63,17 @@ public sealed class NotificationHubNotificador(
 			throw new NotificacaoIndisponivelException(
 				"O serviço de notificação está indisponível.", httpRequestException);
 		}
+		catch (OperationCanceledException operationCanceledException) when (!cancellationToken.IsCancellationRequested)
+		{
+			// Timeout do HttpClient, não cancelamento pedido pelo chamador: mesma falha
+			// aberta das demais — o Hub aceitou a conexão e não respondeu a tempo.
+			logger.LogWarning(
+				operationCanceledException,
+				"Timeout ao enviar um lote de {Quantidade} destino(s) ao NotificationHub.",
+				mensagem.Destinos.Count);
+
+			throw new NotificacaoIndisponivelException(
+				"O serviço de notificação está indisponível.", operationCanceledException);
+		}
 	}
 }
