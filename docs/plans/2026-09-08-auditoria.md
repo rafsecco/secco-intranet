@@ -554,9 +554,9 @@ Em `IntranetInfrastructureExtensions.cs`, substitua o registro fixo da Task 1
 
 Acrescente `using Secco.LogStream.Client;` ao topo do arquivo.
 
-> O scope `audit-entries:read audit-entries:write` segue o formato usado para o
-> NotificationHub. Confirme o nome exato em `LogStreamPermissions.AuditEntries` no monorepo
-> antes de fixar; nome errado vira 403 silencioso, que a falha aberta engole.
+> Scope verificado no monorepo: `LogStreamPermissions.AuditEntries.Read` é
+> `audit-entries:read` e `.Write` é `audit-entries:write`. O nome importa porque errar ali vira
+> 403, e a falha aberta engole o 403 sem reclamar — a trilha simplesmente ficaria vazia.
 
 - [ ] **Step 6: Rodar a suíte**
 
