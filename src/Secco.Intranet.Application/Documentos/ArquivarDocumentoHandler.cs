@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Secco.Intranet.Application.Auditoria;
 using Secco.SharedKernel.Results;
 
 namespace Secco.Intranet.Application.Documentos;
@@ -19,7 +21,8 @@ public sealed record ArquivarDocumentoCommand(
 /// deixar de publicar, não apagar — quem precisar auditar o que já circulou ainda encontra.
 /// </summary>
 /// <param name="repository">Persistência de documentos.</param>
-public sealed class ArquivarDocumentoHandler(IDocumentoRepository repository)
+/// <param name="trilha">Trilha de auditoria.</param>
+public sealed class ArquivarDocumentoHandler(IDocumentoRepository repository, ITrilhaDeAuditoria trilha)
 {
 	/// <summary>Executa o caso de uso.</summary>
 	/// <param name="command">Pedido de arquivamento.</param>
@@ -48,6 +51,20 @@ public sealed class ArquivarDocumentoHandler(IDocumentoRepository repository)
 
 		encontrado.Documento.Arquivar();
 		await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+		await trilha
+			.RegistrarAsync(
+				new RegistroDeAuditoria(
+					VerbosDeAuditoria.DocumentoArquivar,
+					RecursosDeAuditoria.Documento,
+					encontrado.Documento.Id.ToString(),
+					JsonSerializer.Serialize(new
+					{
+						titulo = encontrado.Documento.Titulo,
+						setor = encontrado.SetorSlug,
+					})),
+				cancellationToken)
+			.ConfigureAwait(false);
 
 		return encontrado.Documento.Id;
 	}

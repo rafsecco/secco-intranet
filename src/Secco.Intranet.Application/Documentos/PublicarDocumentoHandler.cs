@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain;
 using Secco.Intranet.Domain.Documentos;
@@ -33,12 +35,14 @@ public sealed record PublicarDocumentoCommand(
 /// <param name="store">Armazenamento de arquivos.</param>
 /// <param name="options">Limites de upload.</param>
 /// <param name="limites">Limites gerais de entrada do produto.</param>
+/// <param name="trilha">Trilha de auditoria.</param>
 public sealed class PublicarDocumentoHandler(
 	IDocumentoRepository repository,
 	ISetorRepository setorRepository,
 	IArquivoStore store,
 	DocumentoOptions options,
-	IntranetOptions limites)
+	IntranetOptions limites,
+	ITrilhaDeAuditoria trilha)
 {
 	/// <summary>Executa o caso de uso.</summary>
 	/// <param name="command">Comando de publicação.</param>
@@ -107,6 +111,23 @@ public sealed class PublicarDocumentoHandler(
 			command.CriadoPor);
 
 		await repository.AddAsync(documento, cancellationToken).ConfigureAwait(false);
+
+		await trilha
+			.RegistrarAsync(
+				new RegistroDeAuditoria(
+					VerbosDeAuditoria.DocumentoPublicar,
+					RecursosDeAuditoria.Documento,
+					documento.Id.ToString(),
+					JsonSerializer.Serialize(new
+					{
+						titulo = documento.Titulo,
+						arquivo = documento.NomeArquivo,
+						visibilidade = documento.Visibilidade.ToString(),
+						tamanho = documento.Tamanho,
+						setor = setor.Slug,
+					})),
+				cancellationToken)
+			.ConfigureAwait(false);
 
 		return new DocumentoDto(
 			documento.Id,
