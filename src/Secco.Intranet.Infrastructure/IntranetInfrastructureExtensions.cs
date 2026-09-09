@@ -15,6 +15,7 @@ using Secco.Intranet.Infrastructure.Contexts;
 using Secco.Intranet.Infrastructure.Notificacao;
 using Secco.Intranet.Infrastructure.Repositories;
 using Secco.Intranet.Infrastructure.Seeding;
+using Secco.LogStream.Client;
 using Secco.NotificationHub.Client;
 using Secco.SDK.AspNetCore.Authentication;
 using Secco.SDK.AspNetCore.Tenancy;
@@ -149,9 +150,42 @@ public static class IntranetInfrastructureExtensions
 				? ActivatorUtilities.CreateInstance<ConsultaDeEntregasVazia>(serviceProvider)
 				: ActivatorUtilities.CreateInstance<NotificationHubConsultaDeEntregas>(serviceProvider));
 
-		// O adapter real chega na Task 2, com o pacote do LogStream. Até lá o produto não
-		// audita — e é a verdade: sem LogStream configurado não há para onde escrever.
-		services.AddScoped<ITrilhaDeAuditoria, TrilhaSilenciosa>();
+		// Store próprio para o LogStream: um por recurso/scope (least privilege), como o
+		// SecureGate e o NotificationHub. O client é registrado sempre e lê a URL na
+		// resolução; quem decide entre adapter real e no-op são as options.
+		var tokenStoreDoLogStream = new SeccoAccessTokenStore();
+
+		services.AddHttpClient<ILogStreamClient, LogStreamClient>()
+			.ConfigureHttpClient((serviceProvider, client) =>
+			{
+				var auditoria = serviceProvider.GetRequiredService<AuditoriaOptions>();
+
+				if (!string.IsNullOrWhiteSpace(auditoria.LogStreamUrl))
+				{
+					client.BaseAddress = new Uri(auditoria.LogStreamUrl, UriKind.Absolute);
+				}
+			})
+			.ConfigureAdditionalHttpMessageHandlers((handlers, serviceProvider) =>
+			{
+				// AddLogStreamClient() do pacote só aceita BaseUrl, mas os endpoints de
+				// auditoria exigem AuditEntries.Write — o handler de credenciais entra à mão.
+				var credenciais = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();
+
+				if (credenciais.IsConfigured)
+				{
+					handlers.Add(new SeccoClientCredentialsHandler(
+						credenciais.BaseUrl!,
+						credenciais.ClientId!,
+						credenciais.ClientSecret!,
+						"audit-entries:read audit-entries:write",
+						tokenStoreDoLogStream));
+				}
+			});
+
+		services.AddScoped<ITrilhaDeAuditoria>(serviceProvider =>
+			string.IsNullOrWhiteSpace(serviceProvider.GetRequiredService<AuditoriaOptions>().LogStreamUrl)
+				? ActivatorUtilities.CreateInstance<TrilhaSilenciosa>(serviceProvider)
+				: ActivatorUtilities.CreateInstance<LogStreamTrilhaDeAuditoria>(serviceProvider));
 
 		return services;
 	}

@@ -18,9 +18,11 @@ public sealed record RegistroDeAuditoria(string Verbo, string Recurso, string Re
 public interface ITrilhaDeAuditoria
 {
 	/// <summary>
-	/// Registra uma ação. <b>Nunca lança</b>: auditar não pode derrubar o que o usuário pediu,
-	/// e concentrar essa garantia aqui evita oito <c>try/catch</c> espalhados pelos handlers.
-	/// Falha vira aviso no log e a trilha fica com um buraco — decisão registrada no spec.
+	/// Registra uma ação. <b>Nunca lança por falha de infraestrutura</b> — rede, recusa do
+	/// LogStream: auditar não pode derrubar o que o usuário pediu, e concentrar essa garantia
+	/// aqui evita oito <c>try/catch</c> espalhados pelos handlers. Falha vira aviso no log e a
+	/// trilha fica com um buraco — decisão registrada no spec. <paramref name="registro"/> nulo
+	/// é erro de programador, não falha de infraestrutura, e lança normalmente.
 	/// </summary>
 	/// <param name="registro">Ação a registrar.</param>
 	/// <param name="cancellationToken">Token de cancelamento.</param>

@@ -17,6 +17,8 @@
     <!-- 0.5.0: SearchNotifications (relatorio de entrega numa chamada) e ScheduledFor
          (entrega na entrada no ar, segurando e-mail E item do sino). -->
     <PackageVersion Include="Secco.NotificationHub.Client" Version="0.5.0" />
+    <!-- audit-entries: a trilha de acao de usuario (ADR-0006). -->
+    <PackageVersion Include="Secco.LogStream.Client" Version="0.3.1" />
   </ItemGroup>
 
   <ItemGroup Label="Application">

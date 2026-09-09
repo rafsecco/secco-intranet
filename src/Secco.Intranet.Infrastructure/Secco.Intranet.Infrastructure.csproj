@@ -13,6 +13,7 @@
     <!-- Client administrativo do SecureGate: provisionamento das Roles de setor (ADR-0001) -->
     <PackageReference Include="Secco.SecureGate.Client" />
     <PackageReference Include="Secco.NotificationHub.Client" />
+    <PackageReference Include="Secco.LogStream.Client" />
   </ItemGroup>
 
   <ItemGroup>
