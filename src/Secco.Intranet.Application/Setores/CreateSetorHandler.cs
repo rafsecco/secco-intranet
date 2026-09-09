@@ -93,6 +93,10 @@ public sealed class CreateSetorHandler(
 						slug = setor.Slug,
 						icone = setor.Icone,
 						fixo = setor.Fixo,
+						// Mesmo ResourceType do EditarSetorHandler: quem filtra a trilha por
+						// "ativo" precisa achar a entrada de criação também — um setor nasce
+						// ativo. "fixo" continua, é informação só da criação.
+						ativo = setor.Ativo,
 					})),
 				cancellationToken)
 			.ConfigureAwait(false);

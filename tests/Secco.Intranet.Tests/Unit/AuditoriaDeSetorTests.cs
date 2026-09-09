@@ -1,9 +1,11 @@
+using System.Text.Json;
 using AwesomeAssertions;
 using Secco.Intranet.Application;
 using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Setores;
 using Secco.SharedKernel.Pagination;
+using Secco.SharedKernel.Results;
 using Xunit;
 
 namespace Secco.Intranet.Tests.Unit;
@@ -49,8 +51,33 @@ public class AuditoriaDeSetorTests
 		public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 	}
 
+	private sealed class ProvisionerFalso : ISetorAccessProvisioner
+	{
+		public Task<Result> EnsureSetorRolesAsync(string slug, CancellationToken cancellationToken = default) =>
+			Task.FromResult(Result.Success());
+	}
+
 	private static EditarSetorHandler Montar(Setor setor, TrilhaFalsa trilha) =>
 		new(new RepositorioFalso(setor), new IntranetOptions(), trilha);
+
+	[Fact]
+	public async Task Criar_RegistraSetorCriar()
+	{
+		var trilha = new TrilhaFalsa();
+		var handler = new CreateSetorHandler(
+			new RepositorioFalso(setor: null), new IntranetOptions(), new ProvisionerFalso(), trilha);
+
+		var resultado = await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
+
+		resultado.IsSuccess.Should().BeTrue();
+
+		var registro = trilha.Registros.Should().ContainSingle().Subject;
+		registro.Verbo.Should().Be(VerbosDeAuditoria.SetorCriar);
+		registro.Recurso.Should().Be(RecursosDeAuditoria.Setor);
+		registro.RecursoId.Should().Be(resultado.Value.Id.ToString());
+		JsonDocument.Parse(registro.Metadata!).RootElement.GetProperty("slug").GetString()
+			.Should().Be("financeiro");
+	}
 
 	[Fact]
 	public async Task Editar_SoNomeEIcone_RegistraSetorEditar()

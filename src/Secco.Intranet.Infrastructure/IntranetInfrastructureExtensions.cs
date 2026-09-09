@@ -173,11 +173,14 @@ public static class IntranetInfrastructureExtensions
 
 				if (credenciais.IsConfigured)
 				{
+					// Só write: nada no produto lê a trilha (ler é fora de escopo, ver spec de
+					// auditoria) — pedir audit-entries:read violaria o least privilege do
+					// comentário acima sem nenhum uso correspondente.
 					handlers.Add(new SeccoClientCredentialsHandler(
 						credenciais.BaseUrl!,
 						credenciais.ClientId!,
 						credenciais.ClientSecret!,
-						"audit-entries:read audit-entries:write",
+						"audit-entries:write",
 						tokenStoreDoLogStream));
 				}
 			});

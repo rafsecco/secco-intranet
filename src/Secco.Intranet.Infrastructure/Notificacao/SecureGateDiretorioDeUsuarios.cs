@@ -54,5 +54,13 @@ public sealed class SecureGateDiretorioDeUsuarios(
 
 			return [];
 		}
+		catch (OperationCanceledException operationCanceledException) when (!cancellationToken.IsCancellationRequested)
+		{
+			// Timeout do HttpClient, não cancelamento pedido pelo chamador: mesma falha
+			// aberta das demais — o SecureGate aceitou a conexão e não respondeu a tempo.
+			logger.LogWarning(operationCanceledException, "Timeout ao listar usuários do tenant no SecureGate.");
+
+			return [];
+		}
 	}
 }

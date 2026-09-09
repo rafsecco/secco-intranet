@@ -47,8 +47,10 @@ processos (maior risco técnico) só entra com a base já sólida.
       entrega na data de entrada no ar e permalink por publicação —
       [spec](specs/2026-09-07-notificacao-mural-design.md)
 - [x] Auditoria transversal: verbos de Mural, Documentos e Setor no `Secco.LogStream` —
-      [spec](specs/2026-09-08-auditoria-design.md). Leitura de documento fica fora, por
-      decisão registrada
+      [spec](specs/2026-09-08-auditoria-design.md). Cobre publicar/editar/arquivar do Mural,
+      publicar/arquivar de Documentos e criar/editar/desativar/reativar de Setor. Fica fora,
+      por decisão registrada no spec: **quem baixou qual documento** (auditoria de leitura,
+      recusada por volume) e **quem entrou** (login — nunca esteve no escopo deste item)
       (entidade, publicação, edição). Um recurso só, com discriminador de tipo
       (aviso, evento, notícia)
 - [ ] Diretório organizacional (perfil de colaborador, organograma básico) — telas
@@ -61,11 +63,6 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [ ] Tela de administração de setores (cadastro + toggle de recursos)
 - [ ] Central de notificação in-app (`AvisoUsuario`, sino + toast), consumindo o canal
       in-app do `Secco.NotificationHub` (já disponível)
-- [ ] Trilha de auditoria de ação de usuário (quem baixou qual documento, quem publicou, quem
-      entrou), consumindo a superfície `audit-entries` do `Secco.LogStream.Client` 0.3.0.
-      **Desbloqueado** em 2026-09-05
-      ([secco-platform#2](https://github.com/rafsecco/secco-platform/issues/2)). Exige rodada
-      de desenho própria: o que auditar e onde instrumentar não estão decididos
 
 ## Fase 2 — Controle de processos (v1 simples)
 

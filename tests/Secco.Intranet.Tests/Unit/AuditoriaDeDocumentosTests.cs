@@ -1,9 +1,13 @@
 using System.Text.Json;
 using AwesomeAssertions;
+using Secco.Intranet.Application;
 using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Application.Documentos;
+using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain;
 using Secco.Intranet.Domain.Documentos;
+using Secco.Intranet.Domain.Setores;
+using Secco.SharedKernel.Pagination;
 using Xunit;
 
 namespace Secco.Intranet.Tests.Unit;
@@ -62,6 +66,45 @@ public class AuditoriaDeDocumentosTests
 	private static HashSet<string> Setores(params string[] slugs) =>
 		new(slugs, StringComparer.OrdinalIgnoreCase);
 
+	private sealed class SetorRepositorioFalso(Setor setor) : ISetorRepository
+	{
+		public Task AddAsync(Setor novo, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+		public Task<Setor?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+			Task.FromResult<Setor?>(setor);
+
+		public Task<Setor?> GetParaEdicaoAsync(Guid id, CancellationToken cancellationToken = default) =>
+			Task.FromResult<Setor?>(setor);
+
+		public Task<Setor?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default) =>
+			Task.FromResult<Setor?>(setor);
+
+		public Task<bool> ExistsBySlugAsync(string slug, CancellationToken cancellationToken = default) =>
+			Task.FromResult(false);
+
+		public Task<PagedResult<Setor>> SearchAsync(
+			SetorSearchCriteria criteria, CancellationToken cancellationToken = default) =>
+			Task.FromResult(PagedResult.Empty<Setor>(new PageRequest(1)));
+
+		public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+	}
+
+	private sealed class StoreFalso : IArquivoStore
+	{
+		public Task<ArquivoGravado> GravarAsync(Stream conteudo, CancellationToken cancellationToken = default) =>
+			Task.FromResult(new ArquivoGravado("t/ab/arquivo", "secco-enc:v1:x", 10));
+
+		public Task EscreverEmAsync(
+			string caminhoRelativo,
+			string chaveEmbrulhada,
+			Stream destino,
+			CancellationToken cancellationToken = default) =>
+			Task.CompletedTask;
+
+		public Task RemoverAsync(string caminhoRelativo, CancellationToken cancellationToken = default) =>
+			Task.CompletedTask;
+	}
+
 	[Fact]
 	public async Task Arquivar_RegistraDocumentoArquivar()
 	{
@@ -94,19 +137,40 @@ public class AuditoriaDeDocumentosTests
 	}
 
 	[Fact]
-	public void Publicar_DependeDaTrilha()
+	public async Task Publicar_RegistraDocumentoPublicar()
 	{
-		var dependencias = typeof(PublicarDocumentoHandler)
-			.GetConstructors()
-			.Single()
-			.GetParameters()
-			.Select(parametro => parametro.ParameterType);
+		var trilha = new TrilhaFalsa();
+		var setor = new Setor("Financeiro", "financeiro");
+		var handler = new PublicarDocumentoHandler(
+			new RepositorioFalso(resultado: null),
+			new SetorRepositorioFalso(setor),
+			new StoreFalso(),
+			new DocumentoOptions(),
+			new IntranetOptions(),
+			trilha);
 
-		dependencias.Should().Contain(
-			typeof(ITrilhaDeAuditoria),
-			"montar este handler num teste exigiria IArquivoStore, Stream e validação de magic "
-			+ "bytes; a asserção de dependência prova a fiação sem duplicar esse setup, e o "
-			+ "conteúdo do registro é conferido na verificação de navegador da Task 6");
+		// "%PDF" mais bytes de preenchimento: é só a assinatura que TiposDeArquivo.Apurar
+		// confere, então o resto do conteúdo do PDF de verdade não faz falta ao teste.
+		using var conteudo = new MemoryStream([0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34]);
+
+		var resultado = await handler.HandleAsync(new PublicarDocumentoCommand(
+			"financeiro",
+			"Política interna",
+			null,
+			"politica.pdf",
+			conteudo.Length,
+			conteudo,
+			Visibilidade.Setor,
+			"quem.publicou"));
+
+		resultado.IsSuccess.Should().BeTrue();
+
+		var registro = trilha.Registros.Should().ContainSingle().Subject;
+		registro.Verbo.Should().Be(VerbosDeAuditoria.DocumentoPublicar);
+		registro.Recurso.Should().Be(RecursosDeAuditoria.Documento);
+		registro.RecursoId.Should().Be(resultado.Value.Id.ToString());
+		JsonDocument.Parse(registro.Metadata!).RootElement.GetProperty("arquivo").GetString()
+			.Should().Be("politica.pdf");
 	}
 
 	[Fact]
