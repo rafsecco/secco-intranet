@@ -1,4 +1,6 @@
-﻿using Secco.Intranet.Domain.Setores;
+﻿using System.Text.Json;
+using Secco.Intranet.Application.Auditoria;
+using Secco.Intranet.Domain.Setores;
 using Secco.SharedKernel.Results;
 
 namespace Secco.Intranet.Application.Setores;
@@ -15,10 +17,15 @@ public sealed record CreateSetorCommand(string? Nome, string? Slug, bool Fixo = 
 /// SecureGate (ADR-0001) e só então persiste a entidade — erros de negócio fluem por
 /// <see cref="Result{T}"/>, nunca por exceção (ADR-0004).
 /// </summary>
+/// <param name="repository">Persistência de setores.</param>
+/// <param name="options">Limites de entrada do produto.</param>
+/// <param name="accessProvisioner">Provisionamento das Roles do setor no SecureGate.</param>
+/// <param name="trilha">Trilha de auditoria.</param>
 public sealed class CreateSetorHandler(
 	ISetorRepository repository,
 	IntranetOptions options,
-	ISetorAccessProvisioner accessProvisioner)
+	ISetorAccessProvisioner accessProvisioner,
+	ITrilhaDeAuditoria trilha)
 {
 	/// <summary>Executa o caso de uso.</summary>
 	/// <param name="command">Comando de criação.</param>
@@ -73,6 +80,22 @@ public sealed class CreateSetorHandler(
 		var setor = new Setor(command.Nome, command.Slug, command.Fixo, command.Icone);
 
 		await repository.AddAsync(setor, cancellationToken).ConfigureAwait(false);
+
+		await trilha
+			.RegistrarAsync(
+				new RegistroDeAuditoria(
+					VerbosDeAuditoria.SetorCriar,
+					RecursosDeAuditoria.Setor,
+					setor.Id.ToString(),
+					JsonSerializer.Serialize(new
+					{
+						nome = setor.Nome,
+						slug = setor.Slug,
+						icone = setor.Icone,
+						fixo = setor.Fixo,
+					})),
+				cancellationToken)
+			.ConfigureAwait(false);
 
 		return SetorDto.FromEntity(setor);
 	}

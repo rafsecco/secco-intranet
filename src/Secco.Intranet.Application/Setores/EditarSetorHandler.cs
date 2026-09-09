@@ -1,4 +1,6 @@
-﻿using Secco.Intranet.Domain.Setores;
+﻿using System.Text.Json;
+using Secco.Intranet.Application.Auditoria;
+using Secco.Intranet.Domain.Setores;
 using Secco.SharedKernel.Results;
 
 namespace Secco.Intranet.Application.Setores;
@@ -22,7 +24,8 @@ public sealed record EditarSetorCommand(Guid Id, string? Nome, string? Icone, bo
 /// </summary>
 /// <param name="repository">Persistência de setores.</param>
 /// <param name="options">Limites de entrada do produto.</param>
-public sealed class EditarSetorHandler(ISetorRepository repository, IntranetOptions options)
+/// <param name="trilha">Trilha de auditoria.</param>
+public sealed class EditarSetorHandler(ISetorRepository repository, IntranetOptions options, ITrilhaDeAuditoria trilha)
 {
 	/// <summary>Executa o caso de uso.</summary>
 	/// <param name="command">Pedido.</param>
@@ -62,6 +65,8 @@ public sealed class EditarSetorHandler(ISetorRepository repository, IntranetOpti
 			return IntranetErrors.Setores.FixoNaoDesativa;
 		}
 
+		var estavaAtivo = setor.Ativo;
+
 		setor.Renomear(command.Nome);
 		setor.DefinirIcone(command.Icone);
 
@@ -75,6 +80,31 @@ public sealed class EditarSetorHandler(ISetorRepository repository, IntranetOpti
 		}
 
 		await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+		// Desativar e reativar ganham verbo proprio porque mudam quem enxerga o que; um
+		// "setor.editar" generico esconderia exatamente a mudanca que alguem vai procurar.
+		var verbo = (estavaAtivo, setor.Ativo) switch
+		{
+			(true, false) => VerbosDeAuditoria.SetorDesativar,
+			(false, true) => VerbosDeAuditoria.SetorReativar,
+			_ => VerbosDeAuditoria.SetorEditar,
+		};
+
+		await trilha
+			.RegistrarAsync(
+				new RegistroDeAuditoria(
+					verbo,
+					RecursosDeAuditoria.Setor,
+					setor.Id.ToString(),
+					JsonSerializer.Serialize(new
+					{
+						nome = setor.Nome,
+						slug = setor.Slug,
+						icone = setor.Icone,
+						ativo = setor.Ativo,
+					})),
+				cancellationToken)
+			.ConfigureAwait(false);
 
 		return SetorDto.FromEntity(setor);
 	}

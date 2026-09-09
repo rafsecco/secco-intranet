@@ -1,5 +1,6 @@
 using AwesomeAssertions;
 using Secco.Intranet.Application;
+using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Setores;
 using Secco.SharedKernel.Pagination;
@@ -14,6 +15,12 @@ namespace Secco.Intranet.Tests.Unit;
 /// </summary>
 public class EditarSetorHandlerTests
 {
+	private sealed class TrilhaFalsa : ITrilhaDeAuditoria
+	{
+		public Task RegistrarAsync(RegistroDeAuditoria registro, CancellationToken cancellationToken = default) =>
+			Task.CompletedTask;
+	}
+
 	private sealed class RepositorioFalso(Setor? setor) : ISetorRepository
 	{
 		public bool Gravou { get; private set; }
@@ -54,7 +61,7 @@ public class EditarSetorHandlerTests
 	public async Task Edita_NomeEIcone()
 	{
 		var repositorio = new RepositorioFalso(new Setor("Financeiro", "financeiro"));
-		var handler = new EditarSetorHandler(repositorio, new IntranetOptions());
+		var handler = new EditarSetorHandler(repositorio, new IntranetOptions(), new TrilhaFalsa());
 
 		var resultado = await handler.HandleAsync(Comando());
 
@@ -68,7 +75,7 @@ public class EditarSetorHandlerTests
 	public async Task NaoMudaOSlug()
 	{
 		var repositorio = new RepositorioFalso(new Setor("Financeiro", "financeiro"));
-		var handler = new EditarSetorHandler(repositorio, new IntranetOptions());
+		var handler = new EditarSetorHandler(repositorio, new IntranetOptions(), new TrilhaFalsa());
 
 		var resultado = await handler.HandleAsync(Comando(nome: "Outro Nome"));
 
@@ -79,7 +86,7 @@ public class EditarSetorHandlerTests
 	[Fact]
 	public async Task Inexistente_Recusa()
 	{
-		var handler = new EditarSetorHandler(new RepositorioFalso(null), new IntranetOptions());
+		var handler = new EditarSetorHandler(new RepositorioFalso(null), new IntranetOptions(), new TrilhaFalsa());
 
 		var resultado = await handler.HandleAsync(Comando());
 
@@ -91,7 +98,7 @@ public class EditarSetorHandlerTests
 	public async Task IconeForaDoPadrao_Recusa()
 	{
 		var repositorio = new RepositorioFalso(new Setor("Financeiro", "financeiro"));
-		var handler = new EditarSetorHandler(repositorio, new IntranetOptions());
+		var handler = new EditarSetorHandler(repositorio, new IntranetOptions(), new TrilhaFalsa());
 
 		var resultado = await handler.HandleAsync(Comando(icone: "d-none"));
 
@@ -104,7 +111,7 @@ public class EditarSetorHandlerTests
 	public async Task SemNome_Recusa()
 	{
 		var repositorio = new RepositorioFalso(new Setor("Financeiro", "financeiro"));
-		var handler = new EditarSetorHandler(repositorio, new IntranetOptions());
+		var handler = new EditarSetorHandler(repositorio, new IntranetOptions(), new TrilhaFalsa());
 
 		var resultado = await handler.HandleAsync(Comando(nome: "   "));
 
@@ -116,7 +123,7 @@ public class EditarSetorHandlerTests
 	public async Task Desativa_QuandoNaoEFixo()
 	{
 		var repositorio = new RepositorioFalso(new Setor("Financeiro", "financeiro"));
-		var handler = new EditarSetorHandler(repositorio, new IntranetOptions());
+		var handler = new EditarSetorHandler(repositorio, new IntranetOptions(), new TrilhaFalsa());
 
 		var resultado = await handler.HandleAsync(Comando(ativo: false));
 
@@ -128,7 +135,7 @@ public class EditarSetorHandlerTests
 	public async Task SetorFixo_NaoPodeSerDesativado()
 	{
 		var repositorio = new RepositorioFalso(new Setor("Infraestrutura", "infraestrutura", fixo: true));
-		var handler = new EditarSetorHandler(repositorio, new IntranetOptions());
+		var handler = new EditarSetorHandler(repositorio, new IntranetOptions(), new TrilhaFalsa());
 
 		var resultado = await handler.HandleAsync(Comando(ativo: false));
 
@@ -142,7 +149,7 @@ public class EditarSetorHandlerTests
 	public async Task SetorFixo_ContinuaEditavelNoResto()
 	{
 		var repositorio = new RepositorioFalso(new Setor("Infraestrutura", "infraestrutura", fixo: true));
-		var handler = new EditarSetorHandler(repositorio, new IntranetOptions());
+		var handler = new EditarSetorHandler(repositorio, new IntranetOptions(), new TrilhaFalsa());
 
 		var resultado = await handler.HandleAsync(Comando(nome: "Infra", icone: "bi-hdd-rack", ativo: true));
 
