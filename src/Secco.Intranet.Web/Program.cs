@@ -1,6 +1,8 @@
 ﻿using Secco.Intranet.Application;
+using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Infrastructure;
 using Secco.Intranet.Web;
+using Secco.Intranet.Web.Auditoria;
 using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Conteudo;
 using Secco.Intranet.Web.Tenancy;
@@ -24,6 +26,8 @@ builder.Services.AddControllersWithViews();
 // Sistema de temas (ADR-0003/ADR-0004): o expander da precedencia as views do tema ativo.
 builder.Services.AddIntranetTheming();
 builder.Services.AddSingleton<IRenderizadorMarkdown, RenderizadorMarkdown>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAtorAtual, AtorDoHttpContext>();
 
 // Paginas de demonstracao: desligadas por padrao (ver DemoOptions). Bind lazy, como o
 // restante da configuracao do produto.

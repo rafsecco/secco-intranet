@@ -3,12 +3,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Secco.Intranet.Application;
+using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Infrastructure.Access;
 using Secco.Intranet.Infrastructure.Armazenamento;
+using Secco.Intranet.Infrastructure.Auditoria;
 using Secco.Intranet.Infrastructure.Contexts;
 using Secco.Intranet.Infrastructure.Notificacao;
 using Secco.Intranet.Infrastructure.Repositories;
@@ -42,6 +44,7 @@ public static class IntranetInfrastructureExtensions
 		services.AddSingleton(sp => BindSection(sp, ArquivoStoreOptions.SectionKey, new ArquivoStoreOptions()));
 		services.AddSingleton(sp => BindSection(sp, ChaveMestraOptions.SectionKey, new ChaveMestraOptions()));
 		services.AddSingleton(sp => BindSection(sp, NotificacaoOptions.SectionKey, new NotificacaoOptions()));
+		services.AddSingleton(sp => BindSection(sp, AuditoriaOptions.SectionKey, new AuditoriaOptions()));
 
 		// A cifragem em envelope nao depende do tenant: uma instancia serve a aplicacao toda.
 		services.AddSingleton<EnvelopeCipher>();
@@ -145,6 +148,10 @@ public static class IntranetInfrastructureExtensions
 			string.IsNullOrWhiteSpace(serviceProvider.GetRequiredService<NotificacaoOptions>().HubUrl)
 				? ActivatorUtilities.CreateInstance<ConsultaDeEntregasVazia>(serviceProvider)
 				: ActivatorUtilities.CreateInstance<NotificationHubConsultaDeEntregas>(serviceProvider));
+
+		// O adapter real chega na Task 2, com o pacote do LogStream. Até lá o produto não
+		// audita — e é a verdade: sem LogStream configurado não há para onde escrever.
+		services.AddScoped<ITrilhaDeAuditoria, TrilhaSilenciosa>();
 
 		return services;
 	}
