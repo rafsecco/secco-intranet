@@ -46,6 +46,9 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [x] Notificação do Mural: sino, e-mail e canal corporativo conforme a urgência, com
       entrega na data de entrada no ar e permalink por publicação —
       [spec](specs/2026-09-07-notificacao-mural-design.md)
+- [x] Auditoria transversal: verbos de Mural, Documentos e Setor no `Secco.LogStream` —
+      [spec](specs/2026-09-08-auditoria-design.md). Leitura de documento fica fora, por
+      decisão registrada
       (entidade, publicação, edição). Um recurso só, com discriminador de tipo
       (aviso, evento, notícia)
 - [ ] Diretório organizacional (perfil de colaborador, organograma básico) — telas

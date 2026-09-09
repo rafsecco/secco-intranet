@@ -47,6 +47,7 @@ ver ADR-0006 e ADR-0007.
 | Multi-tenancy       | `Secco.SDK.AspNetCore`                                         | Um banco por tenant, resolvido por requisição (ADR-0005 da plataforma) |
 | Identidade          | OpenID Connect contra o `Secco.SecureGate`                     | Relying party com cookie de sessão; setor é Role (ADR-0001)            |
 | Notificação         | `Secco.NotificationHub.Client`                                 | Sino, e-mail e canal corporativo; fila, retry e entrega são do Hub (ADR-0006) |
+| Auditoria           | `Secco.LogStream.Client`                                       | Trilha de ação de usuário; a trilha vive no LogStream (ADR-0006)      |
 | Interface           | Razor Class Library por tema, Bootstrap 5.3 compilado por Sass | Tema é pacote independente; o core não impõe framework CSS (ADR-0003)  |
 | Tipografia e ícones | Instrument Sans, Inter, JetBrains Mono, Bootstrap Icons        | Auto-hospedados: nenhum CDN de terceiro observa quem acessa a intranet |
 | Criptografia        | AES-256-GCM em envelope, `System.Security.Cryptography`        | Documento cifrado em repouso, sem dependência externa (ADR-0005)       |

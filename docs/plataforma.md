@@ -19,6 +19,7 @@ Duas regras sustentam esta lista:
 |---|---|---|
 | Onde vive o console de operação (futuro do `Secco.AdminPortal`) | A área administrativa da Fase 2 não tem escopo definido: só o próprio tenant, ou também operação cross-tenant | [#4](https://github.com/rafsecco/secco-platform/issues/4) |
 | Entrega agendada de notificação (`ScheduledFor`) | Publicação agendada do Mural não notifica: o estado "no ar" é derivado do relógio, então não existe evento na entrada no ar para disparar o aviso | [#24](https://github.com/rafsecco/secco-platform/issues/24) |
+| Extensões de client aceitarem client credentials | `AddNotificationHubClient()` e `AddLogStreamClient()` só aceitam `BaseUrl`, mas todos os endpoints dos dois exigem permissão — cada adotante reescreve a composição do `HttpClient` à mão para anexar o `SeccoClientCredentialsHandler`. Dois adotantes já bateram nisso | (a abrir) |
 
 ## Atendidas
 
