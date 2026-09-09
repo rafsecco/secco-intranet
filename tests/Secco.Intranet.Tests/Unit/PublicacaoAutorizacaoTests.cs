@@ -1,8 +1,10 @@
 using AwesomeAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Secco.Intranet.Application;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Domain;
 using Secco.Intranet.Domain.Publicacoes;
+using Secco.Intranet.Infrastructure.Auditoria;
 using Secco.SharedKernel.Pagination;
 using Xunit;
 
@@ -53,7 +55,8 @@ public class PublicacaoAutorizacaoTests
 	public async Task Arquivar_SemAdministrarOSetor_Nega()
 	{
 		var repositorio = new RepositorioFalso(Existente());
-		var handler = new ArquivarPublicacaoHandler(repositorio);
+		var handler = new ArquivarPublicacaoHandler(
+			repositorio, new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance));
 
 		var resultado = await handler.HandleAsync(new ArquivarPublicacaoCommand(
 			Guid.NewGuid(), Setores("diretoria"), ExigirVinculo: true));
@@ -67,7 +70,8 @@ public class PublicacaoAutorizacaoTests
 	public async Task Arquivar_AdministrandoOSetor_Libera()
 	{
 		var repositorio = new RepositorioFalso(Existente());
-		var handler = new ArquivarPublicacaoHandler(repositorio);
+		var handler = new ArquivarPublicacaoHandler(
+			repositorio, new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance));
 
 		var resultado = await handler.HandleAsync(new ArquivarPublicacaoCommand(
 			Guid.NewGuid(), Setores("financeiro"), ExigirVinculo: true));
@@ -79,10 +83,12 @@ public class PublicacaoAutorizacaoTests
 	[Fact]
 	public async Task Arquivar_Inexistente_DevolveOMesmoErroDeNegado()
 	{
-		var negado = await new ArquivarPublicacaoHandler(new RepositorioFalso(Existente()))
+		var negado = await new ArquivarPublicacaoHandler(
+				new RepositorioFalso(Existente()), new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance))
 			.HandleAsync(new ArquivarPublicacaoCommand(Guid.NewGuid(), Setores(), ExigirVinculo: true));
 
-		var inexistente = await new ArquivarPublicacaoHandler(new RepositorioFalso(null))
+		var inexistente = await new ArquivarPublicacaoHandler(
+				new RepositorioFalso(null), new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance))
 			.HandleAsync(new ArquivarPublicacaoCommand(Guid.NewGuid(), Setores(), ExigirVinculo: true));
 
 		negado.Error.Code.Should().Be(inexistente.Error.Code);
@@ -92,7 +98,9 @@ public class PublicacaoAutorizacaoTests
 	public async Task Editar_ComExpiracaoInvalida_DevolveResultadoDeFalha()
 	{
 		var agora = DateTimeOffset.UtcNow;
-		var handler = new EditarPublicacaoHandler(new RepositorioFalso(Existente()), new IntranetOptions());
+		var handler = new EditarPublicacaoHandler(
+			new RepositorioFalso(Existente()), new IntranetOptions(),
+			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance));
 
 		var resultado = await handler.HandleAsync(new EditarPublicacaoCommand(
 			Guid.NewGuid(), Setores("financeiro"), ExigirVinculo: true,
@@ -108,7 +116,8 @@ public class PublicacaoAutorizacaoTests
 	public async Task Editar_ComTituloAcimaDoLimiteConfigurado_Recusa()
 	{
 		var handler = new EditarPublicacaoHandler(
-			new RepositorioFalso(Existente()), new IntranetOptions { MaxNameLength = 10 });
+			new RepositorioFalso(Existente()), new IntranetOptions { MaxNameLength = 10 },
+			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance));
 
 		var resultado = await handler.HandleAsync(new EditarPublicacaoCommand(
 			Guid.NewGuid(), Setores("financeiro"), ExigirVinculo: true,

@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Markdig;
+using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain;
@@ -49,13 +51,15 @@ public sealed record PublicacaoPublicadaDto(PublicacaoDto Publicacao, RelatorioD
 /// <param name="diretorio">Cadastro de usuários do tenant.</param>
 /// <param name="notificador">Envio de avisos.</param>
 /// <param name="notificacaoOptions">Configuração do aviso.</param>
+/// <param name="trilha">Trilha de auditoria.</param>
 public sealed class PublicarPublicacaoHandler(
 	IPublicacaoRepository repository,
 	ISetorRepository setorRepository,
 	IntranetOptions limites,
 	IDiretorioDeUsuarios diretorio,
 	INotificadorDeMensagens notificador,
-	NotificacaoOptions notificacaoOptions)
+	NotificacaoOptions notificacaoOptions,
+	ITrilhaDeAuditoria trilha)
 {
 	private static readonly MarkdownPipeline PipelineDeTexto = new MarkdownPipelineBuilder()
 		.DisableHtml()
@@ -97,6 +101,24 @@ public sealed class PublicarPublicacaoHandler(
 		await repository.AddAsync(publicacao, cancellationToken).ConfigureAwait(false);
 
 		var dto = Projecao.De(new PublicacaoComSetor(publicacao, setor.Nome, setor.Slug));
+
+		await trilha
+			.RegistrarAsync(
+				new RegistroDeAuditoria(
+					VerbosDeAuditoria.MuralPublicar,
+					RecursosDeAuditoria.Publicacao,
+					dto.Id.ToString(),
+					JsonSerializer.Serialize(new
+					{
+						titulo = dto.Titulo,
+						tipo = dto.Tipo.ToString(),
+						visibilidade = dto.Visibilidade.ToString(),
+						prioridade = dto.Prioridade.ToString(),
+						setor = dto.SetorSlug,
+					})),
+				cancellationToken)
+			.ConfigureAwait(false);
+
 		var relatorio = await AvisarAsync(dto, command.CriadoPorId, cancellationToken).ConfigureAwait(false);
 
 		return new PublicacaoPublicadaDto(dto, relatorio);

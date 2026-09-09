@@ -1,4 +1,5 @@
 using AwesomeAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Secco.Intranet.Application;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Publicacoes.Notificacao;
@@ -6,6 +7,7 @@ using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain;
 using Secco.Intranet.Domain.Publicacoes;
 using Secco.Intranet.Domain.Setores;
+using Secco.Intranet.Infrastructure.Auditoria;
 using Secco.SharedKernel.Pagination;
 using Xunit;
 
@@ -102,7 +104,8 @@ public class AvisoDePublicacaoTests
 		var notificador = new NotificadorFalso();
 		var handler = new PublicarPublicacaoHandler(
 			new RepositorioFalso(), new SetorRepositorioFalso(), new IntranetOptions(),
-			new DiretorioFalso(usuarios), notificador, new NotificacaoOptions());
+			new DiretorioFalso(usuarios), notificador, new NotificacaoOptions(),
+			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance));
 
 		return (handler, notificador);
 	}
@@ -253,7 +256,8 @@ public class AvisoDePublicacaoTests
 		var handler = new PublicarPublicacaoHandler(
 			new RepositorioFalso(), new SetorRepositorioFalso(), new IntranetOptions(),
 			new DiretorioFalso(Usuario("a@x.com", "financeiro-user")),
-			new NotificadorQueFalha(), new NotificacaoOptions());
+			new NotificadorQueFalha(), new NotificacaoOptions(),
+			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance));
 
 		var resultado = await handler.HandleAsync(Comando());
 
@@ -280,7 +284,8 @@ public class AvisoDePublicacaoTests
 		var handler = new PublicarPublicacaoHandler(
 			new RepositorioFalso(), new SetorRepositorioFalso(), new IntranetOptions(),
 			new DiretorioFalso(Usuario("a@x.com", "financeiro-user")), notificador,
-			new NotificacaoOptions { UrlBase = "https://intranet.exemplo.com" });
+			new NotificacaoOptions { UrlBase = "https://intranet.exemplo.com" },
+			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance));
 
 		var resultado = await handler.HandleAsync(Comando());
 

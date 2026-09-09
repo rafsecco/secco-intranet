@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Secco.Intranet.Application.Auditoria;
 using Secco.SharedKernel.Results;
 
 namespace Secco.Intranet.Application.Publicacoes;
@@ -13,7 +15,8 @@ public sealed record ArquivarPublicacaoCommand(
 
 /// <summary>Tira uma publicação de circulação, preservando o registro.</summary>
 /// <param name="repository">Persistência de publicações.</param>
-public sealed class ArquivarPublicacaoHandler(IPublicacaoRepository repository)
+/// <param name="trilha">Trilha de auditoria.</param>
+public sealed class ArquivarPublicacaoHandler(IPublicacaoRepository repository, ITrilhaDeAuditoria trilha)
 {
 	/// <summary>Executa o caso de uso.</summary>
 	/// <param name="command">Pedido.</param>
@@ -39,6 +42,20 @@ public sealed class ArquivarPublicacaoHandler(IPublicacaoRepository repository)
 
 		encontrada.Publicacao.Arquivar();
 		await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+		await trilha
+			.RegistrarAsync(
+				new RegistroDeAuditoria(
+					VerbosDeAuditoria.MuralArquivar,
+					RecursosDeAuditoria.Publicacao,
+					encontrada.Publicacao.Id.ToString(),
+					JsonSerializer.Serialize(new
+					{
+						titulo = encontrada.Publicacao.Titulo,
+						setor = encontrada.SetorSlug,
+					})),
+				cancellationToken)
+			.ConfigureAwait(false);
 
 		return encontrada.Publicacao.Id;
 	}

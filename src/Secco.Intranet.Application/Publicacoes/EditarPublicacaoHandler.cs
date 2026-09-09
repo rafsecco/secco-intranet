@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Domain;
 using Secco.Intranet.Domain.Publicacoes;
 using Secco.SharedKernel.Results;
@@ -30,7 +32,11 @@ public sealed record EditarPublicacaoCommand(
 /// <summary>Altera conteúdo e agendamento de uma publicação existente.</summary>
 /// <param name="repository">Persistência de publicações.</param>
 /// <param name="limites">Limites de entrada do produto.</param>
-public sealed class EditarPublicacaoHandler(IPublicacaoRepository repository, IntranetOptions limites)
+/// <param name="trilha">Trilha de auditoria.</param>
+public sealed class EditarPublicacaoHandler(
+	IPublicacaoRepository repository,
+	IntranetOptions limites,
+	ITrilhaDeAuditoria trilha)
 {
 	/// <summary>Executa o caso de uso.</summary>
 	/// <param name="command">Pedido.</param>
@@ -62,6 +68,23 @@ public sealed class EditarPublicacaoHandler(IPublicacaoRepository repository, In
 			command.Prioridade, command.PublicadoEm, command.ExpiraEm);
 
 		await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+		await trilha
+			.RegistrarAsync(
+				new RegistroDeAuditoria(
+					VerbosDeAuditoria.MuralEditar,
+					RecursosDeAuditoria.Publicacao,
+					encontrada.Publicacao.Id.ToString(),
+					JsonSerializer.Serialize(new
+					{
+						titulo = encontrada.Publicacao.Titulo,
+						tipo = encontrada.Publicacao.Tipo.ToString(),
+						visibilidade = encontrada.Publicacao.Visibilidade.ToString(),
+						prioridade = encontrada.Publicacao.Prioridade.ToString(),
+						setor = encontrada.SetorSlug,
+					})),
+				cancellationToken)
+			.ConfigureAwait(false);
 
 		return Projecao.De(encontrada);
 	}
