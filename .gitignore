@@ -109,3 +109,7 @@ node_modules/
 # Saida de verificacao manual no navegador (screenshots, snapshots de acessibilidade) —
 # nunca e para versionar, e um `git add -A` distraido ja pegou isso uma vez.
 .playwright-mcp/
+
+# Rascunho do subagent-driven-development: ledger, briefs e pacotes de revisao.
+# O registro definitivo e o historico do git.
+.superpowers/
