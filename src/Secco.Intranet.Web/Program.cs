@@ -46,7 +46,7 @@ builder.Services.AddSeccoTenancy();
 builder.Services.AddSeccoHealthChecks();
 
 builder.Services.AddIntranetApplication();
-builder.Services.AddIntranetInfrastructure();
+builder.Services.AddIntranetInfrastructure(builder.Configuration);
 builder.Services.AddIntranetAuthentication(builder.Configuration, builder.Environment);
 
 var app = builder.Build();

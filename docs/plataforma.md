@@ -18,8 +18,6 @@ Duas regras sustentam esta lista:
 | Demanda | O que trava aqui | Issue |
 |---|---|---|
 | Onde vive o console de operação (futuro do `Secco.AdminPortal`) | A área administrativa da Fase 2 não tem escopo definido: só o próprio tenant, ou também operação cross-tenant | [#4](https://github.com/rafsecco/secco-platform/issues/4) |
-| Entrega agendada de notificação (`ScheduledFor`) | Publicação agendada do Mural não notifica: o estado "no ar" é derivado do relógio, então não existe evento na entrada no ar para disparar o aviso | [#24](https://github.com/rafsecco/secco-platform/issues/24) |
-| Extensões de client aceitarem client credentials | `AddNotificationHubClient()` e `AddLogStreamClient()` só aceitam `BaseUrl`, mas todos os endpoints dos dois exigem permissão — a Intranet reescreveu a composição do `HttpClient` à mão duas vezes. Não bloqueia: é ergonomia e eliminação de erro silencioso (scope errado vira 403 que a falha aberta engole) | [#25](https://github.com/rafsecco/secco-platform/issues/25) |
 
 ## Atendidas
 
@@ -35,6 +33,8 @@ cada capacidade — informação que some se a linha for apagada.
 | Provider SendGrid para `IEmailSender` | `Secco.NotificationHub` (2026-09-06) | [#14](https://github.com/rafsecco/secco-platform/issues/14) |
 | Criação de notificação em lote | `Secco.NotificationHub` (2026-09-06) — `POST /batch`, um conteúdo para muitos destinos numa chamada | [#15](https://github.com/rafsecco/secco-platform/issues/15) |
 | Consulta de status de notificação em massa | `Secco.NotificationHub.Client` 0.4.0 (2026-09-06) — `SearchNotifications`, busca paginada com filtros. Torna o relatório de falha de entrega uma chamada só, filtrando por `Source` e `Type` | [#23](https://github.com/rafsecco/secco-platform/issues/23) |
+| Entrega agendada de notificação (`ScheduledFor`) | `Secco.NotificationHub.Client` **0.5.0** (2026-09-07) — `ScheduledFor` nos dois DTOs de despacho, e `Schedule(..., DateTimeOffset)` no `IBackgroundJobScheduler` do SDK. A entrega cobriu um caso que a demanda não via: o canal in-app não tinha job de entrega, então agendar só o e-mail faria o aviso aparecer no sino na hora | [#24](https://github.com/rafsecco/secco-platform/issues/24) |
+| Extensões de client aceitarem client credentials | `Secco.NotificationHub.Client` **0.6.0** e `Secco.LogStream.Client` **0.4.0** (2026-09-10) — as extensões passam a montar URL, credenciais e scope. As credenciais caem em `Secco:SecureGate` por padrão, e cada pacote traz o scope do próprio produto (`DefaultScope`), então o adotante não pode mais errá-lo | [#25](https://github.com/rafsecco/secco-platform/issues/25) |
 
 A auditoria ter vindo como recurso do LogStream, e não como um `Secco.Audit`, **não muda nada
 aqui** — a [ADR-0006](adr/secco-intranet-adrs.md) já previa a bifurcação e registrou que este

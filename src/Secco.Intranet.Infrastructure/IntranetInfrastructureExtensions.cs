@@ -17,7 +17,6 @@ using Secco.Intranet.Infrastructure.Repositories;
 using Secco.Intranet.Infrastructure.Seeding;
 using Secco.LogStream.Client;
 using Secco.NotificationHub.Client;
-using Secco.SDK.AspNetCore.Authentication;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SDK.EntityFrameworkCore.Seeding;
 using Secco.SecureGate.Client.Administration;
@@ -34,9 +33,24 @@ public static class IntranetInfrastructureExtensions
 	/// — jamais fixa. Requer <c>AddSeccoTenancy()</c> (via <c>AddSeccoPlatform()</c>).
 	/// </summary>
 	/// <param name="services">Coleção de serviços da aplicação.</param>
-	public static IServiceCollection AddIntranetInfrastructure(this IServiceCollection services)
+	/// <param name="configuration">
+	/// Configuração da aplicação. Necessária porque as extensões de client da plataforma
+	/// montam o <c>HttpClient</c> no momento do registro e recusam URL vazia — então a decisão
+	/// de registrar ou não precisa ser tomada aqui, e não na resolução. O resto das options
+	/// continua com bind lazy, para fontes acrescentadas por teste serem respeitadas.
+	/// </param>
+	public static IServiceCollection AddIntranetInfrastructure(
+		this IServiceCollection services,
+		IConfiguration configuration)
 	{
 		ArgumentNullException.ThrowIfNull(services);
+		ArgumentNullException.ThrowIfNull(configuration);
+
+		var notificacaoOptions = new NotificacaoOptions();
+		configuration.GetSection(NotificacaoOptions.SectionKey).Bind(notificacaoOptions);
+
+		var auditoriaOptions = new AuditoriaOptions();
+		configuration.GetSection(AuditoriaOptions.SectionKey).Bind(auditoriaOptions);
 
 		// Bind LAZY (do IConfiguration do DI): fontes adicionadas por testes/hosting tardio são respeitadas
 		services.AddSingleton(sp => BindSection(sp, "Intranet:Database", new IntranetDatabaseOptions()));
@@ -92,39 +106,15 @@ public static class IntranetInfrastructureExtensions
 				: ActivatorUtilities.CreateInstance<NullSetorAccessProvisioner>(serviceProvider);
 		});
 
-		// Store próprio para o Hub: um por recurso/scope (least privilege), como o SecureGate
-		// faz. O client é registrado sempre e lê a URL na resolução — quem decide entre
-		// adapter real e no-op são as options, não a presença do registro.
-		var tokenStoreDoHub = new SeccoAccessTokenStore();
-
-		services.AddHttpClient<INotificationHubClient, NotificationHubClient>()
-			.ConfigureHttpClient((serviceProvider, client) =>
-			{
-				var notificacao = serviceProvider.GetRequiredService<NotificacaoOptions>();
-
-				if (!string.IsNullOrWhiteSpace(notificacao.HubUrl))
-				{
-					client.BaseAddress = new Uri(notificacao.HubUrl, UriKind.Absolute);
-				}
-			})
-			.ConfigureAdditionalHttpMessageHandlers((handlers, serviceProvider) =>
-			{
-				// AddNotificationHubClient() do pacote só aceita BaseUrl, mas todo endpoint do
-				// Hub exige permissão — então o handler de credenciais entra à mão aqui.
-				var credenciais = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();
-
-				// Validate() do pacote é internal, então a guarda aqui é IsConfigured, que já
-				// exige BaseUrl, ClientId e ClientSecret juntos.
-				if (credenciais.IsConfigured)
-				{
-					handlers.Add(new SeccoClientCredentialsHandler(
-						credenciais.BaseUrl!,
-						credenciais.ClientId!,
-						credenciais.ClientSecret!,
-						"notifications:read notifications:write",
-						tokenStoreDoHub));
-				}
-			});
+		// A extensão do pacote monta o client inteiro — URL, credenciais e scope do produto
+		// (secco-platform#25). As credenciais caem no Secco:SecureGate por padrão, e o scope
+		// vem do próprio pacote: o adotante não precisa conhecer o valor, e não pode errá-lo.
+		// A chamada é condicional porque a extensão lança com BaseUrl vazia, e sem Hub
+		// configurado o produto resolve os adaptadores no-op.
+		if (!string.IsNullOrWhiteSpace(notificacaoOptions.HubUrl))
+		{
+			services.AddNotificationHubClient(opcoes => opcoes.BaseUrl = notificacaoOptions.HubUrl);
+		}
 
 		services.AddScoped<IDiretorioDeUsuarios>(serviceProvider =>
 		{
@@ -150,40 +140,11 @@ public static class IntranetInfrastructureExtensions
 				? ActivatorUtilities.CreateInstance<ConsultaDeEntregasVazia>(serviceProvider)
 				: ActivatorUtilities.CreateInstance<NotificationHubConsultaDeEntregas>(serviceProvider));
 
-		// Store próprio para o LogStream: um por recurso/scope (least privilege), como o
-		// SecureGate e o NotificationHub. O client é registrado sempre e lê a URL na
-		// resolução; quem decide entre adapter real e no-op são as options.
-		var tokenStoreDoLogStream = new SeccoAccessTokenStore();
-
-		services.AddHttpClient<ILogStreamClient, LogStreamClient>()
-			.ConfigureHttpClient((serviceProvider, client) =>
-			{
-				var auditoria = serviceProvider.GetRequiredService<AuditoriaOptions>();
-
-				if (!string.IsNullOrWhiteSpace(auditoria.LogStreamUrl))
-				{
-					client.BaseAddress = new Uri(auditoria.LogStreamUrl, UriKind.Absolute);
-				}
-			})
-			.ConfigureAdditionalHttpMessageHandlers((handlers, serviceProvider) =>
-			{
-				// AddLogStreamClient() do pacote só aceita BaseUrl, mas os endpoints de
-				// auditoria exigem AuditEntries.Write — o handler de credenciais entra à mão.
-				var credenciais = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();
-
-				if (credenciais.IsConfigured)
-				{
-					// Só write: nada no produto lê a trilha (ler é fora de escopo, ver spec de
-					// auditoria) — pedir audit-entries:read violaria o least privilege do
-					// comentário acima sem nenhum uso correspondente.
-					handlers.Add(new SeccoClientCredentialsHandler(
-						credenciais.BaseUrl!,
-						credenciais.ClientId!,
-						credenciais.ClientSecret!,
-						"audit-entries:write",
-						tokenStoreDoLogStream));
-				}
-			});
+		// Mesma história do Hub: a extensão do pacote resolve URL, credenciais e scope.
+		if (!string.IsNullOrWhiteSpace(auditoriaOptions.LogStreamUrl))
+		{
+			services.AddLogStreamClient(opcoes => opcoes.BaseUrl = auditoriaOptions.LogStreamUrl);
+		}
 
 		services.AddScoped<ITrilhaDeAuditoria>(serviceProvider =>
 			string.IsNullOrWhiteSpace(serviceProvider.GetRequiredService<AuditoriaOptions>().LogStreamUrl)
