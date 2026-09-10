@@ -9,6 +9,7 @@ using Secco.Intranet.Web.Tenancy;
 using Secco.Intranet.Web.Theming;
 using Secco.SDK.AspNetCore.Extensions;
 using Secco.SDK.EntityFrameworkCore.Seeding;
+using Secco.SDK.Logging;
 
 // Raiz de composição do monolito (ADR-0002): Secco.Intranet.Web (MVC) consome a
 // Application layer diretamente, em processo — sem uma Api HTTP separada. A autenticação é
@@ -44,6 +45,21 @@ builder.Services.AddSingleton(serviceProvider =>
 builder.Services.AddSeccoCorrelation();
 builder.Services.AddSeccoTenancy();
 builder.Services.AddSeccoHealthChecks();
+
+// Sink ILogger -> LogStream (ADR-0006): presente a seção Secco:LogStream, o log vai para lá;
+// ausente, o ILogger local segue sozinho.
+builder.Services.AddLogStream(opcoes =>
+{
+    opcoes.ServiceName = "secco-intranet";
+
+    // O Enabled do pacote vem true por padrão, e aí o validador passa a exigir BaseUrl,
+    // credenciais e scope — sem a seção, a aplicação nem subiria. Desligar aqui é o que
+    // torna o envio opcional de verdade.
+    if (string.IsNullOrWhiteSpace(opcoes.BaseUrl))
+    {
+        opcoes.Enabled = false;
+    }
+});
 
 builder.Services.AddIntranetApplication();
 builder.Services.AddIntranetInfrastructure(builder.Configuration);

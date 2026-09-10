@@ -8,12 +8,16 @@
   </PropertyGroup>
 
   <ItemGroup Label="Secco Platform (feed privado — versões conforme tags MinVer do monorepo)">
-    <PackageVersion Include="Secco.SharedKernel" Version="0.3.5" />
+    <PackageVersion Include="Secco.SharedKernel" Version="0.3.7" />
     <!-- 0.5.0 acrescenta SeccoAmbientContext (espelho AsyncLocal de tenant e correlação),
          que é o que permite um sink de log singleton enxergar o tenant da requisição. -->
-    <PackageVersion Include="Secco.SDK.AspNetCore" Version="0.5.1" />
+    <PackageVersion Include="Secco.SDK.AspNetCore" Version="0.7.0" />
     <PackageVersion Include="Secco.SDK.EntityFrameworkCore" Version="0.4.0" />
-    <PackageVersion Include="Secco.SecureGate.Client" Version="0.3.0" />
+    <!-- Sink ILogger -> LogStream. NUNCA a 0.1.0: ela foi empacotada contra o LogStream.Client
+         0.2.0 e chama um metodo que a 0.3.0 renomeou; o dispatcher engole a falha por design,
+         entao o sintoma e log que simplesmente nao chega. -->
+    <PackageVersion Include="Secco.SDK.Logging" Version="0.2.0" />
+    <PackageVersion Include="Secco.SecureGate.Client" Version="0.4.0" />
     <!-- 0.5.0: SearchNotifications (relatorio de entrega numa chamada) e ScheduledFor
          (entrega na entrada no ar, segurando e-mail E item do sino). -->
     <PackageVersion Include="Secco.NotificationHub.Client" Version="0.6.0" />

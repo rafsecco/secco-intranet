@@ -5,6 +5,7 @@
        (ADR-0018) porque é a raiz de composição quem aplica migrations em Development. -->
   <ItemGroup>
     <PackageReference Include="Secco.SDK.AspNetCore" />
+    <PackageReference Include="Secco.SDK.Logging" />
     <!-- Relying party OIDC (ADR-0023) — ver Authentication/IntranetAuthenticationExtensions.cs -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
     <PackageReference Include="Markdig" />

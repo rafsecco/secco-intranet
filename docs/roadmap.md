@@ -22,10 +22,11 @@ processos (maior risco técnico) só entra com a base já sólida.
       a Application layer em processo (ADR-0002)
 - [x] Integração com `Secco.SecureGate.Client` (auth) — criação automática das Roles
       `{slug}-admin`/`{slug}-user` ao cadastrar um setor
-- [ ] Envio de log ao LogStream: registrar o `AddLogStream()` do `Secco.SDK.Logging` 0.1.0,
-      com bind lazy pela seção `Secco:LogStream` — presente, envia; ausente, o `ILogger` local
-      segue sozinho. **Desbloqueado** em 2026-09-05
-      ([secco-platform#1](https://github.com/rafsecco/secco-platform/issues/1))
+- [x] Envio de log ao LogStream: `AddLogStream()` do `Secco.SDK.Logging` **0.2.0**, com bind
+      pela seção `Secco:LogStream` — presente, envia; ausente, o `ILogger` local segue sozinho.
+      O `Enabled` do pacote vem `true` por padrão e o validador então exige URL e credenciais,
+      então a composição desliga o sink quando não há URL, senão a aplicação não subiria sem a
+      seção ([secco-platform#1](https://github.com/rafsecco/secco-platform/issues/1))
 - [x] Sistema de temas: RCL resolvida por `IViewLocationExpander`, contrato de tema em
       `Secco.Intranet.Web.Theming` e o tema de saída `Vertical` — ADR-0003/ADR-0004
 - [x] Segundo tema de saída oficial, `Secco.Intranet.Themes.Horizontal` (menu no topo,
