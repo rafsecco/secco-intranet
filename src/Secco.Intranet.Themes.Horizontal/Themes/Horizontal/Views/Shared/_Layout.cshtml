@@ -58,6 +58,10 @@
         @RenderBody()
     </main>
 
+    @* Uma vez por página: o retorno de qualquer ação chega por aqui, e nenhuma view de
+       página precisa escrever o aviso. *@
+    @await Component.InvokeAsync("Feedback")
+
     <script src="@Assets/vendor/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
     <script src="@Assets/js/theme.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)

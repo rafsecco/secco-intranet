@@ -1,0 +1,19 @@
+@model ToastModel
+@{
+    var classeDaVariante = Model.Variante == ToastVariante.Erro ? "sc-toast--erro" : "sc-toast--sucesso";
+    var icone = Model.Variante == ToastVariante.Erro ? "bi-exclamation-triangle-fill" : "bi-check-circle-fill";
+}
+@* A classe "show" vem do servidor de proposito: sem ela o aviso so apareceria se o JS
+   do Bootstrap tivesse rodado, e uma falha de script engoliria a confirmacao da acao. O
+   JS aqui so acrescenta o fechamento automatico. *@
+<div class="sc-toasts" aria-live="polite" aria-atomic="true">
+    <div class="sc-toast toast show @classeDaVariante" role="status" data-sc-toast>
+        <div class="sc-toast__corpo">
+            <i class="bi @icone sc-toast__icone" aria-hidden="true"></i>
+            <span>@Model.Texto</span>
+        </div>
+        <button class="sc-toast__fechar" type="button" data-bs-dismiss="toast" aria-label="Fechar aviso">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+    </div>
+</div>

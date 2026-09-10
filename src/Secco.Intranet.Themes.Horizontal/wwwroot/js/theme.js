@@ -86,4 +86,20 @@
       }
     });
   }
+
+  // O aviso de feedback ja chega visivel do servidor; o JS so agenda o fechamento. Se o
+  // bundle do Bootstrap nao carregar, o aviso fica na tela ate a proxima navegacao —
+  // preferivel a sumir sem ninguem ler.
+  var avisos = document.querySelectorAll('[data-sc-toast]');
+  if (window.bootstrap && avisos.length) {
+    var semAnimacao = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    Array.prototype.forEach.call(avisos, function (aviso) {
+      window.bootstrap.Toast.getOrCreateInstance(aviso, {
+        animation: !semAnimacao,
+        autohide: true,
+        delay: 6000
+      }).show();
+    });
+  }
 })();

@@ -62,8 +62,10 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [ ] Controle de inventário (dono nato: setor Infraestrutura, fixo)
 - [ ] `Recurso` + `SetorRecurso` (catálogo de módulos habilitáveis por setor)
 - [ ] Tela de administração de setores (cadastro + toggle de recursos)
-- [ ] Central de notificação in-app (`AvisoUsuario`, sino + toast), consumindo o canal
-      in-app do `Secco.NotificationHub` (já disponível)
+- [x] Central de notificação in-app (sino + toast), consumindo o canal in-app do
+      `Secco.NotificationHub`. O `AvisoUsuario` da redação original **não** vai existir:
+      o Hub é dono do estado de lida, e uma cópia local violaria a ADR-0006. O toast virou
+      o `Feedback` do contrato de tema, invocado uma vez pelo layout
 
 ## Fase 2 — Controle de processos (v1 simples)
 

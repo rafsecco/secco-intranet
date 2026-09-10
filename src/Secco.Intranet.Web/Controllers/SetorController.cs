@@ -7,6 +7,7 @@ using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Models.Documentos;
 using Secco.Intranet.Web.Models.Publicacoes;
 using Secco.Intranet.Web.Navigation;
+using Secco.Intranet.Web.ViewComponents;
 using Secco.SharedKernel.Constants;
 
 namespace Secco.Intranet.Web.Controllers;
@@ -108,7 +109,7 @@ public sealed class SetorController(
 			return comErro is null ? NotFound() : View(nameof(Documentos), comErro);
 		}
 
-		TempData["Mensagem"] = $"Documento \"{resultado.Value.Titulo}\" publicado.";
+		TempData[FeedbackViewComponent.ChaveDaMensagem] = $"Documento \"{resultado.Value.Titulo}\" publicado.";
 
 		return RedirectToAction(nameof(Documentos), new { slug });
 	}
@@ -133,7 +134,7 @@ public sealed class SetorController(
 			return NotFound();
 		}
 
-		TempData["Mensagem"] = "Documento arquivado.";
+		TempData[FeedbackViewComponent.ChaveDaMensagem] = "Documento arquivado.";
 
 		return RedirectToAction(nameof(Documentos), new { slug });
 	}
@@ -220,7 +221,7 @@ public sealed class SetorController(
 			titulo = editado.Value.Titulo;
 		}
 
-		TempData["Mensagem"] = MensagemDeSalvamento.Montar(titulo, relatorio);
+		TempData[FeedbackViewComponent.ChaveDaMensagem] = MensagemDeSalvamento.Montar(titulo, relatorio);
 
 		return RedirectToAction(nameof(Avisos), new { slug });
 	}
@@ -268,7 +269,7 @@ public sealed class SetorController(
 			return NotFound();
 		}
 
-		TempData["Mensagem"] = "Publicação arquivada.";
+		TempData[FeedbackViewComponent.ChaveDaMensagem] = "Publicação arquivada.";
 
 		return RedirectToAction(nameof(Avisos), new { slug });
 	}

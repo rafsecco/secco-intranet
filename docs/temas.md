@@ -34,7 +34,8 @@ Secco.Intranet.Themes.<Nome>/
 │       ├── _Pagination.cshtml
 │       └── Components/
 │           ├── Navigation/Default.cshtml
-│           └── UserMenu/Default.cshtml
+│           ├── UserMenu/Default.cshtml
+│           └── Feedback/Default.cshtml
 └── wwwroot/                              ← servido em _content/<assembly>/
 ```
 
@@ -56,6 +57,14 @@ Cada arquivo acima recebe um modelo de `Secco.Intranet.Web.Theming.Contracts`:
 | `Components/Navigation/Default.cshtml` | `NavigationModel` | Menu já resolvido para o usuário |
 | `Components/UserMenu/Default.cshtml` | `UserMenuModel` | Identidade e menu do avatar |
 | `Components/Notificacoes/Default.cshtml` | `NotificacoesModel` | Sino de notificações da barra superior |
+| `Components/Feedback/Default.cshtml` | `ToastModel` | Confirmação da ação que acabou de acontecer |
+
+O `Feedback` é invocado **uma vez pelo `_Layout`**, e não pelas views de página: o controller
+deixa a mensagem no `TempData` antes do redirect e o tema decide como ela aparece. Duas
+consequências para quem escreve um tema: o componente não renderiza nada quando não há
+mensagem — então o markup precisa suportar estar ausente —, e o aviso deve **chegar visível do
+servidor**, com o JS servindo só para fechá-lo. Um tema que dependa de script para exibir a
+confirmação engole o retorno da ação quando o script falha.
 
 O sino mostra **apenas notificações não lidas**, e não oferece "marcar todas como lidas": o
 `Secco.NotificationHub` expõe contar não lidas, listar não lidas e marcar **uma** como lida, e

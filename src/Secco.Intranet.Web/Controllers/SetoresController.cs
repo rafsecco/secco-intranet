@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Web.Models;
+using Secco.Intranet.Web.ViewComponents;
 using Secco.SharedKernel.Pagination;
 
 namespace Secco.Intranet.Web.Controllers;
@@ -95,7 +96,7 @@ public sealed class SetoresController(
 			return View(form);
 		}
 
-		TempData["Mensagem"] = $"Setor \"{resultado.Value.Nome}\" salvo.";
+		TempData[FeedbackViewComponent.ChaveDaMensagem] = $"Setor \"{resultado.Value.Nome}\" salvo.";
 
 		return RedirectToAction(nameof(Details), new { id = form.Id });
 	}
