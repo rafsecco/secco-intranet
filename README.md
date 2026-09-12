@@ -64,20 +64,27 @@ ver ADR-0006 e ADR-0007.
 
 ### Variáveis de ambiente (`.env`)
 
-Nenhum segredo é versionado. As credenciais de desenvolvimento — senha do `sa` e a
-connection string do tenant de DEV — ficam num `.env` na raiz, ignorado pelo git. O
-inventário das variáveis está em [`.env.example`](.env.example), o único versionado:
+Nenhum segredo é versionado. As credenciais de desenvolvimento — senha do `sa`, senha do
+login de aplicação e a connection string do tenant de DEV — ficam num `.env` na raiz,
+ignorado pelo git. O inventário das variáveis está em [`.env.example`](.env.example), o
+único versionado:
 
 ```bash
 cp .env.example .env
-# abra o .env e troque MSSQL_SA_PASSWORD — e a mesma senha dentro da connection string
+# abra o .env e troque MSSQL_SA_PASSWORD e MSSQL_APP_PASSWORD — e repita a segunda
+# dentro da connection string do tenant
 ```
+
+`sa` existe só para o container subir e para o serviço `sqlserver-init` provisionar o
+banco do tenant (`docker/init/provision-tenant-db.sql`) — a aplicação nunca usa `sa`
+(ADR-0007). A connection string do tenant usa o login de aplicação que esse serviço cria,
+com `db_owner` só naquele banco, nada no servidor.
 
 Quem lê esse arquivo:
 
 - **`docker compose`** lê o `.env` da raiz sozinho, para interpolar o
-  `docker-compose.yml`. Sem `MSSQL_SA_PASSWORD` definida o `up` falha com mensagem
-  explícita, em vez de subir um banco com senha que está no repositório.
+  `docker-compose.yml`. Sem `MSSQL_SA_PASSWORD`/`MSSQL_APP_PASSWORD` definidas o `up` falha
+  com mensagem explícita, em vez de subir um banco com senha que está no repositório.
 - **VS Code (F5)** lê via `"envFile"` no `.vscode/launch.json`. É assim que a variável
   `Secco__Tenancy__Tenants__<id>__ConnectionString` chega na configuração da aplicação —
   o provider de variáveis de ambiente do ASP.NET Core troca `__` por `:`.

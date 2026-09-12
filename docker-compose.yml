@@ -1,9 +1,14 @@
 # Ambiente de desenvolvimento: SQL Server local.
-#   cp .env.example .env    # uma vez por máquina, e troque a senha
+#   cp .env.example .env    # uma vez por máquina, e troque as senhas
 #   docker compose up -d
 #
 # Nenhuma credencial aqui: tudo vem do .env da raiz, que o Compose lê sozinho para
 # interpolar este arquivo. O inventário das variáveis está em .env.example.
+#
+# sa existe só para o container subir e para o serviço sqlserver-init provisionar o banco
+# do tenant — a aplicação NUNCA usa sa (ADR-0007). Depois do init, a connection string do
+# tenant no .env aponta para o login de aplicação que o init cria, com db_owner só naquele
+# banco. Ver docker/init/provision-tenant-db.sql.
 #
 # O serviço do monolito (Secco.Intranet.Web, ADR-0002) será adicionado quando o
 # projeto existir; em Development ele aplicará migrations e seed nos tenants do catálogo.
@@ -31,6 +36,27 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+
+  # Roda uma vez, cria o banco do tenant "alfa" e o login de aplicação com db_owner só
+  # nele, e sai (restart: "no"). sa fica confinado a este container efêmero — o processo
+  # da aplicação nunca o vê. Reexecutar é seguro: o script é idempotente.
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?defina MSSQL_SA_PASSWORD no .env (copie de .env.example)}"
+      MSSQL_APP_PASSWORD: "${MSSQL_APP_PASSWORD:?defina MSSQL_APP_PASSWORD no .env (copie de .env.example)}"
+    volumes:
+      - ./docker/init/provision-tenant-db.sql:/init/provision-tenant-db.sql:ro
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - >
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C
+        -v AppPassword="$$MSSQL_APP_PASSWORD"
+        -i /init/provision-tenant-db.sql
+    restart: "no"
 
 volumes:
   mssql-data:

@@ -33,11 +33,14 @@ processos (maior risco técnico) só entra com a base já sólida.
       paleta e tipografia próprias) — adiantado da Fase 5: um contrato provado por um único
       tema não está provado, e o produto já tinha consumidor suficiente (Mural, Documentos,
       administração de setor) para expor um vício de acoplamento ao Vertical, se houvesse
-- [ ] Tirar o SA do ambiente de desenvolvimento: script de init no `docker-compose.yml` criando
-      usuário de aplicação com privilégio mínimo, e `.env.example` deixando de usar `sa` na
-      connection string do tenant. Dívida registrada pela ADR-0007; independe da plataforma —
-      mas o provisionamento do SecureGate 0.3.0 passa a ser a referência de como o privilégio
-      mínimo é definido
+- [x] Tirar o SA do ambiente de desenvolvimento: serviço `sqlserver-init` no
+      `docker-compose.yml` provisiona o banco do tenant e um login de aplicação com
+      `db_owner` só nele — `sa` fica confinado a esse container efêmero, a aplicação nunca
+      o vê. `.env.example` e a connection string do tenant passam a usar o login de
+      aplicação. Segue o mesmo teto de privilégio do provisionamento real do SecureGate
+      (ADR-0028 da plataforma). Renomeado de quebra: `secco_intranet_tenant_alfa` →
+      `secco_intranet_alfa`, alinhando com o padrão que o template `secco-service` e os
+      testes de integração já usavam
 
 ## Fase 1 — MVP visível
 

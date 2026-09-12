@@ -101,10 +101,13 @@
 
   // Senha vazia de proposito: este arquivo e versionado, entao a extensao pergunta
   // a senha em vez de grava-la aqui. O valor esta no .env local (MSSQL_SA_PASSWORD).
+  // sa aqui e uso administrativo manual do dev (nao e a credencial da aplicacao, que
+  // desde a ADR-0007/roadmap Fase 0 usa o login secco_intranet_alfa_app, sem privilegio
+  // de servidor - ver docker/init/provision-tenant-db.sql).
   "mssql.connections": [
     {
       "server": "localhost,1433",
-      "database": "secco_intranet_tenant_alfa",
+      "database": "secco_intranet_alfa",
       "authenticationType": "SqlLogin",
       "user": "sa",
       "password": "",
