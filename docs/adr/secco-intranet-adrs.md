@@ -308,3 +308,113 @@ deve existir.
 - Um painel dos bancos, se vier a existir aqui, se alimenta do catálogo e de health-check por
   banco com a conexão de runtime de cada tenant — nunca de uma credencial de servidor.
 - Fica proibido a esta aplicação executar DDL fora das migrations do próprio schema de tenant.
+
+---
+
+## ADR-0008: Intranet é tenant do SecureGate e administra outros tenants
+
+**Status:** Aceita
+**Data:** 2026-09-12
+
+### Contexto
+Surgiu a dúvida de saber se a Intranet deveria ser, ela mesma, um tenant do SecureGate/
+LogStream, ou se poderia usá-los diretamente sem tenant — motivada pela observação de que
+"o único usuário da Intranet é a própria empresa", e por uma ideia nova: a Intranet gerenciar
+a API do SecureGate/LogStream/NotificationHub **criando tenants** que representem **outros
+sistemas que a própria empresa desenvolve**, administrando-os a partir de telas próprias.
+
+A investigação do código e das ADRs dos dois repositórios mostrou que a resposta já existia,
+espalhada em lugares nunca lidos juntos:
+
+- `Setor = Role tenant-scoped` (ADR-0001) exige que a Intranet seja, ela mesma, um tenant do
+  SecureGate — não há como ter Setor sem isso. `SecureGateSetorAccessProvisioner`
+  (`src/Secco.Intranet.Infrastructure/Access/SecureGateSetorAccessProvisioner.cs`) já chama
+  `client.CreateRoleAsync(tenantId, ...)` usando o `ITenantContext.TenantId` da requisição
+  atual, através do client administrativo único e global da aplicação
+  (`AddSecureGateAdminClient()`, `IntranetInfrastructureExtensions.cs:99`, credenciais em
+  `Secco:SecureGate`).
+- Todo método administrativo do `Secco.SecureGate.Client.Administration` (gerado por NSwag)
+  recebe `tenantId` como **parâmetro por chamada** (`CreateRoleAsync(Guid tenantId, ...)`,
+  `ListUsersAsync(Guid tenantId)`) — não é algo fixado no cadastro do client OAuth. Um único
+  client, com escopo `securegate:admin`, opera tecnicamente sobre qualquer tenant.
+- A plataforma já expõe `POST /api/v1/tenants` (criar tenant) e
+  `POST /api/v1/tenants/{id}/databases/{product}/provisioning` (provisionar banco por
+  produto, ADR-0028 da plataforma) — ambos liberados só por escopo OAuth `securegate:admin`,
+  sem checar se o tenant do chamador bate com o tenant alvo.
+- A issue [secco-platform#4](https://github.com/rafsecco/secco-platform/issues/4) já havia
+  decidido, em 2026-09-04, exatamente este modelo: *"cada instalação é soberana — a Intranet
+  é um produto que empresas baixam e rodam por conta própria; a multi-tenancy existe para
+  que a empresa desenvolva outros produtos seus reaproveitando SecureGate e LogStream. Não é
+  o portal da Secco — é o portal da empresa que adotou."* A mesma issue já responde à dúvida
+  levantada aqui ("se não puder centralizar, não vejo sentido em ter tenant"): multi-tenancy
+  compra SSO único, log num lugar só e superfície de operação cross-tenant — e só a terceira
+  dependia de algo a construir. Faltava só a ADR formal do lado da plataforma, e o próprio
+  texto da issue propõe escrevê-la "quando a área administrativa da Intranet começar, para
+  nascer ancorada em código e não em intenção" — este é esse momento.
+- `docs/roadmap.md` e `docs/plataforma.md`, neste repositório, descreviam o item "Área
+  administrativa" como bloqueado por precisar "reabrir a ADR-0024 da plataforma" — premissa
+  **incorreta**. A ADR-0024 real é um mecanismo mais estreito e não relacionado: um token de
+  segunda via, sem claim `tenant_id`, só leitura, TTL curto, usado exclusivamente para busca
+  de log cross-tenant pelo operador humano do `Secco.AdminPortal` (padrão de elevação estilo
+  `sudo`, inspirado na RFC 8693). Criar ou administrar tenant/role/usuário não usa esse
+  mecanismo — é liberado pelo escopo `securegate:admin` do client administrativo comum, que
+  a Intranet já tem.
+
+### Decisão
+1. A Intranet continua sendo, ela mesma, um tenant do SecureGate — isso não muda. É o que
+   sustenta Setor=Role e todo o modelo de dados/autorização próprio (Mural, Documentos,
+   Setor). É a operação normal de uma empresa usando a Intranet para si.
+2. A Intranet ganha uma capacidade adicional: usando o **mesmo** client administrativo já
+   configurado, ela cria e gerencia **outros tenants** — representando outros
+   sistemas/produtos internos que a própria empresa desenvolve sobre a plataforma — com
+   telas próprias de administração. O `Secco.AdminPortal` fica reservado a quem adota a
+   plataforma **sem** a Intranet.
+3. Criar ou administrar tenant, role e usuário **não** usa elevação de token — só a busca de
+   log cross-tenant (ADR-0024 da plataforma) usa, e é um recurso futuro e separado, fora do
+   escopo desta ADR.
+4. "Não faz sentido a Intranet ter tenant" é verdade só como fato operacional de **uma**
+   empresa (ela sempre terá exatamente 1 tenant "de si mesma" na prática) — não é motivo
+   para remover a máquina de multi-tenancy, que segue necessária tanto para o modelo
+   Setor=Role quanto para permitir que outras empresas rodem sua própria instância da
+   Intranet.
+5. A Área administrativa é exclusiva de uma Role própria, **`intranet-admin`** — tenant-scoped
+   na própria Intranet, sem relação nenhuma com `{slug}-admin` de setor. Nenhum outro
+   usuário visualiza ou acessa essa área — nem um `{slug}-admin` de um setor, nem alguém que
+   seja `{slug}-admin` de **todos** os setores. Ser admin de setor não aproxima de ser
+   `intranet-admin`; são Roles independentes, e a tela nem aparece no menu para quem não tem
+   a segunda. Vale hoje para a administração de tenants (criar, provisionar, gerenciar
+   usuários/roles de outro tenant) e, mais adiante, para o recurso futuro **"Acessar como"**
+   (admin acessando com o perfil de um usuário) — os dois ficam reservados ao
+   `intranet-admin`, ninguém mais, nem outro tipo de admin.
+
+### Consequências
+- Um único client OAuth da Intranet passa a operar sobre N tenants — seguro porque a
+  autorização do SecureGate é por escopo do client, não por identidade de tenant do
+  chamador. Registrado aqui explicitamente para não ser lido como furo de segurança.
+- Não depende de nenhuma capacidade nova da plataforma — o trabalho que falta é inteiramente
+  do lado da Intranet (UI + handlers).
+- `intranet-admin` é uma Role tenant-scoped nova, independente de qualquer `{slug}-admin` —
+  a Área administrativa (tenants, e depois "Acessar como") checa especificamente essa Role,
+  nunca "é admin de algum setor". Layout de tela e o restante do modelo de dados da feature
+  ficam para a spec dedicada — mas o **quem pode acessar** já está decidido aqui, não é
+  aberto para a spec revisitar.
+- **Critério de aceite, já fixado para quando a feature for construída** (a spec detalha a
+  UI, não este critério): testes de integração provando (1) usuário sem `intranet-admin` não
+  vê nem acessa a Área administrativa, nem a rota direta; (2) um `{slug}-admin` — de um setor
+  ou de vários — também é bloqueado, exatamente para provar que "admin de setor" não é atalho
+  para `intranet-admin`; (3) `intranet-admin` acessa normalmente. O mesmo trio de teste se
+  repete, sem exceção, no dia em que "Acessar como" for implementado: `{slug}-admin`
+  bloqueado mesmo administrando o setor do usuário-alvo, `intranet-admin` liberado.
+- Fica proibido a spec futura da Área administrativa revisitar essa fronteira de autorização
+  por conveniência (ex: liberar para `{slug}-admin`) — a spec implementa a regra, não a
+  redesenha.
+
+### Escopo esperado (não normativo — orienta o brainstorm futuro, não é spec)
+Primeiro corte da Área administrativa: criar tenant, ver status de provisionamento por
+produto (SecureGate/LogStream/NotificationHub) por tenant, gerenciar usuários e roles de
+qualquer tenant administrado — incluindo atribuir a Role `inventario-admin` (ver
+Consequências revisadas da ADR-0001) — tudo reaproveitando o `ISecureGateClient`
+administrativo já configurado em `IntranetInfrastructureExtensions.cs`, e tudo atrás de
+`intranet-admin`. Fica reconhecido, sem resolver agora, que atribuir uma Role a um **grupo**
+do AD/EntraID depende de federação AD/Entra no SecureGate — capacidade que ainda não existe
+e já está registrada na Fase 4 do roadmap; segue no mesmo trilho, sem mudança.

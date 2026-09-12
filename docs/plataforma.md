@@ -17,7 +17,7 @@ Duas regras sustentam esta lista:
 
 | Demanda | O que trava aqui | Issue |
 |---|---|---|
-| Onde vive o console de operação (futuro do `Secco.AdminPortal`) | A área administrativa da Fase 2 não tem escopo definido: só o próprio tenant, ou também operação cross-tenant | [#4](https://github.com/rafsecco/secco-platform/issues/4) |
+| Onde vive o console de operação (futuro do `Secco.AdminPortal`) | Nada trava tecnicamente — a API já existe e é liberada por escopo, não por identidade de tenant do chamador. Falta a ADR formal da plataforma, que este produto se oferece a ancorar em código (ADR-0008 do secco-intranet) | [#4](https://github.com/rafsecco/secco-platform/issues/4) |
 
 ## Atendidas
 

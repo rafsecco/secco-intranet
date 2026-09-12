@@ -80,11 +80,14 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [ ] Notificação ao usuário, ao abrir a intranet, de processos pendentes para ele
 - [ ] `ItemMenu` — tabela autorecursiva + tela de montagem de menu com níveis, para
       recursos próprios que a instituição adotante desenvolver
-- [ ] Área administrativa — **escopo não decidido**: administrar só o próprio tenant (usuários,
-      roles, setores, via `Secco.SecureGate.Client`) ou também absorver a operação de plataforma
-      cross-tenant do `Secco.AdminPortal`. A segunda opção reabre a ADR-0024 da plataforma, que
-      dá ao operador uma identidade sem `tenant_id`, incompatível com um produto tenant-scoped.
-      [secco-platform#4](https://github.com/rafsecco/secco-platform/issues/4)
+- [ ] Área administrativa — cobre a gestão do próprio tenant (usuários, roles, setores) **e**
+      a criação/administração de outros tenants, representando outros sistemas que a empresa
+      desenvolve sobre SecureGate/LogStream/NotificationHub — decisão registrada na ADR-0008.
+      Não depende de capacidade nova da plataforma: a API de tenants (`POST /api/v1/tenants`,
+      provisionamento de banco por produto) já existe; falta só construir aqui. Exclusiva da
+      Role `intranet-admin`, sem relação com `{slug}-admin` de setor. Link para
+      [secco-platform#4](https://github.com/rafsecco/secco-platform/issues/4) mantido como
+      referência histórica da decisão de modelo (2026-09-04), não mais como bloqueio
 
 ## Fase 3 — Operacional
 
