@@ -59,7 +59,11 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [x] Repositório de documentos por setor: upload cifrado em envelope, visibilidade por
       documento (só o setor ou a empresa toda), download autorizado e arquivamento (o
       registro e o arquivo permanecem) — ADR-0005
-- [ ] Controle de inventário (dono nato: setor Infraestrutura, fixo)
+- [ ] Controle de inventário — recurso sem setor dono. Autorização por Role tenant-scoped
+      própria (ex.: `inventario-admin`), atribuível a qualquer usuário do tenant — não
+      pelo modelo `{slug}-admin` de setor da ADR-0001, porque o recurso não pertence a
+      um setor específico (revisto em 2026-09-12; a primeira redação da ADR-0001 cogitava
+      o setor Infraestrutura como "dono nato")
 - [ ] `Recurso` + `SetorRecurso` (catálogo de módulos habilitáveis por setor)
 - [ ] Tela de administração de setores (cadastro + toggle de recursos)
 - [x] Central de notificação in-app (sino + toast), consumindo o canal in-app do

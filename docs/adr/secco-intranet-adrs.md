@@ -63,11 +63,19 @@ concreto justificar o esforço.
   já resolve (login, claims, resolução de permissão).
 - Um "Gerente" que precise acessar vários setores simplesmente acumula Roles, sem
   necessidade de um conceito de "perfil transversal" separado.
-- O setor Infraestrutura nasce com a flag `Fixo = true` — não pode ser desativado nem
-  excluído — e é o dono nato do recurso de Inventário.
+- A flag `Fixo` existe na entidade `Setor` para o adotante marcar um setor que não pode
+  ser desativado nem excluído pela tela de administração. É genérica — não amarra
+  nenhum recurso a um setor específico (revisto em 2026-09-12: o recurso de Inventário,
+  cogitado como "dono nato" da Infraestrutura na primeira redação desta ADR, **não**
+  pertence a setor nenhum; ver Consequências revisadas abaixo).
 - Fica proibido criar qualquer relação direta de autorização fora do modelo de Role do
   SecureGate (ex: uma flag `IsAdminDoSetor` numa tabela de usuário local) — isso
   fragmentaria a fonte de verdade de autorização.
+- Nem todo recurso pertence a um setor. O Inventário é o primeiro caso: sua Role
+  tenant-scoped não segue o padrão `{slug}-admin`/`{slug}-user` (não há slug de setor
+  para derivar) — é uma Role própria (ex.: `inventario-admin`), atribuível a qualquer
+  usuário do tenant, tipicamente alguém de Infraestrutura, mas sem essa exigência. O
+  desenho exato (nome da Role, claims) fica para a spec do Inventário.
 
 ---
 
