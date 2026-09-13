@@ -1,4 +1,7 @@
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Infrastructure;
+using Secco.Intranet.Tests.Integration.TestAuthentication;
 using Secco.SDK.Testing;
 
 namespace Secco.Intranet.Tests.Integration;
@@ -49,6 +52,10 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 
 		settings["Intranet:Documentos:Armazenamento:Raiz"] = _raizDeArquivos;
 	}
+
+	/// <inheritdoc />
+	protected override void ConfigureTestServices(IServiceCollection services) =>
+		services.AddSingleton<IStartupFilter, RolesDeTesteStartupFilter>();
 
 	/// <inheritdoc />
 	protected override void Dispose(bool disposing)
