@@ -18,6 +18,7 @@ Duas regras sustentam esta lista:
 | Demanda | O que trava aqui | Issue |
 |---|---|---|
 | Onde vive o console de operação (futuro do `Secco.AdminPortal`) | Nada trava tecnicamente — a API já existe e é liberada por escopo, não por identidade de tenant do chamador. Falta a ADR formal da plataforma, que este produto se oferece a ancorar em código (ADR-0008 do secco-intranet) | [#4](https://github.com/rafsecco/secco-platform/issues/4) |
+| Atribuir/revogar role de um usuário já existente | O recurso de Inventário precisa que um admin conceda leitura a usuários específicos depois que a conta já existe — o SecureGate só define roles na criação do usuário. Trava também a promessa de gestão de usuário/role da futura Área administrativa (ADR-0008) | [#26](https://github.com/rafsecco/secco-platform/issues/26) |
 
 ## Atendidas
 
