@@ -125,4 +125,35 @@ public static class IntranetErrors
 		public static readonly Error NotFound =
 			Error.NotFound("Intranet.Publicacao.NotFound", "Publicação não encontrada.");
 	}
+
+	/// <summary>Erros do recurso Inventário.</summary>
+	public static class Inventario
+	{
+		/// <summary>Nome ausente ou vazio.</summary>
+		public static readonly Error NomeRequired =
+			Error.Validation("Intranet.Inventario.NomeRequired", "O nome é obrigatório.");
+
+		/// <summary>Nome acima do limite configurado.</summary>
+		public static Error NomeTooLong(int limit) =>
+			Error.Validation("Intranet.Inventario.NomeTooLong", $"O nome excede o limite de {limit} caracteres.");
+
+		/// <summary>Registro não encontrado no banco do tenant atual.</summary>
+		public static readonly Error NotFound =
+			Error.NotFound("Intranet.Inventario.NotFound", "Item de inventário não encontrado.");
+
+		/// <summary>Tentativa de alterar um item já baixado — baixa é terminal.</summary>
+		public static readonly Error ItemBaixado =
+			Error.Validation(
+				"Intranet.Inventario.ItemBaixado", "Um item baixado não aceita mais alterações.");
+
+		/// <summary>Transição de status pedida não é válida a partir do status atual do item.</summary>
+		public static readonly Error TransicaoInvalida =
+			Error.Validation(
+				"Intranet.Inventario.TransicaoInvalida",
+				"Essa ação não é válida para o status atual do item.");
+
+		/// <summary>Ação de atribuir sem um usuário informado.</summary>
+		public static readonly Error UsuarioRequired =
+			Error.Validation("Intranet.Inventario.UsuarioRequired", "Escolha um usuário para atribuir o item.");
+	}
 }

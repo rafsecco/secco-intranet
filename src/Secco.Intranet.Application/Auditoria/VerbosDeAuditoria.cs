@@ -32,6 +32,18 @@ public static class VerbosDeAuditoria
 
 	/// <summary>Setor voltou a ativo.</summary>
 	public const string SetorReativar = "setor.reativar";
+
+	/// <summary>Item de inventário criado.</summary>
+	public const string InventarioCriar = "inventario.criar";
+
+	/// <summary>Campos descritivos do item alterados.</summary>
+	public const string InventarioEditar = "inventario.editar";
+
+	/// <summary>Item atribuído a um usuário.</summary>
+	public const string InventarioAtribuir = "inventario.atribuir";
+
+	/// <summary>Item baixado.</summary>
+	public const string InventarioBaixar = "inventario.baixar";
 }
 
 /// <summary>Tipos de recurso da trilha.</summary>
@@ -45,4 +57,7 @@ public static class RecursosDeAuditoria
 
 	/// <summary>Setor.</summary>
 	public const string Setor = "setor";
+
+	/// <summary>Item de inventário.</summary>
+	public const string Inventario = "inventario";
 }
