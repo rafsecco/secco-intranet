@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Secco.Intranet.Domain.Documentos;
+using Secco.Intranet.Domain.Inventario;
 using Secco.Intranet.Domain.Publicacoes;
 using Secco.Intranet.Domain.Setores;
 using Secco.SDK.EntityFrameworkCore;
@@ -22,6 +23,9 @@ public sealed class IntranetDbContext(DbContextOptions<IntranetDbContext> option
 
 	/// <summary>Publicações do mural (tabela <c>tb_publicacoes</c>).</summary>
 	public DbSet<Publicacao> Publicacoes => Set<Publicacao>();
+
+	/// <summary>Itens de inventário, sem setor dono (tabela <c>tb_itens_inventario</c>).</summary>
+	public DbSet<ItemInventario> ItensInventario => Set<ItemInventario>();
 
 	/// <inheritdoc />
 	protected override void OnModelCreating(ModelBuilder modelBuilder)

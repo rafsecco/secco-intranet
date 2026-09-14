@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Secco.Intranet.Application;
 using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Application.Documentos;
+using Secco.Intranet.Application.Inventario;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Application.Setores;
@@ -84,6 +85,7 @@ public static class IntranetInfrastructureExtensions
 		services.AddScoped<ISetorRepository, SetorRepository>();
 		services.AddScoped<IDocumentoRepository, DocumentoRepository>();
 		services.AddScoped<IPublicacaoRepository, PublicacaoRepository>();
+		services.AddScoped<IItemInventarioRepository, ItemInventarioRepository>();
 
 		// Guarda dupla da ADR-0019 (Development + flag) e aplicada pelo SeedSeccoDataAsync.
 		services.AddScoped<IDevelopmentDataSeeder, SetoresDesenvolvimentoSeeder>();
