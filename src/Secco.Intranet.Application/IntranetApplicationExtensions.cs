@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Documentos;
+using Secco.Intranet.Application.Inventario;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Setores;
 
@@ -34,6 +35,12 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<EditarPublicacaoHandler>();
 		services.AddScoped<ArquivarPublicacaoHandler>();
 		services.AddScoped<ListarPublicacoesDoSetorHandler>();
+
+		services.AddScoped<CriarItemInventarioHandler>();
+		services.AddScoped<EditarItemInventarioHandler>();
+		services.AddScoped<MudarStatusItemInventarioHandler>();
+		services.AddScoped<SearchItensInventarioHandler>();
+		services.AddScoped<GetItemInventarioByIdHandler>();
 
 		return services;
 	}
