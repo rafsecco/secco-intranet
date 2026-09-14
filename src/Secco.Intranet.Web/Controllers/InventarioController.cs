@@ -26,7 +26,7 @@ public sealed class InventarioController(
 	IConfiguration configuration,
 	IWebHostEnvironment environment) : Controller
 {
-	private const string RoleEspecifica = "inventario-admin";
+	private const string RoleEspecifica = AcessoAdministrativo.RoleInventarioAdmin;
 
 	/// <summary>Listagem paginada.</summary>
 	[HttpGet]
@@ -54,7 +54,14 @@ public sealed class InventarioController(
 
 		var resultado = await getByIdHandler.HandleAsync(id, cancellationToken);
 
-		return resultado.IsSuccess ? View(resultado.Value) : NotFound();
+		if (resultado.IsFailure)
+		{
+			return NotFound();
+		}
+
+		var usuarios = await diretorio.ListarDoTenantAtualAsync(cancellationToken);
+
+		return View(new ItemInventarioDetailsViewModel(resultado.Value, usuarios));
 	}
 
 	/// <summary>Formulário de criação.</summary>

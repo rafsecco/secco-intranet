@@ -1,23 +1,26 @@
-@model ItemInventarioDto
+@model ItemInventarioDetailsViewModel
 @using Secco.Intranet.Domain.Inventario
 @{
-    ViewData["Title"] = Model.Nome;
+    ViewData["Title"] = Model.Item.Nome;
 
     var cabecalho = new PageHeaderModel(
-        Model.Nome,
+        Model.Item.Nome,
         Acoes: new[]
         {
-            new PageActionModel("Editar", Url.Action("Edit", new { id = Model.Id })!, "bi-pencil", Primaria: true),
+            new PageActionModel("Editar", Url.Action("Edit", new { id = Model.Item.Id })!, "bi-pencil", Primaria: true),
             new PageActionModel("Voltar", Url.Action("Index")!, "bi-arrow-left"),
         });
 
-    var situacao = Model.Status switch
+    var situacao = Model.Item.Status switch
     {
         StatusDoItem.Disponivel => new BadgeModel("Disponível", BadgeVariante.Sucesso),
         StatusDoItem.EmUso => new BadgeModel("Em uso", BadgeVariante.Neutro),
         StatusDoItem.EmManutencao => new BadgeModel("Em manutenção", BadgeVariante.Aviso),
         _ => new BadgeModel("Baixado", BadgeVariante.Perigo),
     };
+
+    // Mesma precondição que MudarStatusItemInventarioHandler exige para AcaoDeStatus.Atribuir.
+    var podeAtribuir = Model.Item.Status is StatusDoItem.Disponivel or StatusDoItem.EmUso;
 }
 
 <partial name="_PageHeader" model="cabecalho" />
@@ -28,40 +31,59 @@
         <dd class="col-sm-9"><partial name="_Badge" model="situacao" /></dd>
 
         <dt class="col-sm-3">Categoria</dt>
-        <dd class="col-sm-9">@(Model.Categoria ?? "—")</dd>
+        <dd class="col-sm-9">@(Model.Item.Categoria ?? "—")</dd>
 
         <dt class="col-sm-3">Código de patrimônio</dt>
-        <dd class="col-sm-9"><span class="sc-meta">@(Model.CodigoPatrimonio ?? "—")</span></dd>
+        <dd class="col-sm-9"><span class="sc-meta">@(Model.Item.CodigoPatrimonio ?? "—")</span></dd>
 
         <dt class="col-sm-3">Atribuído a</dt>
-        <dd class="col-sm-9">@(Model.AtribuidoANome ?? "Ninguém")</dd>
+        <dd class="col-sm-9">@(Model.Item.AtribuidoANome ?? "Ninguém")</dd>
 
         <dt class="col-sm-3">Descrição</dt>
-        <dd class="col-sm-9 mb-0">@(Model.Descricao ?? "—")</dd>
+        <dd class="col-sm-9 mb-0">@(Model.Item.Descricao ?? "—")</dd>
     </dl>
 </div>
 
-@if (Model.Status != StatusDoItem.Baixado)
+@if (podeAtribuir && Model.Usuarios.Count > 0)
+{
+    <div class="sc-panel mt-3">
+        <form method="post" asp-action="Atribuir" asp-route-id="@Model.Item.Id" class="d-flex flex-wrap gap-2 align-items-end">
+            <div class="sc-form__field mb-0">
+                <label class="form-label" for="usuarioId">Atribuir a</label>
+                <select class="form-select" id="usuarioId" name="usuarioId" required>
+                    <option value="">Escolha um usuário</option>
+                    @foreach (var usuario in Model.Usuarios)
+                    {
+                        <option value="@usuario.Id">@usuario.Email</option>
+                    }
+                </select>
+            </div>
+            <button class="btn btn-outline-primary" type="submit">Atribuir</button>
+        </form>
+    </div>
+}
+
+@if (Model.Item.Status != StatusDoItem.Baixado)
 {
     <div class="sc-panel mt-3 d-flex flex-wrap gap-2">
-        @if (Model.Status != StatusDoItem.EmManutencao)
+        @if (Model.Item.Status != StatusDoItem.EmManutencao)
         {
-            <form method="post" asp-action="Desatribuir" asp-route-id="@Model.Id" class="d-inline">
-                <button class="btn btn-outline-secondary" type="submit" @(Model.Status != StatusDoItem.EmUso ? "disabled" : null)>
+            <form method="post" asp-action="Desatribuir" asp-route-id="@Model.Item.Id" class="d-inline">
+                <button class="btn btn-outline-secondary" type="submit" @(Model.Item.Status != StatusDoItem.EmUso ? "disabled" : null)>
                     Desatribuir
                 </button>
             </form>
-            <form method="post" asp-action="EnviarParaManutencao" asp-route-id="@Model.Id" class="d-inline">
+            <form method="post" asp-action="EnviarParaManutencao" asp-route-id="@Model.Item.Id" class="d-inline">
                 <button class="btn btn-outline-secondary" type="submit">Enviar para manutenção</button>
             </form>
         }
         else
         {
-            <form method="post" asp-action="VoltarDaManutencao" asp-route-id="@Model.Id" class="d-inline">
+            <form method="post" asp-action="VoltarDaManutencao" asp-route-id="@Model.Item.Id" class="d-inline">
                 <button class="btn btn-outline-secondary" type="submit">Voltar da manutenção</button>
             </form>
         }
-        <form method="post" asp-action="Baixar" asp-route-id="@Model.Id" class="d-inline">
+        <form method="post" asp-action="Baixar" asp-route-id="@Model.Item.Id" class="d-inline">
             <button class="btn btn-outline-danger" type="submit">Dar baixa</button>
         </form>
     </div>

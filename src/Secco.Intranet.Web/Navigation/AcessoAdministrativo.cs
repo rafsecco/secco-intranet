@@ -15,6 +15,9 @@ public static class AcessoAdministrativo
 	/// <summary>Role do superusuário da instalação — sempre tem acesso a tudo (ADR-0008).</summary>
 	public const string RoleIntranetAdmin = "intranet-admin";
 
+	/// <summary>Role do administrador do recurso Inventário (ver docs/specs/2026-09-13-inventario-design.md).</summary>
+	public const string RoleInventarioAdmin = "inventario-admin";
+
 	/// <summary>
 	/// Indica se o usuário administra o recurso: tem <see cref="RoleIntranetAdmin"/> OU a Role
 	/// específica informada.

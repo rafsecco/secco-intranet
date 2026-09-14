@@ -43,7 +43,7 @@ public sealed class NavigationViewComponent(
 			HttpContext.Request.Path.Value ?? "/",
 			MostrarAdministracao: !autenticacaoAtiva || SetorAcesso.AdministraAlgumSetor(HttpContext.User),
 			demoOptions.Habilitado,
-			MostrarInventario: !autenticacaoAtiva || AcessoAdministrativo.TemAcesso(HttpContext.User, "inventario-admin"));
+			MostrarInventario: !autenticacaoAtiva || AcessoAdministrativo.TemAcesso(HttpContext.User, AcessoAdministrativo.RoleInventarioAdmin));
 
 		return View(IntranetNavigation.Build(request));
 	}
