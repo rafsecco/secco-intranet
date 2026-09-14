@@ -8,11 +8,13 @@ namespace Secco.Intranet.Web.Navigation;
 /// <param name="CaminhoAtual">Caminho da requisição, usado para marcar o item ativo.</param>
 /// <param name="MostrarAdministracao">Se o grupo de administração deve aparecer.</param>
 /// <param name="DemoHabilitado">Se as páginas de demonstração estão ligadas.</param>
+/// <param name="MostrarInventario">Se o item de menu do Inventário deve aparecer.</param>
 public sealed record NavigationRequest(
 	IReadOnlyList<SetorDto> Setores,
 	string CaminhoAtual,
 	bool MostrarAdministracao,
-	bool DemoHabilitado);
+	bool DemoHabilitado,
+	bool MostrarInventario);
 
 /// <summary>
 /// Fonte estática do menu. O Mural é o único item fixo — é o que fala com a empresa toda;
@@ -38,6 +40,12 @@ public static class IntranetNavigation
 		{
 			principais.Add(new NavigationItemModel(
 				"Diretório", "bi-people", "/diretorio", Corresponde(caminho, "/diretorio")));
+		}
+
+		if (request.MostrarInventario)
+		{
+			principais.Add(new NavigationItemModel(
+				"Inventário", "bi-box-seam", "/inventario", Corresponde(caminho, "/inventario")));
 		}
 
 		var setores = request.Setores

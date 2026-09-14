@@ -42,7 +42,8 @@ public sealed class NavigationViewComponent(
 			await CarregarSetoresAsync(HttpContext.User, autenticacaoAtiva).ConfigureAwait(false),
 			HttpContext.Request.Path.Value ?? "/",
 			MostrarAdministracao: !autenticacaoAtiva || SetorAcesso.AdministraAlgumSetor(HttpContext.User),
-			demoOptions.Habilitado);
+			demoOptions.Habilitado,
+			MostrarInventario: !autenticacaoAtiva || AcessoAdministrativo.TemAcesso(HttpContext.User, "inventario-admin"));
 
 		return View(IntranetNavigation.Build(request));
 	}

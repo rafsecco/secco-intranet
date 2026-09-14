@@ -1,0 +1,42 @@
+@model ItemInventarioFormViewModel
+@{
+    ViewData["Title"] = "Editar item";
+
+    var cabecalho = new PageHeaderModel("Editar item de inventário");
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel sc-form">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <form method="post" asp-action="Edit">
+        <input type="hidden" asp-for="Id" />
+
+        <div class="sc-form__field">
+            <label class="form-label" asp-for="Nome">Nome</label>
+            <input class="form-control" asp-for="Nome" autocomplete="off" />
+            <span class="text-danger" asp-validation-for="Nome"></span>
+        </div>
+
+        <div class="sc-form__field">
+            <label class="form-label" asp-for="Descricao">Descrição</label>
+            <textarea class="form-control" asp-for="Descricao" rows="3"></textarea>
+        </div>
+
+        <div class="sc-form__field">
+            <label class="form-label" asp-for="Categoria">Categoria</label>
+            <input class="form-control" asp-for="Categoria" autocomplete="off" />
+        </div>
+
+        <div class="sc-form__field">
+            <label class="form-label" asp-for="CodigoPatrimonio">Código de patrimônio</label>
+            <input class="form-control font-monospace" asp-for="CodigoPatrimonio" autocomplete="off" />
+        </div>
+
+        <div class="sc-form__actions">
+            <button class="btn btn-primary" type="submit">Salvar</button>
+            <a class="btn btn-outline-secondary" asp-action="Details" asp-route-id="@Model.Id">Cancelar</a>
+        </div>
+    </form>
+</div>

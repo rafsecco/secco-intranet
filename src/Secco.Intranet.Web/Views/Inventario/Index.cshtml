@@ -1,0 +1,78 @@
+@model ItemInventarioListViewModel
+@using Secco.Intranet.Domain.Inventario
+@{
+    ViewData["Title"] = "Inventário";
+
+    string? PaginaUrl(int pagina) => Url.Action("Index", new { nome = Model.Nome, page = pagina });
+
+    var novoItem = new PageActionModel("Novo item", Url.Action("Create")!, "bi-plus-lg", Primaria: true);
+
+    var cabecalho = new PageHeaderModel(
+        "Inventário",
+        "Itens sem setor dono — administrado por quem tem a Role inventario-admin.",
+        Acoes: new[] { novoItem });
+
+    var buscando = !string.IsNullOrWhiteSpace(Model.Nome);
+
+    var vazio = new EmptyStateModel(
+        "bi-box-seam",
+        buscando ? "Nenhum item com esse nome" : "Nenhum item cadastrado",
+        buscando ? "Ajuste a busca ou cadastre um item novo." : "Cadastre o primeiro item do inventário.",
+        novoItem);
+
+    var paginacao = new PaginationModel(
+        Model.Page.Page,
+        Model.Page.TotalPages,
+        Model.Page.HasPreviousPage ? PaginaUrl(Model.Page.Page - 1) : null,
+        Model.Page.HasNextPage ? PaginaUrl(Model.Page.Page + 1) : null);
+
+    static BadgeModel BadgeDoStatus(StatusDoItem status) => status switch
+    {
+        StatusDoItem.Disponivel => new BadgeModel("Disponível", BadgeVariante.Sucesso),
+        StatusDoItem.EmUso => new BadgeModel("Em uso", BadgeVariante.Neutro),
+        StatusDoItem.EmManutencao => new BadgeModel("Em manutenção", BadgeVariante.Aviso),
+        _ => new BadgeModel("Baixado", BadgeVariante.Perigo),
+    };
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<form method="get" asp-action="Index" class="row g-2 mb-3" role="search">
+    <div class="col-sm-auto flex-grow-1">
+        <label class="visually-hidden" for="nome">Buscar por nome</label>
+        <input class="form-control" type="search" id="nome" name="nome" value="@Model.Nome" placeholder="Buscar por nome" />
+    </div>
+    <div class="col-sm-auto">
+        <button class="btn btn-outline-secondary w-100" type="submit">Buscar</button>
+    </div>
+</form>
+
+@if (Model.Page.Items.Count == 0)
+{
+    <partial name="_EmptyState" model="vazio" />
+}
+else
+{
+    <ul class="sc-list">
+        @foreach (var item in Model.Page.Items)
+        {
+            <li class="sc-list__item">
+                <span class="sc-list__icon" aria-hidden="true"><i class="bi bi-box-seam"></i></span>
+                <div class="sc-list__text">
+                    <p class="sc-list__title">
+                        <a class="text-reset text-decoration-none" asp-action="Details" asp-route-id="@item.Id">@item.Nome</a>
+                    </p>
+                    <span class="sc-list__sub">
+                        @if (!string.IsNullOrWhiteSpace(item.CodigoPatrimonio))
+                        {
+                            <span class="sc-meta">@item.CodigoPatrimonio</span>
+                        }
+                        <partial name="_Badge" model="BadgeDoStatus(item.Status)" />
+                    </span>
+                </div>
+            </li>
+        }
+    </ul>
+
+    <partial name="_Pagination" model="paginacao" />
+}

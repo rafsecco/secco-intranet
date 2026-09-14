@@ -107,7 +107,7 @@ public class NavegacaoETemaTests
 	public void Build_ForaDaDemonstracao_NaoOfereceOsItensDeDemonstracao()
 	{
 		var menu = IntranetNavigation.Build(
-			new NavigationRequest([], "/", MostrarAdministracao: false, DemoHabilitado: false));
+			new NavigationRequest([], "/", MostrarAdministracao: false, DemoHabilitado: false, MostrarInventario: false));
 
 		menu.Grupos.SelectMany(grupo => grupo.Itens).Should().ContainSingle()
 			.Which.Texto.Should().Be("Mural", "o Mural é o único item fixo do menu");
@@ -120,7 +120,8 @@ public class NavegacaoETemaTests
 			[Setor("Financeiro", "financeiro"), Setor("Diretoria", "diretoria")],
 			"/setor/financeiro/documentos",
 			MostrarAdministracao: true,
-			DemoHabilitado: false));
+			DemoHabilitado: false,
+			MostrarInventario: false));
 
 		var itens = menu.Grupos.SelectMany(grupo => grupo.Itens).ToList();
 
@@ -132,9 +133,29 @@ public class NavegacaoETemaTests
 	public void Build_NaRaiz_MarcaOMuralComoAtivo()
 	{
 		var menu = IntranetNavigation.Build(
-			new NavigationRequest([], "/", MostrarAdministracao: false, DemoHabilitado: false));
+			new NavigationRequest([], "/", MostrarAdministracao: false, DemoHabilitado: false, MostrarInventario: false));
 
 		menu.Grupos.SelectMany(grupo => grupo.Itens).Single(item => item.Ativo).Texto.Should().Be("Mural");
+	}
+
+	[Fact]
+	public void Build_ComMostrarInventario_IncluiItemDeMenu()
+	{
+		var request = new NavigationRequest([], "/", MostrarAdministracao: false, DemoHabilitado: false, MostrarInventario: true);
+
+		var menu = IntranetNavigation.Build(request);
+
+		menu.Grupos.SelectMany(g => g.Itens).Should().Contain(item => item.Texto == "Inventário");
+	}
+
+	[Fact]
+	public void Build_SemMostrarInventario_NaoIncluiItemDeMenu()
+	{
+		var request = new NavigationRequest([], "/", MostrarAdministracao: false, DemoHabilitado: false, MostrarInventario: false);
+
+		var menu = IntranetNavigation.Build(request);
+
+		menu.Grupos.SelectMany(g => g.Itens).Should().NotContain(item => item.Texto == "Inventário");
 	}
 
 	[Theory]

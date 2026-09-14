@@ -71,7 +71,7 @@ public class SetorIconeTests
 		var setor = new SetorDto(
 			Guid.NewGuid(), "Financeiro", "financeiro", "bi-cash-coin", false, true, DateTimeOffset.UtcNow);
 
-		var menu = IntranetNavigation.Build(new NavigationRequest([setor], "/", false, false));
+		var menu = IntranetNavigation.Build(new NavigationRequest([setor], "/", false, false, false));
 
 		menu.Grupos
 			.SelectMany(grupo => grupo.Itens)

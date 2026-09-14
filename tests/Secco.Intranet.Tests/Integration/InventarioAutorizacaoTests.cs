@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 using AwesomeAssertions;
 using Secco.Intranet.Tests.Integration.TestAuthentication;
 using Secco.SharedKernel.Constants;
@@ -60,5 +61,42 @@ public class InventarioAutorizacaoTests(IntranetWebFactory factory) : IClassFixt
 		// controller executa, nada é criado — os dois testes acima (GET) já provam que
 		// PodeAdministrar() em si devolve 403 quando chega a rodar.
 		resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+	}
+
+	[Fact]
+	public async Task ComIntranetAdmin_Liberado()
+	{
+		var resposta = await CriarCliente("intranet-admin").GetAsync("/Inventario");
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+	}
+
+	[Fact]
+	public async Task ComInventarioAdmin_Liberado()
+	{
+		var resposta = await CriarCliente("inventario-admin").GetAsync("/Inventario");
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+	}
+
+	[Fact]
+	public async Task FluxoCompleto_ComInventarioAdmin_CriaEExibe()
+	{
+		var client = CriarCliente("inventario-admin");
+		var titulo = $"Item {Guid.NewGuid():N}"[..20];
+
+		var paginaCriacao = await client.GetStringAsync("/Inventario/Create");
+		var token = Regex.Match(paginaCriacao, "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;
+
+		var resposta = await client.PostAsync("/Inventario/Create", new FormUrlEncodedContent(
+		[
+			new KeyValuePair<string, string>("Nome", titulo),
+			new KeyValuePair<string, string>("__RequestVerificationToken", token),
+		]));
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK, "salvar redireciona para os detalhes");
+
+		var html = await resposta.Content.ReadAsStringAsync();
+		html.Should().Contain(titulo);
 	}
 }
