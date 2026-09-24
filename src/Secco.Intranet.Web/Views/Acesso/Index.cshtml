@@ -1,0 +1,135 @@
+@model AcessoIndexViewModel
+@{
+    ViewData["Title"] = "Acesso";
+
+    var cabecalho = new PageHeaderModel("Acesso", "Perfis e usuários deste tenant — exclusivo do intranet-admin.");
+    var nosPerfis = Model.Aba == AbaDoAcesso.Perfis;
+
+    static BadgeModel BadgeDoPerfil(PerfilDto perfil) =>
+        perfil.Reservado ? new BadgeModel("Reservado", BadgeVariante.Perigo)
+        : perfil.Tipo == TipoDePerfil.Produto ? new BadgeModel("Do produto", BadgeVariante.Sucesso)
+        : perfil.Tipo == TipoDePerfil.Setor ? new BadgeModel("Do setor", BadgeVariante.Neutro)
+        : new BadgeModel("Perfil", BadgeVariante.Aviso);
+
+    static BadgeModel BadgeDaSituacao(SituacaoDoUsuario situacao) => situacao switch
+    {
+        SituacaoDoUsuario.Ativo => new BadgeModel("Ativo", BadgeVariante.Sucesso),
+        SituacaoDoUsuario.Desativado => new BadgeModel("Desativado", BadgeVariante.Perigo),
+        SituacaoDoUsuario.Bloqueado => new BadgeModel("Bloqueado", BadgeVariante.Aviso),
+        _ => new BadgeModel("Desconhecida", BadgeVariante.Neutro),
+    };
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link @(nosPerfis ? "active" : null)" asp-action="Index" asp-route-aba="perfis">Perfis</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(!nosPerfis ? "active" : null)" asp-action="Index" asp-route-aba="usuarios">Usuários</a>
+    </li>
+</ul>
+
+@if (nosPerfis && Model.Perfis is { } perfis)
+{
+    @if (perfis.PerfisDoProdutoFaltando.Count > 0)
+    {
+        <div class="sc-panel mb-3">
+            <p class="mb-2"><strong>Perfis do produto que ainda não existem neste tenant</strong></p>
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (var faltando in perfis.PerfisDoProdutoFaltando)
+                {
+                    <form method="post" asp-action="CriarPerfil" class="d-inline">
+                        <input type="hidden" name="nome" value="@faltando" />
+                        <button class="btn btn-outline-primary" type="submit">Criar @faltando</button>
+                    </form>
+                }
+            </div>
+        </div>
+    }
+
+    @if (perfis.Perfis.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel("bi-shield-lock", "Nenhum perfil ainda", "Crie o primeiro perfil abaixo."))" />
+    }
+    else
+    {
+        <ul class="sc-list">
+            @foreach (var perfil in perfis.Perfis)
+            {
+                <li class="sc-list__item">
+                    <span class="sc-list__icon" aria-hidden="true"><i class="bi bi-shield-lock"></i></span>
+                    <div class="sc-list__text">
+                        <p class="sc-list__title">
+                            <a class="text-reset text-decoration-none" asp-action="Perfil" asp-route-nome="@perfil.Nome">@perfil.Nome</a>
+                        </p>
+                        <span class="sc-list__sub">
+                            <partial name="_Badge" model="BadgeDoPerfil(perfil)" />
+                            <span class="sc-meta">@perfil.TotalDePermissoes permissões</span>
+                        </span>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+
+    <div class="sc-panel mt-3">
+        <form method="post" asp-action="CriarPerfil" class="d-flex flex-wrap gap-2 align-items-end">
+            <div class="sc-form__field mb-0">
+                <label class="form-label" for="nome">Novo perfil</label>
+                <input class="form-control" id="nome" name="nome" placeholder="equipe-financeiro" maxlength="100" required />
+                <div class="form-text">Letras, dígitos, ponto, sublinhado e hífen; sem espaços.</div>
+            </div>
+            <button class="btn btn-primary" type="submit">Criar perfil</button>
+        </form>
+    </div>
+}
+else if (Model.Usuarios is { } usuarios)
+{
+    string? PaginaUrl(int pagina) => Url.Action("Index", new { aba = "usuarios", busca = Model.Busca, page = pagina });
+
+    var paginacao = new PaginationModel(
+        usuarios.Page,
+        usuarios.TotalPages,
+        usuarios.HasPreviousPage ? PaginaUrl(usuarios.Page - 1) : null,
+        usuarios.HasNextPage ? PaginaUrl(usuarios.Page + 1) : null);
+
+    <form method="get" asp-action="Index" class="row g-2 mb-3" role="search">
+        <input type="hidden" name="aba" value="usuarios" />
+        <div class="col-sm-auto flex-grow-1">
+            <label class="visually-hidden" for="busca">Buscar por e-mail</label>
+            <input class="form-control" type="search" id="busca" name="busca" value="@Model.Busca" placeholder="Buscar por e-mail" />
+        </div>
+        <div class="col-sm-auto">
+            <button class="btn btn-outline-secondary w-100" type="submit">Buscar</button>
+        </div>
+    </form>
+
+    @if (usuarios.Items.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel("bi-people", "Nenhum usuário encontrado", "Ajuste a busca."))" />
+    }
+    else
+    {
+        <ul class="sc-list">
+            @foreach (var usuario in usuarios.Items)
+            {
+                <li class="sc-list__item">
+                    <span class="sc-list__icon" aria-hidden="true"><i class="bi bi-person"></i></span>
+                    <div class="sc-list__text">
+                        <p class="sc-list__title">
+                            <a class="text-reset text-decoration-none" asp-action="Usuario" asp-route-id="@usuario.Id">@(string.IsNullOrWhiteSpace(usuario.Email) ? "(sem e-mail)" : usuario.Email)</a>
+                        </p>
+                        <span class="sc-list__sub">
+                            <partial name="_Badge" model="BadgeDaSituacao(usuario.Situacao)" />
+                            <span class="sc-meta">@string.Join(", ", usuario.Perfis)</span>
+                        </span>
+                    </div>
+                </li>
+            }
+        </ul>
+
+        <partial name="_Pagination" model="paginacao" />
+    }
+}

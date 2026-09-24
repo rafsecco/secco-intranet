@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Infrastructure;
+using Secco.Intranet.Infrastructure.Access;
 using Secco.Intranet.Tests.Integration.TestAuthentication;
 using Secco.SDK.Testing;
 
@@ -41,6 +43,13 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 	/// <summary>Identificador do tenant "Beta" usado nos testes.</summary>
 	public Guid TenantBeta { get; } = Guid.NewGuid();
 
+	/// <summary>
+	/// Gestão de acesso que o host devolve. Nula, vale o comportamento real do ambiente Testing
+	/// (SecureGate não configurado → <see cref="GestaoDeAcessoIndisponivel"/>). Os testes de tela
+	/// atribuem um dublê aqui; a fábrica é por classe de teste, e os testes de uma classe rodam em série.
+	/// </summary>
+	public IGestaoDeAcesso? GestaoDeAcesso { get; set; }
+
 	/// <inheritdoc />
 	protected override string Audience => "secco-intranet";
 
@@ -54,8 +63,12 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 	}
 
 	/// <inheritdoc />
-	protected override void ConfigureTestServices(IServiceCollection services) =>
+	protected override void ConfigureTestServices(IServiceCollection services)
+	{
 		services.AddSingleton<IStartupFilter, RolesDeTesteStartupFilter>();
+		services.AddScoped<IGestaoDeAcesso>(serviceProvider =>
+			GestaoDeAcesso ?? ActivatorUtilities.CreateInstance<GestaoDeAcessoIndisponivel>(serviceProvider));
+	}
 
 	/// <inheritdoc />
 	protected override void Dispose(bool disposing)

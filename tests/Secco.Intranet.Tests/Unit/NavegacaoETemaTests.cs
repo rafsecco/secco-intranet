@@ -164,4 +164,16 @@ public class NavegacaoETemaTests
 	[InlineData("")]
 	public void SetorHue_ParaOMesmoSlug_DevolveSempreOMesmoMatiz(string slug) =>
 		SetorHue.From(slug).Should().Be(SetorHue.From(slug), "a cor de um setor não pode mudar a cada reinício");
+
+	[Fact]
+	public void Build_ComAdministracao_OfereceSetoresEAcesso()
+	{
+		var menu = IntranetNavigation.Build(
+			new NavigationRequest([], "/acesso/perfil", MostrarAdministracao: true, DemoHabilitado: false, MostrarInventario: false));
+
+		var itens = menu.Grupos.SelectMany(grupo => grupo.Itens).ToList();
+
+		itens.Should().Contain(item => item.Texto == "Setores");
+		itens.Single(item => item.Texto == "Acesso").Ativo.Should().BeTrue("/acesso/perfil está sob /acesso");
+	}
 }

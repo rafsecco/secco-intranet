@@ -68,6 +68,7 @@ public static class IntranetNavigation
 			grupos.Add(new NavigationGroupModel("Administração",
 			[
 				new NavigationItemModel("Setores", "bi-sliders", "/setores", Corresponde(caminho, "/setores")),
+				new NavigationItemModel("Acesso", "bi-shield-lock", "/acesso", Corresponde(caminho, "/acesso")),
 			]));
 		}
 

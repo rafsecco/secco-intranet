@@ -1,0 +1,14 @@
+@model IndisponivelViewModel
+@{
+    ViewData["Title"] = "Acesso";
+
+    var cabecalho = new PageHeaderModel("Acesso", "Perfis e usuários deste tenant — exclusivo do intranet-admin.");
+
+    var vazio = new EmptyStateModel(
+        "bi-plug",
+        "Gestão de acesso indisponível",
+        Model.Mensagem);
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+<partial name="_EmptyState" model="vazio" />
