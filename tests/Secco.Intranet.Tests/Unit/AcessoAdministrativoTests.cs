@@ -45,4 +45,39 @@ public class AcessoAdministrativoTests
 		AcessoAdministrativo.TemAcesso(Usuario("financeiro-admin"), "inventario-admin").Should().BeFalse(
 			"admin de setor não é atalho para uma Role fixa — são modelos de autorização independentes");
 	}
+
+	[Fact]
+	public void SomenteIntranetAdmin_UsuarioNulo_SemAcesso()
+	{
+		AcessoAdministrativo.SomenteIntranetAdmin(null).Should().BeFalse();
+	}
+
+	[Fact]
+	public void SomenteIntranetAdmin_ComIntranetAdmin_TemAcesso()
+	{
+		AcessoAdministrativo.SomenteIntranetAdmin(Usuario("intranet-admin")).Should().BeTrue();
+	}
+
+	[Fact]
+	public void SomenteIntranetAdmin_IgnoraCaixa()
+	{
+		AcessoAdministrativo.SomenteIntranetAdmin(Usuario("Intranet-Admin")).Should().BeTrue();
+	}
+
+	[Theory]
+	[InlineData("inventario-admin")]
+	[InlineData("financeiro-admin")]
+	[InlineData("financeiro-user")]
+	[InlineData("intranet-admin-falso")]
+	public void SomenteIntranetAdmin_QualquerOutraRole_SemAcesso(string role)
+	{
+		AcessoAdministrativo.SomenteIntranetAdmin(Usuario(role)).Should().BeFalse(
+			"a Área administrativa não é delegável: sem o OR que o Inventário tem (ADR-0008)");
+	}
+
+	[Fact]
+	public void SomenteIntranetAdmin_AdminDeTodosOsSetores_SemAcesso()
+	{
+		AcessoAdministrativo.SomenteIntranetAdmin(Usuario("a-admin", "b-admin", "c-admin")).Should().BeFalse();
+	}
 }

@@ -1,4 +1,7 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Secco.Intranet.Web.Authentication;
 using Secco.SharedKernel.Constants;
 
 namespace Secco.Intranet.Web.Navigation;
@@ -34,5 +37,32 @@ public static class AcessoAdministrativo
 		return usuario.FindAll(SeccoClaims.Role).Any(claim =>
 			string.Equals(claim.Value, RoleIntranetAdmin, StringComparison.OrdinalIgnoreCase)
 			|| string.Equals(claim.Value, roleEspecifica, StringComparison.OrdinalIgnoreCase));
+	}
+
+	/// <summary>
+	/// Indica se o usuário é <see cref="RoleIntranetAdmin"/> — e só isso. É o oposto deliberado
+	/// de <see cref="TemAcesso"/>: a Área administrativa não é delegável, então nenhuma Role
+	/// específica (nem <c>inventario-admin</c>, nem <c>{slug}-admin</c>) abre o que ela guarda
+	/// (ADR-0008).
+	/// </summary>
+	/// <param name="usuario">Usuário atual; <c>null</c> devolve <c>false</c>.</param>
+	public static bool SomenteIntranetAdmin(ClaimsPrincipal? usuario) =>
+		usuario is not null
+		&& usuario.FindAll(SeccoClaims.Role).Any(claim =>
+			string.Equals(claim.Value, RoleIntranetAdmin, StringComparison.OrdinalIgnoreCase));
+
+	/// <summary>
+	/// Modo aberto de DEV: só em <c>Development</c> de verdade e sem SecureGate configurado.
+	/// Nunca vale em <c>Testing</c>, que também não configura autenticação — se valesse, não
+	/// haveria como provar "sem a role, bloqueado".
+	/// </summary>
+	/// <param name="environment">Ambiente de hospedagem.</param>
+	/// <param name="configuration">Configuração do host.</param>
+	public static bool ModoAbertoDeDev(IWebHostEnvironment environment, IConfiguration configuration)
+	{
+		ArgumentNullException.ThrowIfNull(environment);
+		ArgumentNullException.ThrowIfNull(configuration);
+
+		return environment.IsDevelopment() && !IntranetAuthenticationExtensions.IsConfigured(configuration);
 	}
 }
