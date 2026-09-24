@@ -154,6 +154,10 @@ dotnet build
 dotnet test            # os testes de integração sobem container próprio (Testcontainers)
 ```
 
+Os testes da gestão de acesso usam um SecureGate de mentira. Para conferir o adaptador e as
+telas contra o **SecureGate real**, há um roteiro de fumaça (8 testes opt-in, pulados por padrão,
+mais um passo a passo manual): [`docs/roteiro-fumaca-securegate.md`](docs/roteiro-fumaca-securegate.md).
+
 ## Arquitetura
 
 - **Monolito**: `Secco.Intranet.Web` (MVC) consome a Application layer diretamente —
