@@ -23,48 +23,15 @@ public class SecureGateDiretorioDeUsuariosTests
 		public bool IsResolved => true;
 	}
 
-	private sealed class ClientQueEstoura : ISecureGateClient
+	/// <summary>
+	/// Herda do client gerado em vez de implementar <c>ISecureGateClient</c> à mão: a interface
+	/// ganha métodos a cada release da plataforma, e um fake que a implementa inteira quebra a
+	/// compilação a cada bump de pacote. Aqui só a listagem de usuários importa.
+	/// </summary>
+	private sealed class ClientQueEstoura() : SecureGateClient(new HttpClient())
 	{
-		public Task<ICollection<UserDto>> ListUsersAsync(Guid tenantId, CancellationToken cancellationToken) =>
+		public override Task<ICollection<UserDto>> ListUsersAsync(Guid tenantId, CancellationToken cancellationToken) =>
 			throw new TaskCanceledException("Timeout do HttpClient.");
-
-		public Task<ICollection<UserDto>> ListUsersAsync(Guid tenantId) =>
-			ListUsersAsync(tenantId, CancellationToken.None);
-
-		// ISecureGateClient tem muitos membros de administração além da listagem de usuários; o
-		// teste não usa nenhum deles, então cada um vira uma linha de NotImplementedException.
-		public Task<ICollection<string>> GetRolePermissionsAsync(Guid tenantId, string role) => throw new NotImplementedException();
-		public Task<ICollection<string>> GetRolePermissionsAsync(Guid tenantId, string role, CancellationToken cancellationToken) => throw new NotImplementedException();
-		public Task<TenantDto> CreateTenantAsync(CreateTenantRequest body) => throw new NotImplementedException();
-		public Task<TenantDto> CreateTenantAsync(CreateTenantRequest body, CancellationToken cancellationToken) => throw new NotImplementedException();
-		public Task<ICollection<TenantDto>> ListTenantsAsync() => throw new NotImplementedException();
-		public Task<ICollection<TenantDto>> ListTenantsAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
-		public Task<TenantDetailDto> GetTenantAsync(Guid id) => throw new NotImplementedException();
-		public Task<TenantDetailDto> GetTenantAsync(Guid id, CancellationToken cancellationToken) => throw new NotImplementedException();
-		public Task ActivateTenantAsync(Guid id) => throw new NotImplementedException();
-		public Task ActivateTenantAsync(Guid id, CancellationToken cancellationToken) => throw new NotImplementedException();
-		public Task DeactivateTenantAsync(Guid id) => throw new NotImplementedException();
-		public Task DeactivateTenantAsync(Guid id, CancellationToken cancellationToken) => throw new NotImplementedException();
-		public Task UpsertTenantDatabaseAsync(Guid id, string product, UpsertTenantDatabaseRequest body) => throw new NotImplementedException();
-		public Task UpsertTenantDatabaseAsync(Guid id, string product, UpsertTenantDatabaseRequest body, CancellationToken cancellationToken) => throw new NotImplementedException();
-		public Task<TenantDatabaseProvisioningDto> ProvisionTenantDatabaseAsync(Guid id, string product, ProvisionTenantDatabaseRequest body) => throw new NotImplementedException();
-		public Task<TenantDatabaseProvisioningDto> ProvisionTenantDatabaseAsync(Guid id, string product, ProvisionTenantDatabaseRequest body, CancellationToken cancellationToken) => throw new NotImplementedException();
-		public Task<ICollection<TenantDatabaseStatusDto>> GetTenantDatabaseStatusAsync(Guid id) => throw new NotImplementedException();
-		public Task<ICollection<TenantDatabaseStatusDto>> GetTenantDatabaseStatusAsync(Guid id, CancellationToken cancellationToken) => throw new NotImplementedException();
-		public Task UpsertTenantFederationAsync(Guid id, UpsertTenantFederationRequest body) => throw new NotImplementedException();
-		public Task UpsertTenantFederationAsync(Guid id, UpsertTenantFederationRequest body, CancellationToken cancellationToken) => throw new NotImplementedException();
-		public Task<ICollection<CatalogTenantDto>> ListCatalogTenantsAsync(string product) => throw new NotImplementedException();
-		public Task<ICollection<CatalogTenantDto>> ListCatalogTenantsAsync(string product, CancellationToken cancellationToken) => throw new NotImplementedException();
-		public Task<CatalogTenantDto> GetCatalogTenantAsync(string product, Guid tenantId) => throw new NotImplementedException();
-		public Task<CatalogTenantDto> GetCatalogTenantAsync(string product, Guid tenantId, CancellationToken cancellationToken) => throw new NotImplementedException();
-		public Task<RoleDto> CreateRoleAsync(Guid tenantId, CreateRoleRequest body) => throw new NotImplementedException();
-		public Task<RoleDto> CreateRoleAsync(Guid tenantId, CreateRoleRequest body, CancellationToken cancellationToken) => throw new NotImplementedException();
-		public Task<ICollection<RoleDto>> ListRolesAsync(Guid tenantId) => throw new NotImplementedException();
-		public Task<ICollection<RoleDto>> ListRolesAsync(Guid tenantId, CancellationToken cancellationToken) => throw new NotImplementedException();
-		public Task SetRolePermissionsAsync(Guid tenantId, string role, SetRolePermissionsRequest body) => throw new NotImplementedException();
-		public Task SetRolePermissionsAsync(Guid tenantId, string role, SetRolePermissionsRequest body, CancellationToken cancellationToken) => throw new NotImplementedException();
-		public Task<UserDto> CreateUserAsync(Guid tenantId, CreateUserRequest body) => throw new NotImplementedException();
-		public Task<UserDto> CreateUserAsync(Guid tenantId, CreateUserRequest body, CancellationToken cancellationToken) => throw new NotImplementedException();
 	}
 
 	[Fact]

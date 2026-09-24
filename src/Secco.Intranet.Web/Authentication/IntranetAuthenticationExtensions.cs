@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Secco.SDK.AspNetCore.Extensions;
+using Secco.SecureGate.Client.Authorization;
 using Secco.SharedKernel.Constants;
 
 namespace Secco.Intranet.Web.Authentication;
@@ -110,6 +112,14 @@ public static class IntranetAuthenticationExtensions
 					options.Scope.Add(scope);
 				}
 			});
+
+		// ADR-0032: revogar sessão no SecureGate (desativar usuário, trocar senha, encerrar sessões)
+		// precisa alcançar o cookie da Intranet. O resolvedor usa a seção Secco:SecureGate — a mesma
+		// do catálogo e das permissões — e a validação confere a sver a cada requisição. Ficam DENTRO
+		// desta composição condicional: sem SecureGate configurado (DEV aberto, ambiente Testing) não
+		// há sessão a revogar, e ligar a validação sem resolvedor derrubaria o startup.
+		services.AddSecureGateSessionVersionResolver();
+		services.AddSeccoCookieSessionValidation(CookieAuthenticationDefaults.AuthenticationScheme);
 
 		services.AddAuthorization(options =>
 			options.FallbackPolicy = new AuthorizationPolicyBuilder()
