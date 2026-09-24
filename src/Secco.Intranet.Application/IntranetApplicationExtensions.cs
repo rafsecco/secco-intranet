@@ -47,6 +47,13 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ObterPerfilHandler>();
 		services.AddScoped<ListarUsuariosHandler>();
 		services.AddScoped<ObterUsuarioHandler>();
+		services.AddScoped<CriarPerfilHandler>();
+		services.AddScoped<ExcluirPerfilHandler>();
+		services.AddScoped<AtribuirPerfilHandler>();
+		services.AddScoped<RetirarPerfilHandler>();
+		services.AddScoped<DesativarUsuarioHandler>();
+		services.AddScoped<ReativarUsuarioHandler>();
+		services.AddScoped<EncerrarSessoesHandler>();
 
 		return services;
 	}
