@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Acesso;
+using Secco.Intranet.Application.Diretorio;
 using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Inventario;
 using Secco.Intranet.Application.Publicacoes;
@@ -54,6 +55,9 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<DesativarUsuarioHandler>();
 		services.AddScoped<ReativarUsuarioHandler>();
 		services.AddScoped<EncerrarSessoesHandler>();
+
+		services.AddScoped<ListarPessoasHandler>();
+		services.AddScoped<ObterPessoaHandler>();
 
 		return services;
 	}

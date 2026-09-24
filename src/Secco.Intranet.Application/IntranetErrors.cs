@@ -234,4 +234,12 @@ public static class IntranetErrors
 				"Intranet.Acesso.DesativacaoRecusada",
 				"A plataforma recusou a desativação (por exemplo, o último operador da instalação).");
 	}
+
+	/// <summary>Erros do Diretório organizacional.</summary>
+	public static class Diretorio
+	{
+		/// <summary>Usuário inexistente ou desativado — não aparece no diretório.</summary>
+		public static readonly Error PessoaNaoEncontrada =
+			Error.NotFound("Intranet.Diretorio.PessoaNaoEncontrada", "Pessoa não encontrada.");
+	}
 }
