@@ -1,0 +1,121 @@
+@model PerfilViewModel
+@{
+    var tela = Model.Tela;
+    var perfil = tela.Perfil;
+
+    ViewData["Title"] = perfil.Nome;
+
+    var cabecalho = new PageHeaderModel(
+        perfil.Nome,
+        "Permissões são somente leitura neste corte.",
+        Acoes: new[] { new PageActionModel("Voltar", Url.Action("Index")!, "bi-arrow-left") });
+
+    string? PaginaUrl(int pagina) => Url.Action("Perfil", new { nome = perfil.Nome, page = pagina });
+
+    var paginacao = new PaginationModel(
+        tela.Membros.Pagina,
+        tela.Membros.TotalDePaginas,
+        tela.Membros.Pagina > 1 ? PaginaUrl(tela.Membros.Pagina - 1) : null,
+        tela.Membros.Pagina < tela.Membros.TotalDePaginas ? PaginaUrl(tela.Membros.Pagina + 1) : null);
+
+    static BadgeModel BadgeDaSituacao(SituacaoDoUsuario situacao) => situacao switch
+    {
+        SituacaoDoUsuario.Ativo => new BadgeModel("Ativo", BadgeVariante.Sucesso),
+        SituacaoDoUsuario.Desativado => new BadgeModel("Desativado", BadgeVariante.Perigo),
+        SituacaoDoUsuario.Bloqueado => new BadgeModel("Bloqueado", BadgeVariante.Aviso),
+        _ => new BadgeModel("Desconhecida", BadgeVariante.Neutro),
+    };
+
+    var podeExcluir = perfil.Tipo == TipoDePerfil.Comum && !perfil.Reservado;
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel">
+    <h2 class="h6">Permissões</h2>
+    @if (perfil.Permissoes.Count == 0)
+    {
+        <p class="text-muted mb-0">Este perfil não carrega permissões.</p>
+    }
+    else
+    {
+        <ul class="mb-0">
+            @foreach (var permissao in perfil.Permissoes)
+            {
+                <li><span class="sc-meta">@permissao</span></li>
+            }
+        </ul>
+    }
+</div>
+
+<div class="sc-panel mt-3">
+    <h2 class="h6">Membros (@perfil.TotalDeMembros)</h2>
+
+    @if (tela.Membros.Itens.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel("bi-people", "Ninguém tem este perfil ainda"))" />
+    }
+    else
+    {
+        <ul class="sc-list">
+            @foreach (var membro in tela.Membros.Itens)
+            {
+                <li class="sc-list__item">
+                    <div class="sc-list__text">
+                        <p class="sc-list__title">
+                            <a class="text-reset text-decoration-none" asp-action="Usuario" asp-route-id="@membro.UsuarioId">@(string.IsNullOrWhiteSpace(membro.Email) ? "(sem e-mail)" : membro.Email)</a>
+                        </p>
+                        <span class="sc-list__sub"><partial name="_Badge" model="BadgeDaSituacao(membro.Situacao)" /></span>
+                    </div>
+                    <form method="post" asp-action="RetirarPerfil" class="d-inline">
+                        <input type="hidden" name="usuarioId" value="@membro.UsuarioId" />
+                        <input type="hidden" name="perfil" value="@perfil.Nome" />
+                        <input type="hidden" name="origem" value="perfil" />
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Retirar</button>
+                    </form>
+                </li>
+            }
+        </ul>
+
+        <partial name="_Pagination" model="paginacao" />
+    }
+</div>
+
+@if (!perfil.Reservado)
+{
+    <div class="sc-panel mt-3">
+        @if (tela.Candidatos.Count == 0)
+        {
+            <p class="text-muted mb-0">Todo usuário ativo já tem este perfil.</p>
+        }
+        else
+        {
+            <form method="post" asp-action="AtribuirPerfil" class="d-flex flex-wrap gap-2 align-items-end">
+                <input type="hidden" name="perfil" value="@perfil.Nome" />
+                <input type="hidden" name="origem" value="perfil" />
+                <div class="sc-form__field mb-0">
+                    <label class="form-label" for="usuarioId">Adicionar membro</label>
+                    <select class="form-select" id="usuarioId" name="usuarioId" required>
+                        <option value="">Escolha um usuário</option>
+                        @foreach (var candidato in tela.Candidatos)
+                        {
+                            <option value="@candidato.Id">@(string.IsNullOrWhiteSpace(candidato.Email) ? candidato.Id.ToString() : candidato.Email)</option>
+                        }
+                    </select>
+                </div>
+                <button class="btn btn-outline-primary" type="submit">Adicionar</button>
+            </form>
+        }
+    </div>
+}
+
+@if (podeExcluir)
+{
+    <div class="sc-panel mt-3">
+        <form method="post" asp-action="ExcluirPerfil">
+            <input type="hidden" name="nome" value="@perfil.Nome" />
+            <button class="btn btn-outline-danger" type="submit">Excluir perfil</button>
+            <div class="form-text">Só é possível quando o perfil não tem membros.</div>
+        </form>
+    </div>
+}

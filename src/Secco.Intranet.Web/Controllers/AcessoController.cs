@@ -14,12 +14,20 @@ namespace Secco.Intranet.Web.Controllers;
 /// </summary>
 /// <param name="listarPerfis">Lista de perfis.</param>
 /// <param name="listarUsuarios">Lista de usuários.</param>
+/// <param name="obterPerfil">Detalhe de perfil.</param>
 /// <param name="criarPerfil">Criação de perfil.</param>
+/// <param name="excluirPerfil">Exclusão de perfil.</param>
+/// <param name="atribuirPerfil">Atribuição de perfil a usuário.</param>
+/// <param name="retirarPerfil">Retirada de perfil de usuário.</param>
 [SomenteIntranetAdmin]
 public sealed class AcessoController(
 	ListarPerfisHandler listarPerfis,
 	ListarUsuariosHandler listarUsuarios,
-	CriarPerfilHandler criarPerfil) : Controller
+	ObterPerfilHandler obterPerfil,
+	CriarPerfilHandler criarPerfil,
+	ExcluirPerfilHandler excluirPerfil,
+	AtribuirPerfilHandler atribuirPerfil,
+	RetirarPerfilHandler retirarPerfil) : Controller
 {
 	/// <summary>Tela inicial, com as abas Perfis e Usuários.</summary>
 	/// <param name="aba"><c>usuarios</c> abre a aba de usuários; qualquer outro valor, a de perfis.</param>
@@ -56,6 +64,69 @@ public sealed class AcessoController(
 
 		return Concluir(resultado, $"Perfil \"{nome?.Trim()}\" criado.", nameof(Index));
 	}
+
+	/// <summary>Detalhe de um perfil: permissões (só leitura), membros e adicionar membro.</summary>
+	/// <param name="nome">Nome do perfil.</param>
+	/// <param name="page">Página de membros.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpGet]
+	public async Task<IActionResult> Perfil(string? nome, int page = 1, CancellationToken cancellationToken = default)
+	{
+		var tela = await obterPerfil.HandleAsync(new ObterPerfilQuery(nome ?? string.Empty, page), cancellationToken);
+
+		return tela.IsFailure ? Falha(tela.Error) : View(new PerfilViewModel(tela.Value));
+	}
+
+	/// <summary>Exclui um perfil comum sem membros.</summary>
+	/// <param name="nome">Nome do perfil.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> ExcluirPerfil(string? nome, CancellationToken cancellationToken = default)
+	{
+		var resultado = await excluirPerfil.HandleAsync(nome ?? string.Empty, cancellationToken);
+
+		return resultado.IsSuccess
+			? Concluir(resultado, $"Perfil \"{nome?.Trim()}\" excluído.", nameof(Index))
+			: Concluir(resultado, string.Empty, nameof(Perfil), new { nome });
+	}
+
+	/// <summary>Atribui um perfil a um usuário; volta para a tela de origem.</summary>
+	/// <param name="usuarioId">Usuário que recebe o perfil.</param>
+	/// <param name="perfil">Nome do perfil.</param>
+	/// <param name="origem"><c>perfil</c> ou <c>usuario</c> — só escolhe para onde voltar.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> AtribuirPerfil(Guid usuarioId, string? perfil, string? origem, CancellationToken cancellationToken = default)
+	{
+		var resultado = await atribuirPerfil.HandleAsync(new AtribuirPerfilCommand(usuarioId, perfil ?? string.Empty), cancellationToken);
+
+		return ConcluirComOrigem(resultado, $"Perfil \"{perfil?.Trim()}\" atribuído.", origem, usuarioId, perfil);
+	}
+
+	/// <summary>Retira um perfil de um usuário; volta para a tela de origem.</summary>
+	/// <param name="usuarioId">Usuário que perde o perfil.</param>
+	/// <param name="perfil">Nome do perfil.</param>
+	/// <param name="origem"><c>perfil</c> ou <c>usuario</c> — só escolhe para onde voltar.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> RetirarPerfil(Guid usuarioId, string? perfil, string? origem, CancellationToken cancellationToken = default)
+	{
+		var resultado = await retirarPerfil.HandleAsync(new RetirarPerfilCommand(usuarioId, perfil ?? string.Empty), cancellationToken);
+
+		return ConcluirComOrigem(resultado, $"Perfil \"{perfil?.Trim()}\" retirado.", origem, usuarioId, perfil);
+	}
+
+	/// <summary>
+	/// Volta para a tela de onde o formulário saiu. <paramref name="origem"/> é só uma escolha entre
+	/// duas telas — o destino é sempre montado aqui, nunca lido do formulário (sem redirecionamento aberto).
+	/// </summary>
+	private RedirectToActionResult ConcluirComOrigem(Result resultado, string sucesso, string? origem, Guid usuarioId, string? perfil) =>
+		string.Equals(origem, "usuario", StringComparison.OrdinalIgnoreCase)
+			? Concluir(resultado, sucesso, "Usuario", new { id = usuarioId })
+			: Concluir(resultado, sucesso, nameof(Perfil), new { nome = perfil?.Trim() });
 
 	/// <summary>
 	/// Erro de leitura: perfil/usuário inexistente é 404; o resto (SecureGate ausente ou fora do

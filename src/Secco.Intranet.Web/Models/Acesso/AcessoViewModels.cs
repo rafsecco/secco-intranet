@@ -21,6 +21,10 @@ public enum AbaDoAcesso
 public sealed record AcessoIndexViewModel(
 	AbaDoAcesso Aba, PerfisDaTelaDto? Perfis, PagedResult<UsuarioDto>? Usuarios, string? Busca);
 
+/// <summary>Modelo do detalhe de um perfil.</summary>
+/// <param name="Tela">Perfil, membros da página e candidatos a membro.</param>
+public sealed record PerfilViewModel(PerfilTelaDto Tela);
+
 /// <summary>Modelo da página que explica por que a gestão de acesso não abriu.</summary>
 /// <param name="Mensagem">Texto do erro, já sem detalhe interno.</param>
 public sealed record IndisponivelViewModel(string Mensagem);

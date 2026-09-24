@@ -155,4 +155,115 @@ public class AcessoTelasTests(IntranetWebFactory factory) : IClassFixture<Intran
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
 		Decodificar(await resposta.Content.ReadAsStringAsync()).Should().Contain("sc-toast--erro");
 	}
+
+	private static GestaoDeAcessoFalsa CenarioDePerfil() => new GestaoDeAcessoFalsa()
+		.ComPerfil("gerente-de-compras", reservado: false, "compras:read", "compras:write")
+		.ComPerfil("intranet-admin")
+		.ComUsuario(Ana, "ana@x.com", SituacaoDoUsuario.Ativo, "gerente-de-compras")
+		.ComUsuario(Bruno, "bruno@x.com");
+
+	[Fact]
+	public async Task Perfil_MostraPermissoesSoParaLeituraMembrosECandidatos()
+	{
+		var html = await CriarClienteAdmin(CenarioDePerfil()).GetStringAsync("/Acesso/Perfil?nome=gerente-de-compras");
+
+		html.Should().Contain("compras:read").And.Contain("compras:write");
+		html.Should().Contain("ana@x.com", "é membro");
+		html.Should().Contain("bruno@x.com", "é candidato a membro, aparece no seletor de adicionar");
+	}
+
+	[Fact]
+	public async Task Perfil_Inexistente_404()
+	{
+		var resposta = await CriarClienteAdmin(CenarioDePerfil()).GetAsync("/Acesso/Perfil?nome=nao-existe");
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.NotFound);
+	}
+
+	[Fact]
+	public async Task Perfil_SemSecureGateConfigurado_AbreEExplica()
+	{
+		var resposta = await CriarClienteAdmin().GetAsync("/Acesso/Perfil?nome=qualquer");
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+		Decodificar(await resposta.Content.ReadAsStringAsync()).Should().Contain("SecureGate não está configurado");
+	}
+
+	[Fact]
+	public async Task AdicionarMembro_AtribuiEVoltaParaOPerfil()
+	{
+		var gestao = CenarioDePerfil();
+		var client = CriarClienteAdmin(gestao);
+		var token = await TokenAsync(client, "/Acesso/Perfil?nome=gerente-de-compras");
+
+		var resposta = await client.PostAsync("/Acesso/AtribuirPerfil", Form(
+			("usuarioId", Bruno.ToString()), ("perfil", "gerente-de-compras"), ("origem", "perfil"), ("__RequestVerificationToken", token)));
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be("/Acesso/Perfil");
+		gestao.Chamadas.Should().Equal($"perfil-atribuir:{Bruno}:gerente-de-compras");
+	}
+
+	[Fact]
+	public async Task RetirarMembro_Retira()
+	{
+		var gestao = CenarioDePerfil();
+		var client = CriarClienteAdmin(gestao);
+		var token = await TokenAsync(client, "/Acesso/Perfil?nome=gerente-de-compras");
+
+		await client.PostAsync("/Acesso/RetirarPerfil", Form(
+			("usuarioId", Ana.ToString()), ("perfil", "gerente-de-compras"), ("origem", "perfil"), ("__RequestVerificationToken", token)));
+
+		gestao.Chamadas.Should().Equal($"perfil-retirar:{Ana}:gerente-de-compras");
+	}
+
+	[Fact]
+	public async Task RetirarUltimoIntranetAdmin_RecusadoComToastDeErro()
+	{
+		var gestao = CenarioDePerfil().ComUsuario(Guid.NewGuid(), "admin@x.com", SituacaoDoUsuario.Ativo, "intranet-admin");
+		var adminId = gestao.Usuarios.Last().Id;
+		var client = CriarClienteAdmin(gestao);
+		var token = await TokenAsync(client, "/Acesso/Perfil?nome=intranet-admin");
+
+		var resposta = await client.PostAsync("/Acesso/RetirarPerfil", Form(
+			("usuarioId", adminId.ToString()), ("perfil", "intranet-admin"), ("origem", "perfil"), ("__RequestVerificationToken", token)));
+
+		var html = Decodificar(await resposta.Content.ReadAsStringAsync());
+		html.Should().Contain("sc-toast--erro").And.Contain("último intranet-admin");
+		gestao.Chamadas.Should().BeEmpty();
+	}
+
+	[Fact]
+	public async Task OrigemDesconhecida_NaoVirRedirecionamentoAberto()
+	{
+		var gestao = CenarioDePerfil();
+		var client = CriarClienteAdmin(gestao);
+		var token = await TokenAsync(client, "/Acesso/Perfil?nome=gerente-de-compras");
+
+		var resposta = await client.PostAsync("/Acesso/AtribuirPerfil", Form(
+			("usuarioId", Bruno.ToString()), ("perfil", "gerente-de-compras"), ("origem", "https://mal.example/x"), ("__RequestVerificationToken", token)));
+
+		resposta.RequestMessage!.RequestUri!.Host.Should().NotBe("mal.example");
+	}
+
+	[Fact]
+	public async Task ExcluirPerfil_Comum_ExcluiEVoltaParaAsListagem()
+	{
+		var gestao = CenarioDePerfil();
+		var client = CriarClienteAdmin(gestao);
+		var token = await TokenAsync(client, "/Acesso/Perfil?nome=gerente-de-compras");
+
+		var resposta = await client.PostAsync("/Acesso/ExcluirPerfil", Form(("nome", "gerente-de-compras"), ("__RequestVerificationToken", token)));
+
+		gestao.Chamadas.Should().Equal("perfil-excluir:gerente-de-compras");
+		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be("/Acesso");
+	}
+
+	[Fact]
+	public async Task Perfil_DoProdutoOuDeSetor_NaoOfereceExcluir()
+	{
+		var html = await CriarClienteAdmin(CenarioDePerfil()).GetStringAsync("/Acesso/Perfil?nome=intranet-admin");
+
+		html.Should().NotContain("Excluir perfil");
+	}
 }
