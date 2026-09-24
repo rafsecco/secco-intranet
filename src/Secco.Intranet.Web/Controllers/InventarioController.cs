@@ -254,18 +254,16 @@ public sealed class InventarioController(
 		return AposMudarStatus(id, resultado.IsFailure ? resultado.Error.Description : null);
 	}
 
-	/// <summary>
-	/// Limitação conhecida e deliberada: <c>FeedbackViewComponent</c> hoje só produz
-	/// <c>ToastVariante.Sucesso</c> — uma falha de transição (ex.: <c>TransicaoInvalida</c>)
-	/// aparece no mesmo toast verde, só com texto de erro. Corrigir isso é dar ao componente
-	/// de feedback o primeiro produtor real de <c>ToastVariante.Erro</c>, o que é maior que
-	/// este recurso e mexe em algo compartilhado com Setor/Documento — fica para uma spec
-	/// própria. Aceitável aqui porque o gatilho é defensivo (double-click, aba parada): os
-	/// botões da tela já escondem/desabilitam a maioria das transições inválidas.
-	/// </summary>
 	private IActionResult AposMudarStatus(Guid id, string? mensagemDeErro)
 	{
-		TempData[FeedbackViewComponent.ChaveDaMensagem] = mensagemDeErro ?? "Item atualizado.";
+		if (mensagemDeErro is null)
+		{
+			TempData[FeedbackViewComponent.ChaveDaMensagem] = "Item atualizado.";
+		}
+		else
+		{
+			TempData[FeedbackViewComponent.ChaveDaMensagemDeErro] = mensagemDeErro;
+		}
 
 		return RedirectToAction(nameof(Details), new { id });
 	}

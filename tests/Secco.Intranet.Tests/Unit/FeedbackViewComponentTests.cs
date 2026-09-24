@@ -85,6 +85,47 @@ public class FeedbackViewComponentTests
 		provedor.Salvos.Should().NotContainKey(FeedbackViewComponent.ChaveDaMensagem);
 	}
 
+	[Fact]
+	public void MensagemDeErro_RenderizaToastDeErro()
+	{
+		var (componente, tempData, _) = Montar();
+		tempData[FeedbackViewComponent.ChaveDaMensagemDeErro] = "Não foi possível.";
+
+		var model = componente.Invoke()
+			.Should().BeOfType<ViewViewComponentResult>()
+			.Which.ViewData!.Model.Should().BeOfType<ToastModel>().Subject;
+
+		model.Texto.Should().Be("Não foi possível.");
+		model.Variante.Should().Be(ToastVariante.Erro);
+	}
+
+	[Fact]
+	public void ErroESucessoJuntos_OErroVence_EAsDuasChavesSaoConsumidas()
+	{
+		var (componente, tempData, provedor) = Montar();
+		tempData[FeedbackViewComponent.ChaveDaMensagem] = "Feito.";
+		tempData[FeedbackViewComponent.ChaveDaMensagemDeErro] = "Falhou.";
+
+		var model = componente.Invoke()
+			.Should().BeOfType<ViewViewComponentResult>()
+			.Which.ViewData!.Model.Should().BeOfType<ToastModel>().Subject;
+		tempData.Save();
+
+		model.Texto.Should().Be("Falhou.");
+		model.Variante.Should().Be(ToastVariante.Erro);
+		provedor.Salvos.Should().NotContainKey(FeedbackViewComponent.ChaveDaMensagem);
+		provedor.Salvos.Should().NotContainKey(FeedbackViewComponent.ChaveDaMensagemDeErro);
+	}
+
+	[Fact]
+	public void MensagemDeErroEmBranco_NaoRenderizaNada()
+	{
+		var (componente, tempData, _) = Montar();
+		tempData[FeedbackViewComponent.ChaveDaMensagemDeErro] = "  ";
+
+		componente.Invoke().Should().BeOfType<ContentViewComponentResult>();
+	}
+
 	private sealed class ProvedorDeTempData : ITempDataProvider
 	{
 		public IDictionary<string, object?> Salvos { get; private set; } =
