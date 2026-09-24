@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using AwesomeAssertions;
+using Secco.Intranet.Tests.Integration.TestAuthentication;
 using Secco.SharedKernel.Constants;
 using Xunit;
 
@@ -20,6 +21,7 @@ public class PublicacaoFluxoTests(IntranetWebFactory factory) : IClassFixture<In
 	{
 		var client = factory.CreateClient();
 		client.DefaultRequestHeaders.Add(SeccoHeaders.TenantId, factory.TenantAlfa.ToString());
+		client.DefaultRequestHeaders.Add(RolesDeTesteMiddleware.Header, "intranet-admin");
 
 		return client;
 	}

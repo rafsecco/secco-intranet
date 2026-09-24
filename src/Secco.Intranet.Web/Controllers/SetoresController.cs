@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Web.Models;
 using Secco.Intranet.Web.ViewComponents;
@@ -9,12 +10,14 @@ namespace Secco.Intranet.Web.Controllers;
 /// <summary>
 /// Controller fino do recurso Setor (ADR-0002 regra 1): nunca acessa
 /// <c>DbContext</c>/repositório diretamente — só orquestra os handlers existentes da
-/// Application layer, que carregam toda a regra de negócio (regra 3).
+/// Application layer, que carregam toda a regra de negócio (regra 3). Exclusivo do
+/// <c>intranet-admin</c> (ADR-0008): criar setor cria Roles no SecureGate.
 /// </summary>
 /// <param name="createHandler">Caso de uso de criação de setor.</param>
 /// <param name="editarHandler">Caso de uso de edição de setor.</param>
 /// <param name="getByIdHandler">Caso de uso de leitura pontual de setor.</param>
 /// <param name="searchHandler">Caso de uso de busca paginada de setores.</param>
+[SomenteIntranetAdmin]
 public sealed class SetoresController(
 	CreateSetorHandler createHandler,
 	EditarSetorHandler editarHandler,

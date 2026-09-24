@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Setores;
@@ -23,12 +24,14 @@ namespace Secco.Intranet.Web.ViewComponents;
 /// <param name="tenantContext">Tenant da requisição atual.</param>
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
 /// <param name="demoOptions">Estado das páginas de demonstração.</param>
+/// <param name="environment">Ambiente de hospedagem, para o modo aberto de DEV.</param>
 /// <param name="logger">Log de diagnóstico.</param>
 public sealed class NavigationViewComponent(
 	IServiceProvider serviceProvider,
 	ITenantContext tenantContext,
 	IConfiguration configuration,
 	DemoOptions demoOptions,
+	IWebHostEnvironment environment,
 	ILogger<NavigationViewComponent> logger) : ViewComponent
 {
 	private const int LimiteSetoresNoMenu = 50;
@@ -38,12 +41,16 @@ public sealed class NavigationViewComponent(
 	{
 		var autenticacaoAtiva = IntranetAuthenticationExtensions.IsConfigured(configuration);
 
+		// Modo aberto de DEV = Development sem SecureGate. No Testing o menu também precisa
+		// respeitar a role, senão nenhum teste distingue quem vê o quê.
+		var modoAberto = AcessoAdministrativo.ModoAbertoDeDev(environment, configuration);
+
 		var request = new NavigationRequest(
 			await CarregarSetoresAsync(HttpContext.User, autenticacaoAtiva).ConfigureAwait(false),
 			HttpContext.Request.Path.Value ?? "/",
-			MostrarAdministracao: !autenticacaoAtiva || SetorAcesso.AdministraAlgumSetor(HttpContext.User),
+			MostrarAdministracao: modoAberto || AcessoAdministrativo.SomenteIntranetAdmin(HttpContext.User),
 			demoOptions.Habilitado,
-			MostrarInventario: !autenticacaoAtiva || AcessoAdministrativo.TemAcesso(HttpContext.User, AcessoAdministrativo.RoleInventarioAdmin));
+			MostrarInventario: modoAberto || AcessoAdministrativo.TemAcesso(HttpContext.User, AcessoAdministrativo.RoleInventarioAdmin));
 
 		return View(IntranetNavigation.Build(request));
 	}

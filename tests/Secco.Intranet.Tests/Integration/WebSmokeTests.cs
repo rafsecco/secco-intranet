@@ -1,5 +1,6 @@
 using System.Net;
 using AwesomeAssertions;
+using Secco.Intranet.Tests.Integration.TestAuthentication;
 using Secco.SharedKernel.Constants;
 using Xunit;
 
@@ -36,6 +37,7 @@ public class WebSmokeTests(IntranetWebFactory factory) : IClassFixture<IntranetW
 	{
 		var client = factory.CreateClient();
 		client.DefaultRequestHeaders.Add(SeccoHeaders.TenantId, factory.TenantAlfa.ToString());
+		client.DefaultRequestHeaders.Add(RolesDeTesteMiddleware.Header, "intranet-admin");
 
 		var response = await client.GetAsync("/Setores");
 
