@@ -18,7 +18,8 @@ Duas regras sustentam esta lista:
 | Demanda | O que trava aqui | Issue |
 |---|---|---|
 | Onde vive o console de operação (futuro do `Secco.AdminPortal`) | Nada trava tecnicamente — a API já existe e é liberada por escopo, não por identidade de tenant do chamador. Falta a ADR formal da plataforma, que este produto se oferece a ancorar em código (ADR-0008 do secco-intranet) | [#4](https://github.com/rafsecco/secco-platform/issues/4) |
-| Atribuir/revogar role de um usuário já existente | O recurso de Inventário precisa que um admin conceda leitura a usuários específicos depois que a conta já existe — o SecureGate só define roles na criação do usuário. Trava também a promessa de gestão de usuário/role da futura Área administrativa (ADR-0008) | [#26](https://github.com/rafsecco/secco-platform/issues/26) |
+| Listar os grupos do diretório federado (Entra ID) de um tenant | A Área administrativa quer que o admin escolha, entre os grupos do diretório, quais viram perfis, em vez de recriá-los à mão. O SecureGate federa só a autenticação e não lê grupos; a Intranet não deve falar com o diretório sozinha (ADR-0006) | [#27](https://github.com/rafsecco/secco-platform/issues/27) |
+| Sincronizar grupos do diretório com perfis (mapeamento explícito, opt-in) | Manter quem pertence a cada perfil a partir do diretório, sem atribuir usuário por usuário. Exige uma ADR nova na plataforma, porque a ADR-0026 estabelece que o AD nunca concede acesso | [#28](https://github.com/rafsecco/secco-platform/issues/28) |
 
 ## Atendidas
 
@@ -36,6 +37,7 @@ cada capacidade — informação que some se a linha for apagada.
 | Consulta de status de notificação em massa | `Secco.NotificationHub.Client` 0.4.0 (2026-09-06) — `SearchNotifications`, busca paginada com filtros. Torna o relatório de falha de entrega uma chamada só, filtrando por `Source` e `Type` | [#23](https://github.com/rafsecco/secco-platform/issues/23) |
 | Entrega agendada de notificação (`ScheduledFor`) | `Secco.NotificationHub.Client` **0.5.0** (2026-09-07) — `ScheduledFor` nos dois DTOs de despacho, e `Schedule(..., DateTimeOffset)` no `IBackgroundJobScheduler` do SDK. A entrega cobriu um caso que a demanda não via: o canal in-app não tinha job de entrega, então agendar só o e-mail faria o aviso aparecer no sino na hora | [#24](https://github.com/rafsecco/secco-platform/issues/24) |
 | Extensões de client aceitarem client credentials | `Secco.NotificationHub.Client` **0.6.0** e `Secco.LogStream.Client` **0.4.0** (2026-09-10) — as extensões passam a montar URL, credenciais e scope. As credenciais caem em `Secco:SecureGate` por padrão, e cada pacote traz o scope do próprio produto (`DefaultScope`), então o adotante não pode mais errá-lo | [#25](https://github.com/rafsecco/secco-platform/issues/25) |
+| Atribuir/revogar role de um usuário já existente | `Secco.SecureGate.Client` **0.7.0** (2026-09-17) — `AddUserRoleAsync`/`RemoveUserRoleAsync` idempotentes, mais detalhe de perfil e de usuário, membros paginados, criação e exclusão de perfil, ativar/desativar usuário e encerrar sessões (0.11.0 é a versão em uso). Destrava a Área administrativa de acesso e a tela de conceder `inventario-admin` | [#26](https://github.com/rafsecco/secco-platform/issues/26) |
 
 A auditoria ter vindo como recurso do LogStream, e não como um `Secco.Audit`, **não muda nada
 aqui** — a [ADR-0006](adr/secco-intranet-adrs.md) já previa a bifurcação e registrou que este

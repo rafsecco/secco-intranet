@@ -139,10 +139,10 @@ Verbos novos em `VerbosDeAuditoria`: `inventario.criar`, `inventario.editar`,
 
 ## Fora de escopo
 
-- Tela de concessão de acesso ("atribuir `inventario-admin` a fulano") — bloqueada pela
-  [secco-platform#26](https://github.com/rafsecco/secco-platform/issues/26). Quando a
-  plataforma entregar o endpoint, isto vira avanço rápido: a autorização já está pronta,
-  falta só a tela chamando o novo método do client. Ver [`docs/plataforma.md`](../plataforma.md).
+- Tela de concessão de acesso ("atribuir `inventario-admin` a fulano") — a #26 foi entregue
+  (`Secco.SecureGate.Client` 0.7.0) e a tela mora na Área administrativa de acesso, exclusiva do
+  `intranet-admin`: [spec](2026-09-23-area-administrativa-acesso-design.md). Este recurso não
+  ganha tela própria de concessão.
 - Histórico de movimentação (quem teve o item antes) — YAGNI, ver Decisões.
 - Categoria como catálogo fechado — texto livre até um caso de uso real pedir filtro
   estruturado.

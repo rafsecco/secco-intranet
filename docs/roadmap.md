@@ -66,11 +66,11 @@ processos (maior risco técnico) só entra com a base já sólida.
       própria (`inventario-admin`, mais `intranet-admin` como superusuário da instalação —
       ADR-0008). Máquina de estado Disponível/Em uso/Em manutenção/Baixado; toda rota
       bloqueada para quem não tem a Role, não só o item de menu escondido —
-      [spec](specs/2026-09-13-inventario-design.md). Tela de conceder `inventario-admin` a
-      um usuário existente fica fora, bloqueada por
-      [secco-platform#26](https://github.com/rafsecco/secco-platform/issues/26)
+      [spec](specs/2026-09-13-inventario-design.md). A tela de conceder `inventario-admin`
+      vive na Área administrativa de acesso (#26 entregue), não aqui
 - [ ] `Recurso` + `SetorRecurso` (catálogo de módulos habilitáveis por setor)
-- [ ] Tela de administração de setores (cadastro + toggle de recursos)
+- [ ] Tela de administração de setores (cadastro + toggle de recursos). O cadastro de setores
+      passa a exigir `intranet-admin` junto do primeiro corte da Área administrativa de acesso
 - [x] Central de notificação in-app (sino + toast), consumindo o canal in-app do
       `Secco.NotificationHub`. O `AvisoUsuario` da redação original **não** vai existir:
       o Hub é dono do estado de lida, e uma cópia local violaria a ADR-0006. O toast virou
@@ -85,6 +85,11 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [ ] Notificação ao usuário, ao abrir a intranet, de processos pendentes para ele
 - [ ] `ItemMenu` — tabela autorecursiva + tela de montagem de menu com níveis, para
       recursos próprios que a instituição adotante desenvolver
+- [ ] Área administrativa de acesso, primeiro corte: perfis e usuários do próprio tenant,
+      exclusiva do `intranet-admin`, com testes de autorização em toda rota —
+      [spec](specs/2026-09-23-area-administrativa-acesso-design.md). Seguem em specs próprias o
+      modelo de permissões (autorizar por permissão, editar permissões de perfil, itens de menu
+      com permissão por item) e o restante da Área administrativa abaixo
 - [ ] Área administrativa — cobre a gestão do próprio tenant (usuários, roles, setores) **e**
       a criação/administração de outros tenants, representando outros sistemas que a empresa
       desenvolve sobre SecureGate/LogStream/NotificationHub — decisão registrada na ADR-0008.
