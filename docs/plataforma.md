@@ -21,6 +21,7 @@ Duas regras sustentam esta lista:
 | Listar os grupos do diretório federado (Entra ID) de um tenant | A Área administrativa quer que o admin escolha, entre os grupos do diretório, quais viram perfis, em vez de recriá-los à mão. O SecureGate federa só a autenticação e não lê grupos; a Intranet não deve falar com o diretório sozinha (ADR-0006) | [#27](https://github.com/rafsecco/secco-platform/issues/27) |
 | Sincronizar grupos do diretório com perfis (mapeamento explícito, opt-in) | Manter quem pertence a cada perfil a partir do diretório, sem atribuir usuário por usuário. Exige uma ADR nova na plataforma, porque a ADR-0026 estabelece que o AD nunca concede acesso | [#28](https://github.com/rafsecco/secco-platform/issues/28) |
 | SDK de tratamento de imagem enviada por usuário (recorte, redução, sem metadados) | A foto do diretório organizacional precisa dela. O diretório inteiro sai sem foto (avatar por iniciais) e o upload é a última etapa, ligada à SDK por uma porta; por decisão do dono do produto, biblioteca reutilizável nasce na plataforma | [#29](https://github.com/rafsecco/secco-platform/issues/29) |
+| Nome de exibição (`displayName`) no usuário do SecureGate | O SecureGate só conhece e-mail; toda tela que mostra pessoas (Inventário, relatório de notificação, diretório) cai no endereço. O diretório guarda o nome localmente, atrás de uma porta, e migra quando a plataforma entregar — duplicação temporária e deliberada | [#30](https://github.com/rafsecco/secco-platform/issues/30) |
 
 ## Atendidas
 
