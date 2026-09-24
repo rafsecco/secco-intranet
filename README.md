@@ -190,6 +190,17 @@ client credentials com o scope administrativo (`securegate:admin`, via
 a seção `Secco:SecureGate` configurada, esse provisionamento cai num adapter no-op
 (`NullSetorAccessProvisioner`), o mesmo modo aberto de DEV/Testing.
 
+### Primeiro `intranet-admin`
+
+A Área administrativa (`/Acesso`, `/Setores`) só abre para quem tem a Role `intranet-admin` —
+e por isso alguém precisa recebê-la **fora** da Intranet, na primeira vez: crie a Role
+`intranet-admin` no tenant da Intranet e atribua-a ao primeiro usuário pelo AdminPortal ou
+pela API do SecureGate. Dali em diante, esse usuário gerencia os demais pelo `/Acesso` (a
+tela também oferece criar a Role `intranet-admin` e a `inventario-admin` quando faltam).
+
+A Intranet não deixa o tenant ficar sem `intranet-admin` ativo: retirar o perfil ou desativar
+a conta do último é recusado, e ninguém retira o próprio perfil nem se desativa.
+
 ## Pós-geração (checklist)
 
 1. [feito] **Gerar as migrations iniciais** (uma por engine, ADR-0018) — `Initial` existe

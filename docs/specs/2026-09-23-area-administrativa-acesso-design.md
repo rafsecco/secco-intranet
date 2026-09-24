@@ -108,8 +108,10 @@ Checadas **antes** de chamar a porta, e devolvidas como `Result` (ADR-0004):
 3. **Ninguém tira `intranet-admin` de si mesmo nem se desativa.** Fazer isso trancaria a própria
    pessoa para fora da área; só outro `intranet-admin` pode. A plataforma já responde `409` para
    a autodesativação — a Intranet checa antes, para a mensagem ser dela.
-4. **Perfil protegido não é excluído:** `intranet-admin`, `inventario-admin` e os
-   `{slug}-admin`/`{slug}-user` de setores existentes (apagar quebraria o vínculo do setor).
+4. **Perfil protegido não é excluído:** `intranet-admin`, `inventario-admin` e qualquer perfil
+   de nome `{x}-admin`/`{x}-user`, por convenção de sufixo — não consulta a tabela de setores:
+   é o lado seguro do erro (apagar o de um setor quebraria o vínculo), e um perfil comum que
+   termine assim também fica protegido.
 5. **Perfis do produto:** `intranet-admin` e `inventario-admin` que ainda não existem no tenant
    aparecem numa seção própria com botão **Criar**. É o que faz o `inventario-admin` passar a
    poder existir, e o que fecha o item que o Inventário deixou em aberto.
@@ -125,9 +127,11 @@ Checadas **antes** de chamar a porta, e devolvidas como `Result` (ADR-0004):
 `intranet-admin`, sem aceitar Role específica. É o oposto deliberado de `TemAcesso`, que existe
 para recursos delegáveis; esta área não é delegável (ADR-0008).
 
-Toda action, `GET` incluído, começa pelo mesmo guarda do `InventarioController`
-(`PodeAdministrar()` → `StatusCode(403)`), com o bypass de "modo aberto" só em
-`environment.IsDevelopment() && !IsConfigured(configuration)` — nunca no ambiente `Testing`.
+Toda action é coberta por `[SomenteIntranetAdmin]` na classe — um filtro de autorização com
+`Order` menor que o do antiforgery, que devolve 403; o bypass de "modo aberto" segue a mesma
+condição do Inventário (`environment.IsDevelopment() && !IsConfigured(configuration)`), nunca no
+ambiente `Testing`. O filtro substitui o `PodeAdministrar()` por action: nenhuma action nova
+nasce desprotegida, e o `POST` de quem não é admin dá 403 mesmo sem token.
 
 O item de menu "Acesso" aparece só para `intranet-admin`, dentro do grupo "Administração".
 Hoje esse grupo só contém "Setores" e aparece para qualquer `{slug}-admin`
@@ -147,6 +151,9 @@ por `/Setores`. O que ele administra dentro do setor (Documentos, Avisos) segue 
 `/setor/{slug}`, que já têm o guarda `{slug}-admin`. A edição do setor em si é decisão de
 instalação, e o admin da instalação é o `intranet-admin`.
 
+Entregue: `SetoresController` sob `[SomenteIntranetAdmin]`; o grupo "Administração" do menu só
+aparece para o `intranet-admin`.
+
 ## Auditoria
 
 Verbos novos em `VerbosDeAuditoria`, recurso `acesso`:
@@ -165,7 +172,8 @@ não é auditada, como no resto do produto (ADR do rastro: volume).
 
 Views no core, usando só os partials do contrato de tema — nenhum arquivo em `Themes/*`.
 
-- **`/acesso`** — duas abas. **Perfis:** lista com nome, nº de membros, badge "reservado"/
+- **`/acesso`** — duas abas. **Perfis:** lista com nome, nº de **permissões** (a `ListRoles` da plataforma não traz a contagem de
+  membros, e uma chamada por perfil seria N+1; os membros ficam no detalhe), badge "reservado"/
   "do setor"/"do produto"; seção "Perfis do produto" com **Criar** para os inexistentes; criar
   perfil livre. O nome segue a regra da plataforma: letras, dígitos, `.`, `_` e `-`, sem
   espaço, até 100 caracteres; a tela valida antes de enviar e mostra o formato esperado

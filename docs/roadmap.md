@@ -85,11 +85,14 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [ ] Notificação ao usuário, ao abrir a intranet, de processos pendentes para ele
 - [ ] `ItemMenu` — tabela autorecursiva + tela de montagem de menu com níveis, para
       recursos próprios que a instituição adotante desenvolver
-- [ ] Área administrativa de acesso, primeiro corte: perfis e usuários do próprio tenant,
+- [x] Área administrativa de acesso, primeiro corte: perfis e usuários do próprio tenant,
       exclusiva do `intranet-admin`, com testes de autorização em toda rota —
-      [spec](specs/2026-09-23-area-administrativa-acesso-design.md). Seguem em specs próprias o
-      modelo de permissões (autorizar por permissão, editar permissões de perfil, itens de menu
-      com permissão por item) e o restante da Área administrativa abaixo
+      [spec](specs/2026-09-23-area-administrativa-acesso-design.md). Entregue: só o
+      `intranet-admin` acessa (filtro declarativo na classe do controller); listagem de perfis
+      e usuários, atribuir/retirar perfil, criar/excluir perfil, desativar/reativar usuário e
+      encerrar sessões; o cadastro de setores passou a exigir o mesmo perfil. Seguem em specs
+      próprias o modelo de permissões (autorizar por permissão, editar permissões de perfil,
+      itens de menu com permissão por item) e o restante da Área administrativa abaixo
 - [ ] Área administrativa — cobre a gestão do próprio tenant (usuários, roles, setores) **e**
       a criação/administração de outros tenants, representando outros sistemas que a empresa
       desenvolve sobre SecureGate/LogStream/NotificationHub — decisão registrada na ADR-0008.
