@@ -20,6 +20,7 @@ Duas regras sustentam esta lista:
 | Onde vive o console de operação (futuro do `Secco.AdminPortal`) | Nada trava tecnicamente — a API já existe e é liberada por escopo, não por identidade de tenant do chamador. Falta a ADR formal da plataforma, que este produto se oferece a ancorar em código (ADR-0008 do secco-intranet) | [#4](https://github.com/rafsecco/secco-platform/issues/4) |
 | Listar os grupos do diretório federado (Entra ID) de um tenant | A Área administrativa quer que o admin escolha, entre os grupos do diretório, quais viram perfis, em vez de recriá-los à mão. O SecureGate federa só a autenticação e não lê grupos; a Intranet não deve falar com o diretório sozinha (ADR-0006) | [#27](https://github.com/rafsecco/secco-platform/issues/27) |
 | Sincronizar grupos do diretório com perfis (mapeamento explícito, opt-in) | Manter quem pertence a cada perfil a partir do diretório, sem atribuir usuário por usuário. Exige uma ADR nova na plataforma, porque a ADR-0026 estabelece que o AD nunca concede acesso | [#28](https://github.com/rafsecco/secco-platform/issues/28) |
+| SDK de tratamento de imagem enviada por usuário (recorte, redução, sem metadados) | A foto do diretório organizacional precisa dela. O diretório inteiro sai sem foto (avatar por iniciais) e o upload é a última etapa, ligada à SDK por uma porta; por decisão do dono do produto, biblioteca reutilizável nasce na plataforma | [#29](https://github.com/rafsecco/secco-platform/issues/29) |
 
 ## Atendidas
 
