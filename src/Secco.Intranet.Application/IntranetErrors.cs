@@ -156,4 +156,82 @@ public static class IntranetErrors
 		public static readonly Error UsuarioRequired =
 			Error.Validation("Intranet.Inventario.UsuarioRequired", "Escolha um usuário para atribuir o item.");
 	}
+
+	/// <summary>Erros da gestão de acesso (perfis e usuários).</summary>
+	public static class Acesso
+	{
+		/// <summary>SecureGate não configurado neste ambiente.</summary>
+		public static readonly Error NaoConfigurado =
+			Error.Unavailable(
+				"Intranet.Acesso.NaoConfigurado",
+				"O SecureGate não está configurado neste ambiente, então a gestão de acesso não está disponível.");
+
+		/// <summary>SecureGate fora do ar, lento ou recusando — sem detalhe interno (ADR-0020).</summary>
+		public static readonly Error Indisponivel =
+			Error.Unavailable(
+				"Intranet.Acesso.Indisponivel",
+				"Não foi possível falar com o SecureGate agora. Tente novamente em instantes.");
+
+		/// <summary>Perfil não informado.</summary>
+		public static readonly Error PerfilRequired =
+			Error.Validation("Intranet.Acesso.PerfilRequired", "Informe o perfil.");
+
+		/// <summary>Nome fora da regra da plataforma.</summary>
+		public static readonly Error PerfilNomeInvalido =
+			Error.Validation(
+				"Intranet.Acesso.PerfilNomeInvalido",
+				"O nome do perfil aceita letras, dígitos, ponto, sublinhado e hífen, sem espaços, com até 100 caracteres.");
+
+		/// <summary>Perfil inexistente no tenant.</summary>
+		public static readonly Error PerfilNaoEncontrado =
+			Error.NotFound("Intranet.Acesso.PerfilNaoEncontrado", "Perfil não encontrado.");
+
+		/// <summary>Usuário inexistente no tenant.</summary>
+		public static readonly Error UsuarioNaoEncontrado =
+			Error.NotFound("Intranet.Acesso.UsuarioNaoEncontrado", "Usuário não encontrado.");
+
+		/// <summary>Já existe um perfil com esse nome.</summary>
+		public static readonly Error PerfilJaExiste =
+			Error.Conflict("Intranet.Acesso.PerfilJaExiste", "Já existe um perfil com esse nome.");
+
+		/// <summary>Perfil reservado da plataforma.</summary>
+		public static readonly Error PerfilReservado =
+			Error.Validation(
+				"Intranet.Acesso.PerfilReservado",
+				"Perfis reservados da plataforma não podem ser criados nem atribuídos por aqui.");
+
+		/// <summary>Perfil do produto ou de setor não se exclui.</summary>
+		public static readonly Error PerfilProtegido =
+			Error.Validation(
+				"Intranet.Acesso.PerfilProtegido",
+				"Este perfil é do produto ou de um setor e não pode ser excluído. Para tirar um setor de uso, desative o setor.");
+
+		/// <summary>Perfil com membros não se exclui.</summary>
+		public static readonly Error PerfilComMembros =
+			Error.Conflict("Intranet.Acesso.PerfilComMembros", "O perfil ainda tem membros. Retire todos antes de excluir.");
+
+		/// <summary>Deixaria a instalação sem <c>intranet-admin</c> ativo.</summary>
+		public static readonly Error UltimoIntranetAdmin =
+			Error.Validation(
+				"Intranet.Acesso.UltimoIntranetAdmin",
+				"Este é o último intranet-admin ativo. Atribua o perfil a outra pessoa antes.");
+
+		/// <summary>O admin tentou retirar o próprio <c>intranet-admin</c>.</summary>
+		public static readonly Error AutoRemocaoDeIntranetAdmin =
+			Error.Validation(
+				"Intranet.Acesso.AutoRemocaoDeIntranetAdmin",
+				"Você não pode retirar o seu próprio perfil intranet-admin. Peça a outro intranet-admin.");
+
+		/// <summary>O admin tentou desativar a própria conta.</summary>
+		public static readonly Error AutoDesativacao =
+			Error.Validation(
+				"Intranet.Acesso.AutoDesativacao",
+				"Você não pode desativar a sua própria conta.");
+
+		/// <summary>A plataforma recusou a desativação (ex.: último operador da instalação).</summary>
+		public static readonly Error DesativacaoRecusada =
+			Error.Conflict(
+				"Intranet.Acesso.DesativacaoRecusada",
+				"A plataforma recusou a desativação (por exemplo, o último operador da instalação).");
+	}
 }

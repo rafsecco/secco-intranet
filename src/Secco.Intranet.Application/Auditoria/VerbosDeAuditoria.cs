@@ -44,6 +44,27 @@ public static class VerbosDeAuditoria
 
 	/// <summary>Item baixado.</summary>
 	public const string InventarioBaixar = "inventario.baixar";
+
+	/// <summary>Perfil criado no SecureGate.</summary>
+	public const string AcessoPerfilCriar = "acesso.perfil-criar";
+
+	/// <summary>Perfil excluído.</summary>
+	public const string AcessoPerfilExcluir = "acesso.perfil-excluir";
+
+	/// <summary>Perfil atribuído a um usuário.</summary>
+	public const string AcessoPerfilAtribuir = "acesso.perfil-atribuir";
+
+	/// <summary>Perfil retirado de um usuário.</summary>
+	public const string AcessoPerfilRetirar = "acesso.perfil-retirar";
+
+	/// <summary>Conta de usuário desativada.</summary>
+	public const string AcessoUsuarioDesativar = "acesso.usuario-desativar";
+
+	/// <summary>Conta de usuário reativada.</summary>
+	public const string AcessoUsuarioReativar = "acesso.usuario-reativar";
+
+	/// <summary>Sessões de um usuário encerradas.</summary>
+	public const string AcessoSessoesEncerrar = "acesso.sessoes-encerrar";
 }
 
 /// <summary>Tipos de recurso da trilha.</summary>
@@ -60,4 +81,7 @@ public static class RecursosDeAuditoria
 
 	/// <summary>Item de inventário.</summary>
 	public const string Inventario = "inventario";
+
+	/// <summary>Perfil ou usuário do SecureGate, na gestão de acesso.</summary>
+	public const string Acesso = "acesso";
 }
