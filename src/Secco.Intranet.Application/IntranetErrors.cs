@@ -241,5 +241,39 @@ public static class IntranetErrors
 		/// <summary>Usuário inexistente ou desativado — não aparece no diretório.</summary>
 		public static readonly Error PessoaNaoEncontrada =
 			Error.NotFound("Intranet.Diretorio.PessoaNaoEncontrada", "Pessoa não encontrada.");
+
+		/// <summary>Nome acima do limite.</summary>
+		public static Error NomeTooLong(int limite) =>
+			Error.Validation("Intranet.Diretorio.NomeTooLong", $"O nome excede o limite de {limite} caracteres.");
+
+		/// <summary>Cargo acima do limite.</summary>
+		public static Error CargoTooLong(int limite) =>
+			Error.Validation("Intranet.Diretorio.CargoTooLong", $"O cargo excede o limite de {limite} caracteres.");
+
+		/// <summary>Ramal acima do limite.</summary>
+		public static Error RamalTooLong(int limite) =>
+			Error.Validation("Intranet.Diretorio.RamalTooLong", $"O ramal excede o limite de {limite} caracteres.");
+
+		/// <summary>Texto "sobre" acima do limite.</summary>
+		public static Error SobreTooLong(int limite) =>
+			Error.Validation("Intranet.Diretorio.SobreTooLong", $"O texto \"sobre\" excede o limite de {limite} caracteres.");
+
+		/// <summary>Setor inexistente, ou inativo para uma lotação nova.</summary>
+		public static readonly Error SetorInvalido =
+			Error.Validation("Intranet.Diretorio.SetorInvalido", "Escolha um setor existente e ativo.");
+
+		/// <summary>Gestor que não é um usuário ativo do tenant.</summary>
+		public static readonly Error GestorInvalido =
+			Error.Validation("Intranet.Diretorio.GestorInvalido", "O gestor precisa ser um usuário ativo.");
+
+		/// <summary>Autogestor.</summary>
+		public static readonly Error GestorEhOProprio =
+			Error.Validation("Intranet.Diretorio.GestorEhOProprio", "Ninguém pode ser gestor de si mesmo.");
+
+		/// <summary>A escolha fecharia um ciclo de gestão.</summary>
+		public static readonly Error GestorCriariaCiclo =
+			Error.Validation(
+				"Intranet.Diretorio.GestorCriariaCiclo",
+				"Essa escolha faria a pessoa reportar, direta ou indiretamente, a si mesma.");
 	}
 }

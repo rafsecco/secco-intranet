@@ -58,6 +58,8 @@ public static class IntranetApplicationExtensions
 
 		services.AddScoped<ListarPessoasHandler>();
 		services.AddScoped<ObterPessoaHandler>();
+		services.AddScoped<EditarContatoHandler>();
+		services.AddScoped<EditarDadosFuncionaisHandler>();
 
 		return services;
 	}

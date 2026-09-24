@@ -65,6 +65,15 @@ public static class VerbosDeAuditoria
 
 	/// <summary>Sessões de um usuário encerradas.</summary>
 	public const string AcessoSessoesEncerrar = "acesso.sessoes-encerrar";
+
+	/// <summary>Contato (nome, ramal, sobre) alterado.</summary>
+	public const string DiretorioPerfilEditar = "diretorio.perfil-editar";
+
+	/// <summary>Dados funcionais (cargo, setor, gestor) alterados.</summary>
+	public const string DiretorioDadosFuncionaisEditar = "diretorio.dados-funcionais-editar";
+
+	/// <summary>Importação CSV aplicada.</summary>
+	public const string DiretorioImportar = "diretorio.importar";
 }
 
 /// <summary>Tipos de recurso da trilha.</summary>
@@ -84,4 +93,7 @@ public static class RecursosDeAuditoria
 
 	/// <summary>Perfil ou usuário do SecureGate, na gestão de acesso.</summary>
 	public const string Acesso = "acesso";
+
+	/// <summary>Perfil de colaborador no Diretório.</summary>
+	public const string Diretorio = "diretorio";
 }
