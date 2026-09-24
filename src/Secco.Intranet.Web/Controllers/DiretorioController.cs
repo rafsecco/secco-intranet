@@ -4,6 +4,7 @@ using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Models.Acesso;
 using Secco.Intranet.Web.Models.Diretorio;
 using Secco.Intranet.Web.Navigation;
+using Secco.Intranet.Web.ViewComponents;
 using Secco.SharedKernel.Results;
 
 namespace Secco.Intranet.Web.Controllers;
@@ -16,11 +17,17 @@ namespace Secco.Intranet.Web.Controllers;
 /// </summary>
 /// <param name="listarPessoas">Grade de pessoas.</param>
 /// <param name="obterPessoa">Detalhe de uma pessoa.</param>
+/// <param name="obterPessoaParaEdicao">Dados do formulário de edição completa.</param>
+/// <param name="editarContato">Edição do contato.</param>
+/// <param name="editarDadosFuncionais">Edição de cargo, setor e gestor.</param>
 [Route("diretorio")]
 [ExigeNivelNoDiretorio(NivelDeAcessoAoDiretorio.Usuario)]
 public sealed class DiretorioController(
 	ListarPessoasHandler listarPessoas,
-	ObterPessoaHandler obterPessoa) : Controller
+	ObterPessoaHandler obterPessoa,
+	ObterPessoaParaEdicaoHandler obterPessoaParaEdicao,
+	EditarContatoHandler editarContato,
+	EditarDadosFuncionaisHandler editarDadosFuncionais) : Controller
 {
 	/// <summary>Grade de pessoas com busca e filtro por setor.</summary>
 	/// <param name="busca">Trecho de nome, cargo, setor ou e-mail.</param>
@@ -50,20 +57,146 @@ public sealed class DiretorioController(
 			return Falha(resultado.Error);
 		}
 
-		var ehOProprio = AcessoAoDiretorio.UsuarioId(User) == id;
-		var ehAdmin = AcessoAoDiretorio.TemNivel(User, NivelDeAcessoAoDiretorio.Administrador);
-		var editarUrl = ehAdmin ? $"/diretorio/{id}/editar" : ehOProprio ? "/diretorio/perfil" : null;
+		string? editarUrl = null;
+
+		if (AcessoAoDiretorio.TemNivel(User, NivelDeAcessoAoDiretorio.Administrador))
+		{
+			editarUrl = $"/diretorio/{id}/editar";
+		}
+		else if (AcessoAoDiretorio.UsuarioId(User) == id)
+		{
+			editarUrl = "/diretorio/perfil";
+		}
 
 		return View(new PessoaViewModel(resultado.Value, editarUrl is not null, editarUrl));
 	}
 
-	/// <summary>"Meu perfil": por ora leva à própria página; a etapa de edição o transforma no formulário.</summary>
+	/// <summary>"Meu perfil": o formulário de contato de quem está logado.</summary>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
 	[HttpGet("perfil")]
-	public IActionResult Perfil()
+	public async Task<IActionResult> Perfil(CancellationToken cancellationToken = default)
 	{
 		var id = AcessoAoDiretorio.UsuarioId(User);
 
-		return id is null ? View("SemUsuario") : RedirectToAction(nameof(Pessoa), new { id });
+		if (id is null)
+		{
+			return View("SemUsuario");
+		}
+
+		var resultado = await obterPessoa.HandleAsync(id.Value, cancellationToken);
+
+		if (resultado.IsFailure)
+		{
+			return Falha(resultado.Error);
+		}
+
+		var pessoa = resultado.Value.Pessoa;
+
+		return View(new MeuPerfilViewModel(pessoa, new EditarContatoForm { Nome = pessoa.TemPerfil ? pessoa.Nome : null, Ramal = pessoa.Ramal, Sobre = pessoa.Sobre }));
+	}
+
+	/// <summary>
+	/// Salva o contato de quem está logado. O id vem <b>sempre</b> do claim <c>sub</c>, nunca do
+	/// formulário, e o modelo só declara contato: cargo, setor e gestor forjados não têm onde entrar.
+	/// </summary>
+	/// <param name="form">Contato.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost("perfil")]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> Perfil(EditarContatoForm form, CancellationToken cancellationToken = default)
+	{
+		ArgumentNullException.ThrowIfNull(form);
+
+		var id = AcessoAoDiretorio.UsuarioId(User);
+
+		if (id is null)
+		{
+			return View("SemUsuario");
+		}
+
+		if (ModelState.IsValid)
+		{
+			var salvo = await editarContato.HandleAsync(new EditarContatoCommand(id.Value, form.Nome, form.Ramal, form.Sobre), cancellationToken);
+
+			if (salvo.IsSuccess)
+			{
+				TempData[FeedbackViewComponent.ChaveDaMensagem] = "Perfil atualizado.";
+
+				return RedirectToAction(nameof(Perfil));
+			}
+
+			ModelState.AddModelError(string.Empty, salvo.Error.Description);
+		}
+
+		var atual = await obterPessoa.HandleAsync(id.Value, cancellationToken);
+
+		return atual.IsFailure ? Falha(atual.Error) : View(new MeuPerfilViewModel(atual.Value.Pessoa, form));
+	}
+
+	/// <summary>Edição completa de uma pessoa pelo admin do diretório.</summary>
+	/// <param name="id">Pessoa a editar.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpGet("{id:guid}/editar")]
+	[ExigeNivelNoDiretorio(NivelDeAcessoAoDiretorio.Administrador)]
+	public async Task<IActionResult> Editar(Guid id, CancellationToken cancellationToken = default)
+	{
+		var resultado = await obterPessoaParaEdicao.HandleAsync(id, cancellationToken);
+
+		if (resultado.IsFailure)
+		{
+			return Falha(resultado.Error);
+		}
+
+		var pessoa = resultado.Value.Pessoa;
+
+		return View(new EditarPessoaViewModel(
+			resultado.Value,
+			new EditarPessoaForm
+			{
+				Nome = pessoa.TemPerfil ? pessoa.Nome : null,
+				Ramal = pessoa.Ramal,
+				Sobre = pessoa.Sobre,
+				Cargo = pessoa.Cargo,
+				SetorId = pessoa.SetorId,
+				GestorUsuarioId = pessoa.GestorUsuarioId,
+			}));
+	}
+
+	/// <summary>Salva a edição completa. Dados funcionais primeiro (têm as regras); só se passarem, o contato.</summary>
+	/// <param name="id">Pessoa a editar.</param>
+	/// <param name="form">Contato e dados funcionais.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost("{id:guid}/editar")]
+	[ExigeNivelNoDiretorio(NivelDeAcessoAoDiretorio.Administrador)]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> Editar(Guid id, EditarPessoaForm form, CancellationToken cancellationToken = default)
+	{
+		ArgumentNullException.ThrowIfNull(form);
+
+		if (ModelState.IsValid)
+		{
+			var funcionais = await editarDadosFuncionais.HandleAsync(
+				new EditarDadosFuncionaisCommand(id, form.Cargo, form.SetorId, form.GestorUsuarioId), cancellationToken);
+
+			var resultado = funcionais.IsFailure
+				? funcionais
+				: await editarContato.HandleAsync(new EditarContatoCommand(id, form.Nome, form.Ramal, form.Sobre), cancellationToken);
+
+			if (resultado.IsSuccess)
+			{
+				TempData[FeedbackViewComponent.ChaveDaMensagem] = "Dados atualizados.";
+
+				return RedirectToAction(nameof(Pessoa), new { id });
+			}
+
+			// A resposta é a própria página (sem redirect), então o erro vai no ModelState e a view o
+			// mostra no resumo de validação; TempData só apareceria no clique seguinte.
+			ModelState.AddModelError(string.Empty, resultado.Error.Description);
+		}
+
+		var dados = await obterPessoaParaEdicao.HandleAsync(id, cancellationToken);
+
+		return dados.IsFailure ? Falha(dados.Error) : View(new EditarPessoaViewModel(dados.Value, form));
 	}
 
 	/// <summary>

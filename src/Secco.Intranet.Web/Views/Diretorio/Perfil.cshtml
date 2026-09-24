@@ -1,0 +1,43 @@
+@using Secco.Intranet.Web.Models.Diretorio
+@model MeuPerfilViewModel
+@{
+    ViewData["Title"] = "Meu perfil";
+
+    var cabecalho = new PageHeaderModel(
+        "Meu perfil",
+        "Seu contato no diretório. Cargo, setor e gestor são mantidos pelo administrador do diretório.",
+        Acoes: new[] { new PageActionModel("Ver como os outros veem", Url.Action("Pessoa", new { id = Model.Pessoa.UsuarioId })!, "bi-eye") });
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<form method="post" asp-action="Perfil" class="sc-panel">
+    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+    <div class="sc-form__field">
+        <label class="form-label" for="Nome">Nome de exibição</label>
+        <input class="form-control" id="Nome" name="Nome" value="@Model.Form.Nome" maxlength="120" placeholder="@Model.Pessoa.Email" />
+        <div class="form-text">Se ficar em branco, o diretório mostra o seu e-mail.</div>
+    </div>
+
+    <div class="sc-form__field">
+        <label class="form-label" for="Ramal">Ramal</label>
+        <input class="form-control" id="Ramal" name="Ramal" value="@Model.Form.Ramal" maxlength="20" />
+    </div>
+
+    <div class="sc-form__field">
+        <label class="form-label" for="Sobre">Sobre você</label>
+        <textarea class="form-control" id="Sobre" name="Sobre" rows="4" maxlength="500">@Model.Form.Sobre</textarea>
+    </div>
+
+    <dl class="row mb-3">
+        <dt class="col-sm-3">E-mail</dt>
+        <dd class="col-sm-9"><span class="sc-meta">@Model.Pessoa.Email</span></dd>
+        <dt class="col-sm-3">Cargo</dt>
+        <dd class="col-sm-9">@(Model.Pessoa.Cargo ?? "—")</dd>
+        <dt class="col-sm-3">Setor</dt>
+        <dd class="col-sm-9 mb-0">@(Model.Pessoa.SetorNome ?? "—")</dd>
+    </dl>
+
+    <button class="btn btn-primary" type="submit">Salvar</button>
+</form>

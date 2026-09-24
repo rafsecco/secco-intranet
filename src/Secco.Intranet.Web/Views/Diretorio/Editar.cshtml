@@ -1,0 +1,71 @@
+@using Secco.Intranet.Web.Models.Diretorio
+@model EditarPessoaViewModel
+@{
+    var pessoa = Model.Dados.Pessoa;
+
+    ViewData["Title"] = $"Editar {pessoa.Nome}";
+
+    var cabecalho = new PageHeaderModel(
+        $"Editar {pessoa.Nome}",
+        pessoa.Email,
+        Acoes: new[] { new PageActionModel("Voltar", Url.Action("Pessoa", new { id = pessoa.UsuarioId })!, "bi-arrow-left") });
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<form method="post" asp-action="Editar" asp-route-id="@pessoa.UsuarioId" class="sc-panel">
+    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+    <h2 class="h6">Contato</h2>
+
+    <div class="sc-form__field">
+        <label class="form-label" for="Nome">Nome de exibição</label>
+        <input class="form-control" id="Nome" name="Nome" value="@Model.Form.Nome" maxlength="120" placeholder="@pessoa.Email" />
+    </div>
+
+    <div class="sc-form__field">
+        <label class="form-label" for="Ramal">Ramal</label>
+        <input class="form-control" id="Ramal" name="Ramal" value="@Model.Form.Ramal" maxlength="20" />
+    </div>
+
+    <div class="sc-form__field">
+        <label class="form-label" for="Sobre">Sobre</label>
+        <textarea class="form-control" id="Sobre" name="Sobre" rows="3" maxlength="500">@Model.Form.Sobre</textarea>
+    </div>
+
+    <h2 class="h6 mt-4">Dados funcionais</h2>
+
+    <div class="sc-form__field">
+        <label class="form-label" for="Cargo">Cargo</label>
+        <input class="form-control" id="Cargo" name="Cargo" value="@Model.Form.Cargo" maxlength="120" />
+    </div>
+
+    <div class="sc-form__field">
+        <label class="form-label" for="SetorId">Setor de lotação</label>
+        <select class="form-select" id="SetorId" name="SetorId">
+            <option value="">Sem setor</option>
+            @foreach (var setor in Model.Dados.SetoresAtivos)
+            {
+                <option value="@setor.Id" selected="@(setor.Id == Model.Form.SetorId)">@setor.Nome</option>
+            }
+            @if (Model.Form.SetorId is { } atual && Model.Dados.SetoresAtivos.All(setor => setor.Id != atual))
+            {
+                <option value="@atual" selected>@(pessoa.SetorNome ?? "Setor desativado") (desativado)</option>
+            }
+        </select>
+    </div>
+
+    <div class="sc-form__field">
+        <label class="form-label" for="GestorUsuarioId">Reporta a</label>
+        <select class="form-select" id="GestorUsuarioId" name="GestorUsuarioId">
+            <option value="">Ninguém</option>
+            @foreach (var gestor in Model.Dados.GestoresPossiveis)
+            {
+                <option value="@gestor.UsuarioId" selected="@(gestor.UsuarioId == Model.Form.GestorUsuarioId)">@gestor.Nome</option>
+            }
+        </select>
+        <div class="form-text">Não é possível criar um ciclo (A reporta a B e B reporta a A).</div>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Salvar</button>
+</form>

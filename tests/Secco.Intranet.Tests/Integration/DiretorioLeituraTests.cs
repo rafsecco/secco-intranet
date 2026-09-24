@@ -143,14 +143,15 @@ public class DiretorioLeituraTests(IntranetWebFactory factory) : IClassFixture<I
 	}
 
 	[Fact]
-	public async Task MeuPerfil_LevaParaAPaginaDaPropriaPessoa()
+	public async Task MeuPerfil_AbreOFormularioDeContatoDaPropriaPessoa()
 	{
 		var client = CriarCliente(new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com"), Ana, "diretorio-user");
 
 		var resposta = await client.GetAsync("/diretorio/perfil");
 
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be($"/diretorio/{Ana}");
+		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be("/diretorio/perfil");
+		Decodificar(await resposta.Content.ReadAsStringAsync()).Should().Contain("ana@x.com");
 	}
 
 	[Fact]

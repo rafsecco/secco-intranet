@@ -2633,14 +2633,15 @@ public class DiretorioLeituraTests(IntranetWebFactory factory) : IClassFixture<I
 	}
 
 	[Fact]
-	public async Task MeuPerfil_LevaParaAPaginaDaPropriaPessoa()
+	public async Task MeuPerfil_AbreOFormularioDeContatoDaPropriaPessoa()
 	{
 		var client = CriarCliente(new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com"), Ana, "diretorio-user");
 
 		var resposta = await client.GetAsync("/diretorio/perfil");
 
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be($"/diretorio/{Ana}");
+		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be("/diretorio/perfil");
+		Decodificar(await resposta.Content.ReadAsStringAsync()).Should().Contain("ana@x.com");
 	}
 
 	[Fact]
@@ -2822,9 +2823,16 @@ public sealed class DiretorioController(
 			return Falha(resultado.Error);
 		}
 
-		var ehOProprio = AcessoAoDiretorio.UsuarioId(User) == id;
-		var ehAdmin = AcessoAoDiretorio.TemNivel(User, NivelDeAcessoAoDiretorio.Administrador);
-		var editarUrl = ehAdmin ? $"/diretorio/{id}/editar" : ehOProprio ? "/diretorio/perfil" : null;
+		string? editarUrl = null;
+
+		if (AcessoAoDiretorio.TemNivel(User, NivelDeAcessoAoDiretorio.Administrador))
+		{
+			editarUrl = $"/diretorio/{id}/editar";
+		}
+		else if (AcessoAoDiretorio.UsuarioId(User) == id)
+		{
+			editarUrl = "/diretorio/perfil";
+		}
 
 		return View(new PessoaViewModel(resultado.Value, editarUrl is not null, editarUrl));
 	}
@@ -4188,7 +4196,7 @@ public class DiretorioEdicaoTests(IntranetWebFactory factory) : IClassFixture<In
 	}
 
 	[Fact]
-	public async Task Meu_perfil_UsuarioNaoEstaEntreOsAtivos_MostraErro_SemQuebrar()
+	public async Task Meu_perfil_UsuarioNaoEstaEntreOsAtivos_404_SemQuebrar()
 	{
 		var eu = Guid.NewGuid();
 		var usuarios = new UsuariosParaDiretorioFalso().Com(eu, "eu@x.com");
@@ -4198,8 +4206,7 @@ public class DiretorioEdicaoTests(IntranetWebFactory factory) : IClassFixture<In
 
 		var resposta = await client.PostAsync("/diretorio/perfil", Form(("Nome", "Eva"), ("__RequestVerificationToken", token)));
 
-		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-		Decodificar(await resposta.Content.ReadAsStringAsync()).Should().Contain("Pessoa não encontrada");
+		resposta.StatusCode.Should().Be(HttpStatusCode.NotFound, "quem deixou de ser um usuário ativo não tem perfil — igual ao GET");
 	}
 
 	[Fact]

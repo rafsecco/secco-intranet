@@ -60,6 +60,7 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ObterPessoaHandler>();
 		services.AddScoped<EditarContatoHandler>();
 		services.AddScoped<EditarDadosFuncionaisHandler>();
+		services.AddScoped<ObterPessoaParaEdicaoHandler>();
 
 		return services;
 	}
