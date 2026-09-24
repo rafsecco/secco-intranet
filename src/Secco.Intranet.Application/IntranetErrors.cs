@@ -275,5 +275,9 @@ public static class IntranetErrors
 			Error.Validation(
 				"Intranet.Diretorio.GestorCriariaCiclo",
 				"Essa escolha faria a pessoa reportar, direta ou indiretamente, a si mesma.");
+
+		/// <summary>Arquivo CSV que não dá para ler (vazio, grande demais, cabeçalho inválido...).</summary>
+		public static Error CsvInvalido(string motivo) =>
+			Error.Validation("Intranet.Diretorio.CsvInvalido", $"Não foi possível ler o arquivo: {motivo}");
 	}
 }
