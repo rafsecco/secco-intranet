@@ -22,6 +22,69 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Secco.Intranet.Domain.Diretorio.PerfilColaborador", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id_pk_perfil_colaborador");
+
+                    b.Property<string>("Cargo")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)")
+                        .HasColumnName("ds_cargo");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("dt_created_at");
+
+                    b.Property<Guid?>("GestorUsuarioId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("gestor_usuario_id");
+
+                    b.Property<string>("NomeExibicao")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)")
+                        .HasColumnName("ds_nome_exibicao");
+
+                    b.Property<string>("Ramal")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("ds_ramal");
+
+                    b.Property<Guid?>("SetorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id_fk_setor");
+
+                    b.Property<string>("Sobre")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("ds_sobre");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("dt_updated_at");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_perfis_colaboradores");
+
+                    b.HasIndex("GestorUsuarioId")
+                        .HasDatabaseName("idx_perfis_colaboradores_gestor_usuario_id");
+
+                    b.HasIndex("SetorId")
+                        .HasDatabaseName("idx_perfis_colaboradores_id_fk_setor");
+
+                    b.HasIndex("UsuarioId")
+                        .IsUnique()
+                        .HasDatabaseName("uk_perfis_colaboradores_usuario_id");
+
+                    b.ToTable("tb_perfis_colaboradores");
+                });
+
             modelBuilder.Entity("Secco.Intranet.Domain.Documentos.Documento", b =>
                 {
                     b.Property<Guid>("Id")
@@ -291,6 +354,15 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
                         .HasDatabaseName("uk_setores_ds_slug");
 
                     b.ToTable("tb_setores");
+                });
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Diretorio.PerfilColaborador", b =>
+                {
+                    b.HasOne("Secco.Intranet.Domain.Setores.Setor", null)
+                        .WithMany()
+                        .HasForeignKey("SetorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_perfis_colaboradores_setor");
                 });
 
             modelBuilder.Entity("Secco.Intranet.Domain.Documentos.Documento", b =>

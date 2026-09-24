@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Secco.Intranet.Domain.Diretorio;
 using Secco.Intranet.Domain.Documentos;
 using Secco.Intranet.Domain.Inventario;
 using Secco.Intranet.Domain.Publicacoes;
@@ -26,6 +27,9 @@ public sealed class IntranetDbContext(DbContextOptions<IntranetDbContext> option
 
 	/// <summary>Itens de inventário, sem setor dono (tabela <c>tb_itens_inventario</c>).</summary>
 	public DbSet<ItemInventario> ItensInventario => Set<ItemInventario>();
+
+	/// <summary>Perfis complementares de colaborador (tabela <c>tb_perfis_colaboradores</c>).</summary>
+	public DbSet<PerfilColaborador> PerfisColaboradores => Set<PerfilColaborador>();
 
 	/// <inheritdoc />
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
