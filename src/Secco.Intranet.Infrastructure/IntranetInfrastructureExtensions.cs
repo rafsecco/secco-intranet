@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Secco.Intranet.Application;
+using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Inventario;
@@ -127,6 +128,8 @@ public static class IntranetInfrastructureExtensions
 				: ActivatorUtilities.CreateInstance<DiretorioVazio>(serviceProvider);
 		});
 
+		services.AddScoped(CriarGestaoDeAcesso);
+
 		services.AddScoped<INotificadorDeMensagens>(serviceProvider =>
 			string.IsNullOrWhiteSpace(serviceProvider.GetRequiredService<NotificacaoOptions>().HubUrl)
 				? ActivatorUtilities.CreateInstance<NotificadorSilencioso>(serviceProvider)
@@ -181,6 +184,19 @@ public static class IntranetInfrastructureExtensions
 			await using var context = new IntranetDbContext(options);
 			await context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
 		}
+	}
+
+	/// <summary>
+	/// Escolhe o adapter da gestão de acesso pela mesma configuração do client administrativo:
+	/// com <c>Secco:SecureGate</c> presente, o real; sem ela, o que responde "não configurado".
+	/// </summary>
+	private static IGestaoDeAcesso CriarGestaoDeAcesso(IServiceProvider serviceProvider)
+	{
+		var credenciais = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();
+
+		return credenciais.IsConfigured
+			? ActivatorUtilities.CreateInstance<SecureGateGestaoDeAcesso>(serviceProvider)
+			: ActivatorUtilities.CreateInstance<GestaoDeAcessoIndisponivel>(serviceProvider);
 	}
 
 	private static TOptions BindSection<TOptions>(IServiceProvider serviceProvider, string sectionKey, TOptions options)
