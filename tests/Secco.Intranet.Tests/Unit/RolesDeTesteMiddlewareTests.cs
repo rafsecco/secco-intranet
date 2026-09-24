@@ -32,4 +32,18 @@ public class RolesDeTesteMiddlewareTests
 		context.User.FindAll(SeccoClaims.Role).Select(c => c.Value)
 			.Should().BeEquivalentTo(["intranet-admin", "inventario-admin"]);
 	}
+
+	[Fact]
+	public async Task ComHeaderDeUsuario_DefineOClaimSub()
+	{
+		var id = Guid.NewGuid();
+		var context = new DefaultHttpContext();
+		context.Request.Headers[RolesDeTesteMiddleware.HeaderUsuario] = id.ToString();
+		var middleware = new RolesDeTesteMiddleware(_ => Task.CompletedTask);
+
+		await middleware.InvokeAsync(context);
+
+		context.User.FindFirst(SeccoClaims.Subject)!.Value.Should().Be(id.ToString());
+		context.User.FindAll(SeccoClaims.Role).Should().BeEmpty();
+	}
 }

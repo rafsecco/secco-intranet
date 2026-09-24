@@ -10,6 +10,8 @@ public class ClassificacaoDePerfilTests
 	[InlineData("intranet-admin", TipoDePerfil.Produto)]
 	[InlineData("Intranet-Admin", TipoDePerfil.Produto)]
 	[InlineData("inventario-admin", TipoDePerfil.Produto)]
+	[InlineData("diretorio-admin", TipoDePerfil.Produto)]
+	[InlineData("diretorio-user", TipoDePerfil.Produto)]
 	[InlineData("financeiro-admin", TipoDePerfil.Setor)]
 	[InlineData("financeiro-user", TipoDePerfil.Setor)]
 	[InlineData("gerente-de-compras", TipoDePerfil.Comum)]
@@ -53,6 +55,7 @@ public class ClassificacaoDePerfilTests
 	[Theory]
 	[InlineData("gerente-de-compras")]
 	[InlineData("intranet-admin")]
+	[InlineData("diretorio-user")]
 	[InlineData("-user")]
 	public void DoSetor_NaoEDeSetor_Nulo(string nome)
 	{

@@ -5,12 +5,11 @@ using Secco.SharedKernel.Constants;
 namespace Secco.Intranet.Tests.Integration.TestAuthentication;
 
 /// <summary>
-/// Simula um usuário autenticado com roles específicas, lendo o header <see cref="Header"/>.
-/// Existe só nos testes: o pipeline real nunca registra autenticação no ambiente
-/// <c>Testing</c> (ver <c>IntranetWebFactory</c>), então esta é a única forma de exercitar
-/// autorização por role através do host HTTP real. Sem o header, não faz nada — o
-/// <c>ClaimsPrincipal</c> anônimo padrão segue intacto, e os testes que não usam isto
-/// continuam se comportando exatamente como hoje.
+/// Simula um usuário autenticado, lendo os headers <see cref="Header"/> (roles separadas por
+/// vírgula) e <see cref="HeaderUsuario"/> (o claim <c>sub</c>, um Guid). Existe só nos testes: o
+/// pipeline real nunca registra autenticação no ambiente <c>Testing</c> (ver
+/// <c>IntranetWebFactory</c>), então esta é a única forma de exercitar autorização por role — e
+/// "quem sou eu" — através do host HTTP real. Sem nenhum dos dois headers não faz nada.
 /// </summary>
 /// <param name="next">Próximo middleware do pipeline.</param>
 public sealed class RolesDeTesteMiddleware(RequestDelegate next)
@@ -18,16 +17,30 @@ public sealed class RolesDeTesteMiddleware(RequestDelegate next)
 	/// <summary>Header lido: roles separadas por vírgula.</summary>
 	public const string Header = "X-Test-Roles";
 
+	/// <summary>Header lido: id do usuário (claim <c>sub</c>).</summary>
+	public const string HeaderUsuario = "X-Test-User";
+
 	/// <summary>Processa a requisição.</summary>
 	/// <param name="context">Contexto HTTP da requisição atual.</param>
 	public async Task InvokeAsync(HttpContext context)
 	{
-		var valor = context.Request.Headers[Header].ToString();
+		var valorRoles = context.Request.Headers[Header].ToString();
+		var valorUsuario = context.Request.Headers[HeaderUsuario].ToString();
 
-		if (!string.IsNullOrWhiteSpace(valor))
+		if (!string.IsNullOrWhiteSpace(valorRoles) || !string.IsNullOrWhiteSpace(valorUsuario))
 		{
-			var roles = valor.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-			var claims = roles.Select(role => new Claim(SeccoClaims.Role, role));
+			var claims = new List<Claim>();
+
+			foreach (var role in valorRoles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+			{
+				claims.Add(new Claim(SeccoClaims.Role, role));
+			}
+
+			if (!string.IsNullOrWhiteSpace(valorUsuario))
+			{
+				claims.Add(new Claim(SeccoClaims.Subject, valorUsuario.Trim()));
+			}
+
 			context.User = new ClaimsPrincipal(new ClaimsIdentity(claims, authenticationType: "Teste"));
 		}
 

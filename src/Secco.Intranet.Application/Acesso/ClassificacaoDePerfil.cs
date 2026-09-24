@@ -14,6 +14,12 @@ public static partial class ClassificacaoDePerfil
 	/// <summary>Administrador do Inventário.</summary>
 	public const string InventarioAdmin = "inventario-admin";
 
+	/// <summary>Administrador do Diretório organizacional.</summary>
+	public const string DiretorioAdmin = "diretorio-admin";
+
+	/// <summary>Usuário do Diretório organizacional (ver e editar o próprio contato).</summary>
+	public const string DiretorioUsuario = "diretorio-user";
+
 	/// <summary>Sufixo de Role de administração de setor.</summary>
 	public const string SufixoAdmin = "-admin";
 
@@ -24,7 +30,8 @@ public static partial class ClassificacaoDePerfil
 	public const int TamanhoMaximoDoNome = 100;
 
 	/// <summary>Perfis que o produto conhece e oferece criar quando faltam.</summary>
-	public static readonly IReadOnlyList<string> PerfisDoProduto = [IntranetAdmin, InventarioAdmin];
+	public static readonly IReadOnlyList<string> PerfisDoProduto =
+		[IntranetAdmin, InventarioAdmin, DiretorioAdmin, DiretorioUsuario];
 
 	/// <summary>
 	/// Reservados da plataforma — espelho de <c>RoleInputRules.ReservedNames</c> do SecureGate.
@@ -75,10 +82,15 @@ public static partial class ClassificacaoDePerfil
 
 	/// <summary>Classifica o perfil pelo nome.</summary>
 	/// <param name="nome">Nome do perfil.</param>
-	public static TipoDePerfil Tipo(string nome) =>
-		EhDoProduto(nome) ? TipoDePerfil.Produto
-		: DoSetor(nome) is not null ? TipoDePerfil.Setor
-		: TipoDePerfil.Comum;
+	public static TipoDePerfil Tipo(string nome)
+	{
+		if (EhDoProduto(nome))
+		{
+			return TipoDePerfil.Produto;
+		}
+
+		return DoSetor(nome) is not null ? TipoDePerfil.Setor : TipoDePerfil.Comum;
+	}
 
 	/// <summary>Valida o nome pela regra da plataforma: letras, dígitos, <c>.</c>, <c>_</c> e <c>-</c>, sem espaço.</summary>
 	/// <param name="nome">Nome candidato, já aparado.</param>

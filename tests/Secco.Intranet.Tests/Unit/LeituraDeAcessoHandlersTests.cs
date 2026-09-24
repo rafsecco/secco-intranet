@@ -20,13 +20,14 @@ public class LeituraDeAcessoHandlersTests
 		var resultado = await new ListarPerfisHandler(gestao).HandleAsync();
 
 		resultado.Value.Perfis.Select(p => p.Nome).Should().Equal("a-comum", "intranet-admin", "rh-user");
-		resultado.Value.PerfisDoProdutoFaltando.Should().Equal("inventario-admin");
+		resultado.Value.PerfisDoProdutoFaltando.Should().BeEquivalentTo("inventario-admin", "diretorio-admin", "diretorio-user");
 	}
 
 	[Fact]
 	public async Task ListarPerfis_ProdutoFaltandoIgnoraCaixa()
 	{
-		var gestao = new GestaoDeAcessoFalsa().ComPerfil("Intranet-Admin").ComPerfil("INVENTARIO-ADMIN");
+		var gestao = new GestaoDeAcessoFalsa()
+			.ComPerfil("Intranet-Admin").ComPerfil("INVENTARIO-ADMIN").ComPerfil("Diretorio-Admin").ComPerfil("DIRETORIO-USER");
 
 		var resultado = await new ListarPerfisHandler(gestao).HandleAsync();
 
