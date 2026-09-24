@@ -19,15 +19,23 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="excluirPerfil">Exclusão de perfil.</param>
 /// <param name="atribuirPerfil">Atribuição de perfil a usuário.</param>
 /// <param name="retirarPerfil">Retirada de perfil de usuário.</param>
+/// <param name="obterUsuario">Detalhe de usuário.</param>
+/// <param name="desativarUsuario">Desativação de conta.</param>
+/// <param name="reativarUsuario">Reativação de conta.</param>
+/// <param name="encerrarSessoes">Encerramento de sessões.</param>
 [SomenteIntranetAdmin]
 public sealed class AcessoController(
 	ListarPerfisHandler listarPerfis,
 	ListarUsuariosHandler listarUsuarios,
 	ObterPerfilHandler obterPerfil,
+	ObterUsuarioHandler obterUsuario,
 	CriarPerfilHandler criarPerfil,
 	ExcluirPerfilHandler excluirPerfil,
 	AtribuirPerfilHandler atribuirPerfil,
-	RetirarPerfilHandler retirarPerfil) : Controller
+	RetirarPerfilHandler retirarPerfil,
+	DesativarUsuarioHandler desativarUsuario,
+	ReativarUsuarioHandler reativarUsuario,
+	EncerrarSessoesHandler encerrarSessoes) : Controller
 {
 	/// <summary>Tela inicial, com as abas Perfis e Usuários.</summary>
 	/// <param name="aba"><c>usuarios</c> abre a aba de usuários; qualquer outro valor, a de perfis.</param>
@@ -118,6 +126,74 @@ public sealed class AcessoController(
 
 		return ConcluirComOrigem(resultado, $"Perfil \"{perfil?.Trim()}\" retirado.", origem, usuarioId, perfil);
 	}
+
+	/// <summary>Detalhe de um usuário: perfis por setor, adicionar/retirar, situação e sessões.</summary>
+	/// <param name="id">Identificador do usuário.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpGet]
+	public async Task<IActionResult> Usuario(Guid id, CancellationToken cancellationToken = default)
+	{
+		var tela = await obterUsuario.HandleAsync(id, cancellationToken);
+
+		return tela.IsFailure ? Falha(tela.Error) : View(new UsuarioViewModel(tela.Value));
+	}
+
+	/// <summary>
+	/// Atribui a Role de um setor. Setor e papel chegam separados e o nome do perfil é composto
+	/// aqui — só <c>admin</c> e <c>user</c> são papéis aceitos, então o formulário não consegue
+	/// pedir um perfil arbitrário por esta rota.
+	/// </summary>
+	/// <param name="usuarioId">Usuário que recebe o perfil.</param>
+	/// <param name="setor">Slug do setor.</param>
+	/// <param name="papel"><c>admin</c> ou <c>user</c>.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> AtribuirPerfilDeSetor(Guid usuarioId, string? setor, string? papel, CancellationToken cancellationToken = default)
+	{
+		var sufixo = papel?.Trim().ToLowerInvariant() switch
+		{
+			"admin" => ClassificacaoDePerfil.SufixoAdmin,
+			"user" => ClassificacaoDePerfil.SufixoUsuario,
+			_ => null,
+		};
+
+		if (sufixo is null || string.IsNullOrWhiteSpace(setor))
+		{
+			TempData[FeedbackViewComponent.ChaveDaMensagemDeErro] = "Escolha o setor e o papel.";
+
+			return RedirectToAction(nameof(Usuario), new { id = usuarioId });
+		}
+
+		var perfil = setor.Trim() + sufixo;
+		var resultado = await atribuirPerfil.HandleAsync(new AtribuirPerfilCommand(usuarioId, perfil), cancellationToken);
+
+		return Concluir(resultado, $"Perfil \"{perfil}\" atribuído.", nameof(Usuario), new { id = usuarioId });
+	}
+
+	/// <summary>Desativa a conta de um usuário.</summary>
+	/// <param name="id">Identificador do usuário.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> DesativarUsuario(Guid id, CancellationToken cancellationToken = default) =>
+		Concluir(await desativarUsuario.HandleAsync(id, cancellationToken), "Conta desativada.", nameof(Usuario), new { id });
+
+	/// <summary>Reativa a conta de um usuário.</summary>
+	/// <param name="id">Identificador do usuário.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> ReativarUsuario(Guid id, CancellationToken cancellationToken = default) =>
+		Concluir(await reativarUsuario.HandleAsync(id, cancellationToken), "Conta reativada.", nameof(Usuario), new { id });
+
+	/// <summary>Encerra as sessões de um usuário.</summary>
+	/// <param name="id">Identificador do usuário.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> EncerrarSessoes(Guid id, CancellationToken cancellationToken = default) =>
+		Concluir(await encerrarSessoes.HandleAsync(id, cancellationToken), "Sessões encerradas.", nameof(Usuario), new { id });
 
 	/// <summary>
 	/// Volta para a tela de onde o formulário saiu. <paramref name="origem"/> é só uma escolha entre

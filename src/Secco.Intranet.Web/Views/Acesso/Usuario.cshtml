@@ -1,0 +1,165 @@
+@model UsuarioViewModel
+@{
+    var tela = Model.Tela;
+    var usuario = tela.Usuario;
+    var rotulo = string.IsNullOrWhiteSpace(usuario.Email) ? usuario.Id.ToString() : usuario.Email;
+
+    ViewData["Title"] = rotulo;
+
+    var cabecalho = new PageHeaderModel(
+        rotulo,
+        Acoes: new[] { new PageActionModel("Voltar", Url.Action("Index", new { aba = "usuarios" })!, "bi-arrow-left") });
+
+    var situacao = usuario.Situacao switch
+    {
+        SituacaoDoUsuario.Ativo => new BadgeModel("Ativo", BadgeVariante.Sucesso),
+        SituacaoDoUsuario.Desativado => new BadgeModel("Desativado", BadgeVariante.Perigo),
+        SituacaoDoUsuario.Bloqueado => new BadgeModel("Bloqueado", BadgeVariante.Aviso),
+        _ => new BadgeModel("Desconhecida", BadgeVariante.Neutro),
+    };
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel">
+    <dl class="row mb-0">
+        <dt class="col-sm-3">Situação</dt>
+        <dd class="col-sm-9"><partial name="_Badge" model="situacao" /></dd>
+
+        @if (usuario.BloqueadoAte is { } ate)
+        {
+            <dt class="col-sm-3">Bloqueado até</dt>
+            <dd class="col-sm-9">@ate.ToLocalTime().ToString("g")</dd>
+        }
+
+        <dt class="col-sm-3">Segundo fator</dt>
+        <dd class="col-sm-9">@(usuario.DoisFatoresAtivo ? "Ligado" : "Desligado")</dd>
+
+        <dt class="col-sm-3">Logins externos</dt>
+        <dd class="col-sm-9 mb-0">@(usuario.LoginsExternos.Count == 0 ? "Nenhum" : string.Join(", ", usuario.LoginsExternos))</dd>
+    </dl>
+</div>
+
+<div class="sc-panel mt-3">
+    <h2 class="h6">Perfis de setor</h2>
+
+    @if (tela.Setores.Count == 0)
+    {
+        <p class="text-muted">Nenhum perfil de setor.</p>
+    }
+    else
+    {
+        <ul class="sc-list">
+            @foreach (var setor in tela.Setores)
+            {
+                <li class="sc-list__item">
+                    <div class="sc-list__text">
+                        <p class="sc-list__title">@setor.Slug</p>
+                        <span class="sc-list__sub">
+                            @foreach (var papel in setor.Papeis)
+                            {
+                                var nomeDoPerfil = setor.Slug + (papel == PapelNoSetor.Administrador ? "-admin" : "-user");
+
+                                <form method="post" asp-action="RetirarPerfil" class="d-inline">
+                                    <input type="hidden" name="usuarioId" value="@usuario.Id" />
+                                    <input type="hidden" name="perfil" value="@nomeDoPerfil" />
+                                    <input type="hidden" name="origem" value="usuario" />
+                                    <span class="sc-meta">@(papel == PapelNoSetor.Administrador ? "Administrador" : "Usuário")</span>
+                                    <button class="btn btn-sm btn-outline-danger" type="submit">Retirar</button>
+                                </form>
+                            }
+                        </span>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+
+    @if (tela.SlugsDeSetorDisponiveis.Count > 0)
+    {
+        <form method="post" asp-action="AtribuirPerfilDeSetor" class="d-flex flex-wrap gap-2 align-items-end mt-2">
+            <input type="hidden" name="usuarioId" value="@usuario.Id" />
+            <div class="sc-form__field mb-0">
+                <label class="form-label" for="setor">Setor</label>
+                <select class="form-select" id="setor" name="setor" required>
+                    <option value="">Escolha um setor</option>
+                    @foreach (var slug in tela.SlugsDeSetorDisponiveis)
+                    {
+                        <option value="@slug">@slug</option>
+                    }
+                </select>
+            </div>
+            <div class="sc-form__field mb-0">
+                <label class="form-label" for="papel">Papel</label>
+                <select class="form-select" id="papel" name="papel" required>
+                    <option value="user">Usuário (só lê)</option>
+                    <option value="admin">Administrador (altera o setor)</option>
+                </select>
+            </div>
+            <button class="btn btn-outline-primary" type="submit">Adicionar perfil de setor</button>
+        </form>
+    }
+</div>
+
+<div class="sc-panel mt-3">
+    <h2 class="h6">Outros perfis</h2>
+
+    @if (tela.OutrosPerfis.Count == 0)
+    {
+        <p class="text-muted">Nenhum outro perfil.</p>
+    }
+    else
+    {
+        <ul class="sc-list">
+            @foreach (var nome in tela.OutrosPerfis)
+            {
+                <li class="sc-list__item">
+                    <div class="sc-list__text"><p class="sc-list__title">@nome</p></div>
+                    <form method="post" asp-action="RetirarPerfil" class="d-inline">
+                        <input type="hidden" name="usuarioId" value="@usuario.Id" />
+                        <input type="hidden" name="perfil" value="@nome" />
+                        <input type="hidden" name="origem" value="usuario" />
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Retirar</button>
+                    </form>
+                </li>
+            }
+        </ul>
+    }
+
+    @if (tela.OutrosPerfisAtribuiveis.Count > 0)
+    {
+        <form method="post" asp-action="AtribuirPerfil" class="d-flex flex-wrap gap-2 align-items-end mt-2">
+            <input type="hidden" name="usuarioId" value="@usuario.Id" />
+            <input type="hidden" name="origem" value="usuario" />
+            <div class="sc-form__field mb-0">
+                <label class="form-label" for="perfil">Adicionar perfil</label>
+                <select class="form-select" id="perfil" name="perfil" required>
+                    <option value="">Escolha um perfil</option>
+                    @foreach (var nome in tela.OutrosPerfisAtribuiveis)
+                    {
+                        <option value="@nome">@nome</option>
+                    }
+                </select>
+            </div>
+            <button class="btn btn-outline-primary" type="submit">Adicionar</button>
+        </form>
+    }
+</div>
+
+<div class="sc-panel mt-3 d-flex flex-wrap gap-2">
+    @if (usuario.Situacao == SituacaoDoUsuario.Desativado)
+    {
+        <form method="post" asp-action="ReativarUsuario" asp-route-id="@usuario.Id" class="d-inline">
+            <button class="btn btn-outline-primary" type="submit">Reativar conta</button>
+        </form>
+    }
+    else
+    {
+        <form method="post" asp-action="DesativarUsuario" asp-route-id="@usuario.Id" class="d-inline">
+            <button class="btn btn-outline-danger" type="submit">Desativar conta</button>
+        </form>
+    }
+    <form method="post" asp-action="EncerrarSessoes" asp-route-id="@usuario.Id" class="d-inline">
+        <button class="btn btn-outline-secondary" type="submit">Encerrar sessões</button>
+    </form>
+</div>

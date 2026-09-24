@@ -221,7 +221,7 @@ public class AcessoTelasTests(IntranetWebFactory factory) : IClassFixture<Intran
 	public async Task RetirarUltimoIntranetAdmin_RecusadoComToastDeErro()
 	{
 		var gestao = CenarioDePerfil().ComUsuario(Guid.NewGuid(), "admin@x.com", SituacaoDoUsuario.Ativo, "intranet-admin");
-		var adminId = gestao.Usuarios.Last().Id;
+		var adminId = gestao.Usuarios[^1].Id;
 		var client = CriarClienteAdmin(gestao);
 		var token = await TokenAsync(client, "/Acesso/Perfil?nome=intranet-admin");
 
@@ -265,5 +265,109 @@ public class AcessoTelasTests(IntranetWebFactory factory) : IClassFixture<Intran
 		var html = await CriarClienteAdmin(CenarioDePerfil()).GetStringAsync("/Acesso/Perfil?nome=intranet-admin");
 
 		html.Should().NotContain("Excluir perfil");
+	}
+
+	private static GestaoDeAcessoFalsa CenarioDeUsuario() => new GestaoDeAcessoFalsa()
+		.ComPerfil("marketing-admin").ComPerfil("marketing-user").ComPerfil("rh-user").ComPerfil("ti-admin")
+		.ComPerfil("gerente-de-compras").ComPerfil("all-users")
+		.ComUsuario(Ana, "ana@x.com", SituacaoDoUsuario.Ativo, "marketing-admin", "rh-user", "gerente-de-compras")
+		.ComUsuario(Bruno, "bruno@x.com", SituacaoDoUsuario.Desativado);
+
+	[Fact]
+	public async Task Usuario_AgrupaOsPerfisPorSetorEMostraOsAvulsos()
+	{
+		var html = Decodificar(await CriarClienteAdmin(CenarioDeUsuario()).GetStringAsync($"/Acesso/Usuario/{Ana}"));
+
+		html.Should().Contain("marketing").And.Contain("rh").And.Contain("gerente-de-compras");
+		html.Should().Contain("Administrador").And.Contain("Usuário");
+	}
+
+	[Fact]
+	public async Task Usuario_Inexistente_404()
+	{
+		var resposta = await CriarClienteAdmin(CenarioDeUsuario()).GetAsync($"/Acesso/Usuario/{Guid.NewGuid()}");
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.NotFound);
+	}
+
+	[Fact]
+	public async Task Usuario_UsuarioDesativado_OfereceReativar_ENaoDesativar()
+	{
+		var html = await CriarClienteAdmin(CenarioDeUsuario()).GetStringAsync($"/Acesso/Usuario/{Bruno}");
+
+		html.Should().Contain("Reativar").And.NotContain("Desativar conta");
+	}
+
+	[Fact]
+	public async Task AtribuirPerfilDeSetor_ComponheSlugEPapel()
+	{
+		var gestao = CenarioDeUsuario();
+		var client = CriarClienteAdmin(gestao);
+		var token = await TokenAsync(client, $"/Acesso/Usuario/{Ana}");
+
+		var resposta = await client.PostAsync("/Acesso/AtribuirPerfilDeSetor", Form(
+			("usuarioId", Ana.ToString()), ("setor", "ti"), ("papel", "admin"), ("__RequestVerificationToken", token)));
+
+		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be($"/Acesso/Usuario/{Ana}");
+		gestao.Chamadas.Should().Equal($"perfil-atribuir:{Ana}:ti-admin");
+	}
+
+	[Theory]
+	[InlineData("superadmin")]
+	[InlineData("")]
+	[InlineData("admin-x")]
+	public async Task AtribuirPerfilDeSetor_PapelInvalido_NaoAtribuiNada(string papel)
+	{
+		var gestao = CenarioDeUsuario();
+		var client = CriarClienteAdmin(gestao);
+		var token = await TokenAsync(client, $"/Acesso/Usuario/{Ana}");
+
+		var resposta = await client.PostAsync("/Acesso/AtribuirPerfilDeSetor", Form(
+			("usuarioId", Ana.ToString()), ("setor", "ti"), ("papel", papel), ("__RequestVerificationToken", token)));
+
+		gestao.Chamadas.Should().BeEmpty();
+		Decodificar(await resposta.Content.ReadAsStringAsync()).Should().Contain("sc-toast--erro");
+	}
+
+	[Fact]
+	public async Task AtribuirPerfilAvulso_VoltaParaOUsuario()
+	{
+		var gestao = CenarioDeUsuario();
+		var client = CriarClienteAdmin(gestao);
+		var token = await TokenAsync(client, $"/Acesso/Usuario/{Ana}");
+
+		var resposta = await client.PostAsync("/Acesso/AtribuirPerfil", Form(
+			("usuarioId", Ana.ToString()), ("perfil", "all-users"), ("origem", "usuario"), ("__RequestVerificationToken", token)));
+
+		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be($"/Acesso/Usuario/{Ana}");
+		gestao.Chamadas.Should().Equal($"perfil-atribuir:{Ana}:all-users");
+	}
+
+	[Fact]
+	public async Task DesativarReativarEEncerrarSessoes_ChamamAPlataforma()
+	{
+		var gestao = CenarioDeUsuario();
+		var client = CriarClienteAdmin(gestao);
+		var token = await TokenAsync(client, $"/Acesso/Usuario/{Ana}");
+
+		await client.PostAsync($"/Acesso/DesativarUsuario/{Ana}", Form(("__RequestVerificationToken", token)));
+		await client.PostAsync($"/Acesso/ReativarUsuario/{Ana}", Form(("__RequestVerificationToken", token)));
+		await client.PostAsync($"/Acesso/EncerrarSessoes/{Ana}", Form(("__RequestVerificationToken", token)));
+
+		gestao.Chamadas.Should().Equal($"usuario-desativar:{Ana}", $"usuario-reativar:{Ana}", $"sessoes-encerrar:{Ana}");
+	}
+
+	[Fact]
+	public async Task DesativarUltimoIntranetAdmin_RecusadoComToastDeErro()
+	{
+		var gestao = CenarioDeUsuario().ComUsuario(Guid.NewGuid(), "admin@x.com", SituacaoDoUsuario.Ativo, "intranet-admin");
+		var adminId = gestao.Usuarios[^1].Id;
+		var client = CriarClienteAdmin(gestao);
+		var token = await TokenAsync(client, $"/Acesso/Usuario/{adminId}");
+
+		var resposta = await client.PostAsync($"/Acesso/DesativarUsuario/{adminId}", Form(("__RequestVerificationToken", token)));
+
+		Decodificar(await resposta.Content.ReadAsStringAsync()).Should().Contain("sc-toast--erro");
+		gestao.Chamadas.Should().BeEmpty();
 	}
 }
