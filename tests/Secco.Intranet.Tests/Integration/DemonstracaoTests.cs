@@ -1,47 +1,18 @@
 using System.Net;
 using AwesomeAssertions;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Xunit;
 
 namespace Secco.Intranet.Tests.Integration;
 
 /// <summary>
-/// Guarda das páginas de demonstração e resolução do tema. As duas coisas se checam pelo
-/// HTML real que sai do host, e não pela configuração que entrou nele.
+/// Estado vazio do mural e resolução do tema. As duas coisas se checam pelo HTML real que sai
+/// do host, e não pela configuração que entrou nele.
 /// </summary>
 public class DemonstracaoTests(IntranetWebFactory factory) : IClassFixture<IntranetWebFactory>, IAsyncLifetime
 {
 	public async Task InitializeAsync() => await factory.EnsureDatabaseMigratedAsync();
 
 	public Task DisposeAsync() => Task.CompletedTask;
-
-	private HttpClient ComDemonstracao(bool habilitada) =>
-		factory
-			.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, configuration) =>
-				configuration.AddInMemoryCollection(new Dictionary<string, string?>
-				{
-					["Intranet:Demo:Habilitado"] = habilitada.ToString(),
-				})))
-			.CreateClient();
-
-	[Fact]
-	public async Task Diretorio_ComDemonstracaoDesligada_Retorna404()
-	{
-		var resposta = await ComDemonstracao(habilitada: false).GetAsync("/diretorio");
-
-		resposta.StatusCode.Should().Be(
-			HttpStatusCode.NotFound,
-			"uma intranet em uso não pode servir pessoas fictícias");
-	}
-
-	[Fact]
-	public async Task Diretorio_ComDemonstracaoLigada_Retorna200()
-	{
-		var resposta = await ComDemonstracao(habilitada: true).GetAsync("/diretorio");
-
-		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-	}
 
 	[Fact]
 	public async Task Mural_SemPublicacoes_RespondeComEstadoVazio()

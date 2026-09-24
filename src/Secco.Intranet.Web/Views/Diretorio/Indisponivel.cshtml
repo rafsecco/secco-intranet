@@ -1,0 +1,10 @@
+@model IndisponivelViewModel
+@{
+    ViewData["Title"] = "Diretório";
+
+    var cabecalho = new PageHeaderModel("Diretório", "Quem trabalha em cada setor, com ramal e e-mail.");
+    var vazio = new EmptyStateModel("bi-plug", "Diretório indisponível", Model.Mensagem);
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+<partial name="_EmptyState" model="vazio" />

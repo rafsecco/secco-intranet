@@ -30,16 +30,6 @@ builder.Services.AddSingleton<IRenderizadorMarkdown, RenderizadorMarkdown>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAtorAtual, AtorDoHttpContext>();
 
-// Paginas de demonstracao: desligadas por padrao (ver DemoOptions). Bind lazy, como o
-// restante da configuracao do produto.
-builder.Services.AddSingleton(serviceProvider =>
-{
-	var demoOptions = new DemoOptions();
-	serviceProvider.GetRequiredService<IConfiguration>().GetSection(DemoOptions.SectionKey).Bind(demoOptions);
-
-	return demoOptions;
-});
-
 // Cross-cutting individual do SDK (ADR-0004): correlação, tenancy (ADR-0005) e health
 // checks. Sem AddSeccoAuthentication()/AddSeccoAuthorization() — ver comentário acima.
 builder.Services.AddSeccoCorrelation();

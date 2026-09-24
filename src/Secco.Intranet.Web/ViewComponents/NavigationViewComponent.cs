@@ -23,14 +23,12 @@ namespace Secco.Intranet.Web.ViewComponents;
 /// <param name="serviceProvider">Escopo da requisição, para resolver o handler sob demanda.</param>
 /// <param name="tenantContext">Tenant da requisição atual.</param>
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
-/// <param name="demoOptions">Estado das páginas de demonstração.</param>
 /// <param name="environment">Ambiente de hospedagem, para o modo aberto de DEV.</param>
 /// <param name="logger">Log de diagnóstico.</param>
 public sealed class NavigationViewComponent(
 	IServiceProvider serviceProvider,
 	ITenantContext tenantContext,
 	IConfiguration configuration,
-	DemoOptions demoOptions,
 	IWebHostEnvironment environment,
 	ILogger<NavigationViewComponent> logger) : ViewComponent
 {
@@ -49,7 +47,7 @@ public sealed class NavigationViewComponent(
 			await CarregarSetoresAsync(HttpContext.User, autenticacaoAtiva).ConfigureAwait(false),
 			HttpContext.Request.Path.Value ?? "/",
 			MostrarAdministracao: modoAberto || AcessoAdministrativo.SomenteIntranetAdmin(HttpContext.User),
-			demoOptions.Habilitado,
+			MostrarDiretorio: modoAberto || AcessoAoDiretorio.Nivel(HttpContext.User) != NivelDeAcessoAoDiretorio.Nenhum,
 			MostrarInventario: modoAberto || AcessoAdministrativo.TemAcesso(HttpContext.User, AcessoAdministrativo.RoleInventarioAdmin));
 
 		return View(IntranetNavigation.Build(request));

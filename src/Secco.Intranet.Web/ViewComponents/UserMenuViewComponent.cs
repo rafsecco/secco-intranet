@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Secco.Intranet.Web.Authentication;
+using Secco.Intranet.Web.Navigation;
 using Secco.Intranet.Web.Theming.Contracts;
 
 namespace Secco.Intranet.Web.ViewComponents;
@@ -9,8 +11,8 @@ namespace Secco.Intranet.Web.ViewComponents;
 /// resolve os dados no core e deixa o markup para o tema.
 /// </summary>
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
-/// <param name="demoOptions">Estado das páginas de demonstração.</param>
-public sealed class UserMenuViewComponent(IConfiguration configuration, DemoOptions demoOptions) : ViewComponent
+/// <param name="environment">Ambiente de hospedagem, para o modo aberto de DEV.</param>
+public sealed class UserMenuViewComponent(IConfiguration configuration, IWebHostEnvironment environment) : ViewComponent
 {
 	/// <summary>Renderiza o menu do usuário.</summary>
 	public IViewComponentResult Invoke()
@@ -19,8 +21,10 @@ public sealed class UserMenuViewComponent(IConfiguration configuration, DemoOpti
 		var autenticado = usuario.Identity?.IsAuthenticated == true;
 		var nome = autenticado ? usuario.Identity?.Name ?? "Usuário" : "Visitante";
 
-		// O perfil hoje só existe como demonstração; sem ela, não há para onde apontar.
-		var urlPerfil = demoOptions.Habilitado ? "/diretorio/perfil" : null;
+		// "Meu perfil" só existe para quem tem acesso ao Diretório; sem acesso, não há para onde apontar.
+		var temAcesso = AcessoAdministrativo.ModoAbertoDeDev(environment, configuration)
+			|| AcessoAoDiretorio.Nivel(usuario) != NivelDeAcessoAoDiretorio.Nenhum;
+		var urlPerfil = temAcesso ? "/diretorio/perfil" : null;
 
 		return View(new UserMenuModel(
 			autenticado,

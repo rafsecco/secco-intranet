@@ -3,14 +3,21 @@
 @{
     ViewData["Title"] = "Diretório";
 
-    var cabecalho = new PageHeaderModel(
-        "Diretório",
-        "Quem trabalha em cada setor, com ramal e e-mail.");
+    var cabecalho = new PageHeaderModel("Diretório", "Quem trabalha em cada setor, com ramal e e-mail.");
+    var pagina = Model.Tela.Pagina;
+
+    string? PaginaUrl(int alvo) => Url.Action("Index", new { busca = Model.Busca, setor = Model.SetorSlug, page = alvo });
+
+    var paginacao = new PaginationModel(
+        pagina.Page,
+        pagina.TotalPages,
+        pagina.HasPreviousPage ? PaginaUrl(pagina.Page - 1) : null,
+        pagina.HasNextPage ? PaginaUrl(pagina.Page + 1) : null);
 
     var vazio = new EmptyStateModel(
         "bi-people",
-        "Ninguém encontrado com esse termo",
-        "Busque por nome, cargo ou setor.");
+        "Ninguém encontrado",
+        "Ajuste a busca ou o filtro de setor.");
 }
 
 <partial name="_PageHeader" model="cabecalho" />
@@ -19,35 +26,55 @@
     <div class="col-sm-auto flex-grow-1">
         <label class="visually-hidden" for="busca">Buscar pessoa</label>
         <input class="form-control" type="search" id="busca" name="busca" value="@Model.Busca"
-               placeholder="Buscar por nome, cargo ou setor" />
+               placeholder="Buscar por nome, cargo, setor ou e-mail" />
+    </div>
+    <div class="col-sm-auto">
+        <label class="visually-hidden" for="setor">Setor</label>
+        <select class="form-select" id="setor" name="setor">
+            <option value="">Todos os setores</option>
+            @foreach (var setor in Model.Tela.Setores)
+            {
+                <option value="@setor.Slug" selected="@(string.Equals(setor.Slug, Model.SetorSlug, StringComparison.OrdinalIgnoreCase))">@setor.Nome</option>
+            }
+        </select>
     </div>
     <div class="col-sm-auto">
         <button class="btn btn-outline-secondary w-100" type="submit">Buscar</button>
     </div>
 </form>
 
-@if (Model.Pessoas.Count == 0)
+@if (pagina.Items.Count == 0)
 {
     <partial name="_EmptyState" model="vazio" />
 }
 else
 {
     <div class="row g-3">
-        @foreach (var pessoa in Model.Pessoas)
+        @foreach (var pessoa in pagina.Items)
         {
-            var badge = new BadgeModel(pessoa.SetorNome, BadgeVariante.Setor, pessoa.SetorSlug);
-
             <div class="col-12 col-md-6 col-xl-4">
-                <article class="sc-card sc-card--setor h-100" style="--sc-setor-hue:@SetorHue.From(pessoa.SetorSlug)">
+                <article class="sc-card h-100" style="--sc-setor-hue:@SetorHue.From(pessoa.SetorSlug ?? pessoa.Nome)">
                     <div class="d-flex gap-3">
-                        <span class="sc-avatar sc-avatar--lg flex-shrink-0" aria-hidden="true">@pessoa.Iniciais</span>
+                        <span class="sc-avatar sc-avatar--lg flex-shrink-0" aria-hidden="true">@Iniciais.De(pessoa.Nome)</span>
                         <div class="min-w-0">
-                            <h3 class="sc-card__title">@pessoa.Nome</h3>
-                            <p class="mb-1 text-body-secondary small">@pessoa.Cargo</p>
-                            <partial name="_Badge" model="badge" />
+                            <h3 class="sc-card__title">
+                                <a class="text-reset text-decoration-none" asp-action="Pessoa" asp-route-id="@pessoa.UsuarioId">@pessoa.Nome</a>
+                            </h3>
+                            @if (!string.IsNullOrWhiteSpace(pessoa.Cargo))
+                            {
+                                <p class="mb-1 text-body-secondary small">@pessoa.Cargo</p>
+                            }
+                            @if (pessoa.SetorNome is not null)
+                            {
+                                <partial name="_Badge" model="@(new BadgeModel(pessoa.SetorNome, pessoa.SetorAtivo ? BadgeVariante.Setor : BadgeVariante.Neutro, pessoa.SetorSlug))" />
+                            }
                             <p class="sc-meta mt-2 mb-0">
-                                @pessoa.Email<br />
-                                Ramal @pessoa.Ramal
+                                @pessoa.Email
+                                @if (!string.IsNullOrWhiteSpace(pessoa.Ramal))
+                                {
+                                    <br />
+                                    <text>Ramal @pessoa.Ramal</text>
+                                }
                             </p>
                         </div>
                     </div>
@@ -55,4 +82,6 @@ else
             </div>
         }
     </div>
+
+    <partial name="_Pagination" model="paginacao" />
 }

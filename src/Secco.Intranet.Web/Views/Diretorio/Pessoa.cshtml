@@ -1,0 +1,86 @@
+@using Secco.Intranet.Web.Models.Diretorio
+@model PessoaViewModel
+@{
+    var pessoa = Model.Detalhe.Pessoa;
+
+    ViewData["Title"] = pessoa.Nome;
+
+    var acoes = new List<PageActionModel> { new("Voltar", Url.Action("Index")!, "bi-arrow-left") };
+
+    if (Model.PodeEditar && Model.EditarUrl is not null)
+    {
+        acoes.Insert(0, new PageActionModel("Editar", Model.EditarUrl, "bi-pencil", Primaria: true));
+    }
+
+    var cabecalho = new PageHeaderModel(pessoa.Nome, pessoa.Cargo, pessoa.SetorSlug, acoes);
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel" style="--sc-setor-hue:@SetorHue.From(pessoa.SetorSlug ?? pessoa.Nome)">
+    <div class="d-flex gap-3 align-items-center mb-4">
+        <span class="sc-avatar sc-avatar--lg" aria-hidden="true">@Iniciais.De(pessoa.Nome)</span>
+        <div>
+            <h2 class="h5 mb-1">@pessoa.Nome</h2>
+            @if (!string.IsNullOrWhiteSpace(pessoa.Cargo))
+            {
+                <p class="mb-1 text-body-secondary small">@pessoa.Cargo</p>
+            }
+            @if (pessoa.SetorNome is not null)
+            {
+                <partial name="_Badge" model="@(new BadgeModel(pessoa.SetorNome, pessoa.SetorAtivo ? BadgeVariante.Setor : BadgeVariante.Neutro, pessoa.SetorSlug))" />
+            }
+        </div>
+    </div>
+
+    <dl class="row mb-0">
+        <dt class="col-sm-3">E-mail</dt>
+        <dd class="col-sm-9"><span class="sc-meta">@pessoa.Email</span></dd>
+
+        <dt class="col-sm-3">Ramal</dt>
+        <dd class="col-sm-9"><span class="sc-meta">@(pessoa.Ramal ?? "—")</span></dd>
+
+        <dt class="col-sm-3">Reporta a</dt>
+        <dd class="col-sm-9">
+            @if (Model.Detalhe.Gestor is { } gestor)
+            {
+                <a asp-action="Pessoa" asp-route-id="@gestor.UsuarioId">@gestor.Nome</a>
+            }
+            else if (pessoa.GestorInativo)
+            {
+                <span class="text-body-secondary">Gestor inativo</span>
+            }
+            else
+            {
+                <text>—</text>
+            }
+        </dd>
+
+        <dt class="col-sm-3">Sobre</dt>
+        <dd class="col-sm-9 mb-0">@(pessoa.Sobre ?? "—")</dd>
+    </dl>
+</div>
+
+@if (Model.Detalhe.Equipe.Count > 0)
+{
+    <div class="sc-panel mt-3">
+        <h2 class="h6">Equipe direta (@Model.Detalhe.Equipe.Count)</h2>
+        <ul class="sc-list mb-0">
+            @foreach (var membro in Model.Detalhe.Equipe)
+            {
+                <li class="sc-list__item">
+                    <span class="sc-avatar" aria-hidden="true">@Iniciais.De(membro.Nome)</span>
+                    <div class="sc-list__text">
+                        <p class="sc-list__title">
+                            <a class="text-reset text-decoration-none" asp-action="Pessoa" asp-route-id="@membro.UsuarioId">@membro.Nome</a>
+                        </p>
+                        @if (!string.IsNullOrWhiteSpace(membro.Cargo))
+                        {
+                            <span class="sc-list__sub">@membro.Cargo</span>
+                        }
+                    </div>
+                </li>
+            }
+        </ul>
+    </div>
+}

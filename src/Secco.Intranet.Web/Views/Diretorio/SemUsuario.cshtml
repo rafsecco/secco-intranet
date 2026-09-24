@@ -1,0 +1,12 @@
+@{
+    ViewData["Title"] = "Meu perfil";
+
+    var cabecalho = new PageHeaderModel("Meu perfil", "Seus dados de contato no diretório.");
+    var vazio = new EmptyStateModel(
+        "bi-person-x",
+        "Não há usuário identificado",
+        "Entre com a sua conta para ver e editar o seu perfil. No modo aberto de desenvolvimento não há usuário logado.");
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+<partial name="_EmptyState" model="vazio" />

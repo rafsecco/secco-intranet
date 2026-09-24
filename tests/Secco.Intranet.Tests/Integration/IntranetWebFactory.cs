@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Acesso;
+using Secco.Intranet.Application.Diretorio;
 using Secco.Intranet.Infrastructure;
 using Secco.Intranet.Infrastructure.Access;
+using Secco.Intranet.Infrastructure.Diretorio;
 using Secco.Intranet.Tests.Integration.TestAuthentication;
 using Secco.SDK.Testing;
 
@@ -50,6 +52,12 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 	/// </summary>
 	public IGestaoDeAcesso? GestaoDeAcesso { get; set; }
 
+	/// <summary>
+	/// Fonte de usuários do diretório que o host devolve. Nula, vale o comportamento real do ambiente
+	/// Testing (<see cref="UsuariosParaDiretorioIndisponivel"/>).
+	/// </summary>
+	public IUsuariosParaDiretorio? UsuariosDoDiretorio { get; set; }
+
 	/// <inheritdoc />
 	protected override string Audience => "secco-intranet";
 
@@ -68,6 +76,7 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 		services.AddSingleton<IStartupFilter, RolesDeTesteStartupFilter>();
 		services.AddScoped<IGestaoDeAcesso>(serviceProvider =>
 			GestaoDeAcesso ?? ActivatorUtilities.CreateInstance<GestaoDeAcessoIndisponivel>(serviceProvider));
+		services.AddScoped<IUsuariosParaDiretorio>(_ => UsuariosDoDiretorio ?? new UsuariosParaDiretorioIndisponivel());
 	}
 
 	/// <inheritdoc />

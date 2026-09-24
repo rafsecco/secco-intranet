@@ -104,10 +104,10 @@ public class NavegacaoETemaTests
 	}
 
 	[Fact]
-	public void Build_ForaDaDemonstracao_NaoOfereceOsItensDeDemonstracao()
+	public void Build_SemAcessoAoDiretorio_SoTemOMural()
 	{
 		var menu = IntranetNavigation.Build(
-			new NavigationRequest([], "/", MostrarAdministracao: false, DemoHabilitado: false, MostrarInventario: false));
+			new NavigationRequest([], "/", MostrarAdministracao: false, MostrarDiretorio: false, MostrarInventario: false));
 
 		menu.Grupos.SelectMany(grupo => grupo.Itens).Should().ContainSingle()
 			.Which.Texto.Should().Be("Mural", "o Mural é o único item fixo do menu");
@@ -120,7 +120,7 @@ public class NavegacaoETemaTests
 			[Setor("Financeiro", "financeiro"), Setor("Diretoria", "diretoria")],
 			"/setor/financeiro/documentos",
 			MostrarAdministracao: true,
-			DemoHabilitado: false,
+			MostrarDiretorio: false,
 			MostrarInventario: false));
 
 		var itens = menu.Grupos.SelectMany(grupo => grupo.Itens).ToList();
@@ -133,7 +133,7 @@ public class NavegacaoETemaTests
 	public void Build_NaRaiz_MarcaOMuralComoAtivo()
 	{
 		var menu = IntranetNavigation.Build(
-			new NavigationRequest([], "/", MostrarAdministracao: false, DemoHabilitado: false, MostrarInventario: false));
+			new NavigationRequest([], "/", MostrarAdministracao: false, MostrarDiretorio: false, MostrarInventario: false));
 
 		menu.Grupos.SelectMany(grupo => grupo.Itens).Single(item => item.Ativo).Texto.Should().Be("Mural");
 	}
@@ -141,7 +141,7 @@ public class NavegacaoETemaTests
 	[Fact]
 	public void Build_ComMostrarInventario_IncluiItemDeMenu()
 	{
-		var request = new NavigationRequest([], "/", MostrarAdministracao: false, DemoHabilitado: false, MostrarInventario: true);
+		var request = new NavigationRequest([], "/", MostrarAdministracao: false, MostrarDiretorio: false, MostrarInventario: true);
 
 		var menu = IntranetNavigation.Build(request);
 
@@ -151,7 +151,7 @@ public class NavegacaoETemaTests
 	[Fact]
 	public void Build_SemMostrarInventario_NaoIncluiItemDeMenu()
 	{
-		var request = new NavigationRequest([], "/", MostrarAdministracao: false, DemoHabilitado: false, MostrarInventario: false);
+		var request = new NavigationRequest([], "/", MostrarAdministracao: false, MostrarDiretorio: false, MostrarInventario: false);
 
 		var menu = IntranetNavigation.Build(request);
 
@@ -169,11 +169,21 @@ public class NavegacaoETemaTests
 	public void Build_ComAdministracao_OfereceSetoresEAcesso()
 	{
 		var menu = IntranetNavigation.Build(
-			new NavigationRequest([], "/acesso/perfil", MostrarAdministracao: true, DemoHabilitado: false, MostrarInventario: false));
+			new NavigationRequest([], "/acesso/perfil", MostrarAdministracao: true, MostrarDiretorio: false, MostrarInventario: false));
 
 		var itens = menu.Grupos.SelectMany(grupo => grupo.Itens).ToList();
 
 		itens.Should().Contain(item => item.Texto == "Setores");
 		itens.Single(item => item.Texto == "Acesso").Ativo.Should().BeTrue("/acesso/perfil está sob /acesso");
+	}
+
+	[Fact]
+	public void Build_ComAcessoAoDiretorio_OfereceODiretorio()
+	{
+		var menu = IntranetNavigation.Build(
+			new NavigationRequest([], "/diretorio/organograma", MostrarAdministracao: false, MostrarDiretorio: true, MostrarInventario: false));
+
+		menu.Grupos.SelectMany(grupo => grupo.Itens)
+			.Should().Contain(item => item.Texto == "Diretório" && item.Ativo);
 	}
 }
