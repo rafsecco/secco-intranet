@@ -230,7 +230,14 @@ toast verde.
   desta. Objetivo confirmado em 2026-09-24: o `intranet-admin` cria um perfil (ex.: `all-user`)
   e atribui várias permissões a ele, de modo que quem pertence a esse perfil leia todos os
   setores, ou o que mais for atribuído, sem receber um `{slug}-user` por setor. O perfil é
-  o "agrupamento": o usuário recebe **um** perfil no lugar de vários. Perfil que contém outros
+  o "agrupamento": o usuário recebe **um** perfil no lugar de vários. Isso importa além da
+  comodidade: cada Role viaja na sessão e no token, e a plataforma resolve as permissões em runtime
+  (ADR-0021), **fora** do token — então um perfil agrupador vai como uma Role só, mesmo carregando
+  dezenas de permissões. **Cenário de aceite (2026-09-24):** empresa com dez setores em que todo
+  usuário lê todos como `user` e usa o Diretório, com **um** perfil (`todos`) atribuído a cada
+  pessoa, e não onze; o Inventário continua fora desse perfil e só abre para `inventario-admin`,
+  `intranet-admin` e, opcionalmente, usuários específicos **só de consulta** — o que dá ao Inventário
+  um nível de consulta (`inventario:read`) além do administrativo, que hoje ele não tem. Perfil que contém outros
   perfis (aninhamento) não existe na plataforma e não é necessário, porque agrupar permissões
   no perfil já resolve. A plataforma
   já entrega a base (permissões `recurso:acao`, `SetRolePermissionsAsync`, resolução em

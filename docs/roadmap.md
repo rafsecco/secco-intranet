@@ -58,7 +58,12 @@ processos (maior risco técnico) só entra com a base já sólida.
       (entidade, publicação, edição). Um recurso só, com discriminador de tipo
       (aviso, evento, notícia)
 - [ ] Diretório organizacional (perfil de colaborador, organograma básico) — telas
-      existem como demonstração, atrás de `Intranet:Demo:Habilitado`
+      existem como demonstração, atrás de `Intranet:Demo:Habilitado`. Desenho aprovado em
+      [spec](specs/2026-09-24-diretorio-organizacional-design.md): perfil complementar local,
+      acesso só de `intranet-admin`/`diretorio-admin`/`diretorio-user`, organograma por gestor,
+      importação CSV; a foto é a última etapa e depende de
+      [secco-platform#29](https://github.com/rafsecco/secco-platform/issues/29), e o nome de
+      exibição migra para a plataforma quando a [#30](https://github.com/rafsecco/secco-platform/issues/30) sair
 - [x] Repositório de documentos por setor: upload cifrado em envelope, visibilidade por
       documento (só o setor ou a empresa toda), download autorizado e arquivamento (o
       registro e o arquivo permanecem) — ADR-0005
