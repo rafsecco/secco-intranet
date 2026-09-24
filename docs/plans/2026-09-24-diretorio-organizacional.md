@@ -1844,7 +1844,7 @@ public class DiretorioDesenvolvimentoSeederTests(IntranetWebFactory factory) : I
 		using var escopo = factory.Services.CreateScope();
 		var catalogo = escopo.ServiceProvider.GetRequiredService<ITenantCatalog>();
 		var opcoes = escopo.ServiceProvider.GetRequiredService<IntranetDatabaseOptions>();
-		var tenant = (await catalogo.ListAsync()).First(t => t.Id == factory.TenantAlfa);
+		var tenant = (await catalogo.ListAsync()).First(t => t.TenantId == factory.TenantAlfa);
 
 		return new IntranetDbContext(IntranetDatabaseProviderConfigurator.CreateOptions(opcoes.Provider, tenant.ConnectionString));
 	}
