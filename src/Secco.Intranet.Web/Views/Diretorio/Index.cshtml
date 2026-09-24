@@ -3,7 +3,10 @@
 @{
     ViewData["Title"] = "Diretório";
 
-    var cabecalho = new PageHeaderModel("Diretório", "Quem trabalha em cada setor, com ramal e e-mail.");
+    var cabecalho = new PageHeaderModel(
+        "Diretório",
+        "Quem trabalha em cada setor, com ramal e e-mail.",
+        Acoes: new[] { new PageActionModel("Organograma", Url.Action("Organograma")!, "bi-diagram-3") });
     var pagina = Model.Tela.Pagina;
 
     string? PaginaUrl(int alvo) => Url.Action("Index", new { busca = Model.Busca, setor = Model.SetorSlug, page = alvo });

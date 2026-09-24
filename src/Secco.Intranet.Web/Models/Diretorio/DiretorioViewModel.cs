@@ -14,6 +14,10 @@ public sealed record DiretorioViewModel(PessoasDaTelaDto Tela, string? Busca, st
 /// <param name="EditarUrl">Para onde o botão de editar leva.</param>
 public sealed record PessoaViewModel(PessoaDetalheDto Detalhe, bool PodeEditar, string? EditarUrl);
 
+/// <summary>Modelo do organograma.</summary>
+/// <param name="Organograma">Árvores e quem ficou fora delas.</param>
+public sealed record OrganogramaViewModel(OrganogramaDto Organograma);
+
 /// <summary>Modelo de "Meu perfil".</summary>
 /// <param name="Pessoa">A pessoa logada, com os valores atuais.</param>
 /// <param name="Form">Formulário de contato.</param>

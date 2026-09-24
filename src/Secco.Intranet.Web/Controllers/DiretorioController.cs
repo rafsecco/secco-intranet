@@ -20,6 +20,7 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="obterPessoaParaEdicao">Dados do formulário de edição completa.</param>
 /// <param name="editarContato">Edição do contato.</param>
 /// <param name="editarDadosFuncionais">Edição de cargo, setor e gestor.</param>
+/// <param name="montarOrganograma">Organograma por gestor.</param>
 [Route("diretorio")]
 [ExigeNivelNoDiretorio(NivelDeAcessoAoDiretorio.Usuario)]
 public sealed class DiretorioController(
@@ -27,7 +28,8 @@ public sealed class DiretorioController(
 	ObterPessoaHandler obterPessoa,
 	ObterPessoaParaEdicaoHandler obterPessoaParaEdicao,
 	EditarContatoHandler editarContato,
-	EditarDadosFuncionaisHandler editarDadosFuncionais) : Controller
+	EditarDadosFuncionaisHandler editarDadosFuncionais,
+	MontarOrganogramaHandler montarOrganograma) : Controller
 {
 	/// <summary>Grade de pessoas com busca e filtro por setor.</summary>
 	/// <param name="busca">Trecho de nome, cargo, setor ou e-mail.</param>
@@ -69,6 +71,16 @@ public sealed class DiretorioController(
 		}
 
 		return View(new PessoaViewModel(resultado.Value, editarUrl is not null, editarUrl));
+	}
+
+	/// <summary>Organograma: árvore por gestor.</summary>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpGet("organograma")]
+	public async Task<IActionResult> Organograma(CancellationToken cancellationToken = default)
+	{
+		var resultado = await montarOrganograma.HandleAsync(cancellationToken);
+
+		return resultado.IsFailure ? Falha(resultado.Error) : View(new OrganogramaViewModel(resultado.Value));
 	}
 
 	/// <summary>"Meu perfil": o formulário de contato de quem está logado.</summary>

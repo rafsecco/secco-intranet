@@ -1,0 +1,55 @@
+@using Secco.Intranet.Web.Models.Diretorio
+@model OrganogramaViewModel
+@{
+    ViewData["Title"] = "Organograma";
+
+    var cabecalho = new PageHeaderModel(
+        "Organograma",
+        "Quem reporta a quem. Clique para expandir ou recolher uma equipe.",
+        Acoes: new[] { new PageActionModel("Voltar ao diretório", Url.Action("Index")!, "bi-arrow-left") });
+
+    var vazio = new EmptyStateModel(
+        "bi-diagram-3",
+        "Ainda não há gestores definidos",
+        "O administrador do diretório define, para cada pessoa, a quem ela reporta.");
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+@if (Model.Organograma.Raizes.Count == 0)
+{
+    <partial name="_EmptyState" model="vazio" />
+}
+else
+{
+    <div class="sc-panel">
+        @foreach (var raiz in Model.Organograma.Raizes)
+        {
+            <partial name="_NoOrganograma" model="raiz" />
+        }
+    </div>
+}
+
+@if (Model.Organograma.SemPosicao.Count > 0)
+{
+    <details class="sc-panel mt-3">
+        <summary>Sem posição no organograma (@Model.Organograma.SemPosicao.Count)</summary>
+        <ul class="sc-list mt-2 mb-0">
+            @foreach (var pessoa in Model.Organograma.SemPosicao)
+            {
+                <li class="sc-list__item">
+                    <span class="sc-avatar" aria-hidden="true">@Iniciais.De(pessoa.Nome)</span>
+                    <div class="sc-list__text">
+                        <p class="sc-list__title">
+                            <a class="text-reset text-decoration-none" asp-action="Pessoa" asp-route-id="@pessoa.UsuarioId">@pessoa.Nome</a>
+                        </p>
+                        @if (pessoa.GestorInativo)
+                        {
+                            <span class="sc-list__sub">Gestor inativo</span>
+                        }
+                    </div>
+                </li>
+            }
+        </ul>
+    </details>
+}

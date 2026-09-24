@@ -1,0 +1,41 @@
+@using Secco.Intranet.Web.Models.Diretorio
+@model Secco.Intranet.Application.Diretorio.NoDoOrganograma
+@{
+    var pessoa = Model.Pessoa;
+}
+
+@if (Model.Equipe.Count == 0)
+{
+    <div class="d-flex gap-2 align-items-center py-1 ps-3">
+        <span class="sc-avatar" aria-hidden="true">@Iniciais.De(pessoa.Nome)</span>
+        <a class="text-reset text-decoration-none" asp-action="Pessoa" asp-route-id="@pessoa.UsuarioId">@pessoa.Nome</a>
+        @if (!string.IsNullOrWhiteSpace(pessoa.Cargo))
+        {
+            <span class="text-body-secondary small">@pessoa.Cargo</span>
+        }
+    </div>
+}
+else
+{
+    <details open class="ms-0 ps-0">
+        <summary class="py-1">
+            <span class="sc-avatar" aria-hidden="true">@Iniciais.De(pessoa.Nome)</span>
+            <a class="text-reset text-decoration-none" asp-action="Pessoa" asp-route-id="@pessoa.UsuarioId">@pessoa.Nome</a>
+            @if (!string.IsNullOrWhiteSpace(pessoa.Cargo))
+            {
+                <span class="text-body-secondary small">@pessoa.Cargo</span>
+            }
+            @if (pessoa.GestorInativo)
+            {
+                <span class="badge text-bg-secondary">gestor inativo</span>
+            }
+            <span class="text-body-secondary small">(@Model.Equipe.Count)</span>
+        </summary>
+        <div class="ms-4 border-start ps-2">
+            @foreach (var membro in Model.Equipe)
+            {
+                <partial name="_NoOrganograma" model="membro" />
+            }
+        </div>
+    </details>
+}
