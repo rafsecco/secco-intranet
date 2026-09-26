@@ -1,0 +1,75 @@
+@using Secco.Intranet.Application.Diretorio
+@using Secco.Intranet.Web.Models.Diretorio
+@model ImportacaoViewModel
+@{
+    var relatorio = Model.Relatorio;
+
+    ViewData["Title"] = relatorio.Aplicado ? "Importação concluída" : "Pré-visualização da importação";
+
+    var cabecalho = new PageHeaderModel(
+        relatorio.Aplicado ? "Importação concluída" : "Pré-visualização da importação",
+        relatorio.Aplicado ? "O que foi gravado." : "Nada foi gravado ainda. Confira e confirme.",
+        Acoes: new[] { new PageActionModel("Voltar ao diretório", Url.Action("Index")!, "bi-arrow-left") });
+
+    var haOQueAplicar = relatorio.Criados + relatorio.Atualizados > 0;
+
+    static BadgeModel Badge(StatusDaLinha status) => status switch
+    {
+        StatusDaLinha.Criar => new BadgeModel("Novo", BadgeVariante.Sucesso),
+        StatusDaLinha.Atualizar => new BadgeModel("Atualiza", BadgeVariante.Aviso),
+        StatusDaLinha.SemAlteracao => new BadgeModel("Sem alteração", BadgeVariante.Neutro),
+        _ => new BadgeModel("Erro", BadgeVariante.Perigo),
+    };
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel">
+    <dl class="row mb-0">
+        <dt class="col-sm-3">@(relatorio.Aplicado ? "Criados" : "Novos")</dt>
+        <dd class="col-sm-9"><strong data-total="criados">@relatorio.Criados</strong></dd>
+        <dt class="col-sm-3">Atualizados</dt>
+        <dd class="col-sm-9"><strong data-total="atualizados">@relatorio.Atualizados</strong></dd>
+        <dt class="col-sm-3">Sem alteração</dt>
+        <dd class="col-sm-9"><strong data-total="semalteracao">@relatorio.SemAlteracao</strong></dd>
+        <dt class="col-sm-3">Com erro</dt>
+        <dd class="col-sm-9 mb-0"><strong data-total="erros">@relatorio.ComErro</strong></dd>
+    </dl>
+</div>
+
+@if (!relatorio.Aplicado && haOQueAplicar)
+{
+    <form method="post" asp-action="Aplicar" class="sc-panel mt-3">
+        <input type="hidden" name="csv" value="@Model.Csv" />
+        <button class="btn btn-primary" type="submit">Aplicar as @(relatorio.Criados + relatorio.Atualizados) alterações</button>
+        <div class="form-text mt-2">
+            As linhas com erro não são aplicadas. O arquivo é conferido de novo antes de gravar.
+        </div>
+    </form>
+}
+else if (relatorio.Aplicado)
+{
+    <p class="mt-3 mb-0">Importação concluída.</p>
+}
+
+@if (relatorio.Linhas.Count > 0)
+{
+    <div class="sc-panel mt-3">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr><th>Linha</th><th>E-mail</th><th>Situação</th><th>Motivo</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var linha in relatorio.Linhas)
+                {
+                    <tr>
+                        <td>@linha.Numero</td>
+                        <td>@linha.Email</td>
+                        <td><partial name="_Badge" model="Badge(linha.Status)" /></td>
+                        <td>@linha.Erro</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

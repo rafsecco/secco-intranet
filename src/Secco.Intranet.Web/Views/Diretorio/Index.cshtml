@@ -3,10 +3,14 @@
 @{
     ViewData["Title"] = "Diretório";
 
-    var cabecalho = new PageHeaderModel(
-        "Diretório",
-        "Quem trabalha em cada setor, com ramal e e-mail.",
-        Acoes: new[] { new PageActionModel("Organograma", Url.Action("Organograma")!, "bi-diagram-3") });
+    var acoes = new List<PageActionModel> { new("Organograma", Url.Action("Organograma")!, "bi-diagram-3") };
+
+    if (Model.PodeImportar)
+    {
+        acoes.Add(new PageActionModel("Importar CSV", Url.Action("Importar")!, "bi-upload"));
+    }
+
+    var cabecalho = new PageHeaderModel("Diretório", "Quem trabalha em cada setor, com ramal e e-mail.", Acoes: acoes);
     var pagina = Model.Tela.Pagina;
 
     string? PaginaUrl(int alvo) => Url.Action("Index", new { busca = Model.Busca, setor = Model.SetorSlug, page = alvo });

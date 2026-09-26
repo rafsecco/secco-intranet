@@ -6,7 +6,13 @@ namespace Secco.Intranet.Web.Models.Diretorio;
 /// <param name="Tela">Página de pessoas e setores para o filtro.</param>
 /// <param name="Busca">Termo buscado, para repopular o campo.</param>
 /// <param name="SetorSlug">Setor filtrado, para repopular o seletor.</param>
-public sealed record DiretorioViewModel(PessoasDaTelaDto Tela, string? Busca, string? SetorSlug);
+/// <param name="PodeImportar">Se quem vê é admin do diretório e portanto vê o botão de importar.</param>
+public sealed record DiretorioViewModel(PessoasDaTelaDto Tela, string? Busca, string? SetorSlug, bool PodeImportar);
+
+/// <summary>Modelo do relatório de importação.</summary>
+/// <param name="Relatorio">O que acontece (pré-visualização) ou aconteceu (aplicação).</param>
+/// <param name="Csv">O texto do arquivo, devolvido no formulário de confirmação para ser revalidado.</param>
+public sealed record ImportacaoViewModel(RelatorioDeImportacao Relatorio, string Csv);
 
 /// <summary>Modelo da página de uma pessoa.</summary>
 /// <param name="Detalhe">Pessoa, gestor e equipe.</param>

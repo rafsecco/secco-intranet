@@ -1,0 +1,34 @@
+@{
+    ViewData["Title"] = "Importar diretório";
+
+    var cabecalho = new PageHeaderModel(
+        "Importar diretório",
+        "Preencha nome, cargo, ramal, setor e gestor de muita gente de uma vez, por um arquivo CSV.",
+        Acoes: new[] { new PageActionModel("Voltar", Url.Action("Index")!, "bi-arrow-left") });
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<form method="post" asp-action="Importar" enctype="multipart/form-data" class="sc-panel">
+    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+    <div class="sc-form__field">
+        <label class="form-label" for="arquivo">Arquivo CSV</label>
+        <input class="form-control" type="file" id="arquivo" name="arquivo" accept=".csv,text/csv" required />
+    </div>
+
+    <button class="btn btn-primary" type="submit">Ver o que vai acontecer</button>
+    <div class="form-text mt-2">Nada é gravado nesta etapa.</div>
+</form>
+
+<div class="sc-panel mt-3">
+    <h2 class="h6">Formato</h2>
+    <p class="mb-1">Primeira linha (cabeçalho), separada por <code>;</code> ou <code>,</code>:</p>
+    <pre class="mb-2">email;nome;cargo;ramal;setor;gestor</pre>
+    <ul class="mb-0">
+        <li>Só o <code>email</code> é obrigatório; o e-mail precisa ser de um usuário <strong>ativo</strong> — a importação não cria usuário.</li>
+        <li><code>setor</code> é o <strong>slug</strong> do setor (por exemplo <code>financeiro</code>); <code>gestor</code> é o <strong>e-mail</strong> do gestor.</li>
+        <li>Célula vazia significa <strong>não alterar</strong>, nunca "apagar". Reimportar o mesmo arquivo não muda nada.</li>
+        <li>Até 5.000 linhas e 1 MB.</li>
+    </ul>
+</div>

@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Secco.Intranet.Application.Diretorio;
 using Secco.Intranet.Web.Authentication;
@@ -21,6 +22,7 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="editarContato">Edição do contato.</param>
 /// <param name="editarDadosFuncionais">Edição de cargo, setor e gestor.</param>
 /// <param name="montarOrganograma">Organograma por gestor.</param>
+/// <param name="importar">Importação CSV.</param>
 [Route("diretorio")]
 [ExigeNivelNoDiretorio(NivelDeAcessoAoDiretorio.Usuario)]
 public sealed class DiretorioController(
@@ -29,8 +31,11 @@ public sealed class DiretorioController(
 	ObterPessoaParaEdicaoHandler obterPessoaParaEdicao,
 	EditarContatoHandler editarContato,
 	EditarDadosFuncionaisHandler editarDadosFuncionais,
-	MontarOrganogramaHandler montarOrganograma) : Controller
+	MontarOrganogramaHandler montarOrganograma,
+	ImportarDiretorioHandler importar) : Controller
 {
+	private const long LimiteDeBytesDoArquivo = 2 * 1024 * 1024;
+
 	/// <summary>Grade de pessoas com busca e filtro por setor.</summary>
 	/// <param name="busca">Trecho de nome, cargo, setor ou e-mail.</param>
 	/// <param name="setor">Slug do setor de lotação.</param>
@@ -43,7 +48,8 @@ public sealed class DiretorioController(
 
 		return resultado.IsFailure
 			? Falha(resultado.Error)
-			: View(new DiretorioViewModel(resultado.Value, busca, setor));
+			: View(new DiretorioViewModel(
+				resultado.Value, busca, setor, AcessoAoDiretorio.TemNivel(User, NivelDeAcessoAoDiretorio.Administrador)));
 	}
 
 	/// <summary>Perfil de uma pessoa.</summary>
@@ -71,6 +77,76 @@ public sealed class DiretorioController(
 		}
 
 		return View(new PessoaViewModel(resultado.Value, editarUrl is not null, editarUrl));
+	}
+
+	/// <summary>Formulário de importação CSV.</summary>
+	[HttpGet("importar")]
+	[ExigeNivelNoDiretorio(NivelDeAcessoAoDiretorio.Administrador)]
+	public IActionResult Importar() => View();
+
+	/// <summary>Lê o arquivo e mostra o que aconteceria. <b>Não grava.</b></summary>
+	/// <param name="arquivo">CSV enviado.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost("importar")]
+	[ExigeNivelNoDiretorio(NivelDeAcessoAoDiretorio.Administrador)]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> Importar(IFormFile? arquivo, CancellationToken cancellationToken = default)
+	{
+		if (arquivo is null || arquivo.Length == 0)
+		{
+			ModelState.AddModelError(string.Empty, "Escolha um arquivo CSV para importar.");
+
+			return View();
+		}
+
+		if (arquivo.Length > LimiteDeBytesDoArquivo)
+		{
+			ModelState.AddModelError(string.Empty, "O arquivo passa do limite de 1 MB.");
+
+			return View();
+		}
+
+		string texto;
+
+		using (var leitor = new StreamReader(arquivo.OpenReadStream(), Encoding.UTF8, detectEncodingFromByteOrderMarks: true))
+		{
+			texto = await leitor.ReadToEndAsync(cancellationToken);
+		}
+
+		var relatorio = await importar.PrevisualizarAsync(new ImportarDiretorioCommand(texto), cancellationToken);
+
+		if (relatorio.IsFailure)
+		{
+			ModelState.AddModelError(string.Empty, relatorio.Error.Description);
+
+			return View();
+		}
+
+		return View("ImportarRelatorio", new ImportacaoViewModel(relatorio.Value, texto));
+	}
+
+	/// <summary>
+	/// Aplica a importação. Revalida o CSV inteiro — nunca confia na pré-visualização, que passou
+	/// pelo navegador — e grava as linhas válidas.
+	/// </summary>
+	/// <param name="csv">Texto do arquivo, devolvido pelo formulário de confirmação.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost("importar/aplicar")]
+	[ExigeNivelNoDiretorio(NivelDeAcessoAoDiretorio.Administrador)]
+	[ValidateAntiForgeryToken]
+	[RequestFormLimits(ValueLengthLimit = 8 * 1024 * 1024)]
+	public async Task<IActionResult> Aplicar(string? csv, CancellationToken cancellationToken = default)
+	{
+		var relatorio = await importar.AplicarAsync(new ImportarDiretorioCommand(csv ?? string.Empty), cancellationToken);
+
+		if (relatorio.IsFailure)
+		{
+			ModelState.AddModelError(string.Empty, relatorio.Error.Description);
+
+			return View(nameof(Importar));
+		}
+
+		return View("ImportarRelatorio", new ImportacaoViewModel(relatorio.Value, string.Empty));
 	}
 
 	/// <summary>Organograma: árvore por gestor.</summary>

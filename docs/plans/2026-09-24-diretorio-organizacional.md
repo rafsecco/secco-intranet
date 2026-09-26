@@ -6460,6 +6460,8 @@ Em `Index.cshtml`, o botão só para o admin. O `DiretorioViewModel` ainda não 
 
 ```cshtml
 @* src/Secco.Intranet.Web/Views/Diretorio/ImportarRelatorio.cshtml *@
+@using Secco.Intranet.Application.Diretorio
+@using Secco.Intranet.Web.Models.Diretorio
 @model ImportacaoViewModel
 @{
     var relatorio = Model.Relatorio;
