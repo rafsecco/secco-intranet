@@ -66,6 +66,7 @@ O que cobrem, com o client gerado real e client credentials reais:
 | Perfil reservado | Handler recusa antes de chamar; `installation-operator` não é atribuído |
 | Último `intranet-admin` | Recusa retirar **e** desativar o único ativo, com a paginação real da API |
 | SecureGate inacessível | Vira `Indisponivel`, sem exceção |
+| Diretório: usuários ativos | A fonte do diretório lista os ativos e deixa de fora os desativados, contra a API real |
 
 Os testes criam usuários e perfis com sufixo único e limpam no fim (perfis excluídos; usuários
 **desativados**, já que a API não exclui usuário). É repetível: rode duas vezes seguidas para conferir.
@@ -115,6 +116,27 @@ Abra `http://localhost:5250/Acesso` e confira:
    com o perfil (confira na API).
 9. **Usuário inexistente.** `/Acesso/Usuario/<guid aleatório>` → 404.
 
+### Diretório organizacional
+
+Com a Intranet no ar contra o mesmo SecureGate (modo aberto de DEV, sem `Authority`, todo acesso é
+liberado), confira `http://localhost:5250/diretorio`:
+
+10. **Lista real.** Aparecem os usuários **ativos** do tenant, pelo e-mail; os desativados não
+    aparecem, e os colaboradores fictícios que o seeder de DEV grava **não** aparecem (perfil de quem
+    não é usuário ativo é ignorado).
+11. **Edição.** Abra uma pessoa → **Editar**: defina nome, cargo e setor de lotação → toast
+    "Dados atualizados". Definir um gestor que fecharia um ciclo (A→B e depois B→A) é recusado.
+12. **Organograma.** `/diretorio/organograma` mostra a chefia antes da equipe, em blocos que
+    recolhem. Desative no SecureGate o gestor de alguém e espere 60 s (a lista de usuários fica em
+    cache): a pessoa **continua na tela** — como raiz se tiver equipe, ou em "Sem posição" com a
+    marca "gestor inativo" — e o gestor desativado some do diretório.
+13. **Importação.** `/diretorio/importar` com um CSV de teste (`email;nome;cargo`) mostra os totais
+    **sem gravar** (e-mail que não é de usuário ativo vira erro da linha); confirme, e a lista passa a
+    mostrar o cargo. Reenviar o mesmo arquivo dá "sem alteração".
+
+"Meu perfil" (`/diretorio/perfil`) precisa de um usuário logado — no modo aberto ele explica isso. Para
+vê-lo de verdade, registre a Intranet como client OIDC e entre com login real, com a Role `diretorio-user`.
+
 Sem ator identificado (modo aberto) a regra de **autoexclusão** não é exercitável — ela depende de
 quem está logado, e é coberta pelos testes unitários. Para vê-la de verdade, registre a Intranet
 como client OIDC no SecureGate e entre com login real (ver a seção de autenticação do README).
@@ -138,5 +160,5 @@ Registro do que a API real fez diferente do que se assumia — o motivo de o rot
 - **Em DEV, o `PublicBaseUrl` precisa casar com a URL em que a API sobe**, senão o token que ela
   emite é recusado por ela mesma — não é problema da Intranet, mas custa tempo a quem sobe o ambiente.
 
-Última execução completa: 2026-09-24, contra o SecureGate do monorepo na `main` (client 0.11.0).
-Parte automatizada: 8/8. Parte manual: itens 1–9 conforme descrito.
+Última execução completa: 2026-09-26, contra o SecureGate do monorepo na `main` (client 0.11.0).
+Parte automatizada: 9/9 (a nona é a do Diretório). Parte manual: itens 1–13 conforme descrito.

@@ -20,7 +20,7 @@ e enxergar o organograma, com o RH (ou quem o `intranet-admin` delegar) mantendo
 |---|---|
 | O SecureGate tem nome de exibição? | **Não**, em nenhum DTO nem na conta do usuário que a plataforma acabou de entregar. Pedido em [secco-platform#30](https://github.com/rafsecco/secco-platform/issues/30) |
 | Dá para listar as pessoas do tenant? | Sim — `ListUsers`, com `Status`; **não pagina**, devolve o tenant inteiro |
-| `UsuarioDoTenant` (o que a Intranet já lê) serve? | Só em parte: tem `Id`, `Email` e `Roles`, **sem a situação da conta**; o diretório precisa filtrar desativados |
+| `UsuarioDoTenant` (o que a Intranet já lê) serve? | Só em parte: tem `Id`, `Email` e `Roles`, **sem a situação da conta**; o diretório precisa filtrar desativados. **Como ficou:** `UsuarioDoTenant` e `IDiretorioDeUsuarios` não mudaram; o diretório ganhou a porta própria `IUsuariosParaDiretorio` (só usuários **ativos**, com `Id` e `Email`), implementada sobre `IGestaoDeAcesso` com cache de 60 s por tenant — só de resposta com sucesso, falha nunca é guardada |
 | O armazenamento de arquivos dos Documentos serve para foto? | Serve a **cifragem e o isolamento por tenant** (`IArquivoStore`). Não serve como Documento: este exige setor, título e visibilidade e aparece nas listas do setor. E o caminho gravado é opaco, sem pasta |
 | Existe SDK de imagem na plataforma? | **Não.** Pedida em [secco-platform#29](https://github.com/rafsecco/secco-platform/issues/29) |
 | Quem usa o flag de demonstração? | Só o diretório (menu, "Meu perfil" e o controller). Sai junto com a demonstração |
@@ -247,8 +247,9 @@ cópia do cadastro. Leitura não é auditada.
 ## Etapas de entrega
 
 1. **Domínio e persistência** — `PerfilColaborador` e as migrations dos dois provedores.
-2. **Leitura real** — junção, busca, perfil da pessoa, `UsuarioDoTenant` com a situação da conta,
-   adaptador e seeder de DEV, e o fim da demonstração.
+2. **Leitura real** — junção, busca, perfil da pessoa, `IUsuariosParaDiretorio` (usuários ativos),
+   adaptador e seeder de DEV (o adaptador de DEV também implementa `IUsuariosParaDiretorio`), e o
+   fim da demonstração.
 3. **Acesso e edição** — o nível de acesso (`Nenhum`/`Usuario`/`Administrador`) com o gate, o item
    de menu e o "Meu perfil" condicionais; `diretorio-admin` e `diretorio-user` na tela de acesso;
    "Meu perfil", edição pelo admin, auditoria e a matriz de autorização.
@@ -257,7 +258,8 @@ cópia do cadastro. Leitura não é auditada.
    telas de leitura também são restritas, e a matriz negativa nasce com elas.
 4. **Organograma** — a árvore e as regras de gestor e ciclo.
 5. **Importação CSV.**
-6. **Foto** — bloqueada pela #29; as etapas 1–5 entregam sem ela.
+6. **Foto** — bloqueada pela #29; as etapas 1–5 entregam sem ela (**entregues em 2026-09-26**). A
+   foto terá plano próprio quando a SDK de imagem existir.
 
 ## Fora de escopo
 

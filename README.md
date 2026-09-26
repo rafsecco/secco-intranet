@@ -155,7 +155,7 @@ dotnet test            # os testes de integração sobem container próprio (Tes
 ```
 
 Os testes da gestão de acesso usam um SecureGate de mentira. Para conferir o adaptador e as
-telas contra o **SecureGate real**, há um roteiro de fumaça (8 testes opt-in, pulados por padrão,
+telas contra o **SecureGate real**, há um roteiro de fumaça (9 testes opt-in, pulados por padrão,
 mais um passo a passo manual): [`docs/roteiro-fumaca-securegate.md`](docs/roteiro-fumaca-securegate.md).
 
 ## Arquitetura
@@ -204,6 +204,13 @@ tela também oferece criar a Role `intranet-admin` e a `inventario-admin` quando
 
 A Intranet não deixa o tenant ficar sem `intranet-admin` ativo: retirar o perfil ou desativar
 a conta do último é recusado, e ninguém retira o próprio perfil nem se desativa.
+
+O Diretório organizacional (`/diretorio`) usa duas Roles do produto: `diretorio-admin` (edita
+cargo, setor e gestor de todos, importa CSV) e `diretorio-user` (vê o diretório e edita o próprio
+contato). O `intranet-admin` tem o mesmo acesso do `diretorio-admin`. As duas Roles são oferecidas
+na tela de acesso, na seção "Perfis do produto". **Ninguém vê o Diretório por padrão**: o
+`intranet-admin` atribui `diretorio-user` a cada usuário até o modelo de permissões permitir um
+perfil agrupador. Quem não tem nenhum dos três perfis recebe 403 em toda rota do Diretório.
 
 ## Pós-geração (checklist)
 

@@ -1,10 +1,12 @@
 using AwesomeAssertions;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Secco.Intranet.Application;
 using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Infrastructure.Access;
+using Secco.Intranet.Infrastructure.Diretorio;
 using Secco.Intranet.Tests.Support;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SecureGate.Client;
@@ -337,6 +339,24 @@ public class SecureGateGestaoDeAcessoFumacaTests(FumacaFixture f) : IClassFixtur
 
 		leitura.Error.Should().Be(IntranetErrors.Acesso.Indisponivel);
 		escrita.Error.Should().Be(IntranetErrors.Acesso.Indisponivel);
+	}
+
+	[FumacaFact]
+	public async Task Diretorio_ListaOsAtivos_ENaoOsDesativados_ContraOSecureGateReal()
+	{
+		var ativo = await f.CriarUsuarioAsync("dir-ativo");
+		var desativado = await f.CriarUsuarioAsync("dir-desativado");
+		(await f.Gestao.DesativarUsuarioAsync(desativado)).IsSuccess.Should().BeTrue();
+
+		var fonte = new UsuariosParaDiretorioDoSecureGate(
+			f.Gestao, new MemoryCache(new MemoryCacheOptions()), new TenantFixoDaFumaca(f.Tenant));
+
+		var resultado = await fonte.ListarAtivosAsync();
+
+		resultado.IsSuccess.Should().BeTrue();
+		resultado.Value.Should().Contain(usuario => usuario.Id == ativo && usuario.Email.Contains("dir-ativo"));
+		resultado.Value.Should().NotContain(usuario => usuario.Id == desativado,
+			"o diretório só mostra quem está ativo no SecureGate de verdade");
 	}
 
 	private sealed class TenantFixoDaFumaca(Guid tenantId) : ITenantContext
