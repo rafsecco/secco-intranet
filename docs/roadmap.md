@@ -63,7 +63,10 @@ processos (maior risco técnico) só entra com a base já sólida.
       (cargo, setor e gestor só do admin), organograma por gestor com regra de ciclo, importação CSV
       em duas etapas, e acesso só de `intranet-admin`/`diretorio-admin`/`diretorio-user`. A demonstração
       estática e o flag `Intranet:Demo:Habilitado` saíram. **Falta só a foto**, bloqueada por
-      [secco-platform#29](https://github.com/rafsecco/secco-platform/issues/29) (SDK de imagem); o nome
+      [secco-platform#29](https://github.com/rafsecco/secco-platform/issues/29) (SDK de imagem) — a
+      plataforma tirou a #29 do MVP e ela foi para a fila atrás de #27/#28; se essa etapa avançar
+      antes da SDK existir, a mitigação mínima registrada na spec (assinatura de arquivo, nunca SVG,
+      nome gerado pelo servidor, `nosniff`, EXIF não removido documentado) é obrigatória. O nome
       de exibição migra para a plataforma quando a
       [#30](https://github.com/rafsecco/secco-platform/issues/30) sair
 - [x] Repositório de documentos por setor: upload cifrado em envelope, visibilidade por

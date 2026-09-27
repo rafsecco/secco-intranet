@@ -38,7 +38,7 @@ e enxergar o organograma, com o RH (ou quem o `intranet-admin` delegar) mantendo
 | Setor de uma pessoa | **Lotação explícita** (campo escolhido pelo admin entre os setores), independente das Roles. Acesso não é lotação |
 | Organograma | Árvore por gestor ("reporta a"), definido pelo admin, com regra contra ciclo |
 | Carga inicial | Edição pessoa a pessoa **e** importação CSV pelo admin |
-| Foto | Entra neste corte, mas como **última etapa**, ligada à SDK de imagem da plataforma (#29) por uma porta. Sem SDK, avatar por iniciais |
+| Foto | Entra neste corte, mas como **última etapa**, ligada à SDK de imagem da plataforma (#29) por uma porta. Sem SDK, avatar por iniciais. A plataforma replanejou a #29 para fora do MVP (2026-09-27, na fila depois de #27/#28); se a etapa de foto avançar aqui antes da SDK existir, vale como mitigação **mínima e obrigatória**, não opcional: limite de tamanho, conferir a assinatura do arquivo (magic bytes) em vez de extensão/`Content-Type`, aceitar só JPEG/PNG (nunca SVG), guardar fora do webroot com nome gerado pelo servidor, servir com `Content-Type` fixo e `X-Content-Type-Options: nosniff`, e documentar no código que o EXIF **não** é removido nesta versão |
 | Demonstração | Sai. No lugar, um seeder e um adaptador de DEV para o modo sem SecureGate |
 
 ## Dados
@@ -259,7 +259,9 @@ cópia do cadastro. Leitura não é auditada.
 4. **Organograma** — a árvore e as regras de gestor e ciclo.
 5. **Importação CSV.**
 6. **Foto** — bloqueada pela #29; as etapas 1–5 entregam sem ela (**entregues em 2026-09-26**). A
-   foto terá plano próprio quando a SDK de imagem existir.
+   #29 saiu do MVP da plataforma (2026-09-27); a foto terá plano próprio quando a SDK existir **ou**
+   quando o dono do produto decidir avançar sem ela — nesse caso o plano nasce com a mitigação
+   mínima descrita na linha "Foto" acima como requisito, não como nota de rodapé.
 
 ## Fora de escopo
 
