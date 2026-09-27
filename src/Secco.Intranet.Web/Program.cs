@@ -5,6 +5,7 @@ using Secco.Intranet.Web;
 using Secco.Intranet.Web.Auditoria;
 using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Conteudo;
+using Secco.Intranet.Web.Navigation;
 using Secco.Intranet.Web.Tenancy;
 using Secco.Intranet.Web.Theming;
 using Secco.SDK.AspNetCore.Extensions;
@@ -29,9 +30,11 @@ builder.Services.AddIntranetTheming();
 builder.Services.AddSingleton<IRenderizadorMarkdown, RenderizadorMarkdown>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAtorAtual, AtorDoHttpContext>();
+builder.Services.AddScoped<IPermissoesDeSetor, PermissoesDeSetor>();
 
 // Cross-cutting individual do SDK (ADR-0004): correlação, tenancy (ADR-0005) e health
-// checks. Sem AddSeccoAuthentication()/AddSeccoAuthorization() — ver comentário acima.
+// checks. Sem AddSeccoAuthentication() — ver comentário acima (autorização por permissão,
+// AddSeccoAuthorization(), é registrada abaixo, incondicional).
 builder.Services.AddSeccoCorrelation();
 builder.Services.AddSeccoTenancy();
 builder.Services.AddSeccoHealthChecks();
