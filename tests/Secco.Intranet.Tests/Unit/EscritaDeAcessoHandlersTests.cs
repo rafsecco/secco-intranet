@@ -87,6 +87,37 @@ public class EscritaDeAcessoHandlersTests
 		trilha.Registros.Should().BeEmpty("a ação não aconteceu, então não entra na trilha");
 	}
 
+	[Fact]
+	public async Task CriarPerfil_DiretorioAdmin_GarantePermissaoDeLeituraEGerenciamento()
+	{
+		var gestao = Cenario();
+
+		await new CriarPerfilHandler(gestao, new TrilhaDeAcessoFalsa()).HandleAsync(ClassificacaoDePerfil.DiretorioAdmin);
+
+		gestao.Perfis.Single(p => p.Nome == ClassificacaoDePerfil.DiretorioAdmin).Permissoes.Should().BeEquivalentTo(
+			IntranetPermissoes.Diretorio.Read, IntranetPermissoes.Diretorio.Manage);
+	}
+
+	[Fact]
+	public async Task CriarPerfil_DiretorioUsuario_GaranteSoLeitura()
+	{
+		var gestao = Cenario();
+
+		await new CriarPerfilHandler(gestao, new TrilhaDeAcessoFalsa()).HandleAsync(ClassificacaoDePerfil.DiretorioUsuario);
+
+		gestao.Perfis.Single(p => p.Nome == ClassificacaoDePerfil.DiretorioUsuario).Permissoes.Should().BeEquivalentTo(IntranetPermissoes.Diretorio.Read);
+	}
+
+	[Fact]
+	public async Task CriarPerfil_Comum_NaoGaranteNenhumaPermissao()
+	{
+		var gestao = Cenario();
+
+		await new CriarPerfilHandler(gestao, new TrilhaDeAcessoFalsa()).HandleAsync("equipe-financeiro");
+
+		gestao.Perfis.Single(p => p.Nome == "equipe-financeiro").Permissoes.Should().BeEmpty();
+	}
+
 	// --- ExcluirPerfil ---
 
 	[Theory]

@@ -1,6 +1,7 @@
 using System.Net;
 using Microsoft.Extensions.Logging;
 using Secco.Intranet.Application;
+using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Setores;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SecureGate.Client;
@@ -40,13 +41,65 @@ public sealed class SecureGateSetorAccessProvisioner(
 		// aqui sempre coincidam com o slug efetivamente persistido.
 		var normalizedSlug = slug.Trim().ToLowerInvariant();
 
-		var adminResult = await EnsureRoleAsync(tenantId, $"{normalizedSlug}-admin", cancellationToken).ConfigureAwait(false);
+		var adminRole = $"{normalizedSlug}-admin";
+		var userRole = $"{normalizedSlug}-user";
+
+		var adminResult = await EnsureRoleAsync(tenantId, adminRole, cancellationToken).ConfigureAwait(false);
 		if (adminResult.IsFailure)
 		{
 			return adminResult;
 		}
 
-		return await EnsureRoleAsync(tenantId, $"{normalizedSlug}-user", cancellationToken).ConfigureAwait(false);
+		var userResult = await EnsureRoleAsync(tenantId, userRole, cancellationToken).ConfigureAwait(false);
+		if (userResult.IsFailure)
+		{
+			return userResult;
+		}
+
+		return await GarantirPermissoesDoSetorAsync(tenantId, normalizedSlug, adminRole, userRole, cancellationToken)
+			.ConfigureAwait(false);
+	}
+
+	/// <summary>
+	/// Garante a permissão de leitura/escrita de cada Role do setor (ADR-0021), por mesclagem —
+	/// nunca apaga o que já estava lá (<see cref="PermissoesDoPerfil.GarantirAsync"/>).
+	/// </summary>
+	private async Task<Result> GarantirPermissoesDoSetorAsync(
+		Guid tenantId, string slug, string adminRole, string userRole, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await PermissoesDoPerfil
+				.GarantirAsync(client, tenantId, userRole, [IntranetPermissoes.Setor.Read(slug)], cancellationToken)
+				.ConfigureAwait(false);
+
+			await PermissoesDoPerfil
+				.GarantirAsync(
+					client, tenantId, adminRole,
+					[IntranetPermissoes.Setor.Read(slug), IntranetPermissoes.Setor.Write(slug)],
+					cancellationToken)
+				.ConfigureAwait(false);
+
+			return Result.Success();
+		}
+		catch (ApiException apiException)
+		{
+			logger.LogWarning(
+				"Falha ao garantir permissao do setor '{Slug}' no SecureGate (status {StatusCode}).",
+				slug,
+				apiException.StatusCode);
+
+			return Result.Failure(IntranetErrors.Setores.AccessProvisioningUnavailable);
+		}
+		catch (HttpRequestException httpRequestException)
+		{
+			logger.LogWarning(
+				httpRequestException,
+				"Falha de rede ao garantir permissao do setor '{Slug}' no SecureGate.",
+				slug);
+
+			return Result.Failure(IntranetErrors.Setores.AccessProvisioningUnavailable);
+		}
 	}
 
 	private async Task<Result> EnsureRoleAsync(Guid tenantId, string roleName, CancellationToken cancellationToken)
