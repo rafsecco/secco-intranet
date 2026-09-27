@@ -6,6 +6,8 @@ using Secco.Intranet.Infrastructure;
 using Secco.Intranet.Infrastructure.Access;
 using Secco.Intranet.Infrastructure.Diretorio;
 using Secco.Intranet.Tests.Integration.TestAuthentication;
+using Secco.Intranet.Tests.Support;
+using Secco.SDK.AspNetCore.Authorization;
 using Secco.SDK.Testing;
 
 namespace Secco.Intranet.Tests.Integration;
@@ -58,6 +60,14 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 	/// </summary>
 	public IUsuariosParaDiretorio? UsuariosDoDiretorio { get; set; }
 
+	/// <summary>
+	/// Resolvedor de permissão que o host devolve. Nulo, vale o <c>ConfigurationPermissionResolver</c>
+	/// padrão do SDK (sem nenhuma permissão configurada em <c>Secco:Authorization</c> — nega tudo,
+	/// menos <c>intranet-admin</c>, que é bypass por identidade). Os testes de permissão atribuem um
+	/// dublê aqui; a fábrica é por classe de teste, e os testes de uma classe rodam em série.
+	/// </summary>
+	public IPermissionResolver? ResolvedorDePermissoes { get; set; }
+
 	/// <inheritdoc />
 	protected override string Audience => "secco-intranet";
 
@@ -77,6 +87,7 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 		services.AddScoped<IGestaoDeAcesso>(serviceProvider =>
 			GestaoDeAcesso ?? ActivatorUtilities.CreateInstance<GestaoDeAcessoIndisponivel>(serviceProvider));
 		services.AddScoped<IUsuariosParaDiretorio>(_ => UsuariosDoDiretorio ?? new UsuariosParaDiretorioIndisponivel());
+		services.AddSingleton<IPermissionResolver>(_ => ResolvedorDePermissoes ?? new PermissionResolverDeTeste());
 	}
 
 	/// <inheritdoc />

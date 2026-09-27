@@ -55,6 +55,12 @@ builder.Services.AddIntranetApplication();
 builder.Services.AddIntranetInfrastructure(builder.Configuration);
 builder.Services.AddIntranetAuthentication(builder.Configuration, builder.Environment);
 
+// ADR-0021: autorização por permissão, incondicional — o ambiente Testing não configura
+// SecureGate, mas precisa da policy dinâmica rodando de verdade (mesmo padrão dos gates por nome
+// de Role de hoje, com claims falsas e autorização real). Sem SecureGate real, o próprio
+// AddSeccoAuthorization() já registra um resolvedor por configuração (nega tudo por padrão).
+builder.Services.AddSeccoAuthorization();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())

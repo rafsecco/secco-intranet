@@ -121,6 +121,11 @@ public static class IntranetAuthenticationExtensions
 		services.AddSecureGateSessionVersionResolver();
 		services.AddSeccoCookieSessionValidation(CookieAuthenticationDefaults.AuthenticationScheme);
 
+		// ADR-0021: em produção (SecureGate configurado), o resolvedor real substitui o de
+		// configuração que AddSeccoAuthorization() já registra por padrão (TryAddSingleton —
+		// este Replace vence).
+		services.AddSecureGatePermissionResolver();
+
 		services.AddAuthorization(options =>
 			options.FallbackPolicy = new AuthorizationPolicyBuilder()
 				.RequireAuthenticatedUser()
