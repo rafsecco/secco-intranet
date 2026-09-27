@@ -60,4 +60,14 @@ public sealed class GestaoDeAcessoIndisponivel : IGestaoDeAcesso
 	/// <inheritdoc />
 	public Task<Result> EncerrarSessoesAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Result.Failure(Erro));
+
+	/// <inheritdoc />
+	public Task<Result> GarantirPermissoesAsync(
+		string nome, IReadOnlyCollection<string> permissoesMinimas, CancellationToken cancellationToken = default) =>
+		Task.FromResult(Result.Failure(Erro));
+
+	/// <inheritdoc />
+	public Task<Result> DefinirPermissoesDoPerfilAsync(
+		string nome, IReadOnlyCollection<string> permissoes, CancellationToken cancellationToken = default) =>
+		Task.FromResult(Result.Failure(Erro));
 }

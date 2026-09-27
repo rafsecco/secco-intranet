@@ -180,6 +180,27 @@ public sealed class SecureGateGestaoDeAcesso(
 			null,
 			cancellationToken);
 
+	/// <inheritdoc />
+	public Task<Result> GarantirPermissoesAsync(
+		string nome, IReadOnlyCollection<string> permissoesMinimas, CancellationToken cancellationToken = default) =>
+		EscreverAsync(
+			"garantir permissoes",
+			(tenantId, token) => PermissoesDoPerfil.GarantirAsync(client, tenantId, nome, permissoesMinimas, token),
+			IntranetErrors.Acesso.PerfilNaoEncontrado,
+			null,
+			cancellationToken);
+
+	/// <inheritdoc />
+	public Task<Result> DefinirPermissoesDoPerfilAsync(
+		string nome, IReadOnlyCollection<string> permissoes, CancellationToken cancellationToken = default) =>
+		EscreverAsync(
+			"definir permissoes",
+			(tenantId, token) => client.SetRolePermissionsAsync(
+				tenantId, nome, new SetRolePermissionsRequest { Permissions = [.. permissoes] }, token),
+			IntranetErrors.Acesso.PerfilNaoEncontrado,
+			null,
+			cancellationToken);
+
 	private static SituacaoDoUsuario Situacao(string? status) => status?.ToLowerInvariant() switch
 	{
 		"active" => SituacaoDoUsuario.Ativo,

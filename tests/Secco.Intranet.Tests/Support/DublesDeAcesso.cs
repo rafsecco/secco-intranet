@@ -147,6 +147,23 @@ public sealed class GestaoDeAcessoFalsa : IGestaoDeAcesso
 	public Task<Result> EncerrarSessoesAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
 		Escrever($"sessoes-encerrar:{usuarioId}", () => { });
 
+	/// <inheritdoc />
+	public Task<Result> GarantirPermissoesAsync(
+		string nome, IReadOnlyCollection<string> permissoesMinimas, CancellationToken cancellationToken = default) =>
+		Escrever($"permissoes-garantir:{nome}:{string.Join(',', permissoesMinimas)}", () => AlterarPerfil(nome, p =>
+		{
+			var uniao = new HashSet<string>(p.Permissoes, StringComparer.Ordinal);
+			uniao.UnionWith(permissoesMinimas);
+
+			return p with { Permissoes = [.. uniao] };
+		}));
+
+	/// <inheritdoc />
+	public Task<Result> DefinirPermissoesDoPerfilAsync(
+		string nome, IReadOnlyCollection<string> permissoes, CancellationToken cancellationToken = default) =>
+		Escrever($"permissoes-definir:{nome}:{string.Join(',', permissoes)}", () =>
+			AlterarPerfil(nome, p => p with { Permissoes = [.. permissoes] }));
+
 	private List<MembroDoPerfilDto> MembrosDe(string nome) =>
 		[.. Usuarios
 			.Where(u => u.Perfis.Any(p => string.Equals(p, nome, StringComparison.OrdinalIgnoreCase)))
@@ -159,6 +176,16 @@ public sealed class GestaoDeAcessoFalsa : IGestaoDeAcesso
 		if (indice >= 0)
 		{
 			Usuarios[indice] = mudanca(Usuarios[indice]);
+		}
+	}
+
+	private void AlterarPerfil(string nome, Func<PerfilDetalheDto, PerfilDetalheDto> mudanca)
+	{
+		var indice = Perfis.FindIndex(p => string.Equals(p.Nome, nome, StringComparison.OrdinalIgnoreCase));
+
+		if (indice >= 0)
+		{
+			Perfis[indice] = mudanca(Perfis[indice]);
 		}
 	}
 
