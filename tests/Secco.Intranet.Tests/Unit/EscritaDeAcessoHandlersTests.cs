@@ -348,4 +348,45 @@ public class EscritaDeAcessoHandlersTests
 
 		resultado.Error.Should().Be(IntranetErrors.Acesso.UsuarioNaoEncontrado);
 	}
+
+	// --- EditarPermissoesDoPerfil ---
+
+	[Fact]
+	public async Task EditarPermissoes_PermissaoDoCatalogo_GravaEAudita()
+	{
+		var gestao = Cenario();
+		var trilha = new TrilhaDeAcessoFalsa();
+
+		var resultado = await new EditarPermissoesDoPerfilHandler(gestao, trilha)
+			.HandleAsync("marketing-admin", [IntranetPermissoes.Diretorio.Read, IntranetPermissoes.Setor.ReadGlobal]);
+
+		resultado.IsSuccess.Should().BeTrue();
+		gestao.Chamadas.Should().Contain($"permissoes-definir:marketing-admin:{IntranetPermissoes.Diretorio.Read},{IntranetPermissoes.Setor.ReadGlobal}");
+		trilha.Registros.Single().Verbo.Should().Be(VerbosDeAuditoria.AcessoPermissoesEditar);
+	}
+
+	[Fact]
+	public async Task EditarPermissoes_PermissaoDeSetorExistente_TambemEAceita()
+	{
+		// setor-{slug}:read/write não estão no Catalogo fixo (são dinâmicas por setor existente),
+		// mas o handler valida pelo FORMATO da plataforma, não por uma lista fechada de string —
+		// senão nenhum perfil de setor conseguiria ganhar permissão por esta tela.
+		var resultado = await new EditarPermissoesDoPerfilHandler(Cenario(), new TrilhaDeAcessoFalsa())
+			.HandleAsync("marketing-admin", ["setor-marketing:read", "setor-marketing:write"]);
+
+		resultado.IsSuccess.Should().BeTrue();
+	}
+
+	[Fact]
+	public async Task EditarPermissoes_ForaDoFormato_Recusa_NaoChamaAPlataforma()
+	{
+		var gestao = Cenario();
+
+		var resultado = await new EditarPermissoesDoPerfilHandler(gestao, new TrilhaDeAcessoFalsa())
+			.HandleAsync("marketing-admin", ["texto livre qualquer"]);
+
+		resultado.IsFailure.Should().BeTrue();
+		resultado.Error.Should().Be(IntranetErrors.Acesso.PermissaoInvalida);
+		gestao.Chamadas.Should().BeEmpty();
+	}
 }

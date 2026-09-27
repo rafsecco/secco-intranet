@@ -163,13 +163,47 @@ public class AcessoTelasTests(IntranetWebFactory factory) : IClassFixture<Intran
 		.ComUsuario(Bruno, "bruno@x.com");
 
 	[Fact]
-	public async Task Perfil_MostraPermissoesSoParaLeituraMembrosECandidatos()
+	public async Task Perfil_MostraPermissoesEditaveisMembrosECandidatos()
 	{
 		var html = await CriarClienteAdmin(CenarioDePerfil()).GetStringAsync("/Acesso/Perfil?nome=gerente-de-compras");
 
+		// "compras:read"/"compras:write" não estão no catálogo fixo — precisam aparecer mesmo
+		// assim, porque o perfil já os tem (ver comentário na view sobre não apagar permissão extra).
 		html.Should().Contain("compras:read").And.Contain("compras:write");
+		html.Should().Contain("name=\"permissoes\"", "as permissões viram checkbox, não mais texto");
 		html.Should().Contain("ana@x.com", "é membro");
 		html.Should().Contain("bruno@x.com", "é candidato a membro, aparece no seletor de adicionar");
+	}
+
+	[Fact]
+	public async Task EditarPermissoes_SubstituiAListaEVoltaParaOPerfil()
+	{
+		var gestao = CenarioDePerfil();
+		var client = CriarClienteAdmin(gestao);
+		var token = await TokenAsync(client, "/Acesso/Perfil?nome=gerente-de-compras");
+
+		var resposta = await client.PostAsync("/Acesso/EditarPermissoes", Form(
+			("nome", "gerente-de-compras"),
+			("permissoes", IntranetPermissoes.Diretorio.Read),
+			("permissoes", IntranetPermissoes.Setor.ReadGlobal),
+			("__RequestVerificationToken", token)));
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be("/Acesso/Perfil");
+		gestao.Perfis.Single(p => p.Nome == "gerente-de-compras").Permissoes.Should().BeEquivalentTo(
+			IntranetPermissoes.Diretorio.Read, IntranetPermissoes.Setor.ReadGlobal);
+	}
+
+	[Fact]
+	public async Task EditarPermissoes_NenhumaMarcada_ZeraAsPermissoes()
+	{
+		var gestao = CenarioDePerfil();
+		var client = CriarClienteAdmin(gestao);
+		var token = await TokenAsync(client, "/Acesso/Perfil?nome=gerente-de-compras");
+
+		await client.PostAsync("/Acesso/EditarPermissoes", Form(("nome", "gerente-de-compras"), ("__RequestVerificationToken", token)));
+
+		gestao.Perfis.Single(p => p.Nome == "gerente-de-compras").Permissoes.Should().BeEmpty();
 	}
 
 	[Fact]

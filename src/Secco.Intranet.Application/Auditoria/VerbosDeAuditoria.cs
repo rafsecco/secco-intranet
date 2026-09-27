@@ -66,6 +66,12 @@ public static class VerbosDeAuditoria
 	/// <summary>Sessões de um usuário encerradas.</summary>
 	public const string AcessoSessoesEncerrar = "acesso.sessoes-encerrar";
 
+	/// <summary>Permissões de um perfil foram editadas.</summary>
+	public const string AcessoPermissoesEditar = "acesso.perfil-permissoes-editar";
+
+	/// <summary>Permissões de setores e do Diretório foram reconciliadas em lote.</summary>
+	public const string AcessoPermissoesReconciliar = "acesso.permissoes-reconciliar";
+
 	/// <summary>Contato (nome, ramal, sobre) alterado.</summary>
 	public const string DiretorioPerfilEditar = "diretorio.perfil-editar";
 

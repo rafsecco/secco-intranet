@@ -64,6 +64,7 @@ public class AcessoAutorizacaoTests(IntranetWebFactory factory) : IClassFixture<
 		$"/Acesso/DesativarUsuario/{Id}",
 		$"/Acesso/ReativarUsuario/{Id}",
 		$"/Acesso/EncerrarSessoes/{Id}",
+		"/Acesso/EditarPermissoes",
 	];
 
 	[Theory]

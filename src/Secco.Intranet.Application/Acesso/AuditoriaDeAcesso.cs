@@ -13,6 +13,15 @@ internal static class AuditoriaDeAcesso
 			new RegistroDeAuditoria(verbo, RecursosDeAuditoria.Acesso, perfil, JsonSerializer.Serialize(new { perfil })),
 			cancellationToken);
 
+	/// <summary>Registra a edição de permissões de um perfil — a lista final, não um diff.</summary>
+	public static Task PermissoesAsync(
+		ITrilhaDeAuditoria trilha, string perfil, IReadOnlyCollection<string> permissoes, CancellationToken cancellationToken) =>
+		trilha.RegistrarAsync(
+			new RegistroDeAuditoria(
+				VerbosDeAuditoria.AcessoPermissoesEditar, RecursosDeAuditoria.Acesso, perfil,
+				JsonSerializer.Serialize(new { perfil, permissoes })),
+			cancellationToken);
+
 	/// <summary>Registra uma ação sobre um usuário, com o e-mail em cache (o SecureGate não guarda nome).</summary>
 	public static Task UsuarioAsync(
 		ITrilhaDeAuditoria trilha, string verbo, Guid usuarioId, string? email, string? perfil, CancellationToken cancellationToken) =>

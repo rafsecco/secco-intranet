@@ -210,6 +210,10 @@ public static class IntranetErrors
 		public static readonly Error PerfilComMembros =
 			Error.Conflict("Intranet.Acesso.PerfilComMembros", "O perfil ainda tem membros. Retire todos antes de excluir.");
 
+		/// <summary>Uma das permissões enviadas não está no formato canônico da plataforma.</summary>
+		public static readonly Error PermissaoInvalida =
+			Error.Validation("Intranet.Acesso.PermissaoInvalida", "Uma das permissões enviadas não é válida.");
+
 		/// <summary>Deixaria a instalação sem <c>intranet-admin</c> ativo.</summary>
 		public static readonly Error UltimoIntranetAdmin =
 			Error.Validation(

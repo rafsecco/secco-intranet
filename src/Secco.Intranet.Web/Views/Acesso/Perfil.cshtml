@@ -7,8 +7,26 @@
 
     var cabecalho = new PageHeaderModel(
         perfil.Nome,
-        "Permissões são somente leitura neste corte.",
+        "Marque as permissões deste perfil.",
         Acoes: new[] { new PageActionModel("Voltar", Url.Action("Index")!, "bi-arrow-left") });
+
+    var catalogoDePermissoes = IntranetPermissoes.Catalogo.ToList();
+    var doSetor = ClassificacaoDePerfil.DoSetor(perfil.Nome);
+
+    if (doSetor is not null)
+    {
+        catalogoDePermissoes.Insert(0, IntranetPermissoes.Setor.Write(doSetor.Value.Slug));
+        catalogoDePermissoes.Insert(0, IntranetPermissoes.Setor.Read(doSetor.Value.Slug));
+    }
+
+    // Uma permissão que o perfil já tem e não está no catálogo (legado, ou atribuída fora desta
+    // tela) precisa continuar aparecendo — senão salvar o formulário a apagaria sem o admin ver.
+    foreach (var extra in perfil.Permissoes.Where(p => !catalogoDePermissoes.Contains(p)))
+    {
+        catalogoDePermissoes.Add(extra);
+    }
+
+    var permissoesAtuais = perfil.Permissoes.ToHashSet(StringComparer.Ordinal);
 
     string? PaginaUrl(int pagina) => Url.Action("Perfil", new { nome = perfil.Nome, page = pagina });
 
@@ -33,18 +51,23 @@
 
 <div class="sc-panel">
     <h2 class="h6">Permissões</h2>
-    @if (perfil.Permissoes.Count == 0)
+    @if (perfil.Reservado)
     {
-        <p class="text-muted mb-0">Este perfil não carrega permissões.</p>
+        <p class="text-muted mb-0">Perfil reservado da plataforma — permissões não editáveis por aqui.</p>
     }
     else
     {
-        <ul class="mb-0">
-            @foreach (var permissao in perfil.Permissoes)
+        <form method="post" asp-action="EditarPermissoes">
+            <input type="hidden" name="nome" value="@perfil.Nome" />
+            @foreach (var permissao in catalogoDePermissoes)
             {
-                <li><span class="sc-meta">@permissao</span></li>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="permissoes" value="@permissao" id="perm-@permissao" checked="@permissoesAtuais.Contains(permissao)" />
+                    <label class="form-check-label" for="perm-@permissao"><span class="sc-meta">@permissao</span></label>
+                </div>
             }
-        </ul>
+            <button class="btn btn-outline-primary mt-2" type="submit">Salvar permissões</button>
+        </form>
     }
 </div>
 

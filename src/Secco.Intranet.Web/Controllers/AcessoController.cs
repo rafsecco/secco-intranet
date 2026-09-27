@@ -23,6 +23,7 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="desativarUsuario">Desativação de conta.</param>
 /// <param name="reativarUsuario">Reativação de conta.</param>
 /// <param name="encerrarSessoes">Encerramento de sessões.</param>
+/// <param name="editarPermissoes">Edição das permissões de um perfil.</param>
 [SomenteIntranetAdmin]
 public sealed class AcessoController(
 	ListarPerfisHandler listarPerfis,
@@ -35,7 +36,8 @@ public sealed class AcessoController(
 	RetirarPerfilHandler retirarPerfil,
 	DesativarUsuarioHandler desativarUsuario,
 	ReativarUsuarioHandler reativarUsuario,
-	EncerrarSessoesHandler encerrarSessoes) : Controller
+	EncerrarSessoesHandler encerrarSessoes,
+	EditarPermissoesDoPerfilHandler editarPermissoes) : Controller
 {
 	/// <summary>Tela inicial, com as abas Perfis e Usuários.</summary>
 	/// <param name="aba"><c>usuarios</c> abre a aba de usuários; qualquer outro valor, a de perfis.</param>
@@ -194,6 +196,19 @@ public sealed class AcessoController(
 	[ValidateAntiForgeryToken]
 	public async Task<IActionResult> EncerrarSessoes(Guid id, CancellationToken cancellationToken = default) =>
 		Concluir(await encerrarSessoes.HandleAsync(id, cancellationToken), "Sessões encerradas.", nameof(Usuario), new { id });
+
+	/// <summary>Substitui a lista inteira de permissões de um perfil.</summary>
+	/// <param name="nome">Nome do perfil.</param>
+	/// <param name="permissoes">Permissões marcadas no formulário; nenhuma marcada chega como vazio.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> EditarPermissoes(string? nome, string[]? permissoes, CancellationToken cancellationToken = default)
+	{
+		var resultado = await editarPermissoes.HandleAsync(nome ?? string.Empty, permissoes ?? [], cancellationToken);
+
+		return Concluir(resultado, "Permissões atualizadas.", nameof(Perfil), new { nome });
+	}
 
 	/// <summary>
 	/// Volta para a tela de onde o formulário saiu. <paramref name="origem"/> é só uma escolha entre
