@@ -138,6 +138,9 @@ processos (maior risco técnico) só entra com a base já sólida.
 ## Fase 5 — Comunidade (pós-lançamento open source)
 
 - [ ] Motor de processos v2: etapas paralelas, condicionais
+- [ ] Idioma inglês no produto (i18n): hoje toda tela, mensagem e rótulo são só em português.
+      Abrir o código não obriga isso agora, mas amplia quem consegue adotar e contribuir depois
+      do lançamento open source
 - [ ] Marketplace de temas (empacotamento + documentação para terceiros)
 - [ ] Automação opcional de clonagem de perfis admin/user por setor, se um caso de uso
       concreto justificar (ver ADR-0001)
