@@ -4,7 +4,7 @@ using Secco.Intranet.Web.Theming.Contracts;
 namespace Secco.Intranet.Web.Navigation;
 
 /// <summary>Entrada para a montagem do menu.</summary>
-/// <param name="Setores">Setores que o usuário enxerga (ver <see cref="SetorAcesso.Visiveis"/>).</param>
+/// <param name="Setores">Setores que o usuário enxerga (filtrados por permissão em <see cref="Secco.Intranet.Web.ViewComponents.NavigationViewComponent"/>).</param>
 /// <param name="CaminhoAtual">Caminho da requisição, usado para marcar o item ativo.</param>
 /// <param name="MostrarAdministracao">Se o grupo de administração deve aparecer.</param>
 /// <param name="MostrarDiretorio">Se o item Diretório deve aparecer (nível de acesso de Usuário ou acima).</param>

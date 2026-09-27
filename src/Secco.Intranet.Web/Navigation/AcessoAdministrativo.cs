@@ -8,10 +8,10 @@ namespace Secco.Intranet.Web.Navigation;
 
 /// <summary>
 /// Checa Roles fixas (não derivadas de slug de setor) — o modelo de autorização do
-/// Inventário e da futura Área administrativa (ADR-0008). Diferente de
-/// <see cref="SetorAcesso"/>, que deriva slug de um sufixo <c>-admin</c>/<c>-user</c>; aqui a
-/// Role é um nome exato, e <see cref="RoleIntranetAdmin"/> sempre concede acesso, qualquer que
-/// seja a Role específica pedida — é o superusuário da instalação.
+/// Inventário e da futura Área administrativa (ADR-0008). Diferente do que <c>IPermissoesDeSetor</c>
+/// resolve (permissão por setor), aqui a Role é um nome exato, e
+/// <see cref="RoleIntranetAdmin"/> sempre concede acesso, qualquer que seja a Role específica
+/// pedida — é o superusuário da instalação.
 /// </summary>
 public static class AcessoAdministrativo
 {

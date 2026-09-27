@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Publicacoes.Notificacao;
+using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Publicacoes;
 using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Conteudo;
@@ -26,12 +27,42 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="tenantContext">Tenant da requisição atual.</param>
 /// <param name="renderizador">Conversão do Markdown guardado em HTML.</param>
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
+/// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura/escrita (ADR-0021).</param>
 public sealed class MuralController(
 	IServiceProvider serviceProvider,
 	ITenantContext tenantContext,
 	IRenderizadorMarkdown renderizador,
-	IConfiguration configuration) : Controller
+	IConfiguration configuration,
+	IPermissoesDeSetor permissoesDeSetor) : Controller
 {
+	private const int LimiteSetoresConsultados = 200;
+
+	/// <summary>
+	/// Setores em que o usuário tem leitura, para filtrar o que ele vê — vazio sem autenticação
+	/// configurada (modo aberto de DEV/Testing), quando o handler ignora o filtro por completo
+	/// (<c>ExigirVisibilidade: false</c>).
+	/// </summary>
+	private async Task<IReadOnlyList<string>> SlugsComLeituraAsync(CancellationToken cancellationToken)
+	{
+		if (!IntranetAuthenticationExtensions.IsConfigured(configuration))
+		{
+			return [];
+		}
+
+		var setores = await serviceProvider
+			.GetRequiredService<SearchSetoresHandler>()
+			.HandleAsync(new SetorSearchCriteria(ApenasAtivos: true, Page: new PageRequest(1, LimiteSetoresConsultados)), cancellationToken)
+			.ConfigureAwait(false);
+
+		if (setores.IsFailure)
+		{
+			return [];
+		}
+
+		var slugs = setores.Value.Items.Select(s => s.Slug).ToList();
+
+		return [.. await permissoesDeSetor.SlugsComPermissaoAsync(User, "read", slugs, cancellationToken).ConfigureAwait(false)];
+	}
 	/// <summary>Lista as publicações no ar e visíveis para o leitor.</summary>
 	/// <param name="tipo">Filtro por natureza (opcional).</param>
 	/// <param name="page">Página desejada.</param>
@@ -53,7 +84,7 @@ public sealed class MuralController(
 			.HandleAsync(
 				new MuralQuery(
 					tipo,
-					[.. SetorAcesso.SlugsDoUsuario(User)],
+					await SlugsComLeituraAsync(cancellationToken).ConfigureAwait(false),
 					ExigirVisibilidade: IntranetAuthenticationExtensions.IsConfigured(configuration),
 					page),
 				cancellationToken)
@@ -95,7 +126,7 @@ public sealed class MuralController(
 			.HandleAsync(
 				new ObterPublicacaoQuery(
 					id,
-					[.. SetorAcesso.SlugsDoUsuario(User)],
+					await SlugsComLeituraAsync(cancellationToken).ConfigureAwait(false),
 					ExigirVisibilidade: IntranetAuthenticationExtensions.IsConfigured(configuration)),
 				cancellationToken)
 			.ConfigureAwait(false);
@@ -108,7 +139,12 @@ public sealed class MuralController(
 		var publicacao = resultado.Value;
 
 		// Preguiçoso por desenho: a pergunta só é feita por quem pode agir sobre a resposta.
-		var entrega = SetorAcesso.AdministraSetor(User, publicacao.SetorSlug)
+		var administraOSetor = (await permissoesDeSetor
+			.SlugsComPermissaoAsync(User, "write", [publicacao.SetorSlug], cancellationToken)
+			.ConfigureAwait(false))
+			.Contains(publicacao.SetorSlug);
+
+		var entrega = administraOSetor
 			? await serviceProvider
 				.GetRequiredService<IConsultaDeEntregas>()
 				.DaPublicacaoAsync(publicacao.Id, cancellationToken)

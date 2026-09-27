@@ -1,11 +1,9 @@
-using System.Security.Claims;
 using AwesomeAssertions;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Secco.Intranet;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Web.Navigation;
 using Secco.Intranet.Web.Theming;
-using Secco.SharedKernel.Constants;
 using Xunit;
 
 namespace Secco.Intranet.Tests.Unit;
@@ -16,11 +14,6 @@ namespace Secco.Intranet.Tests.Unit;
 /// </summary>
 public class NavegacaoETemaTests
 {
-	private static ClaimsPrincipal Usuario(params string[] roles) =>
-		new(new ClaimsIdentity(
-			roles.Select(role => new Claim(SeccoClaims.Role, role)),
-			authenticationType: "Teste"));
-
 	private static SetorDto Setor(string nome, string slug, bool ativo = true) =>
 		new(Guid.NewGuid(), nome, slug, Domain.Setores.Setor.IconePadrao, Fixo: false, Ativo: ativo,
 			CreatedAt: DateTimeOffset.UtcNow);
@@ -57,50 +50,6 @@ public class NavegacaoETemaTests
 		expander.PopulateValues(context);
 
 		context.Values.Values.Should().Contain("Horizontal", "trocar o tema precisa invalidar o cache de views");
-	}
-
-	[Theory]
-	[InlineData("financeiro-admin", "financeiro")]
-	[InlineData("recursos-humanos-user", "recursos-humanos")]
-	public void SlugsDoUsuario_ExtraiOSlugDeCadaRoleDeSetor(string role, string slugEsperado) =>
-		SetorAcesso.SlugsDoUsuario(Usuario(role)).Should().Contain(slugEsperado);
-
-	[Fact]
-	public void SlugsDoUsuario_IgnoraRolesQueNaoSaoDeSetor() =>
-		SetorAcesso.SlugsDoUsuario(Usuario("plataforma:leitura", "-admin", "user"))
-			.Should().BeEmpty("apenas roles no formato {slug}-admin/{slug}-user representam setor");
-
-	[Fact]
-	public void AdministraSetor_SoAceitaARoleDeAdministracaoDaqueleSetor()
-	{
-		var usuario = Usuario("financeiro-admin", "diretoria-user");
-
-		SetorAcesso.AdministraSetor(usuario, "financeiro").Should().BeTrue();
-		SetorAcesso.AdministraSetor(usuario, "diretoria").Should().BeFalse("estar no setor não é administrá-lo");
-	}
-
-	[Fact]
-	public void Visiveis_ComVinculoExigido_DevolveSomenteOsSetoresDoUsuario()
-	{
-		IReadOnlyList<SetorDto> setores = [Setor("Financeiro", "financeiro"), Setor("Diretoria", "diretoria")];
-
-		var visiveis = SetorAcesso.Visiveis(setores, Usuario("financeiro-user"), exigirVinculo: true);
-
-		visiveis.Should().ContainSingle().Which.Slug.Should().Be("financeiro");
-	}
-
-	[Fact]
-	public void Visiveis_SemVinculoExigido_DevolveTodosOsAtivos()
-	{
-		IReadOnlyList<SetorDto> setores =
-		[
-			Setor("Financeiro", "financeiro"),
-			Setor("Extinto", "extinto", ativo: false),
-		];
-
-		var visiveis = SetorAcesso.Visiveis(setores, Usuario(), exigirVinculo: false);
-
-		visiveis.Should().ContainSingle("o modo aberto de DEV mostra todos os setores, mas nunca um inativo");
 	}
 
 	[Fact]

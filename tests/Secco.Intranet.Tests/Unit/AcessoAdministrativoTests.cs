@@ -7,7 +7,7 @@ using Xunit;
 namespace Secco.Intranet.Tests.Unit;
 
 /// <summary>
-/// Generaliza o padrão de <see cref="SetorAcesso"/> para Roles fixas, não derivadas de slug
+/// Generaliza o padrão de checagem por nome de Role para Roles fixas, não derivadas de slug
 /// — o primeiro recurso a sair do molde <c>{slug}-admin</c> do ADR-0001 (ADR-0008).
 /// </summary>
 public class AcessoAdministrativoTests

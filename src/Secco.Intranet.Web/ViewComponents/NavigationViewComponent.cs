@@ -24,12 +24,14 @@ namespace Secco.Intranet.Web.ViewComponents;
 /// <param name="tenantContext">Tenant da requisição atual.</param>
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
 /// <param name="environment">Ambiente de hospedagem, para o modo aberto de DEV.</param>
+/// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura (ADR-0021).</param>
 /// <param name="logger">Log de diagnóstico.</param>
 public sealed class NavigationViewComponent(
 	IServiceProvider serviceProvider,
 	ITenantContext tenantContext,
 	IConfiguration configuration,
 	IWebHostEnvironment environment,
+	IPermissoesDeSetor permissoesDeSetor,
 	ILogger<NavigationViewComponent> logger) : ViewComponent
 {
 	private const int LimiteSetoresNoMenu = 50;
@@ -74,9 +76,23 @@ public sealed class NavigationViewComponent(
 				.HandleAsync(criteria, HttpContext.RequestAborted)
 				.ConfigureAwait(false);
 
-			return resultado.IsSuccess
-				? SetorAcesso.Visiveis(resultado.Value.Items, usuario, exigirVinculo: autenticacaoAtiva)
-				: [];
+			if (resultado.IsFailure)
+			{
+				return [];
+			}
+
+			var ativos = resultado.Value.Items;
+
+			if (!autenticacaoAtiva)
+			{
+				return ativos;
+			}
+
+			var slugsComLeitura = await permissoesDeSetor
+				.SlugsComPermissaoAsync(usuario, "read", [.. ativos.Select(s => s.Slug)], HttpContext.RequestAborted)
+				.ConfigureAwait(false);
+
+			return [.. ativos.Where(setor => slugsComLeitura.Contains(setor.Slug))];
 		}
 #pragma warning disable CA1031 // O menu está no layout: uma falha aqui derrubaria até a própria página de erro.
 		catch (Exception exception)

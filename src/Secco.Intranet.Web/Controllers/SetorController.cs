@@ -9,6 +9,7 @@ using Secco.Intranet.Web.Models.Publicacoes;
 using Secco.Intranet.Web.Navigation;
 using Secco.Intranet.Web.ViewComponents;
 using Secco.SharedKernel.Constants;
+using Secco.SharedKernel.Pagination;
 
 namespace Secco.Intranet.Web.Controllers;
 
@@ -26,6 +27,8 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="listarPublicacoesDoSetorHandler">Listagem de avisos do setor.</param>
 /// <param name="documentoOptions">Limites de upload.</param>
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
+/// <param name="searchSetores">Busca de setores, para saber o universo de slugs a checar.</param>
+/// <param name="permissoesDeSetor">Em quais setores o usuário tem escrita (ADR-0021).</param>
 [Route("setor/{slug}")]
 public sealed class SetorController(
 	GetSetorBySlugHandler getSetorHandler,
@@ -37,8 +40,11 @@ public sealed class SetorController(
 	ArquivarPublicacaoHandler arquivarPublicacaoHandler,
 	ListarPublicacoesDoSetorHandler listarPublicacoesDoSetorHandler,
 	DocumentoOptions documentoOptions,
-	IConfiguration configuration) : Controller
+	IConfiguration configuration,
+	SearchSetoresHandler searchSetores,
+	IPermissoesDeSetor permissoesDeSetor) : Controller
 {
+	private const int LimiteSetoresConsultados = 200;
 	/// <summary>Aba de documentos do setor.</summary>
 	/// <param name="slug">Slug do setor.</param>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
@@ -67,7 +73,7 @@ public sealed class SetorController(
 	{
 		ArgumentNullException.ThrowIfNull(form);
 
-		if (!PodePublicar(slug))
+		if (!await PodePublicarAsync(slug, cancellationToken).ConfigureAwait(false))
 		{
 			// Mesma resposta de setor inexistente: quem não administra o setor não deve
 			// conseguir distinguir "não posso" de "não existe".
@@ -125,7 +131,7 @@ public sealed class SetorController(
 		var resultado = await arquivarHandler.HandleAsync(
 			new ArquivarDocumentoCommand(
 				id,
-				SetorAcesso.SlugsAdministrados(User),
+				await SlugsComEscritaAsync(cancellationToken).ConfigureAwait(false),
 				ExigirVinculo: IntranetAuthenticationExtensions.IsConfigured(configuration)),
 			cancellationToken).ConfigureAwait(false);
 
@@ -164,7 +170,7 @@ public sealed class SetorController(
 	{
 		ArgumentNullException.ThrowIfNull(form);
 
-		if (!PodePublicar(slug))
+		if (!await PodePublicarAsync(slug, cancellationToken).ConfigureAwait(false))
 		{
 			return NotFound();
 		}
@@ -207,7 +213,8 @@ public sealed class SetorController(
 		else
 		{
 			var editado = await editarPublicacaoHandler.HandleAsync(
-				new EditarPublicacaoCommand(form.Id, SetorAcesso.SlugsAdministrados(User), exigirVinculo,
+				new EditarPublicacaoCommand(
+					form.Id, await SlugsComEscritaAsync(cancellationToken).ConfigureAwait(false), exigirVinculo,
 					form.Titulo, form.Corpo, form.Tipo, form.Visibilidade, form.Prioridade,
 					publicadoEm, expiraEm),
 				cancellationToken).ConfigureAwait(false);
@@ -260,7 +267,7 @@ public sealed class SetorController(
 		var resultado = await arquivarPublicacaoHandler.HandleAsync(
 			new ArquivarPublicacaoCommand(
 				id,
-				SetorAcesso.SlugsAdministrados(User),
+				await SlugsComEscritaAsync(cancellationToken).ConfigureAwait(false),
 				ExigirVinculo: IntranetAuthenticationExtensions.IsConfigured(configuration)),
 			cancellationToken).ConfigureAwait(false);
 
@@ -293,7 +300,7 @@ public sealed class SetorController(
 		return new SetorAvisosViewModel(
 			setor.Value,
 			publicacoes.IsSuccess ? publicacoes.Value : [],
-			PodePublicar(slug),
+			await PodePublicarAsync(slug, cancellationToken).ConfigureAwait(false),
 			form,
 			DateTimeOffset.UtcNow);
 	}
@@ -317,16 +324,51 @@ public sealed class SetorController(
 		return new SetorDocumentosViewModel(
 			setor.Value,
 			documentos.IsSuccess ? documentos.Value : [],
-			PodePublicar(slug),
+			await PodePublicarAsync(slug, cancellationToken).ConfigureAwait(false),
 			form,
 			documentoOptions.TamanhoMaximoBytes);
 	}
 
 	/// <summary>
-	/// Publicar exige a Role <c>{slug}-admin</c> (ADR-0001). Sem autenticação configurada — o
-	/// modo aberto de DEV — não há roles a consultar, e a checagem é dispensada.
+	/// Publicar exige a permissão de escrita do setor (ADR-0021). Sem autenticação configurada —
+	/// o modo aberto de DEV — não há permissão a resolver, e a checagem é dispensada.
 	/// </summary>
-	private bool PodePublicar(string slug) =>
-		!IntranetAuthenticationExtensions.IsConfigured(configuration)
-		|| SetorAcesso.AdministraSetor(User, slug);
+	private async Task<bool> PodePublicarAsync(string slug, CancellationToken cancellationToken)
+	{
+		if (!IntranetAuthenticationExtensions.IsConfigured(configuration))
+		{
+			return true;
+		}
+
+		var slugsComEscrita = await permissoesDeSetor
+			.SlugsComPermissaoAsync(User, "write", [slug], cancellationToken)
+			.ConfigureAwait(false);
+
+		return slugsComEscrita.Contains(slug);
+	}
+
+	/// <summary>
+	/// Setores em que o usuário tem escrita — vazio sem autenticação configurada (modo aberto de
+	/// DEV/Testing), quando o handler ignora o filtro por completo (<c>ExigirVinculo: false</c>).
+	/// </summary>
+	private async Task<IReadOnlySet<string>> SlugsComEscritaAsync(CancellationToken cancellationToken)
+	{
+		if (!IntranetAuthenticationExtensions.IsConfigured(configuration))
+		{
+			return new HashSet<string>();
+		}
+
+		var setores = await searchSetores
+			.HandleAsync(new SetorSearchCriteria(ApenasAtivos: true, Page: new PageRequest(1, LimiteSetoresConsultados)), cancellationToken)
+			.ConfigureAwait(false);
+
+		if (setores.IsFailure)
+		{
+			return new HashSet<string>();
+		}
+
+		var slugs = setores.Value.Items.Select(s => s.Slug).ToList();
+
+		return await permissoesDeSetor.SlugsComPermissaoAsync(User, "write", slugs, cancellationToken).ConfigureAwait(false);
+	}
 }
