@@ -24,6 +24,7 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="reativarUsuario">Reativação de conta.</param>
 /// <param name="encerrarSessoes">Encerramento de sessões.</param>
 /// <param name="editarPermissoes">Edição das permissões de um perfil.</param>
+/// <param name="reconciliarPermissoes">Reconciliação em lote de permissões de setor e do Diretório.</param>
 [SomenteIntranetAdmin]
 public sealed class AcessoController(
 	ListarPerfisHandler listarPerfis,
@@ -37,7 +38,8 @@ public sealed class AcessoController(
 	DesativarUsuarioHandler desativarUsuario,
 	ReativarUsuarioHandler reativarUsuario,
 	EncerrarSessoesHandler encerrarSessoes,
-	EditarPermissoesDoPerfilHandler editarPermissoes) : Controller
+	EditarPermissoesDoPerfilHandler editarPermissoes,
+	ReconciliarPermissoesHandler reconciliarPermissoes) : Controller
 {
 	/// <summary>Tela inicial, com as abas Perfis e Usuários.</summary>
 	/// <param name="aba"><c>usuarios</c> abre a aba de usuários; qualquer outro valor, a de perfis.</param>
@@ -208,6 +210,22 @@ public sealed class AcessoController(
 		var resultado = await editarPermissoes.HandleAsync(nome ?? string.Empty, permissoes ?? [], cancellationToken);
 
 		return Concluir(resultado, "Permissões atualizadas.", nameof(Perfil), new { nome });
+	}
+
+	/// <summary>Reconcilia a permissão de todo setor e dos perfis do Diretório, se existirem.</summary>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> ReconciliarPermissoes(CancellationToken cancellationToken = default)
+	{
+		var resultado = await reconciliarPermissoes.HandleAsync(cancellationToken);
+
+		return Concluir(
+			resultado,
+			resultado.IsSuccess
+				? $"Permissões reconciliadas em {resultado.Value.Setores} setor(es) e {resultado.Value.PerfisDoDiretorio} perfil(is) do Diretório."
+				: string.Empty,
+			nameof(Index));
 	}
 
 	/// <summary>

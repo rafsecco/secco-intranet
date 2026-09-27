@@ -84,6 +84,16 @@
             <button class="btn btn-primary" type="submit">Criar perfil</button>
         </form>
     </div>
+
+    <div class="sc-panel mt-3">
+        <form method="post" asp-action="ReconciliarPermissoes">
+            <button class="btn btn-outline-secondary" type="submit">Reconciliar permissões</button>
+            <div class="form-text">
+                Garante <code>leitura</code>/<code>escrita</code> de cada setor e, se existirem, de
+                <code>diretorio-admin</code>/<code>diretorio-user</code> — nunca remove uma permissão já gravada.
+            </div>
+        </form>
+    </div>
 }
 else if (Model.Usuarios is { } usuarios)
 {

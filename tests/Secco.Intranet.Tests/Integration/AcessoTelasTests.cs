@@ -1,9 +1,12 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using AwesomeAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Acesso;
+using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Tests.Integration.TestAuthentication;
 using Secco.Intranet.Tests.Support;
+using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SharedKernel.Constants;
 using Xunit;
 
@@ -403,5 +406,37 @@ public class AcessoTelasTests(IntranetWebFactory factory) : IClassFixture<Intran
 
 		Decodificar(await resposta.Content.ReadAsStringAsync()).Should().Contain("sc-toast--erro");
 		gestao.Chamadas.Should().BeEmpty();
+	}
+
+	private async Task<string> CriarSetorAsync(string slug)
+	{
+		using var escopo = factory.Services.CreateScope();
+		escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
+
+		var criado = await escopo.ServiceProvider
+			.GetRequiredService<CreateSetorHandler>()
+			.HandleAsync(new CreateSetorCommand($"Setor {slug}", slug));
+
+		criado.IsSuccess.Should().BeTrue();
+
+		return slug;
+	}
+
+	[Fact]
+	public async Task ReconciliarPermissoes_SetorAntigoSemPermissao_PassaAResponder()
+	{
+		var slug = $"reconc-{Guid.NewGuid():N}"[..20];
+		await CriarSetorAsync(slug);
+		var gestao = new GestaoDeAcessoFalsa().ComPerfil($"{slug}-admin").ComPerfil($"{slug}-user");
+		var client = CriarClienteAdmin(gestao);
+		var token = await TokenAsync(client, "/Acesso");
+
+		var resposta = await client.PostAsync("/Acesso/ReconciliarPermissoes", Form(("__RequestVerificationToken", token)));
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be("/Acesso");
+		gestao.Perfis.Single(p => p.Nome == $"{slug}-admin").Permissoes.Should().Contain(IntranetPermissoes.Setor.Read(slug));
+		gestao.Perfis.Single(p => p.Nome == $"{slug}-admin").Permissoes.Should().Contain(IntranetPermissoes.Setor.Write(slug));
+		gestao.Perfis.Single(p => p.Nome == $"{slug}-user").Permissoes.Should().Contain(IntranetPermissoes.Setor.Read(slug));
 	}
 }

@@ -13,6 +13,15 @@ internal static class AuditoriaDeAcesso
 			new RegistroDeAuditoria(verbo, RecursosDeAuditoria.Acesso, perfil, JsonSerializer.Serialize(new { perfil })),
 			cancellationToken);
 
+	/// <summary>Registra uma reconciliação em lote de permissões de setor e do Diretório.</summary>
+	public static Task ReconciliacaoAsync(
+		ITrilhaDeAuditoria trilha, int setores, int perfisDoDiretorio, CancellationToken cancellationToken) =>
+		trilha.RegistrarAsync(
+			new RegistroDeAuditoria(
+				VerbosDeAuditoria.AcessoPermissoesReconciliar, RecursosDeAuditoria.Acesso, "reconciliacao",
+				JsonSerializer.Serialize(new { setores, perfisDoDiretorio })),
+			cancellationToken);
+
 	/// <summary>Registra a edição de permissões de um perfil — a lista final, não um diff.</summary>
 	public static Task PermissoesAsync(
 		ITrilhaDeAuditoria trilha, string perfil, IReadOnlyCollection<string> permissoes, CancellationToken cancellationToken) =>

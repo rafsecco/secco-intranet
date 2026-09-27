@@ -56,6 +56,7 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ReativarUsuarioHandler>();
 		services.AddScoped<EncerrarSessoesHandler>();
 		services.AddScoped<EditarPermissoesDoPerfilHandler>();
+		services.AddScoped<ReconciliarPermissoesHandler>();
 
 		services.AddScoped<ListarPessoasHandler>();
 		services.AddScoped<ObterPessoaHandler>();
