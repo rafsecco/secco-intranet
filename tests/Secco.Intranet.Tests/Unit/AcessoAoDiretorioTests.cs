@@ -1,6 +1,14 @@
 using System.Security.Claims;
 using AwesomeAssertions;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Secco.Intranet.Application.Acesso;
+using Secco.Intranet.Tests.Support;
 using Secco.Intranet.Web.Navigation;
+using Secco.SDK.AspNetCore.Authorization;
+using Secco.SDK.AspNetCore.Extensions;
+using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SharedKernel.Constants;
 using Xunit;
 
@@ -8,44 +16,83 @@ namespace Secco.Intranet.Tests.Unit;
 
 public class AcessoAoDiretorioTests
 {
+	private sealed class TenantContextFalso : ITenantContext
+	{
+		public Guid? TenantId { get; set; } = Guid.NewGuid();
+
+		public bool IsResolved => TenantId is not null;
+	}
+
 	private static ClaimsPrincipal Usuario(params string[] roles) =>
 		new(new ClaimsIdentity(roles.Select(role => new Claim(SeccoClaims.Role, role)), authenticationType: "Teste"));
 
-	[Theory]
-	[InlineData("intranet-admin", NivelDeAcessoAoDiretorio.Administrador)]
-	[InlineData("Intranet-Admin", NivelDeAcessoAoDiretorio.Administrador)]
-	[InlineData("diretorio-admin", NivelDeAcessoAoDiretorio.Administrador)]
-	[InlineData("diretorio-user", NivelDeAcessoAoDiretorio.Usuario)]
-	[InlineData("inventario-admin", NivelDeAcessoAoDiretorio.Nenhum)]
-	[InlineData("financeiro-admin", NivelDeAcessoAoDiretorio.Nenhum)]
-	[InlineData("financeiro-user", NivelDeAcessoAoDiretorio.Nenhum)]
-	[InlineData("diretorio-admin-falso", NivelDeAcessoAoDiretorio.Nenhum)]
-	public void Nivel_ClassificaPelaRole(string role, NivelDeAcessoAoDiretorio esperado)
+	private static IAuthorizationService AuthorizationService(IPermissionResolver resolvedor)
 	{
-		AcessoAoDiretorio.Nivel(Usuario(role)).Should().Be(esperado);
+		var servicos = new ServiceCollection()
+			.AddLogging()
+			.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build())
+			.AddSingleton<ITenantContext>(new TenantContextFalso())
+			.AddSingleton(resolvedor)
+			.AddAuthorizationCore()
+			.AddSeccoAuthorization()
+			.BuildServiceProvider();
+
+		return servicos.GetRequiredService<IAuthorizationService>();
 	}
 
 	[Fact]
-	public void Nivel_UsuarioNuloOuSemRole_Nenhum()
+	public async Task Nivel_IntranetAdmin_Administrador_SemConsultarPermissao()
 	{
-		AcessoAoDiretorio.Nivel(null).Should().Be(NivelDeAcessoAoDiretorio.Nenhum);
-		AcessoAoDiretorio.Nivel(Usuario()).Should().Be(NivelDeAcessoAoDiretorio.Nenhum);
+		var nivel = await AcessoAoDiretorio.NivelAsync(AuthorizationService(new PermissionResolverQueLanca()), Usuario("intranet-admin"));
+
+		nivel.Should().Be(NivelDeAcessoAoDiretorio.Administrador);
 	}
 
 	[Fact]
-	public void Nivel_ComVariasRoles_VenceAMaisAlta()
+	public async Task Nivel_ComPermissaoDeGerenciar_Administrador()
 	{
-		AcessoAoDiretorio.Nivel(Usuario("financeiro-admin", "diretorio-user", "diretorio-admin"))
-			.Should().Be(NivelDeAcessoAoDiretorio.Administrador);
+		var resolvedor = new PermissionResolverDeTeste().ComPermissao("diretorio-admin", IntranetPermissoes.Diretorio.Manage);
+
+		var nivel = await AcessoAoDiretorio.NivelAsync(AuthorizationService(resolvedor), Usuario("diretorio-admin"));
+
+		nivel.Should().Be(NivelDeAcessoAoDiretorio.Administrador);
 	}
 
 	[Fact]
-	public void TemNivel_ComparaComOMinimo()
+	public async Task Nivel_SoComPermissaoDeLeitura_Usuario()
 	{
-		AcessoAoDiretorio.TemNivel(Usuario("diretorio-user"), NivelDeAcessoAoDiretorio.Usuario).Should().BeTrue();
-		AcessoAoDiretorio.TemNivel(Usuario("diretorio-user"), NivelDeAcessoAoDiretorio.Administrador).Should().BeFalse();
-		AcessoAoDiretorio.TemNivel(Usuario("diretorio-admin"), NivelDeAcessoAoDiretorio.Usuario).Should().BeTrue();
-		AcessoAoDiretorio.TemNivel(Usuario("inventario-admin"), NivelDeAcessoAoDiretorio.Usuario).Should().BeFalse();
+		var resolvedor = new PermissionResolverDeTeste().ComPermissao("diretorio-user", IntranetPermissoes.Diretorio.Read);
+
+		var nivel = await AcessoAoDiretorio.NivelAsync(AuthorizationService(resolvedor), Usuario("diretorio-user"));
+
+		nivel.Should().Be(NivelDeAcessoAoDiretorio.Usuario);
+	}
+
+	[Fact]
+	public async Task Nivel_SemNenhumaPermissao_Nenhum()
+	{
+		var nivel = await AcessoAoDiretorio.NivelAsync(AuthorizationService(new PermissionResolverDeTeste()), Usuario("financeiro-admin"));
+
+		nivel.Should().Be(NivelDeAcessoAoDiretorio.Nenhum);
+	}
+
+	[Fact]
+	public async Task Nivel_UsuarioNulo_Nenhum()
+	{
+		var nivel = await AcessoAoDiretorio.NivelAsync(AuthorizationService(new PermissionResolverDeTeste()), null);
+
+		nivel.Should().Be(NivelDeAcessoAoDiretorio.Nenhum);
+	}
+
+	[Fact]
+	public async Task TemNivel_ComparaComOMinimo()
+	{
+		var resolvedor = new PermissionResolverDeTeste().ComPermissao("diretorio-user", IntranetPermissoes.Diretorio.Read);
+		var authorizationService = AuthorizationService(resolvedor);
+		var usuario = Usuario("diretorio-user");
+
+		(await AcessoAoDiretorio.TemNivelAsync(authorizationService, usuario, NivelDeAcessoAoDiretorio.Usuario)).Should().BeTrue();
+		(await AcessoAoDiretorio.TemNivelAsync(authorizationService, usuario, NivelDeAcessoAoDiretorio.Administrador)).Should().BeFalse();
 	}
 
 	[Fact]

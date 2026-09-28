@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using AwesomeAssertions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -9,8 +10,13 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Secco.Intranet.Application.Acesso;
+using Secco.Intranet.Tests.Support;
 using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Navigation;
+using Secco.SDK.AspNetCore.Authorization;
+using Secco.SDK.AspNetCore.Extensions;
+using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SharedKernel.Constants;
 using Xunit;
 
@@ -33,6 +39,19 @@ public class ExigeNivelNoDiretorioAttributeTests
 		public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
 	}
 
+	private sealed class TenantContextFalso : ITenantContext
+	{
+		public Guid? TenantId { get; set; } = Guid.NewGuid();
+
+		public bool IsResolved => TenantId is not null;
+	}
+
+	/// <summary>Resolvedor com o mapeamento real de <c>diretorio-user</c>/<c>diretorio-admin</c> (Task 6).</summary>
+	private static PermissionResolverDeTeste ResolvedorPadrao() => new PermissionResolverDeTeste()
+		.ComPermissao("diretorio-user", IntranetPermissoes.Diretorio.Read)
+		.ComPermissao("diretorio-admin", IntranetPermissoes.Diretorio.Read)
+		.ComPermissao("diretorio-admin", IntranetPermissoes.Diretorio.Manage);
+
 	private static AuthorizationFilterContext Contexto(string ambiente, bool autenticacaoConfigurada, params string[] roles)
 	{
 		var configuracao = new ConfigurationBuilder()
@@ -44,6 +63,11 @@ public class ExigeNivelNoDiretorioAttributeTests
 		var servicos = new ServiceCollection()
 			.AddSingleton<IWebHostEnvironment>(new AmbienteFalso(ambiente))
 			.AddSingleton<IConfiguration>(configuracao)
+			.AddLogging()
+			.AddSingleton<ITenantContext>(new TenantContextFalso())
+			.AddSingleton<IPermissionResolver>(ResolvedorPadrao())
+			.AddAuthorizationCore()
+			.AddSeccoAuthorization()
 			.BuildServiceProvider();
 
 		var http = new DefaultHttpContext { RequestServices = servicos };
@@ -68,41 +92,41 @@ public class ExigeNivelNoDiretorioAttributeTests
 	[InlineData("inventario-admin", NivelDeAcessoAoDiretorio.Usuario, true)]
 	[InlineData("financeiro-admin", NivelDeAcessoAoDiretorio.Usuario, true)]
 	[InlineData("financeiro-user", NivelDeAcessoAoDiretorio.Usuario, true)]
-	public void Decide_PeloNivelMinimo(string role, NivelDeAcessoAoDiretorio minimo, bool deveBloquear)
+	public async Task Decide_PeloNivelMinimo(string role, NivelDeAcessoAoDiretorio minimo, bool deveBloquear)
 	{
 		var contexto = Contexto("Testing", autenticacaoConfigurada: false, role);
 
-		new ExigeNivelNoDiretorioAttribute(minimo).OnAuthorization(contexto);
+		await new ExigeNivelNoDiretorioAttribute(minimo).OnAuthorizationAsync(contexto);
 
 		Bloqueou(contexto).Should().Be(deveBloquear);
 	}
 
 	[Fact]
-	public void SemRole_Bloqueia()
+	public async Task SemRole_Bloqueia()
 	{
 		var contexto = Contexto("Testing", autenticacaoConfigurada: false);
 
-		new ExigeNivelNoDiretorioAttribute(NivelDeAcessoAoDiretorio.Usuario).OnAuthorization(contexto);
+		await new ExigeNivelNoDiretorioAttribute(NivelDeAcessoAoDiretorio.Usuario).OnAuthorizationAsync(contexto);
 
 		Bloqueou(contexto).Should().BeTrue();
 	}
 
 	[Fact]
-	public void ModoAbertoDeDev_Libera()
+	public async Task ModoAbertoDeDev_Libera()
 	{
 		var contexto = Contexto("Development", autenticacaoConfigurada: false);
 
-		new ExigeNivelNoDiretorioAttribute(NivelDeAcessoAoDiretorio.Administrador).OnAuthorization(contexto);
+		await new ExigeNivelNoDiretorioAttribute(NivelDeAcessoAoDiretorio.Administrador).OnAuthorizationAsync(contexto);
 
 		contexto.Result.Should().BeNull();
 	}
 
 	[Fact]
-	public void Testing_NuncaTemBypass()
+	public async Task Testing_NuncaTemBypass()
 	{
 		var contexto = Contexto("Testing", autenticacaoConfigurada: false);
 
-		new ExigeNivelNoDiretorioAttribute(NivelDeAcessoAoDiretorio.Usuario).OnAuthorization(contexto);
+		await new ExigeNivelNoDiretorioAttribute(NivelDeAcessoAoDiretorio.Usuario).OnAuthorizationAsync(contexto);
 
 		Bloqueou(contexto).Should().BeTrue();
 	}

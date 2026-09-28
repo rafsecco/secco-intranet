@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Secco.Intranet.Application.Diretorio;
 using Secco.Intranet.Web.Authentication;
@@ -23,6 +24,7 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="editarDadosFuncionais">Edição de cargo, setor e gestor.</param>
 /// <param name="montarOrganograma">Organograma por gestor.</param>
 /// <param name="importar">Importação CSV.</param>
+/// <param name="authorizationService">Serviço de autorização do framework (ADR-0021).</param>
 [Route("diretorio")]
 [ExigeNivelNoDiretorio(NivelDeAcessoAoDiretorio.Usuario)]
 public sealed class DiretorioController(
@@ -32,7 +34,8 @@ public sealed class DiretorioController(
 	EditarContatoHandler editarContato,
 	EditarDadosFuncionaisHandler editarDadosFuncionais,
 	MontarOrganogramaHandler montarOrganograma,
-	ImportarDiretorioHandler importar) : Controller
+	ImportarDiretorioHandler importar,
+	IAuthorizationService authorizationService) : Controller
 {
 	private const long LimiteDeBytesDoArquivo = 2 * 1024 * 1024;
 
@@ -49,7 +52,8 @@ public sealed class DiretorioController(
 		return resultado.IsFailure
 			? Falha(resultado.Error)
 			: View(new DiretorioViewModel(
-				resultado.Value, busca, setor, AcessoAoDiretorio.TemNivel(User, NivelDeAcessoAoDiretorio.Administrador)));
+				resultado.Value, busca, setor,
+				await AcessoAoDiretorio.TemNivelAsync(authorizationService, User, NivelDeAcessoAoDiretorio.Administrador)));
 	}
 
 	/// <summary>Perfil de uma pessoa.</summary>
@@ -67,7 +71,7 @@ public sealed class DiretorioController(
 
 		string? editarUrl = null;
 
-		if (AcessoAoDiretorio.TemNivel(User, NivelDeAcessoAoDiretorio.Administrador))
+		if (await AcessoAoDiretorio.TemNivelAsync(authorizationService, User, NivelDeAcessoAoDiretorio.Administrador))
 		{
 			editarUrl = $"/diretorio/{id}/editar";
 		}

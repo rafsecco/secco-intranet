@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Secco.Intranet.Web.Authentication;
@@ -12,10 +13,12 @@ namespace Secco.Intranet.Web.ViewComponents;
 /// </summary>
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
 /// <param name="environment">Ambiente de hospedagem, para o modo aberto de DEV.</param>
-public sealed class UserMenuViewComponent(IConfiguration configuration, IWebHostEnvironment environment) : ViewComponent
+/// <param name="authorizationService">Serviço de autorização do framework, para o nível do Diretório.</param>
+public sealed class UserMenuViewComponent(
+	IConfiguration configuration, IWebHostEnvironment environment, IAuthorizationService authorizationService) : ViewComponent
 {
 	/// <summary>Renderiza o menu do usuário.</summary>
-	public IViewComponentResult Invoke()
+	public async Task<IViewComponentResult> InvokeAsync()
 	{
 		var usuario = HttpContext.User;
 		var autenticado = usuario.Identity?.IsAuthenticated == true;
@@ -23,7 +26,7 @@ public sealed class UserMenuViewComponent(IConfiguration configuration, IWebHost
 
 		// "Meu perfil" só existe para quem tem acesso ao Diretório; sem acesso, não há para onde apontar.
 		var temAcesso = AcessoAdministrativo.ModoAbertoDeDev(environment, configuration)
-			|| AcessoAoDiretorio.Nivel(usuario) != NivelDeAcessoAoDiretorio.Nenhum;
+			|| await AcessoAoDiretorio.NivelAsync(authorizationService, usuario).ConfigureAwait(false) != NivelDeAcessoAoDiretorio.Nenhum;
 		var urlPerfil = temAcesso ? "/diretorio/perfil" : null;
 
 		return View(new UserMenuModel(

@@ -61,12 +61,25 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 	public IUsuariosParaDiretorio? UsuariosDoDiretorio { get; set; }
 
 	/// <summary>
-	/// Resolvedor de permissão que o host devolve. Nulo, vale o <c>ConfigurationPermissionResolver</c>
-	/// padrão do SDK (sem nenhuma permissão configurada em <c>Secco:Authorization</c> — nega tudo,
-	/// menos <c>intranet-admin</c>, que é bypass por identidade). Os testes de permissão atribuem um
-	/// dublê aqui; a fábrica é por classe de teste, e os testes de uma classe rodam em série.
+	/// Resolvedor de permissão que o host devolve. Nulo, vale <see cref="ResolvedorPadrao"/> — as
+	/// permissões que <c>diretorio-user</c>/<c>diretorio-admin</c> sempre têm na vida real
+	/// (garantidas por <c>CriarPerfilHandler</c>/<c>ReconciliarPermissoesHandler</c>, Task 6/8),
+	/// e nenhuma outra. Testes que precisam de permissão de setor ou de um cenário sem nenhuma
+	/// permissão atribuem um dublê próprio aqui; a fábrica é por classe de teste, e os testes de
+	/// uma classe rodam em série.
 	/// </summary>
 	public IPermissionResolver? ResolvedorDePermissoes { get; set; }
+
+	/// <summary>
+	/// Mapeamento que todo perfil do produto sempre tem, fora de qualquer cenário de teste
+	/// específico — o mesmo que a criação de <c>diretorio-admin</c>/<c>diretorio-user</c> já
+	/// garante em produção. Sem isso, todo teste de tela do Diretório escrito antes do modelo de
+	/// permissões (que atribui a Role e espera acesso) precisaria montar o próprio resolvedor.
+	/// </summary>
+	private static PermissionResolverDeTeste ResolvedorPadrao() => new PermissionResolverDeTeste()
+		.ComPermissao("diretorio-user", IntranetPermissoes.Diretorio.Read)
+		.ComPermissao("diretorio-admin", IntranetPermissoes.Diretorio.Read)
+		.ComPermissao("diretorio-admin", IntranetPermissoes.Diretorio.Manage);
 
 	/// <inheritdoc />
 	protected override string Audience => "secco-intranet";
@@ -87,7 +100,7 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 		services.AddScoped<IGestaoDeAcesso>(serviceProvider =>
 			GestaoDeAcesso ?? ActivatorUtilities.CreateInstance<GestaoDeAcessoIndisponivel>(serviceProvider));
 		services.AddScoped<IUsuariosParaDiretorio>(_ => UsuariosDoDiretorio ?? new UsuariosParaDiretorioIndisponivel());
-		services.AddSingleton<IPermissionResolver>(_ => ResolvedorDePermissoes ?? new PermissionResolverDeTeste());
+		services.AddSingleton<IPermissionResolver>(_ => ResolvedorDePermissoes ?? ResolvedorPadrao());
 	}
 
 	/// <inheritdoc />

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +26,7 @@ namespace Secco.Intranet.Web.ViewComponents;
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
 /// <param name="environment">Ambiente de hospedagem, para o modo aberto de DEV.</param>
 /// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura (ADR-0021).</param>
+/// <param name="authorizationService">Serviço de autorização do framework, para o nível do Diretório.</param>
 /// <param name="logger">Log de diagnóstico.</param>
 public sealed class NavigationViewComponent(
 	IServiceProvider serviceProvider,
@@ -32,6 +34,7 @@ public sealed class NavigationViewComponent(
 	IConfiguration configuration,
 	IWebHostEnvironment environment,
 	IPermissoesDeSetor permissoesDeSetor,
+	IAuthorizationService authorizationService,
 	ILogger<NavigationViewComponent> logger) : ViewComponent
 {
 	private const int LimiteSetoresNoMenu = 50;
@@ -49,7 +52,8 @@ public sealed class NavigationViewComponent(
 			await CarregarSetoresAsync(HttpContext.User, autenticacaoAtiva).ConfigureAwait(false),
 			HttpContext.Request.Path.Value ?? "/",
 			MostrarAdministracao: modoAberto || AcessoAdministrativo.SomenteIntranetAdmin(HttpContext.User),
-			MostrarDiretorio: modoAberto || AcessoAoDiretorio.Nivel(HttpContext.User) != NivelDeAcessoAoDiretorio.Nenhum,
+			MostrarDiretorio: modoAberto
+				|| await AcessoAoDiretorio.NivelAsync(authorizationService, HttpContext.User).ConfigureAwait(false) != NivelDeAcessoAoDiretorio.Nenhum,
 			MostrarInventario: modoAberto || AcessoAdministrativo.TemAcesso(HttpContext.User, AcessoAdministrativo.RoleInventarioAdmin));
 
 		return View(IntranetNavigation.Build(request));
