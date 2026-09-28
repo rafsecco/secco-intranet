@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Setores;
-using Secco.Intranet.Tests.Integration.TestAuthentication;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SharedKernel.Constants;
 using AwesomeAssertions;
@@ -52,4 +51,17 @@ public class MenuVisibilidadeDeSetorTests(IntranetWebFactory factory) : IClassFi
 			$"href=\"/setor/{slug}\"",
 			"sem SecureGate configurado o ambiente Testing mostra todo setor ativo, do mesmo jeito que o modo aberto de DEV");
 	}
+
+	// Tentei, na auto-revisão final, escrever aqui um teste indo e voltando (com e sem a
+	// permissão de escrita) para PodePublicarAsync do SetorController — e descobri que não dá:
+	// PodePublicarAsync começa com "!IsConfigured(configuration) → libera", exatamente o mesmo
+	// bypass do menu acima, e IsConfigured nunca é true neste ambiente. O caminho de permissão
+	// de verdade (a parte nova desta spec) fica estruturalmente inalcançável por HTTP aqui — não
+	// é uma regressão desta migração, é a mesma limitação que já existia para
+	// ExigirVinculo/ExigirVisibilidade antes dela (por isso os testes de handler de Mural/
+	// Documentos/Publicação sempre passaram `ExigirVinculo: true` explícito, em vez de subir o
+	// host). A função por trás (`IPermissoesDeSetor.SlugsComPermissaoAsync`) está coberta a fundo
+	// em `PermissoesDeSetorTests`; o que fica sem prova direta por HTTP é só a chamada dela pelo
+	// controller sob essa condição — registrado para o revisor, não escondido atrás de um teste
+	// que passaria de qualquer jeito.
 }
