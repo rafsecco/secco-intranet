@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Inventario;
 using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Web.Authentication;
@@ -24,7 +26,8 @@ public sealed class InventarioController(
 	GetItemInventarioByIdHandler getByIdHandler,
 	IDiretorioDeUsuarios diretorio,
 	IConfiguration configuration,
-	IWebHostEnvironment environment) : Controller
+	IWebHostEnvironment environment,
+	IAuthorizationService authorizationService) : Controller
 {
 	private const string RoleEspecifica = AcessoAdministrativo.RoleInventarioAdmin;
 
@@ -32,7 +35,7 @@ public sealed class InventarioController(
 	[HttpGet]
 	public async Task<IActionResult> Index(string? nome, int page = 1, CancellationToken cancellationToken = default)
 	{
-		if (!PodeAdministrar())
+		if (!await PodeConsultarAsync())
 		{
 			return StatusCode(StatusCodes.Status403Forbidden);
 		}
@@ -47,7 +50,7 @@ public sealed class InventarioController(
 	[HttpGet]
 	public async Task<IActionResult> Details(Guid id, CancellationToken cancellationToken = default)
 	{
-		if (!PodeAdministrar())
+		if (!await PodeConsultarAsync())
 		{
 			return StatusCode(StatusCodes.Status403Forbidden);
 		}
@@ -277,4 +280,21 @@ public sealed class InventarioController(
 	private bool PodeAdministrar() =>
 		(environment.IsDevelopment() && !IntranetAuthenticationExtensions.IsConfigured(configuration))
 		|| AcessoAdministrativo.TemAcesso(User, RoleEspecifica);
+
+	/// <summary>
+	/// Libera as ações de leitura: quem administra (<see cref="PodeAdministrar"/>) ou tem a
+	/// permissão de consulta (<c>inventario:read</c>, ADR-0021) — um nível novo, além do
+	/// administrativo, que o Inventário não tinha até esta permissão existir.
+	/// </summary>
+	private async Task<bool> PodeConsultarAsync()
+	{
+		if (PodeAdministrar())
+		{
+			return true;
+		}
+
+		var autorizado = await authorizationService.AuthorizeAsync(User, IntranetPermissoes.Inventario.Read);
+
+		return autorizado.Succeeded;
+	}
 }

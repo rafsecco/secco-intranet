@@ -1,7 +1,9 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using AwesomeAssertions;
+using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Tests.Integration.TestAuthentication;
+using Secco.Intranet.Tests.Support;
 using Secco.SharedKernel.Constants;
 using Xunit;
 
@@ -98,5 +100,72 @@ public class InventarioAutorizacaoTests(IntranetWebFactory factory) : IClassFixt
 
 		var html = await resposta.Content.ReadAsStringAsync();
 		html.Should().Contain(titulo);
+	}
+
+	// Role com sufixo único por teste: o CachedPermissionResolver do SDK guarda o resultado por
+	// (tenant, role) por um TTL curto — reusar o mesmo nome de role em dois testes desta classe
+	// (mesmo tenant, mesmo host) arriscaria um teste ler o cache deixado pelo outro.
+	[Fact]
+	public async Task ComInventarioLeitura_AbreAListagem()
+	{
+		var role = $"consulta-inventario-{Guid.NewGuid():N}";
+		factory.ResolvedorDePermissoes = new PermissionResolverDeTeste().ComPermissao(role, IntranetPermissoes.Inventario.Read);
+		var client = CriarCliente(role);
+
+		var resposta = await client.GetAsync("/Inventario");
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+
+		factory.ResolvedorDePermissoes = null;
+	}
+
+	[Fact]
+	public async Task ComInventarioLeitura_EscritaContinuaBloqueada()
+	{
+		var role = $"consulta-inventario-{Guid.NewGuid():N}";
+		factory.ResolvedorDePermissoes = new PermissionResolverDeTeste().ComPermissao(role, IntranetPermissoes.Inventario.Read);
+		var client = CriarCliente(role);
+
+		var resposta = await client.GetAsync("/Inventario/Create");
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.Forbidden, "inventario:read abre só a leitura");
+
+		factory.ResolvedorDePermissoes = null;
+	}
+
+	[Fact]
+	public async Task SemInventarioLeitura_ContinuaBloqueado()
+	{
+		var role = $"consulta-inventario-{Guid.NewGuid():N}";
+		factory.ResolvedorDePermissoes = new PermissionResolverDeTeste();
+		var resposta = await CriarCliente(role).GetAsync("/Inventario");
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+		factory.ResolvedorDePermissoes = null;
+	}
+
+	[Fact]
+	public async Task InventarioAdmin_ContinuaLiberadoEmTudo_SemPrecisarDeInventarioRead()
+	{
+		factory.ResolvedorDePermissoes = new PermissionResolverDeTeste();
+		var resposta = await CriarCliente("inventario-admin").GetAsync("/Inventario");
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+
+		factory.ResolvedorDePermissoes = null;
+	}
+
+	[Fact]
+	public async Task ComInventarioLeitura_VeOItemDeMenu()
+	{
+		var role = $"consulta-inventario-{Guid.NewGuid():N}";
+		factory.ResolvedorDePermissoes = new PermissionResolverDeTeste().ComPermissao(role, IntranetPermissoes.Inventario.Read);
+
+		var html = await CriarCliente(role).GetStringAsync("/");
+
+		html.Should().Contain("href=\"/inventario\"");
+
+		factory.ResolvedorDePermissoes = null;
 	}
 }

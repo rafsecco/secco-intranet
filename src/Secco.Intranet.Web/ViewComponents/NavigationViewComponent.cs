@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Navigation;
@@ -54,7 +55,9 @@ public sealed class NavigationViewComponent(
 			MostrarAdministracao: modoAberto || AcessoAdministrativo.SomenteIntranetAdmin(HttpContext.User),
 			MostrarDiretorio: modoAberto
 				|| await AcessoAoDiretorio.NivelAsync(authorizationService, HttpContext.User).ConfigureAwait(false) != NivelDeAcessoAoDiretorio.Nenhum,
-			MostrarInventario: modoAberto || AcessoAdministrativo.TemAcesso(HttpContext.User, AcessoAdministrativo.RoleInventarioAdmin));
+			MostrarInventario: modoAberto
+				|| AcessoAdministrativo.TemAcesso(HttpContext.User, AcessoAdministrativo.RoleInventarioAdmin)
+				|| (await authorizationService.AuthorizeAsync(HttpContext.User, IntranetPermissoes.Inventario.Read).ConfigureAwait(false)).Succeeded);
 
 		return View(IntranetNavigation.Build(request));
 	}

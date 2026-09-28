@@ -81,6 +81,19 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 		.ComPermissao("diretorio-admin", IntranetPermissoes.Diretorio.Read)
 		.ComPermissao("diretorio-admin", IntranetPermissoes.Diretorio.Manage);
 
+	/// <summary>
+	/// Encaminha para <see cref="IntranetWebFactory.ResolvedorDePermissoes"/> (ou
+	/// <see cref="ResolvedorPadrao"/>) a cada chamada — nunca guarda um resultado, porque quem
+	/// guarda é o <c>CachedPermissionResolver</c> do SDK, por cima deste. Existe só para o
+	/// registro de DI ser um objeto estável (a fábrica de <c>AddSingleton</c> só roda uma vez);
+	/// a leitura de verdade acontece em <see cref="ResolveAsync"/>, a cada requisição.
+	/// </summary>
+	private sealed class ResolvedorDePermissoesIndireto(IntranetWebFactory fabrica) : IPermissionResolver
+	{
+		public ValueTask<IReadOnlySet<string>> ResolveAsync(Guid tenantId, string role, CancellationToken cancellationToken = default) =>
+			(fabrica.ResolvedorDePermissoes ?? ResolvedorPadrao()).ResolveAsync(tenantId, role, cancellationToken);
+	}
+
 	/// <inheritdoc />
 	protected override string Audience => "secco-intranet";
 
@@ -100,7 +113,12 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 		services.AddScoped<IGestaoDeAcesso>(serviceProvider =>
 			GestaoDeAcesso ?? ActivatorUtilities.CreateInstance<GestaoDeAcessoIndisponivel>(serviceProvider));
 		services.AddScoped<IUsuariosParaDiretorio>(_ => UsuariosDoDiretorio ?? new UsuariosParaDiretorioIndisponivel());
-		services.AddSingleton<IPermissionResolver>(_ => ResolvedorDePermissoes ?? ResolvedorPadrao());
+		// AddSingleton com fábrica materializa UMA vez e reusa para sempre nesta fábrica de
+		// testes (o host é construído uma vez por classe) — se registrássemos o valor de
+		// ResolvedorDePermissoes direto, a primeira resolução (de qualquer teste da classe)
+		// prenderia esse valor para todos os testes seguintes, mesmo que a propriedade mude
+		// depois. Este proxy nunca é substituído; ele só lê a propriedade a cada chamada.
+		services.AddSingleton<IPermissionResolver>(new ResolvedorDePermissoesIndireto(this));
 	}
 
 	/// <inheritdoc />
