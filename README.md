@@ -208,9 +208,25 @@ a conta do último é recusado, e ninguém retira o próprio perfil nem se desat
 O Diretório organizacional (`/diretorio`) usa duas Roles do produto: `diretorio-admin` (edita
 cargo, setor e gestor de todos, importa CSV) e `diretorio-user` (vê o diretório e edita o próprio
 contato). O `intranet-admin` tem o mesmo acesso do `diretorio-admin`. As duas Roles são oferecidas
-na tela de acesso, na seção "Perfis do produto". **Ninguém vê o Diretório por padrão**: o
-`intranet-admin` atribui `diretorio-user` a cada usuário até o modelo de permissões permitir um
-perfil agrupador. Quem não tem nenhum dos três perfis recebe 403 em toda rota do Diretório.
+na tela de acesso, na seção "Perfis do produto", e já nascem com a permissão certa
+(`diretorio:read`/`diretorio:manage`). Quem não tem nenhum dos três perfis recebe 403 em toda rota
+do Diretório.
+
+### Modelo de permissões
+
+Desde a spec de 2026-09-27, autorização não é mais só nome de Role: cada Role carrega permissões no
+formato `recurso:acao` (ADR-0021 da plataforma), editáveis na tela de detalhe do perfil
+(`/acesso/perfil/{nome}`) — inclusive perfis de setor e do Diretório, sem trava. Isso resolve o que
+antes exigia atribuir `diretorio-user` (ou um `{slug}-user` por setor) usuário a usuário: o
+`intranet-admin` pode criar **um** perfil agrupador (por exemplo, `todos`) e marcar nele
+`diretorio:read` e a permissão global `setores:read` (lê **todo** setor, inclusive um criado depois)
+— um perfil em vez de vários por pessoa.
+
+Setores criados antes desta versão não têm nenhuma permissão gravada até serem editados ou até
+alguém clicar em **Reconciliar permissões** (na tela de Perfis) — a ação garante `setor-{slug}:read`
+nas duas Roles de todo setor e, se existirem, `diretorio:read`/`diretorio:manage` em
+`diretorio-user`/`diretorio-admin`, sem apagar nenhuma permissão extra já atribuída à mão. Rode-a
+depois de atualizar para esta versão, ou sempre que um setor antigo parecer sem acesso.
 
 ## Pós-geração (checklist)
 

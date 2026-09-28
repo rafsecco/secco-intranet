@@ -77,7 +77,9 @@ processos (maior risco técnico) só entra com a base já sólida.
       ADR-0008). Máquina de estado Disponível/Em uso/Em manutenção/Baixado; toda rota
       bloqueada para quem não tem a Role, não só o item de menu escondido —
       [spec](specs/2026-09-13-inventario-design.md). A tela de conceder `inventario-admin`
-      vive na Área administrativa de acesso (#26 entregue), não aqui
+      vive na Área administrativa de acesso (#26 entregue), não aqui. Ganhou um nível de
+      só-consulta, `inventario:read`, quando o modelo de permissões chegou (ver abaixo) —
+      o administrativo continua só por `inventario-admin`
 - [ ] `Recurso` + `SetorRecurso` (catálogo de módulos habilitáveis por setor)
 - [ ] Tela de administração de setores (cadastro + toggle de recursos). O cadastro de setores
       passa a exigir `intranet-admin` junto do primeiro corte da Área administrativa de acesso
@@ -103,6 +105,17 @@ processos (maior risco técnico) só entra com a base já sólida.
       encerrar sessões; o cadastro de setores passou a exigir o mesmo perfil. Seguem em specs
       próprias o modelo de permissões (autorizar por permissão, editar permissões de perfil,
       itens de menu com permissão por item) e o restante da Área administrativa abaixo
+- [x] Modelo de permissões: autorização por `recurso:acao` (ADR-0021 da plataforma) em vez de
+      nome de Role, em todo lugar que precisava — Mural, Documentos, a página do setor, o menu, o
+      Diretório e uma nova entrada de leitura no Inventário —
+      [spec](specs/2026-09-27-modelo-de-permissoes-design.md). Entregue: catálogo de permissões do
+      produto; edição de permissões de um perfil na tela de acesso; `{slug}-admin`/`{slug}-user`
+      e `diretorio-admin`/`diretorio-user` já nascem com a permissão do setor/Diretório (mesclagem,
+      nunca substituição); ação "Reconciliar permissões" para os já cadastrados antes desta spec;
+      `SetorAcesso` (checagem por nome de Role) saiu do código. Sem depender de nenhum
+      desenvolvimento novo da plataforma — usa `Secco.SDK.AspNetCore` 0.8.3 e
+      `Secco.SecureGate.Client` 0.11.0, já publicados. Fora deste corte: o `ItemMenu` em si
+      (entidade, CRUD) e grupos do AD/Entra como origem de perfil
 - [ ] Área administrativa — cobre a gestão do próprio tenant (usuários, roles, setores) **e**
       a criação/administração de outros tenants, representando outros sistemas que a empresa
       desenvolve sobre SecureGate/LogStream/NotificationHub — decisão registrada na ADR-0008.

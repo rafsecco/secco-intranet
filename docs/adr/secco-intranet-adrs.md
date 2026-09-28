@@ -76,6 +76,12 @@ concreto justificar o esforço.
   para derivar) — é uma Role própria (ex.: `inventario-admin`), atribuível a qualquer
   usuário do tenant, tipicamente alguém de Infraestrutura, mas sem essa exigência. O
   desenho exato (nome da Role, claims) fica para a spec do Inventário.
+- **Revisto em 2026-09-27:** o formato de claim ilustrado acima (`intranet:{slug}:{recurso}:{ação}`)
+  não é válido no formato real da plataforma (`SeccoPermissions`, ADR-0021 da plataforma: um único
+  `:`, kebab-case, um token de recurso e um de ação). A geração deixou de ser manual: criar ou editar
+  um setor agora garante `setor-{slug}:read` nas duas Roles e `setor-{slug}:write` na `-admin`, por
+  mesclagem (nunca apaga uma permissão extra). Modelo completo em
+  [docs/specs/2026-09-27-modelo-de-permissoes-design.md](../specs/2026-09-27-modelo-de-permissoes-design.md).
 
 ---
 
