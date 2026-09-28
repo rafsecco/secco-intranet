@@ -31,9 +31,15 @@ public class SecureGateSetorAccessProvisionerTests
 		public override Task<RoleDto> CreateRoleAsync(Guid tenantId, CreateRoleRequest body, CancellationToken cancellationToken) =>
 			Task.FromResult(new RoleDto { Name = body.Name });
 
-		public override Task<ICollection<string>> GetRolePermissionsAsync(Guid tenantId, string role, CancellationToken cancellationToken) =>
-			Task.FromResult<ICollection<string>>(
-				PermissoesPorRole.TryGetValue(role, out var permissoes) ? permissoes : []);
+		// A mesclagem lê pelo GetRole administrativo, não pelo GetRolePermissions (esse fala com
+		// /api/v1/authorization/..., escopo authorization:read — que o client admin não tem;
+		// achado pela fumaça real, 2026-09-27).
+		public override Task<RoleDetailDto> GetRoleAsync(Guid tenantId, string role, CancellationToken cancellationToken) =>
+			Task.FromResult(new RoleDetailDto
+			{
+				Name = role,
+				Permissions = PermissoesPorRole.TryGetValue(role, out var permissoes) ? permissoes : [],
+			});
 
 		public override Task SetRolePermissionsAsync(
 			Guid tenantId, string role, SetRolePermissionsRequest body, CancellationToken cancellationToken)

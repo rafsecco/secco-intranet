@@ -112,18 +112,8 @@ public class SecureGateGestaoDeAcessoTests
 		public override Task RevokeUserSessionsAsync(Guid tenantId, Guid userId, CancellationToken cancellationToken) =>
 			Registrar($"RevokeUserSessions:{tenantId}:{userId}");
 
-		/// <summary>Permissões que <see cref="GetRolePermissionsAsync"/> devolve.</summary>
-		public ICollection<string> PermissoesAtuais { get; set; } = [];
-
 		/// <summary>Último corpo recebido por <see cref="SetRolePermissionsAsync"/>, se houver.</summary>
 		public ICollection<string>? PermissoesDefinidas { get; private set; }
-
-		public override async Task<ICollection<string>> GetRolePermissionsAsync(Guid tenantId, string role, CancellationToken cancellationToken)
-		{
-			await Registrar($"GetRolePermissions:{tenantId}:{role}");
-
-			return PermissoesAtuais;
-		}
 
 		public override async Task SetRolePermissionsAsync(
 			Guid tenantId, string role, SetRolePermissionsRequest body, CancellationToken cancellationToken)
@@ -393,20 +383,23 @@ public class SecureGateGestaoDeAcessoTests
 	[Fact]
 	public async Task GarantirPermissoes_UneComOQueJaExiste_NuncaRemove()
 	{
-		var client = new ClientFalso { PermissoesAtuais = ["extra-que-o-admin-somou:read"] };
+		var client = new ClientFalso { Papel = new RoleDetailDto { Name = "financeiro-admin", Permissions = ["extra-que-o-admin-somou:read"] } };
 
 		var resultado = await Montar(client).GarantirPermissoesAsync("financeiro-admin", ["setor-financeiro:read", "setor-financeiro:write"]);
 
 		resultado.IsSuccess.Should().BeTrue();
 		client.PermissoesDefinidas.Should().BeEquivalentTo(
 			"extra-que-o-admin-somou:read", "setor-financeiro:read", "setor-financeiro:write");
-		client.Chamadas.Should().Contain($"GetRolePermissions:{Tenant}:financeiro-admin");
+		client.Chamadas.Should().Contain($"GetRole:{Tenant}:financeiro-admin");
 	}
 
 	[Fact]
 	public async Task GarantirPermissoes_JaTemTudo_NaoChamaSet()
 	{
-		var client = new ClientFalso { PermissoesAtuais = ["setor-financeiro:read", "setor-financeiro:write"] };
+		var client = new ClientFalso
+		{
+			Papel = new RoleDetailDto { Name = "financeiro-admin", Permissions = ["setor-financeiro:read", "setor-financeiro:write"] },
+		};
 
 		var resultado = await Montar(client).GarantirPermissoesAsync("financeiro-admin", ["setor-financeiro:read", "setor-financeiro:write"]);
 
@@ -425,7 +418,7 @@ public class SecureGateGestaoDeAcessoTests
 	[Fact]
 	public async Task DefinirPermissoesDoPerfil_SubstituiAListaInteira()
 	{
-		var client = new ClientFalso { PermissoesAtuais = ["antiga:read"] };
+		var client = new ClientFalso();
 
 		var resultado = await Montar(client).DefinirPermissoesDoPerfilAsync("todos", ["diretorio:read", "setores:read"]);
 

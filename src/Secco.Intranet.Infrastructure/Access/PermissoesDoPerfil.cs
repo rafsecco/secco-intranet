@@ -10,6 +10,15 @@ namespace Secco.Intranet.Infrastructure.Access;
 /// chamador trata exceção do jeito que já trata as próprias chamadas ao client — este helper não
 /// captura nada.
 /// </summary>
+/// <remarks>
+/// Lê o estado atual por <c>GetRoleAsync</c> (o <c>GetRole</c> de administração, escopo
+/// <c>securegate:admin</c> — o mesmo que já usamos), <b>não</b> por <c>GetRolePermissionsAsync</c>:
+/// esse outro método do client gerado fala com <c>/api/v1/authorization/...</c>, uma superfície
+/// separada para resolução de permissão em runtime (o <c>IPermissionResolver</c> da plataforma),
+/// que exige o escopo <c>authorization:read</c> — o client administrativo desta Intranet não o
+/// tem, e a chamada dá 403. Achado pela fumaça contra o SecureGate real (2026-09-27); só
+/// <c>SetRolePermissionsAsync</c> (gravar) é mesmo do grupo administrativo.
+/// </remarks>
 internal static class PermissoesDoPerfil
 {
 	/// <summary>Garante que a Role tenha, no mínimo, as permissões informadas.</summary>
@@ -25,8 +34,8 @@ internal static class PermissoesDoPerfil
 		IReadOnlyCollection<string> minimas,
 		CancellationToken cancellationToken)
 	{
-		var atuais = await client.GetRolePermissionsAsync(tenantId, role, cancellationToken).ConfigureAwait(false);
-		var uniao = new HashSet<string>(atuais ?? [], StringComparer.Ordinal);
+		var papel = await client.GetRoleAsync(tenantId, role, cancellationToken).ConfigureAwait(false);
+		var uniao = new HashSet<string>(papel.Permissions ?? [], StringComparer.Ordinal);
 		var mudou = false;
 
 		foreach (var permissao in minimas)

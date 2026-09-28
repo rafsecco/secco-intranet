@@ -67,6 +67,7 @@ O que cobrem, com o client gerado real e client credentials reais:
 | Último `intranet-admin` | Recusa retirar **e** desativar o único ativo, com a paginação real da API |
 | SecureGate inacessível | Vira `Indisponivel`, sem exceção |
 | Diretório: usuários ativos | A fonte do diretório lista os ativos e deixa de fora os desativados, contra a API real |
+| Garantir permissão de um perfil (mesclagem) | `GetRoleAsync`/`SetRolePermissionsAsync` reais nunca removem o que já estava lá |
 
 Os testes criam usuários e perfis com sufixo único e limpam no fim (perfis excluídos; usuários
 **desativados**, já que a API não exclui usuário). É repetível: rode duas vezes seguidas para conferir.
@@ -159,6 +160,14 @@ Registro do que a API real fez diferente do que se assumia — o motivo de o rot
 - **`totalPages` é `0` quando o perfil não tem membros** (não `1`); o laço de contagem trata isso.
 - **Em DEV, o `PublicBaseUrl` precisa casar com a URL em que a API sobe**, senão o token que ela
   emite é recusado por ela mesma — não é problema da Intranet, mas custa tempo a quem sobe o ambiente.
+- **`GetRolePermissionsAsync` do client gerado não é a leitura administrativa de permissão** — ele
+  fala com `/api/v1/authorization/tenants/{tenant}/roles/{role}/permissions`, uma superfície separada
+  para resolução de permissão em runtime (o `IPermissionResolver` da plataforma), que exige o escopo
+  `authorization:read`. O client administrativo desta Intranet (escopo `securegate:admin`) recebe
+  **403** ali. A leitura de permissão para administração usa `GetRoleAsync` (`RoleDetailDto.Permissions`),
+  a mesma chamada que a tela de perfil já usava — só `SetRolePermissionsAsync` (gravar) é mesmo do
+  grupo administrativo. Achado em 2026-09-27, ao implementar o modelo de permissões.
 
-Última execução completa: 2026-09-26, contra o SecureGate do monorepo na `main` (client 0.11.0).
-Parte automatizada: 9/9 (a nona é a do Diretório). Parte manual: itens 1–13 conforme descrito.
+Última execução completa: 2026-09-27, contra o SecureGate do monorepo na `main` (client 0.11.0).
+Parte automatizada: 10/10 (a décima garante e mescla permissão de um perfil). Parte manual: não
+repetida nesta rodada — sem mudança nas telas cobertas pelos itens 1–13.

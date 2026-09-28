@@ -359,6 +359,23 @@ public class SecureGateGestaoDeAcessoFumacaTests(FumacaFixture f) : IClassFixtur
 			"o diretório só mostra quem está ativo no SecureGate de verdade");
 	}
 
+	[FumacaFact]
+	public async Task GarantirPermissoes_UneComOQueJaExisteNoSecureGateReal()
+	{
+		var perfil = await f.CriarPerfilAsync("fumaca-permissao");
+
+		var primeira = await f.Gestao.GarantirPermissoesAsync(perfil, [IntranetPermissoes.Diretorio.Read]);
+		primeira.IsSuccess.Should().BeTrue();
+
+		var segunda = await f.Gestao.GarantirPermissoesAsync(perfil, [IntranetPermissoes.Diretorio.Manage]);
+		segunda.IsSuccess.Should().BeTrue();
+
+		var detalhe = await f.Gestao.ObterPerfilAsync(perfil);
+		detalhe.IsSuccess.Should().BeTrue();
+		// A segunda chamada precisa unir, não substituir, o que a primeira já gravou.
+		detalhe.Value.Permissoes.Should().BeEquivalentTo(IntranetPermissoes.Diretorio.Read, IntranetPermissoes.Diretorio.Manage);
+	}
+
 	private sealed class TenantFixoDaFumaca(Guid tenantId) : ITenantContext
 	{
 		public Guid? TenantId => tenantId;
