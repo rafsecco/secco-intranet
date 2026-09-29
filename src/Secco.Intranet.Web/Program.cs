@@ -5,6 +5,7 @@ using Secco.Intranet.Web;
 using Secco.Intranet.Web.Auditoria;
 using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Conteudo;
+using Secco.Intranet.Web.Hosting;
 using Secco.Intranet.Web.Navigation;
 using Secco.Intranet.Web.Tenancy;
 using Secco.Intranet.Web.Theming;
@@ -64,6 +65,10 @@ builder.Services.AddIntranetAuthentication(builder.Configuration, builder.Enviro
 // AddSeccoAuthorization() já registra um resolvedor por configuração (nega tudo por padrão).
 builder.Services.AddSeccoAuthorization();
 
+// Confiança em X-Forwarded-For/X-Forwarded-Proto, opt-in por configuração (ver a classe): só
+// habilite atrás de um reverse proxy que seja o único caminho até a aplicação.
+builder.Services.AddIntranetProxyForwarding(builder.Configuration);
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -72,6 +77,10 @@ if (!app.Environment.IsDevelopment())
 	app.UseExceptionHandler("/Home/Error");
 	app.UseHsts();
 }
+
+// Antes de qualquer middleware que olhe esquema/IP da requisição (ADR-0020) — se a chave não
+// estiver ligada, isto não faz nada (ForwardedHeaders.None é o padrão do framework).
+app.UseForwardedHeaders();
 
 app.UseStatusCodePages();
 app.UseStaticFiles();
