@@ -110,6 +110,40 @@ public class CriarItemMenuHandlerTests
 		resultado.Error.Should().Be(IntranetErrors.Menu.PaiInvalido);
 	}
 
+	// Documentos e Avisos são folhas: com um filho, a página deles redirecionaria para o filho
+	// e o recurso ficaria inalcançável.
+	[Theory]
+	[InlineData(TipoDeItemMenu.Documentos)]
+	[InlineData(TipoDeItemMenu.Avisos)]
+	public async Task PaiDocumentosOuAvisos_Recusa(TipoDeItemMenu tipoDoPai)
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = CriarRaiz(repo);
+		var pai = new ItemMenu(SetorId, raiz.Id, "Recurso", "recurso", tipoDoPai, null, null, 0);
+		repo.Itens.Add(pai);
+		var handler = new CriarItemMenuHandler(repo);
+
+		var resultado = await handler.HandleAsync(
+			new CriarItemMenuCommand(SetorId, pai.Id, "Filho", "filho", TipoDeItemMenu.Personalizado, null, null));
+
+		resultado.Error.Should().Be(IntranetErrors.Menu.PaiInvalido);
+	}
+
+	[Fact]
+	public async Task PaiPersonalizado_Aceita()
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = CriarRaiz(repo);
+		var relatorios = new ItemMenu(SetorId, raiz.Id, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado, null, null, 0);
+		repo.Itens.Add(relatorios);
+		var handler = new CriarItemMenuHandler(repo);
+
+		var resultado = await handler.HandleAsync(
+			new CriarItemMenuCommand(SetorId, relatorios.Id, "Vendas", "vendas", TipoDeItemMenu.Personalizado, null, null));
+
+		resultado.IsSuccess.Should().BeTrue();
+	}
+
 	// A tela nunca oferece Tipo = Setor, mas o handler é a fronteira: um POST forjado (ou um
 	// número de enum fora da faixa) chega aqui do mesmo jeito.
 	[Theory]

@@ -310,9 +310,18 @@ public static class IntranetErrors
 		public static readonly Error TipoJaExiste =
 			Error.Conflict("Intranet.Menu.TipoJaExiste", "Este setor já tem um item desse tipo.");
 
-		/// <summary>O pai informado não existe ou é de outro setor.</summary>
+		/// <summary>
+		/// O pai informado não existe, é de outro setor, ou é Documentos/Avisos — que são folhas: com
+		/// um filho, a página do recurso redirecionaria para ele e ficaria inalcançável.
+		/// </summary>
 		public static readonly Error PaiInvalido =
-			Error.Validation("Intranet.Menu.PaiInvalido", "Pai inválido para este item.");
+			Error.Validation(
+				"Intranet.Menu.PaiInvalido",
+				"Pai inválido para este item. Itens só ficam debaixo do setor ou de um item personalizado.");
+
+		/// <summary>Item com filhos não se exclui — a relação com o pai seria perdida.</summary>
+		public static readonly Error ItemComFilhos =
+			Error.Conflict("Intranet.Menu.ItemComFilhos", "Este item tem itens debaixo dele. Exclua ou desative os filhos antes.");
 
 		/// <summary>Ícone fora do formato do Bootstrap Icons.</summary>
 		public static readonly Error IconeInvalido =

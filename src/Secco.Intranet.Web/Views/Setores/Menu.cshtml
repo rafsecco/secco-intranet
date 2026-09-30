@@ -83,7 +83,8 @@
         <div class="col-sm-3">
             <label class="form-label" for="parentId">Pai</label>
             <select class="form-select" id="parentId" name="parentId">
-                @foreach (var (no, profundidade) in linhas)
+                @* Documentos/Avisos são folhas — não aparecem como pai possível. *@
+                @foreach (var (no, profundidade) in linhas.Where(linha => linha.No.Item.Tipo is TipoDeItemMenu.Setor or TipoDeItemMenu.Personalizado))
                 {
                     <option value="@no.Item.Id">@(new string('—', profundidade)) @no.Item.Nome</option>
                 }

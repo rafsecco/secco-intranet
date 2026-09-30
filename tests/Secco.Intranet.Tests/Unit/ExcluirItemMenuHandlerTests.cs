@@ -25,6 +25,24 @@ public class ExcluirItemMenuHandlerTests
 		repo.Itens.Should().NotContain(i => i.Id == item.Id);
 	}
 
+	// Com filhos, a FK de ParentId (Restrict) recusaria a exclusão no banco — virava 500. O
+	// handler precisa recusar antes, com mensagem.
+	[Fact]
+	public async Task PersonalizadoComFilhos_Recusa_SemExcluirNada()
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = new ItemMenu(Guid.NewGuid(), null, "X", "x", TipoDeItemMenu.Setor, null, null, 0);
+		var relatorios = new ItemMenu(raiz.SetorId, raiz.Id, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado, null, null, 0);
+		var vendas = new ItemMenu(raiz.SetorId, relatorios.Id, "Vendas", "vendas", TipoDeItemMenu.Personalizado, "/x", null, 0);
+		repo.Itens.AddRange([raiz, relatorios, vendas]);
+		var handler = new ExcluirItemMenuHandler(repo);
+
+		var resultado = await handler.HandleAsync(relatorios.Id);
+
+		resultado.Error.Should().Be(IntranetErrors.Menu.ItemComFilhos);
+		repo.Itens.Should().HaveCount(3);
+	}
+
 	[Fact]
 	public async Task Documentos_Recusa()
 	{

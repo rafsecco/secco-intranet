@@ -85,7 +85,8 @@ public sealed class CriarItemMenuHandler(IItemMenuRepository repository)
 		var arvore = await repository.ListarPorSetorAsync(command.SetorId, cancellationToken).ConfigureAwait(false);
 		var pai = arvore.FirstOrDefault(item => item.Id == command.ParentId);
 
-		if (pai is null)
+		// Documentos/Avisos são folhas: com filho, a página do recurso redirecionaria para ele.
+		if (pai is null || (pai.Tipo != TipoDeItemMenu.Setor && pai.Tipo != TipoDeItemMenu.Personalizado))
 		{
 			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.PaiInvalido);
 		}

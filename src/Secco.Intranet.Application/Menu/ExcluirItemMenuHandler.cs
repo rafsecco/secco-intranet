@@ -29,6 +29,14 @@ public sealed class ExcluirItemMenuHandler(IItemMenuRepository repository)
 			return Result.Failure(IntranetErrors.Menu.TipoEmbutidoNaoExclui);
 		}
 
+		// Com filhos, a FK de ParentId (Restrict) recusaria no banco — aqui vira mensagem, não 500.
+		var arvore = await repository.ListarPorSetorAsync(item.SetorId, cancellationToken).ConfigureAwait(false);
+
+		if (arvore.Any(outro => outro.ParentId == item.Id))
+		{
+			return Result.Failure(IntranetErrors.Menu.ItemComFilhos);
+		}
+
 		await repository.ExcluirAsync(id, cancellationToken).ConfigureAwait(false);
 
 		return Result.Success();
