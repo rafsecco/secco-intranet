@@ -25,6 +25,8 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="encerrarSessoes">Encerramento de sessões.</param>
 /// <param name="editarPermissoes">Edição das permissões de um perfil.</param>
 /// <param name="reconciliarPermissoes">Reconciliação em lote de permissões de setor e do Diretório.</param>
+/// <param name="obterFederacao">Leitura da federação de login via Microsoft Entra ID.</param>
+/// <param name="definirFederacao">Definição da federação de login via Microsoft Entra ID.</param>
 [SomenteIntranetAdmin]
 public sealed class AcessoController(
 	ListarPerfisHandler listarPerfis,
@@ -39,10 +41,12 @@ public sealed class AcessoController(
 	ReativarUsuarioHandler reativarUsuario,
 	EncerrarSessoesHandler encerrarSessoes,
 	EditarPermissoesDoPerfilHandler editarPermissoes,
-	ReconciliarPermissoesHandler reconciliarPermissoes) : Controller
+	ReconciliarPermissoesHandler reconciliarPermissoes,
+	ObterFederacaoHandler obterFederacao,
+	DefinirFederacaoHandler definirFederacao) : Controller
 {
-	/// <summary>Tela inicial, com as abas Perfis e Usuários.</summary>
-	/// <param name="aba"><c>usuarios</c> abre a aba de usuários; qualquer outro valor, a de perfis.</param>
+	/// <summary>Tela inicial, com as abas Perfis, Usuários e Federação.</summary>
+	/// <param name="aba"><c>usuarios</c> ou <c>federacao</c> abrem a aba correspondente; qualquer outro valor, a de perfis.</param>
 	/// <param name="busca">Trecho de e-mail (aba Usuários).</param>
 	/// <param name="page">Página da aba Usuários.</param>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
@@ -58,11 +62,42 @@ public sealed class AcessoController(
 				: View(new AcessoIndexViewModel(AbaDoAcesso.Usuarios, null, usuarios.Value, busca));
 		}
 
+		if (string.Equals(aba, "federacao", StringComparison.OrdinalIgnoreCase))
+		{
+			var federacao = await obterFederacao.HandleAsync(cancellationToken);
+
+			return federacao.IsFailure
+				? Falha(federacao.Error)
+				: View(new AcessoIndexViewModel(AbaDoAcesso.Federacao, null, null, null, federacao.Value));
+		}
+
 		var perfis = await listarPerfis.HandleAsync(cancellationToken);
 
 		return perfis.IsFailure
 			? Falha(perfis.Error)
 			: View(new AcessoIndexViewModel(AbaDoAcesso.Perfis, perfis.Value, null, null));
+	}
+
+	/// <summary>Liga, desliga ou reconfigura a federação de login via Microsoft Entra ID do tenant.</summary>
+	/// <param name="directoryId">Tenant GUID do Entra da empresa.</param>
+	/// <param name="habilitada">Se o login por Entra deve ficar ativo.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> SalvarFederacao(string? directoryId, bool habilitada, CancellationToken cancellationToken = default)
+	{
+		var resultado = await definirFederacao.HandleAsync(new DefinirFederacaoCommand(directoryId, habilitada), cancellationToken);
+
+		if (resultado.IsSuccess)
+		{
+			TempData[FeedbackViewComponent.ChaveDaMensagem] = habilitada ? "Federação com o Entra ID habilitada." : "Federação com o Entra ID desabilitada.";
+		}
+		else
+		{
+			TempData[FeedbackViewComponent.ChaveDaMensagemDeErro] = resultado.Error.Description;
+		}
+
+		return RedirectToAction(nameof(Index), new { aba = "federacao" });
 	}
 
 	/// <summary>Cria um perfil (livre, ou um dos perfis do produto que ainda faltam).</summary>

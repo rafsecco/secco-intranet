@@ -159,5 +159,9 @@ public class UsuariosParaDiretorioTests
 		public Task<Secco.SharedKernel.Results.Result> GarantirPermissoesAsync(string nome, IReadOnlyCollection<string> permissoesMinimas, CancellationToken cancellationToken = default) => _interno.GarantirPermissoesAsync(nome, permissoesMinimas, cancellationToken);
 
 		public Task<Secco.SharedKernel.Results.Result> DefinirPermissoesDoPerfilAsync(string nome, IReadOnlyCollection<string> permissoes, CancellationToken cancellationToken = default) => _interno.DefinirPermissoesDoPerfilAsync(nome, permissoes, cancellationToken);
+
+		public Task<Secco.SharedKernel.Results.Result<FederacaoDto>> ObterFederacaoAsync(CancellationToken cancellationToken = default) => _interno.ObterFederacaoAsync(cancellationToken);
+
+		public Task<Secco.SharedKernel.Results.Result> DefinirFederacaoAsync(Guid directoryId, bool habilitada, CancellationToken cancellationToken = default) => _interno.DefinirFederacaoAsync(directoryId, habilitada, cancellationToken);
 	}
 }

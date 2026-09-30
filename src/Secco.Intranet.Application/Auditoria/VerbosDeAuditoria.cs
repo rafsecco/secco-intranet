@@ -72,6 +72,9 @@ public static class VerbosDeAuditoria
 	/// <summary>Permissões de setores e do Diretório foram reconciliadas em lote.</summary>
 	public const string AcessoPermissoesReconciliar = "acesso.permissoes-reconciliar";
 
+	/// <summary>Federação de login via Microsoft Entra ID do tenant foi ligada, desligada ou reconfigurada.</summary>
+	public const string AcessoFederacaoDefinir = "acesso.federacao-definir";
+
 	/// <summary>Contato (nome, ramal, sobre) alterado.</summary>
 	public const string DiretorioPerfilEditar = "diretorio.perfil-editar";
 

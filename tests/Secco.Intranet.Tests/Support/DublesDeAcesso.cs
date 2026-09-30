@@ -51,6 +51,9 @@ public sealed class GestaoDeAcessoFalsa : IGestaoDeAcesso
 	/// <summary>Tamanho da página de membros — reduza para exercitar a paginação.</summary>
 	public int TamanhoDaPagina { get; set; } = 100;
 
+	/// <summary>Federação atual — nula até a primeira <see cref="DefinirFederacaoAsync"/>.</summary>
+	public FederacaoDto? Federacao { get; set; }
+
 	/// <summary>Acrescenta um perfil.</summary>
 	public GestaoDeAcessoFalsa ComPerfil(string nome, bool reservado = false, params string[] permissoes)
 	{
@@ -163,6 +166,14 @@ public sealed class GestaoDeAcessoFalsa : IGestaoDeAcesso
 		string nome, IReadOnlyCollection<string> permissoes, CancellationToken cancellationToken = default) =>
 		Escrever($"permissoes-definir:{nome}:{string.Join(',', permissoes)}", () =>
 			AlterarPerfil(nome, p => p with { Permissoes = [.. permissoes] }));
+
+	/// <inheritdoc />
+	public Task<Result<FederacaoDto>> ObterFederacaoAsync(CancellationToken cancellationToken = default) =>
+		Task.FromResult(Result.Success(Federacao ?? new FederacaoDto(null, false, null)));
+
+	/// <inheritdoc />
+	public Task<Result> DefinirFederacaoAsync(Guid directoryId, bool habilitada, CancellationToken cancellationToken = default) =>
+		Escrever($"federacao-definir:{directoryId}:{habilitada}", () => Federacao = new FederacaoDto(directoryId, habilitada, DateTimeOffset.UtcNow));
 
 	private List<MembroDoPerfilDto> MembrosDe(string nome) =>
 		[.. Usuarios

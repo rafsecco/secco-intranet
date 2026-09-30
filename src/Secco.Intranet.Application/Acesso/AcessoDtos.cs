@@ -94,3 +94,13 @@ public sealed record UsuarioDetalheDto(
 	IReadOnlyList<string> Permissoes,
 	IReadOnlyList<string> LoginsExternos,
 	bool DoisFatoresAtivo);
+
+/// <summary>
+/// Federação de login via Microsoft Entra ID do tenant atual (ADR-0026 da plataforma). O
+/// protocolo em si roda inteiro no SecureGate — daqui só se liga/desliga e se informa o
+/// directory id da empresa no Entra.
+/// </summary>
+/// <param name="DirectoryId">Tenant GUID do Entra da empresa; nulo se nunca configurado.</param>
+/// <param name="Habilitada">Se o login por Entra está ativo para este tenant.</param>
+/// <param name="AtualizadoEm">Quando foi a última alteração; nulo se nunca configurado.</param>
+public sealed record FederacaoDto(Guid? DirectoryId, bool Habilitada, DateTimeOffset? AtualizadoEm);

@@ -155,7 +155,7 @@ dotnet test            # os testes de integração sobem container próprio (Tes
 ```
 
 Os testes da gestão de acesso usam um SecureGate de mentira. Para conferir o adaptador e as
-telas contra o **SecureGate real**, há um roteiro de fumaça (9 testes opt-in, pulados por padrão,
+telas contra o **SecureGate real**, há um roteiro de fumaça (11 testes opt-in, pulados por padrão,
 mais um passo a passo manual): [`docs/roteiro-fumaca-securegate.md`](docs/roteiro-fumaca-securegate.md).
 
 ## Arquitetura
@@ -193,6 +193,20 @@ client credentials com o scope administrativo (`securegate:admin`, via
 `AddSecureGateAdminClient()`) — não confundir com os scopes do login interativo acima. Sem
 a seção `Secco:SecureGate` configurada, esse provisionamento cai num adapter no-op
 (`NullSetorAccessProvisioner`), o mesmo modo aberto de DEV/Testing.
+
+### Login federado via Microsoft Entra ID
+
+O protocolo de federação roda inteiro no `Secco.SecureGate` (ADR-0026 da plataforma) — a
+Intranet é só relying party e não muda nada na própria composição de autenticação para
+suportar isso. O que falta é operacional, fora deste repositório: alguém precisa criar
+**uma** app registration multi-tenant no Entra ID e configurar `SecureGate:EntraId`
+(`ClientId`, `ClientSecret`, `Authority`) no host do SecureGate.
+
+Feito isso, o `intranet-admin` liga a federação **do próprio tenant** na aba Federação de
+`/acesso`: informa o directory id (tenant GUID do Entra da empresa, não é segredo) e marca
+Habilitada. Dali em diante, a tela de login do SecureGate passa a oferecer "Entrar com
+Microsoft" para esse tenant. O usuário continua precisando existir na Intranet antes do
+primeiro login federado (ADR-0026: o Entra só prova identidade, nunca concede acesso).
 
 ### Primeiro `intranet-admin`
 

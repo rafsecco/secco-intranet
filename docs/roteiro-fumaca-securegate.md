@@ -116,22 +116,26 @@ Abra `http://localhost:5250/Acesso` e confira:
    ou **desativar** esse usuário → toast vermelho "último intranet-admin ativo"; a conta segue ativa
    com o perfil (confira na API).
 9. **Usuário inexistente.** `/Acesso/Usuario/<guid aleatório>` → 404.
+10. **Federação.** Aba **Federação** → informe um GUID qualquer como directory id, marque
+    **Habilitada**, Salvar → toast verde, badge muda para "Habilitada", "Última alteração" aparece.
+    Desmarcar e salvar de novo → badge volta a "Desabilitada", directory id continua preenchido.
+    Salvar sem directory id → toast vermelho, nada muda na plataforma (confira pela API).
 
 ### Diretório organizacional
 
 Com a Intranet no ar contra o mesmo SecureGate (modo aberto de DEV, sem `Authority`, todo acesso é
 liberado), confira `http://localhost:5250/diretorio`:
 
-10. **Lista real.** Aparecem os usuários **ativos** do tenant, pelo e-mail; os desativados não
+11. **Lista real.** Aparecem os usuários **ativos** do tenant, pelo e-mail; os desativados não
     aparecem, e os colaboradores fictícios que o seeder de DEV grava **não** aparecem (perfil de quem
     não é usuário ativo é ignorado).
-11. **Edição.** Abra uma pessoa → **Editar**: defina nome, cargo e setor de lotação → toast
+12. **Edição.** Abra uma pessoa → **Editar**: defina nome, cargo e setor de lotação → toast
     "Dados atualizados". Definir um gestor que fecharia um ciclo (A→B e depois B→A) é recusado.
-12. **Organograma.** `/diretorio/organograma` mostra a chefia antes da equipe, em blocos que
+13. **Organograma.** `/diretorio/organograma` mostra a chefia antes da equipe, em blocos que
     recolhem. Desative no SecureGate o gestor de alguém e espere 60 s (a lista de usuários fica em
     cache): a pessoa **continua na tela** — como raiz se tiver equipe, ou em "Sem posição" com a
     marca "gestor inativo" — e o gestor desativado some do diretório.
-13. **Importação.** `/diretorio/importar` com um CSV de teste (`email;nome;cargo`) mostra os totais
+14. **Importação.** `/diretorio/importar` com um CSV de teste (`email;nome;cargo`) mostra os totais
     **sem gravar** (e-mail que não é de usuário ativo vira erro da linha); confirme, e a lista passa a
     mostrar o cargo. Reenviar o mesmo arquivo dá "sem alteração".
 

@@ -57,6 +57,8 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<EncerrarSessoesHandler>();
 		services.AddScoped<EditarPermissoesDoPerfilHandler>();
 		services.AddScoped<ReconciliarPermissoesHandler>();
+		services.AddScoped<ObterFederacaoHandler>();
+		services.AddScoped<DefinirFederacaoHandler>();
 
 		services.AddScoped<ListarPessoasHandler>();
 		services.AddScoped<ObterPessoaHandler>();

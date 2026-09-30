@@ -84,4 +84,14 @@ public interface IGestaoDeAcesso
 	/// <param name="cancellationToken">Token de cancelamento.</param>
 	Task<Result> DefinirPermissoesDoPerfilAsync(
 		string nome, IReadOnlyCollection<string> permissoes, CancellationToken cancellationToken = default);
+
+	/// <summary>Lê a federação de login via Microsoft Entra ID do tenant atual.</summary>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	Task<Result<FederacaoDto>> ObterFederacaoAsync(CancellationToken cancellationToken = default);
+
+	/// <summary>Define a federação do tenant atual — directory id do Entra e se está habilitada.</summary>
+	/// <param name="directoryId">Tenant GUID do Entra da empresa.</param>
+	/// <param name="habilitada">Se o login por Entra deve ficar ativo.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	Task<Result> DefinirFederacaoAsync(Guid directoryId, bool habilitada, CancellationToken cancellationToken = default);
 }

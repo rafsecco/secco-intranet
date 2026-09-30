@@ -41,4 +41,16 @@ internal static class AuditoriaDeAcesso
 				usuarioId.ToString(),
 				JsonSerializer.Serialize(new { perfil, usuarioId, email })),
 			cancellationToken);
+
+	/// <summary>
+	/// Registra a definição da federação do tenant. O directory id não é segredo (ADR-0026 da
+	/// plataforma) — pode entrar no payload como qualquer outro dado da ação.
+	/// </summary>
+	public static Task FederacaoAsync(
+		ITrilhaDeAuditoria trilha, Guid directoryId, bool habilitada, CancellationToken cancellationToken) =>
+		trilha.RegistrarAsync(
+			new RegistroDeAuditoria(
+				VerbosDeAuditoria.AcessoFederacaoDefinir, RecursosDeAuditoria.Acesso, "federacao",
+				JsonSerializer.Serialize(new { directoryId, habilitada })),
+			cancellationToken);
 }

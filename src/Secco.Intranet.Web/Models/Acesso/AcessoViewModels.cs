@@ -11,15 +11,19 @@ public enum AbaDoAcesso
 
 	/// <summary>Usuários.</summary>
 	Usuarios = 1,
+
+	/// <summary>Federação de login via Microsoft Entra ID.</summary>
+	Federacao = 2,
 }
 
-/// <summary>Modelo de <c>/Acesso</c>: uma das duas abas preenchida.</summary>
+/// <summary>Modelo de <c>/Acesso</c>: uma das três abas preenchida.</summary>
 /// <param name="Aba">Aba ativa.</param>
-/// <param name="Perfis">Conteúdo da aba Perfis (nulo na aba Usuários).</param>
-/// <param name="Usuarios">Conteúdo da aba Usuários (nulo na aba Perfis).</param>
+/// <param name="Perfis">Conteúdo da aba Perfis (nulo fora dela).</param>
+/// <param name="Usuarios">Conteúdo da aba Usuários (nulo fora dela).</param>
 /// <param name="Busca">Filtro de e-mail aplicado, para repopular a busca.</param>
+/// <param name="Federacao">Conteúdo da aba Federação (nulo fora dela).</param>
 public sealed record AcessoIndexViewModel(
-	AbaDoAcesso Aba, PerfisDaTelaDto? Perfis, PagedResult<UsuarioDto>? Usuarios, string? Busca);
+	AbaDoAcesso Aba, PerfisDaTelaDto? Perfis, PagedResult<UsuarioDto>? Usuarios, string? Busca, FederacaoDto? Federacao = null);
 
 /// <summary>Modelo do detalhe de um perfil.</summary>
 /// <param name="Tela">Perfil, membros da página e candidatos a membro.</param>

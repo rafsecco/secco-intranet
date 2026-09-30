@@ -139,13 +139,18 @@ processos (maior risco técnico) só entra com a base já sólida.
       independentes, priorizar por demanda real)
 - [ ] Analytics em cima do LogStream. Depende da trilha de auditoria da Fase 1, que deixou de
       estar bloqueada em 2026-09-05
+- [x] Login federado via Microsoft Entra ID por tenant (ADR-0026 da plataforma, já entregue
+      lá desde 2026-07-19 — `TenantFederation`, `PUT /api/v1/tenants/{id}/federation`, app
+      registration multi-tenant única, transparente para quem é relying party). Consumido
+      aqui: aba Federação em `/acesso` (exclusiva do `intranet-admin`) liga/desliga e define o
+      directory id do tenant — `Secco.SecureGate.Client` 0.11.0, sem precisar de versão nova.
+      `IntranetAuthenticationExtensions` não muda nada: o SecureGate mostra o botão do Entra
+      na própria tela de login dele e devolve o mesmo formato de token de sempre. Fora daqui:
+      criar a app registration e configurar `SecureGate:EntraId` no host do SecureGate é
+      operacional, não é código deste repositório
 - [ ] **Identidade corporativa e exposição de rede.** A intranet não deve ser alcançável de
       fora da rede da empresa — a restrição é de rede, não de código, e o produto não a
-      implementa sozinho. Dentro da rede, o usuário deve ser reconhecido pelo diretório
-      corporativo (Active Directory / Azure Entra ID) em vez de digitar credencial; uma tela
-      de login entra só para quem estiver fora. Federar AD/Entra é capacidade do
-      `Secco.SecureGate` (ADR-0006), não deste repositório: vira demanda de plataforma quando
-      o desenho existir. A aplicação **tem** saída para a internet; o que não deve existir é
+      implementa sozinho. A aplicação **tem** saída para a internet; o que não deve existir é
       entrada de fora
 
 ## Fase 5 — Comunidade (pós-lançamento open source)

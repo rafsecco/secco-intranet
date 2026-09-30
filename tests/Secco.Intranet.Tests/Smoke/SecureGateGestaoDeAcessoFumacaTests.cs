@@ -235,6 +235,38 @@ public class SecureGateGestaoDeAcessoFumacaTests(FumacaFixture f) : IClassFixtur
 	}
 
 	[FumacaFact]
+	public async Task Federacao_DefinirERelerRefleteOEstado_RestauraOOriginalAoFinal()
+	{
+		var original = await f.Gestao.ObterFederacaoAsync();
+		original.IsSuccess.Should().BeTrue();
+
+		try
+		{
+			var directoryId = Guid.NewGuid();
+
+			(await f.Gestao.DefinirFederacaoAsync(directoryId, true)).IsSuccess.Should().BeTrue();
+
+			var lida = await f.Gestao.ObterFederacaoAsync();
+			lida.IsSuccess.Should().BeTrue();
+			lida.Value.DirectoryId.Should().Be(directoryId);
+			lida.Value.Habilitada.Should().BeTrue();
+
+			(await f.Gestao.DefinirFederacaoAsync(directoryId, false)).IsSuccess.Should().BeTrue();
+			(await f.Gestao.ObterFederacaoAsync()).Value.Habilitada.Should().BeFalse("desligar não perde o directory id");
+		}
+		finally
+		{
+			// A federação é 1:1 com o tenant (não é um recurso criável/descartável como perfil ou
+			// usuário) — sem isto, uma execução da fumaça deixaria o tenant de DEV federado contra
+			// um directory id fictício.
+			if (original.Value.DirectoryId is { } directoryIdOriginal)
+			{
+				await f.Gestao.DefinirFederacaoAsync(directoryIdOriginal, original.Value.Habilitada);
+			}
+		}
+	}
+
+	[FumacaFact]
 	public async Task UsuarioInexistente_Devolve404ComoNaoEncontrado()
 	{
 		var resultado = await f.Gestao.ObterUsuarioAsync(Guid.NewGuid());

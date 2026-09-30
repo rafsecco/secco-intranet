@@ -237,6 +237,12 @@ public static class IntranetErrors
 			Error.Conflict(
 				"Intranet.Acesso.DesativacaoRecusada",
 				"A plataforma recusou a desativação (por exemplo, o último operador da instalação).");
+
+		/// <summary>Directory id do Entra ausente ou não é um GUID.</summary>
+		public static readonly Error DirectoryIdInvalido =
+			Error.Validation(
+				"Intranet.Acesso.DirectoryIdInvalido",
+				"Informe o directory id (tenant GUID) do Entra ID da empresa.");
 	}
 
 	/// <summary>Erros do Diretório organizacional.</summary>

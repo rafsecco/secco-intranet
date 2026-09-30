@@ -70,4 +70,12 @@ public sealed class GestaoDeAcessoIndisponivel : IGestaoDeAcesso
 	public Task<Result> DefinirPermissoesDoPerfilAsync(
 		string nome, IReadOnlyCollection<string> permissoes, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Result.Failure(Erro));
+
+	/// <inheritdoc />
+	public Task<Result<FederacaoDto>> ObterFederacaoAsync(CancellationToken cancellationToken = default) =>
+		Task.FromResult(Result.Failure<FederacaoDto>(Erro));
+
+	/// <inheritdoc />
+	public Task<Result> DefinirFederacaoAsync(Guid directoryId, bool habilitada, CancellationToken cancellationToken = default) =>
+		Task.FromResult(Result.Failure(Erro));
 }
