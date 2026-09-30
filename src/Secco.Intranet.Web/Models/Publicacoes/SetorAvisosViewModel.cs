@@ -59,9 +59,11 @@ public sealed class PublicacaoFormViewModel
 /// <param name="PodePublicar">Se o usuário administra este setor.</param>
 /// <param name="Form">Dados do formulário.</param>
 /// <param name="Agora">Instante usado para calcular a etiqueta de cada publicação.</param>
+/// <param name="Abas">Itens irmãos na árvore de menu do setor, para a barra de abas.</param>
 public sealed record SetorAvisosViewModel(
 	SetorDto Setor,
 	IReadOnlyList<PublicacaoDto> Publicacoes,
 	bool PodePublicar,
 	PublicacaoFormViewModel Form,
-	DateTimeOffset Agora);
+	DateTimeOffset Agora,
+	IReadOnlyList<ItemMenuAbaDto> Abas);

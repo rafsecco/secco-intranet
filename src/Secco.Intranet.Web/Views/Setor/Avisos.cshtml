@@ -38,10 +38,7 @@
 
 <partial name="_PageHeader" model="cabecalho" />
 
-<nav class="sc-tabs" aria-label="Recursos do setor">
-    <a class="sc-tabs__item" asp-action="Documentos" asp-route-slug="@Model.Setor.Slug">Documentos</a>
-    <a class="sc-tabs__item is-active" asp-action="Avisos" asp-route-slug="@Model.Setor.Slug" aria-current="page">Avisos</a>
-</nav>
+<partial name="_AbasDoSetor" model="Model.Abas" />
 
 @if (Model.PodePublicar)
 {

@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Secco.Intranet.Application.Documentos;
+using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Application.Setores;
+using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Web.Authentication;
+using Secco.Intranet.Web.Models;
 using Secco.Intranet.Web.Models.Documentos;
 using Secco.Intranet.Web.Models.Publicacoes;
 using Secco.Intranet.Web.Navigation;
@@ -14,8 +17,10 @@ using Secco.SharedKernel.Pagination;
 namespace Secco.Intranet.Web.Controllers;
 
 /// <summary>
-/// Página de um setor, com os recursos dele em abas. Separada de <c>SetoresController</c>,
-/// que é a administração do cadastro: aqui é onde quem pertence ao setor trabalha.
+/// Página de um setor. O que aparece nela vem da árvore de itens de menu do setor
+/// (<c>ItemMenu</c>): nó com filhos redireciona para o primeiro filho ativo, folha renderiza
+/// pelo tipo. Separada de <c>SetoresController</c>, que é a administração do cadastro: aqui é
+/// onde quem pertence ao setor trabalha.
 /// </summary>
 /// <param name="getSetorHandler">Leitura do setor pelo slug.</param>
 /// <param name="listarHandler">Listagem de documentos do setor.</param>
@@ -28,7 +33,8 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="documentoOptions">Limites de upload.</param>
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
 /// <param name="searchSetores">Busca de setores, para saber o universo de slugs a checar.</param>
-/// <param name="permissoesDeSetor">Em quais setores o usuário tem escrita (ADR-0021).</param>
+/// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura/escrita (ADR-0021).</param>
+/// <param name="resolverCaminho">Resolução de caminho na árvore de itens de menu do setor.</param>
 [Route("setor/{slug}")]
 public sealed class SetorController(
 	GetSetorBySlugHandler getSetorHandler,
@@ -42,19 +48,61 @@ public sealed class SetorController(
 	DocumentoOptions documentoOptions,
 	IConfiguration configuration,
 	SearchSetoresHandler searchSetores,
-	IPermissoesDeSetor permissoesDeSetor) : Controller
+	IPermissoesDeSetor permissoesDeSetor,
+	ResolverCaminhoDeMenuHandler resolverCaminho) : Controller
 {
 	private const int LimiteSetoresConsultados = 200;
-	/// <summary>Aba de documentos do setor.</summary>
-	/// <param name="slug">Slug do setor.</param>
-	/// <param name="cancellationToken">Token de cancelamento.</param>
-	[HttpGet("")]
-	[HttpGet("documentos")]
-	public async Task<IActionResult> Documentos(string slug, CancellationToken cancellationToken = default)
-	{
-		var model = await MontarAsync(slug, new DocumentoFormViewModel(), cancellationToken).ConfigureAwait(false);
 
-		return model is null ? NotFound() : View(model);
+	/// <summary>
+	/// Qualquer nó da árvore do setor: nó com filhos redireciona para o primeiro filho ativo;
+	/// folha renderiza pelo tipo.
+	/// </summary>
+	/// <param name="slug">Slug do setor.</param>
+	/// <param name="caminho">Slugs da árvore separados por barra; vazio é a raiz.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpGet("{**caminho}")]
+	public async Task<IActionResult> Resolver(string slug, string? caminho, CancellationToken cancellationToken = default)
+	{
+		var setor = await getSetorHandler.HandleAsync(slug, cancellationToken).ConfigureAwait(false);
+
+		if (setor.IsFailure || !setor.Value.Ativo || !await PodeLerAsync(slug, cancellationToken).ConfigureAwait(false))
+		{
+			// Sem permissão responde igual a inexistente — não revela que o setor existe.
+			return NotFound();
+		}
+
+		IReadOnlyList<string> segmentos = string.IsNullOrWhiteSpace(caminho)
+			? []
+			: caminho.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+		var resolvido = await resolverCaminho.HandleAsync(setor.Value.Id, segmentos, cancellationToken).ConfigureAwait(false);
+
+		if (resolvido.IsFailure)
+		{
+			return NotFound();
+		}
+
+		if (resolvido.Value.PrimeiroFilhoAtivo is { } primeiroFilho)
+		{
+			return RedirectToAction(nameof(Resolver), new { slug, caminho = string.Join('/', [.. segmentos, primeiroFilho.Slug]) });
+		}
+
+		var no = resolvido.Value.No;
+
+		return no.Tipo switch
+		{
+			TipoDeItemMenu.Documentos => View(
+				"Documentos",
+				await MontarDocumentosAsync(setor.Value, resolvido.Value, new DocumentoFormViewModel(), cancellationToken).ConfigureAwait(false)),
+			TipoDeItemMenu.Avisos => View(
+				"Avisos",
+				await MontarAvisosAsync(setor.Value, resolvido.Value, new PublicacaoFormViewModel(), cancellationToken).ConfigureAwait(false)),
+			// Rota validada na criação do item: caminho local ou http(s) absoluto.
+			TipoDeItemMenu.Personalizado when !string.IsNullOrWhiteSpace(no.Rota) => Redirect(no.Rota),
+			TipoDeItemMenu.Personalizado => View("SemConteudo", setor.Value),
+			// Raiz sem nenhum filho ativo: setor criado sem recursos, ou todos desligados.
+			_ => View("SemItens", setor.Value),
+		};
 	}
 
 	/// <summary>Publica um documento no setor.</summary>
@@ -80,6 +128,17 @@ public sealed class SetorController(
 			return NotFound();
 		}
 
+		// Recurso desligado também é 404 — antes de validar o formulário, para campos
+		// faltando não mascararem a recusa.
+		var alvo = await ResolverTipoAsync(slug, TipoDeItemMenu.Documentos, cancellationToken).ConfigureAwait(false);
+
+		if (alvo is null)
+		{
+			return NotFound();
+		}
+
+		var (setor, resolucao) = alvo.Value;
+
 		if (arquivo is null || arquivo.Length == 0)
 		{
 			ModelState.AddModelError(string.Empty, "Escolha um arquivo para publicar.");
@@ -87,9 +146,7 @@ public sealed class SetorController(
 
 		if (!ModelState.IsValid)
 		{
-			var invalido = await MontarAsync(slug, form, cancellationToken).ConfigureAwait(false);
-
-			return invalido is null ? NotFound() : View(nameof(Documentos), invalido);
+			return View("Documentos", await MontarDocumentosAsync(setor, resolucao, form, cancellationToken).ConfigureAwait(false));
 		}
 
 		await using var conteudo = arquivo!.OpenReadStream();
@@ -110,14 +167,12 @@ public sealed class SetorController(
 		{
 			ModelState.AddModelError(string.Empty, resultado.Error.Description);
 
-			var comErro = await MontarAsync(slug, form, cancellationToken).ConfigureAwait(false);
-
-			return comErro is null ? NotFound() : View(nameof(Documentos), comErro);
+			return View("Documentos", await MontarDocumentosAsync(setor, resolucao, form, cancellationToken).ConfigureAwait(false));
 		}
 
 		TempData[FeedbackViewComponent.ChaveDaMensagem] = $"Documento \"{resultado.Value.Titulo}\" publicado.";
 
-		return RedirectToAction(nameof(Documentos), new { slug });
+		return VoltarPara(slug, resolucao);
 	}
 
 	/// <summary>Retira um documento de circulação, preservando o registro e o arquivo.</summary>
@@ -128,6 +183,13 @@ public sealed class SetorController(
 	[ValidateAntiForgeryToken]
 	public async Task<IActionResult> Arquivar(string slug, Guid id, CancellationToken cancellationToken = default)
 	{
+		var alvo = await ResolverTipoAsync(slug, TipoDeItemMenu.Documentos, cancellationToken).ConfigureAwait(false);
+
+		if (alvo is null)
+		{
+			return NotFound();
+		}
+
 		var resultado = await arquivarHandler.HandleAsync(
 			new ArquivarDocumentoCommand(
 				id,
@@ -142,19 +204,7 @@ public sealed class SetorController(
 
 		TempData[FeedbackViewComponent.ChaveDaMensagem] = "Documento arquivado.";
 
-		return RedirectToAction(nameof(Documentos), new { slug });
-	}
-
-	/// <summary>Aba de avisos do setor.</summary>
-	/// <param name="slug">Slug do setor.</param>
-	/// <param name="cancellationToken">Token de cancelamento.</param>
-	[HttpGet("avisos")]
-	public async Task<IActionResult> Avisos(string slug, CancellationToken cancellationToken = default)
-	{
-		var model = await MontarAvisosAsync(slug, new PublicacaoFormViewModel(), cancellationToken)
-			.ConfigureAwait(false);
-
-		return model is null ? NotFound() : View(model);
+		return VoltarPara(slug, alvo.Value.Resolucao);
 	}
 
 	/// <summary>Publica ou atualiza um aviso do setor.</summary>
@@ -175,11 +225,18 @@ public sealed class SetorController(
 			return NotFound();
 		}
 
+		var alvo = await ResolverTipoAsync(slug, TipoDeItemMenu.Avisos, cancellationToken).ConfigureAwait(false);
+
+		if (alvo is null)
+		{
+			return NotFound();
+		}
+
+		var (setor, resolucao) = alvo.Value;
+
 		if (!ModelState.IsValid)
 		{
-			var invalido = await MontarAvisosAsync(slug, form, cancellationToken).ConfigureAwait(false);
-
-			return invalido is null ? NotFound() : View(nameof(Avisos), invalido);
+			return View("Avisos", await MontarAvisosAsync(setor, resolucao, form, cancellationToken).ConfigureAwait(false));
 		}
 
 		var exigirVinculo = IntranetAuthenticationExtensions.IsConfigured(configuration);
@@ -203,7 +260,7 @@ public sealed class SetorController(
 
 			if (publicado.IsFailure)
 			{
-				return await ComErroAsync(slug, form, publicado.Error.Description, cancellationToken)
+				return await ComErroAsync(setor, resolucao, form, publicado.Error.Description, cancellationToken)
 					.ConfigureAwait(false);
 			}
 
@@ -221,7 +278,7 @@ public sealed class SetorController(
 
 			if (editado.IsFailure)
 			{
-				return await ComErroAsync(slug, form, editado.Error.Description, cancellationToken)
+				return await ComErroAsync(setor, resolucao, form, editado.Error.Description, cancellationToken)
 					.ConfigureAwait(false);
 			}
 
@@ -230,27 +287,7 @@ public sealed class SetorController(
 
 		TempData[FeedbackViewComponent.ChaveDaMensagem] = MensagemDeSalvamento.Montar(titulo, relatorio);
 
-		return RedirectToAction(nameof(Avisos), new { slug });
-	}
-
-	/// <summary>
-	/// Identificador do usuário atual, quando a autenticação está ativa. Sem ele — o modo
-	/// aberto de DEV — ninguém é excluído do próprio aviso, o que é inofensivo.
-	/// </summary>
-	private Guid? IdDoUsuarioAtual() =>
-		Guid.TryParse(User.FindFirst(SeccoClaims.Subject)?.Value, out var id) ? id : null;
-
-	private async Task<IActionResult> ComErroAsync(
-		string slug,
-		PublicacaoFormViewModel form,
-		string mensagem,
-		CancellationToken cancellationToken)
-	{
-		ModelState.AddModelError(string.Empty, mensagem);
-
-		var model = await MontarAvisosAsync(slug, form, cancellationToken).ConfigureAwait(false);
-
-		return model is null ? NotFound() : View(nameof(Avisos), model);
+		return VoltarPara(slug, resolucao);
 	}
 
 	/// <summary>Tira um aviso de circulação.</summary>
@@ -264,6 +301,13 @@ public sealed class SetorController(
 		Guid id,
 		CancellationToken cancellationToken = default)
 	{
+		var alvo = await ResolverTipoAsync(slug, TipoDeItemMenu.Avisos, cancellationToken).ConfigureAwait(false);
+
+		if (alvo is null)
+		{
+			return NotFound();
+		}
+
 		var resultado = await arquivarPublicacaoHandler.HandleAsync(
 			new ArquivarPublicacaoCommand(
 				id,
@@ -278,37 +322,35 @@ public sealed class SetorController(
 
 		TempData[FeedbackViewComponent.ChaveDaMensagem] = "Publicação arquivada.";
 
-		return RedirectToAction(nameof(Avisos), new { slug });
+		return VoltarPara(slug, alvo.Value.Resolucao);
 	}
 
-	private async Task<SetorAvisosViewModel?> MontarAvisosAsync(
-		string slug,
+	/// <summary>
+	/// Identificador do usuário atual, quando a autenticação está ativa. Sem ele — o modo
+	/// aberto de DEV — ninguém é excluído do próprio aviso, o que é inofensivo.
+	/// </summary>
+	private Guid? IdDoUsuarioAtual() =>
+		Guid.TryParse(User.FindFirst(SeccoClaims.Subject)?.Value, out var id) ? id : null;
+
+	private async Task<IActionResult> ComErroAsync(
+		SetorDto setor,
+		ResultadoDaResolucao resolucao,
 		PublicacaoFormViewModel form,
+		string mensagem,
 		CancellationToken cancellationToken)
 	{
-		var setor = await getSetorHandler.HandleAsync(slug, cancellationToken).ConfigureAwait(false);
+		ModelState.AddModelError(string.Empty, mensagem);
 
-		if (setor.IsFailure || !setor.Value.Ativo)
-		{
-			return null;
-		}
-
-		var publicacoes = await listarPublicacoesDoSetorHandler
-			.HandleAsync(slug, cancellationToken)
-			.ConfigureAwait(false);
-
-		return new SetorAvisosViewModel(
-			setor.Value,
-			publicacoes.IsSuccess ? publicacoes.Value : [],
-			await PodePublicarAsync(slug, cancellationToken).ConfigureAwait(false),
-			form,
-			DateTimeOffset.UtcNow);
+		return View("Avisos", await MontarAvisosAsync(setor, resolucao, form, cancellationToken).ConfigureAwait(false));
 	}
 
-	private async Task<SetorDocumentosViewModel?> MontarAsync(
-		string slug,
-		DocumentoFormViewModel form,
-		CancellationToken cancellationToken)
+	/// <summary>
+	/// Setor e posição na árvore do item de um tipo embutido. Nulo quando o setor não existe
+	/// ou está inativo, ou quando o recurso está desligado (item ausente, ou ele/um ancestral
+	/// desativado) — quem chama responde 404 nos três casos.
+	/// </summary>
+	private async Task<(SetorDto Setor, ResultadoDaResolucao Resolucao)?> ResolverTipoAsync(
+		string slug, TipoDeItemMenu tipo, CancellationToken cancellationToken)
 	{
 		var setor = await getSetorHandler.HandleAsync(slug, cancellationToken).ConfigureAwait(false);
 
@@ -317,16 +359,85 @@ public sealed class SetorController(
 			return null;
 		}
 
+		var caminho = await resolverCaminho.CaminhoDoTipoAsync(setor.Value.Id, tipo, cancellationToken).ConfigureAwait(false);
+
+		if (caminho is null)
+		{
+			return null;
+		}
+
+		var resolvido = await resolverCaminho.HandleAsync(setor.Value.Id, caminho, cancellationToken).ConfigureAwait(false);
+
+		return resolvido.IsFailure ? null : (setor.Value, resolvido.Value);
+	}
+
+	private RedirectToActionResult VoltarPara(string slug, ResultadoDaResolucao resolucao) =>
+		RedirectToAction(nameof(Resolver), new { slug, caminho = string.Join('/', resolucao.CaminhoCompleto) });
+
+	/// <summary>Abas = irmãos ativos do nó; a URL de cada um é o caminho do pai + o slug dele.</summary>
+	private List<ItemMenuAbaDto> MontarAbas(string slug, ResultadoDaResolucao resolucao)
+	{
+		var caminhoDoPai = resolucao.CaminhoCompleto.Take(resolucao.CaminhoCompleto.Count - 1).ToList();
+
+		return
+		[
+			.. resolucao.Irmaos.Select(irmao => new ItemMenuAbaDto(
+				irmao.Nome,
+				irmao.Icone,
+				Url.Action(nameof(Resolver), new { slug, caminho = string.Join('/', [.. caminhoDoPai, irmao.Slug]) })!,
+				irmao.Id == resolucao.No.Id)),
+		];
+	}
+
+	private async Task<SetorDocumentosViewModel> MontarDocumentosAsync(
+		SetorDto setor, ResultadoDaResolucao resolucao, DocumentoFormViewModel form, CancellationToken cancellationToken)
+	{
 		var documentos = await listarHandler
-			.HandleAsync(new ListarDocumentosQuery(slug), cancellationToken)
+			.HandleAsync(new ListarDocumentosQuery(setor.Slug), cancellationToken)
 			.ConfigureAwait(false);
 
 		return new SetorDocumentosViewModel(
-			setor.Value,
+			setor,
 			documentos.IsSuccess ? documentos.Value : [],
-			await PodePublicarAsync(slug, cancellationToken).ConfigureAwait(false),
+			await PodePublicarAsync(setor.Slug, cancellationToken).ConfigureAwait(false),
 			form,
-			documentoOptions.TamanhoMaximoBytes);
+			documentoOptions.TamanhoMaximoBytes,
+			MontarAbas(setor.Slug, resolucao));
+	}
+
+	private async Task<SetorAvisosViewModel> MontarAvisosAsync(
+		SetorDto setor, ResultadoDaResolucao resolucao, PublicacaoFormViewModel form, CancellationToken cancellationToken)
+	{
+		var publicacoes = await listarPublicacoesDoSetorHandler
+			.HandleAsync(setor.Slug, cancellationToken)
+			.ConfigureAwait(false);
+
+		return new SetorAvisosViewModel(
+			setor,
+			publicacoes.IsSuccess ? publicacoes.Value : [],
+			await PodePublicarAsync(setor.Slug, cancellationToken).ConfigureAwait(false),
+			form,
+			DateTimeOffset.UtcNow,
+			MontarAbas(setor.Slug, resolucao));
+	}
+
+	/// <summary>
+	/// Ler exige a permissão de leitura do setor (ADR-0021). Mesmo bypass de
+	/// <see cref="PodePublicarAsync"/>: sem autenticação configurada (DEV aberto/Testing) não
+	/// há permissão a resolver — consistente com o menu, que nesse modo mostra todo setor.
+	/// </summary>
+	private async Task<bool> PodeLerAsync(string slug, CancellationToken cancellationToken)
+	{
+		if (!IntranetAuthenticationExtensions.IsConfigured(configuration))
+		{
+			return true;
+		}
+
+		var slugsComLeitura = await permissoesDeSetor
+			.SlugsComPermissaoAsync(User, "read", [slug], cancellationToken)
+			.ConfigureAwait(false);
+
+		return slugsComLeitura.Contains(slug);
 	}
 
 	/// <summary>

@@ -30,9 +30,11 @@ public sealed class DocumentoFormViewModel
 /// <param name="PodePublicar">Se o usuário atual administra este setor.</param>
 /// <param name="Form">Dados do formulário de publicação.</param>
 /// <param name="TamanhoMaximoBytes">Limite aceito por arquivo, para exibir na interface.</param>
+/// <param name="Abas">Itens irmãos na árvore de menu do setor, para a barra de abas.</param>
 public sealed record SetorDocumentosViewModel(
 	SetorDto Setor,
 	IReadOnlyList<DocumentoDto> Documentos,
 	bool PodePublicar,
 	DocumentoFormViewModel Form,
-	long TamanhoMaximoBytes);
+	long TamanhoMaximoBytes,
+	IReadOnlyList<ItemMenuAbaDto> Abas);
