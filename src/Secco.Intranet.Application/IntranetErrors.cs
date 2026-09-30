@@ -290,4 +290,64 @@ public static class IntranetErrors
 		public static Error CsvInvalido(string motivo) =>
 			Error.Validation("Intranet.Diretorio.CsvInvalido", $"Não foi possível ler o arquivo: {motivo}");
 	}
+
+	/// <summary>Erros da árvore de itens de menu.</summary>
+	public static class Menu
+	{
+		/// <summary>Nome ausente ou vazio.</summary>
+		public static readonly Error NomeRequired =
+			Error.Validation("Intranet.Menu.NomeRequired", "O nome é obrigatório.");
+
+		/// <summary>Slug ausente ou vazio.</summary>
+		public static readonly Error SlugRequired =
+			Error.Validation("Intranet.Menu.SlugRequired", "O slug é obrigatório.");
+
+		/// <summary>Já existe um item com esse slug entre os irmãos do mesmo pai.</summary>
+		public static readonly Error SlugJaExisteEntreIrmaos =
+			Error.Conflict("Intranet.Menu.SlugJaExisteEntreIrmaos", "Já existe um item com esse identificador neste nível.");
+
+		/// <summary>O setor já tem um item do tipo pedido (Documentos ou Avisos, limitados a um por setor).</summary>
+		public static readonly Error TipoJaExiste =
+			Error.Conflict("Intranet.Menu.TipoJaExiste", "Este setor já tem um item desse tipo.");
+
+		/// <summary>O pai informado não existe ou é de outro setor.</summary>
+		public static readonly Error PaiInvalido =
+			Error.Validation("Intranet.Menu.PaiInvalido", "Pai inválido para este item.");
+
+		/// <summary>Ícone fora do formato do Bootstrap Icons.</summary>
+		public static readonly Error IconeInvalido =
+			Error.Validation("Intranet.Menu.IconeInvalido", "O ícone precisa ser uma classe do Bootstrap Icons, como 'bi-cash-coin'.");
+
+		/// <summary>Item não encontrado no banco do tenant atual.</summary>
+		public static readonly Error NotFound =
+			Error.NotFound("Intranet.Menu.NotFound", "Item de menu não encontrado.");
+
+		/// <summary>A linha raiz (Tipo = Setor) não é criável/editável/excluível pela tela.</summary>
+		public static readonly Error RaizProtegida =
+			Error.Validation("Intranet.Menu.RaizProtegida", "O item raiz do setor não pode ser alterado por aqui.");
+
+		/// <summary>Só itens Personalizado se excluem — os embutidos só desativam.</summary>
+		public static readonly Error TipoEmbutidoNaoExclui =
+			Error.Validation("Intranet.Menu.TipoEmbutidoNaoExclui", "Este item é embutido no produto e só pode ser desativado, não excluído.");
+
+		/// <summary>Tipo ausente do enum, ou <c>Setor</c> (a raiz não se cria pela tela).</summary>
+		public static readonly Error TipoInvalido =
+			Error.Validation("Intranet.Menu.TipoInvalido", "Tipo de item inválido.");
+
+		/// <summary>Slug fora do formato de segmento de URL.</summary>
+		public static readonly Error SlugInvalido =
+			Error.Validation(
+				"Intranet.Menu.SlugInvalido",
+				"O identificador aceita só letras minúsculas sem acento, dígitos e hífen entre eles (ex.: relatorios-2026).");
+
+		/// <summary>Nome, slug, rota ou ícone acima do tamanho da coluna.</summary>
+		public static Error CampoMuitoLongo(string campo, int limite) =>
+			Error.Validation("Intranet.Menu.CampoMuitoLongo", $"{campo} excede o limite de {limite} caracteres.");
+
+		/// <summary>Rota que não é caminho local nem URL http(s) absoluta (ADR-0020: destino de redirect).</summary>
+		public static readonly Error RotaInvalida =
+			Error.Validation(
+				"Intranet.Menu.RotaInvalida",
+				"A rota precisa ser um caminho da própria intranet (começando com /) ou um endereço http/https completo.");
+	}
 }

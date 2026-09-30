@@ -3,6 +3,7 @@ using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Diretorio;
 using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Inventario;
+using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Setores;
 
@@ -59,6 +60,8 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ReconciliarPermissoesHandler>();
 		services.AddScoped<ObterFederacaoHandler>();
 		services.AddScoped<DefinirFederacaoHandler>();
+
+		services.AddScoped<CriarItemMenuHandler>();
 
 		services.AddScoped<ListarPessoasHandler>();
 		services.AddScoped<ObterPessoaHandler>();
