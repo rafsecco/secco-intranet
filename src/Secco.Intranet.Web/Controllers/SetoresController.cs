@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Secco.Intranet.Web.Authentication;
+using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
+using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Web.Models;
 using Secco.Intranet.Web.ViewComponents;
 using Secco.SharedKernel.Pagination;
+using Secco.SharedKernel.Results;
 
 namespace Secco.Intranet.Web.Controllers;
 
@@ -17,13 +20,132 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="editarHandler">Caso de uso de edição de setor.</param>
 /// <param name="getByIdHandler">Caso de uso de leitura pontual de setor.</param>
 /// <param name="searchHandler">Caso de uso de busca paginada de setores.</param>
+/// <param name="obterArvore">Leitura da árvore de itens de menu de um setor.</param>
+/// <param name="criarItem">Criação de item na árvore.</param>
+/// <param name="alternarItem">Ativação/desativação de item.</param>
+/// <param name="excluirItem">Exclusão de item personalizado.</param>
+/// <param name="moverItem">Reordenação de item entre os irmãos.</param>
 [SomenteIntranetAdmin]
 public sealed class SetoresController(
 	CreateSetorHandler createHandler,
 	EditarSetorHandler editarHandler,
 	GetSetorByIdHandler getByIdHandler,
-	SearchSetoresHandler searchHandler) : Controller
+	SearchSetoresHandler searchHandler,
+	ObterArvoreDeMenuHandler obterArvore,
+	CriarItemMenuHandler criarItem,
+	AtivarDesativarItemMenuHandler alternarItem,
+	ExcluirItemMenuHandler excluirItem,
+	MoverItemMenuHandler moverItem) : Controller
 {
+	/// <summary>Árvore de itens de menu da página de um setor.</summary>
+	/// <param name="id">Identificador do setor.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpGet]
+	public async Task<IActionResult> Menu(Guid id, CancellationToken cancellationToken = default)
+	{
+		var setor = await getByIdHandler.HandleAsync(id, cancellationToken);
+
+		if (setor.IsFailure)
+		{
+			return NotFound();
+		}
+
+		var arvore = await obterArvore.HandleAsync(setor.Value.Id, cancellationToken);
+
+		if (arvore.IsFailure)
+		{
+			// Setor criado antes da árvore existir e ainda não reconciliado.
+			TempData[FeedbackViewComponent.ChaveDaMensagemDeErro] =
+				"Este setor ainda não tem itens de menu. Use \"Reconciliar itens de menu\" na lista de setores.";
+
+			return RedirectToAction(nameof(Details), new { id });
+		}
+
+		return View(new SetorMenuViewModel(setor.Value, arvore.Value));
+	}
+
+	/// <summary>Cria um item na árvore de um setor.</summary>
+	/// <param name="setorId">Setor dono da árvore.</param>
+	/// <param name="parentId">Pai do novo item.</param>
+	/// <param name="nome">Rótulo.</param>
+	/// <param name="slug">Identificador entre irmãos.</param>
+	/// <param name="tipo">Tipo do item.</param>
+	/// <param name="rota">Rota opcional (só Personalizado).</param>
+	/// <param name="icone">Classe do Bootstrap Icons, opcional.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> CriarItemDeMenu(
+		Guid setorId,
+		Guid parentId,
+		string? nome,
+		string? slug,
+		TipoDeItemMenu tipo,
+		string? rota,
+		string? icone,
+		CancellationToken cancellationToken = default)
+	{
+		var resultado = await criarItem.HandleAsync(
+			new CriarItemMenuCommand(setorId, parentId, nome, slug, tipo, rota, icone), cancellationToken);
+
+		return VoltarParaMenu(setorId, resultado.IsSuccess ? $"Item \"{resultado.Value.Nome}\" criado." : null, resultado);
+	}
+
+	/// <summary>Ativa ou desativa um item da árvore.</summary>
+	/// <param name="setorId">Setor dono da árvore (só para voltar à tela).</param>
+	/// <param name="itemId">Item a alterar.</param>
+	/// <param name="ativar"><c>true</c> ativa, <c>false</c> desativa.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> AlternarItemDeMenu(Guid setorId, Guid itemId, bool ativar, CancellationToken cancellationToken = default)
+	{
+		var resultado = await alternarItem.HandleAsync(itemId, ativar, cancellationToken);
+
+		return VoltarParaMenu(setorId, ativar ? "Item ativado." : "Item desativado.", resultado);
+	}
+
+	/// <summary>Exclui um item personalizado da árvore.</summary>
+	/// <param name="setorId">Setor dono da árvore (só para voltar à tela).</param>
+	/// <param name="itemId">Item a excluir.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> ExcluirItemDeMenu(Guid setorId, Guid itemId, CancellationToken cancellationToken = default)
+	{
+		var resultado = await excluirItem.HandleAsync(itemId, cancellationToken);
+
+		return VoltarParaMenu(setorId, "Item excluído.", resultado);
+	}
+
+	/// <summary>Move um item para cima ou para baixo entre os irmãos.</summary>
+	/// <param name="setorId">Setor dono da árvore (só para voltar à tela).</param>
+	/// <param name="itemId">Item a mover.</param>
+	/// <param name="paraCima"><c>true</c> troca com o anterior; <c>false</c>, com o próximo.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> MoverItemDeMenu(Guid setorId, Guid itemId, bool paraCima, CancellationToken cancellationToken = default)
+	{
+		var resultado = await moverItem.HandleAsync(itemId, paraCima, cancellationToken);
+
+		return VoltarParaMenu(setorId, null, resultado);
+	}
+
+	private RedirectToActionResult VoltarParaMenu(Guid setorId, string? sucesso, Result resultado)
+	{
+		if (resultado.IsFailure)
+		{
+			TempData[FeedbackViewComponent.ChaveDaMensagemDeErro] = resultado.Error.Description;
+		}
+		else if (sucesso is not null)
+		{
+			TempData[FeedbackViewComponent.ChaveDaMensagem] = sucesso;
+		}
+
+		return RedirectToAction(nameof(Menu), new { id = setorId });
+	}
+
 	/// <summary>Busca paginada de setores do tenant atual.</summary>
 	/// <param name="nome">Trecho do nome a filtrar (opcional).</param>
 	/// <param name="page">Página desejada (1-based).</param>
@@ -123,7 +245,8 @@ public sealed class SetoresController(
 		}
 
 		var result = await createHandler.HandleAsync(
-			new CreateSetorCommand(form.Nome, form.Slug, form.Fixo, form.Icone), cancellationToken);
+			new CreateSetorCommand(form.Nome, form.Slug, form.Fixo, form.Icone, form.HabilitarDocumentos, form.HabilitarAvisos),
+			cancellationToken);
 
 		if (result.IsFailure)
 		{

@@ -9,6 +9,7 @@
         new[]
         {
             new PageActionModel("Editar", Url.Action("Edit", new { id = Model.Id })!, "bi-pencil", Primaria: true),
+            new PageActionModel("Itens de menu", Url.Action("Menu", new { id = Model.Id })!, "bi-list-nested"),
             new PageActionModel("Voltar para setores", Url.Action("Index")!, "bi-arrow-left"),
         });
 

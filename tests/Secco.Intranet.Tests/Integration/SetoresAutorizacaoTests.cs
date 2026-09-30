@@ -45,7 +45,7 @@ public class SetoresAutorizacaoTests(IntranetWebFactory factory) : IClassFixture
 		var client = CriarCliente(roles);
 		var id = Guid.NewGuid();
 
-		foreach (var url in new[] { "/Setores", "/Setores/Create", $"/Setores/Edit/{id}", $"/Setores/Details/{id}" })
+		foreach (var url in new[] { "/Setores", "/Setores/Create", $"/Setores/Edit/{id}", $"/Setores/Details/{id}", $"/Setores/Menu/{id}" })
 		{
 			var resposta = await client.GetAsync(url);
 
@@ -66,6 +66,43 @@ public class SetoresAutorizacaoTests(IntranetWebFactory factory) : IClassFixture
 		criar.StatusCode.Should().Be(HttpStatusCode.Forbidden,
 			"403 e não 400: o filtro de autorização roda antes do antifalsificação");
 		editar.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+	}
+
+	// A árvore de itens de menu de um setor é administrada só pelo intranet-admin — um
+	// {slug}-admin publica no próprio setor, mas não decide quais itens existem.
+	public static IEnumerable<string> RotasPostDaArvore =>
+	[
+		"/Setores/CriarItemDeMenu",
+		"/Setores/AlternarItemDeMenu",
+		"/Setores/ExcluirItemDeMenu",
+		"/Setores/MoverItemDeMenu",
+	];
+
+	[Theory]
+	[MemberData(nameof(UsuariosSemAcesso))]
+	public async Task PostDaArvore_SemIntranetAdmin_Bloqueado403(string[] roles)
+	{
+		var client = CriarCliente(roles);
+
+		foreach (var rota in RotasPostDaArvore)
+		{
+			var resposta = await client.PostAsync(rota, new FormUrlEncodedContent([]));
+
+			resposta.StatusCode.Should().Be(HttpStatusCode.Forbidden, $"POST {rota} exige intranet-admin");
+		}
+	}
+
+	[Fact]
+	public async Task PostDaArvore_ComIntranetAdminSemToken_PassaDoGateEBateNoAntifalsificacao()
+	{
+		var client = CriarCliente("intranet-admin");
+
+		foreach (var rota in RotasPostDaArvore)
+		{
+			var resposta = await client.PostAsync(rota, new FormUrlEncodedContent([]));
+
+			resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest, $"POST {rota}: o gate liberou, o token barrou");
+		}
 	}
 
 	[Fact]

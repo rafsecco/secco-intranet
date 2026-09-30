@@ -1,0 +1,126 @@
+@using Secco.Intranet.Application.Menu
+@using Secco.Intranet.Domain.Menu
+@model SetorMenuViewModel
+@{
+    ViewData["Title"] = $"Menu de {Model.Setor.Nome}";
+
+    var cabecalho = new PageHeaderModel(
+        $"Menu de {Model.Setor.Nome}",
+        "Itens da página deste setor. Documentos e Avisos só desativam; itens personalizados também se excluem.",
+        Model.Setor.Slug,
+        new[]
+        {
+            new PageActionModel("Voltar para o setor", Url.Action("Details", new { id = Model.Setor.Id })!, "bi-arrow-left"),
+        });
+
+    static IEnumerable<(NoDaArvoreDto No, int Profundidade)> Achatar(NoDaArvoreDto no, int profundidade) =>
+        new[] { (no, profundidade) }.Concat(no.Filhos.SelectMany(filho => Achatar(filho, profundidade + 1)));
+
+    var linhas = Achatar(Model.Raiz, 0).ToList();
+    var tiposExistentes = linhas.Select(linha => linha.No.Item.Tipo).ToHashSet();
+    var desativado = new BadgeModel("Desativado", BadgeVariante.Neutro);
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<ul class="sc-list mb-3">
+    @foreach (var (no, profundidade) in linhas)
+    {
+        <li class="sc-list__item" style="padding-left: @(16 + profundidade * 24)px">
+            <div class="sc-list__text">
+                <p class="sc-list__title">
+                    @if (!string.IsNullOrWhiteSpace(no.Item.Icone))
+                    {
+                        <i class="bi @no.Item.Icone" aria-hidden="true"></i>
+                    }
+                    @no.Item.Nome
+                    <span class="sc-meta">@no.Item.Tipo · @no.Item.Slug</span>
+                    @if (!no.Item.Ativo)
+                    {
+                        <partial name="_Badge" model="desativado" />
+                    }
+                </p>
+                @if (no.Item.Tipo != TipoDeItemMenu.Setor)
+                {
+                    <div class="d-flex gap-2">
+                        <form method="post" asp-action="AlternarItemDeMenu" class="d-inline">
+                            <input type="hidden" name="setorId" value="@Model.Setor.Id" />
+                            <input type="hidden" name="itemId" value="@no.Item.Id" />
+                            <input type="hidden" name="ativar" value="@(no.Item.Ativo ? "false" : "true")" />
+                            <button class="btn btn-sm btn-outline-secondary" type="submit">@(no.Item.Ativo ? "Desativar" : "Ativar")</button>
+                        </form>
+                        <form method="post" asp-action="MoverItemDeMenu" class="d-inline">
+                            <input type="hidden" name="setorId" value="@Model.Setor.Id" />
+                            <input type="hidden" name="itemId" value="@no.Item.Id" />
+                            <input type="hidden" name="paraCima" value="true" />
+                            <button class="btn btn-sm btn-outline-secondary" type="submit" aria-label="Mover para cima">&uarr;</button>
+                        </form>
+                        <form method="post" asp-action="MoverItemDeMenu" class="d-inline">
+                            <input type="hidden" name="setorId" value="@Model.Setor.Id" />
+                            <input type="hidden" name="itemId" value="@no.Item.Id" />
+                            <input type="hidden" name="paraCima" value="false" />
+                            <button class="btn btn-sm btn-outline-secondary" type="submit" aria-label="Mover para baixo">&darr;</button>
+                        </form>
+                        @if (no.Item.Tipo == TipoDeItemMenu.Personalizado)
+                        {
+                            <form method="post" asp-action="ExcluirItemDeMenu" class="d-inline">
+                                <input type="hidden" name="setorId" value="@Model.Setor.Id" />
+                                <input type="hidden" name="itemId" value="@no.Item.Id" />
+                                <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
+                            </form>
+                        }
+                    </div>
+                }
+            </div>
+        </li>
+    }
+</ul>
+
+<div class="sc-panel">
+    <h2 class="h6 mb-3">Novo item</h2>
+    <form method="post" asp-action="CriarItemDeMenu" class="row g-2">
+        <input type="hidden" name="setorId" value="@Model.Setor.Id" />
+        <div class="col-sm-3">
+            <label class="form-label" for="parentId">Pai</label>
+            <select class="form-select" id="parentId" name="parentId">
+                @foreach (var (no, profundidade) in linhas)
+                {
+                    <option value="@no.Item.Id">@(new string('—', profundidade)) @no.Item.Nome</option>
+                }
+            </select>
+        </div>
+        <div class="col-sm-3">
+            <label class="form-label" for="nome">Nome</label>
+            <input class="form-control" id="nome" name="nome" maxlength="256" required />
+        </div>
+        <div class="col-sm-2">
+            <label class="form-label" for="slug">Identificador</label>
+            <input class="form-control" id="slug" name="slug" maxlength="128" pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="relatorios" required />
+        </div>
+        <div class="col-sm-2">
+            <label class="form-label" for="tipo">Tipo</label>
+            <select class="form-select" id="tipo" name="tipo">
+                <option value="@TipoDeItemMenu.Personalizado">Personalizado</option>
+                @if (!tiposExistentes.Contains(TipoDeItemMenu.Documentos))
+                {
+                    <option value="@TipoDeItemMenu.Documentos">Documentos</option>
+                }
+                @if (!tiposExistentes.Contains(TipoDeItemMenu.Avisos))
+                {
+                    <option value="@TipoDeItemMenu.Avisos">Avisos</option>
+                }
+            </select>
+        </div>
+        <div class="col-sm-2">
+            <label class="form-label" for="icone">Ícone</label>
+            <input class="form-control" id="icone" name="icone" maxlength="64" placeholder="bi-cash-coin" />
+        </div>
+        <div class="col-sm-4">
+            <label class="form-label" for="rota">Rota (só Personalizado)</label>
+            <input class="form-control" id="rota" name="rota" maxlength="512" placeholder="/relatorios ou https://…" />
+        </div>
+        <div class="col-sm-2 d-flex align-items-end">
+            <button class="btn btn-primary w-100" type="submit">Criar</button>
+        </div>
+    </form>
+</div>

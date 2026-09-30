@@ -32,4 +32,10 @@ public sealed class SetorFormViewModel
 
 	/// <summary>Se o setor nasce como fixo do sistema (não pode ser desativado/excluído).</summary>
 	public bool Fixo { get; set; }
+
+	/// <summary>Se o setor nasce com o item Documentos na árvore de menu. Marcado por padrão.</summary>
+	public bool HabilitarDocumentos { get; set; } = true;
+
+	/// <summary>Se o setor nasce com o item Avisos na árvore de menu. Marcado por padrão.</summary>
+	public bool HabilitarAvisos { get; set; } = true;
 }

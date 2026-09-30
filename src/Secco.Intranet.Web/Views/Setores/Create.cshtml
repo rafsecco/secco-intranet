@@ -43,6 +43,19 @@
             <div class="form-text">Setores fixos não podem ser desativados nem excluídos.</div>
         </div>
 
+        <fieldset class="mt-3">
+            <legend class="form-label">Recursos do setor</legend>
+            <div class="form-check">
+                <input class="form-check-input" asp-for="HabilitarDocumentos" />
+                <label class="form-check-label" asp-for="HabilitarDocumentos">Documentos</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" asp-for="HabilitarAvisos" />
+                <label class="form-check-label" asp-for="HabilitarAvisos">Avisos</label>
+            </div>
+            <div class="form-text">Dá para ligar, desligar ou acrescentar itens depois, em "Itens de menu".</div>
+        </fieldset>
+
         <div class="sc-form__actions">
             <button class="btn btn-primary" type="submit">Cadastrar setor</button>
             <a class="btn btn-outline-secondary" asp-action="Index">Cancelar</a>
