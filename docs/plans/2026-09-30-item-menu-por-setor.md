@@ -47,39 +47,45 @@ AwesomeAssertions.
   /setor/{slug}/documentos` depois de alguém desativar o item `Documentos` daquele setor
   precisa virar 404, do mesmo jeito que um setor inexistente — não pode continuar
   mostrando o conteúdo antigo (Task 8/9 precisam de teste específico para isso).
-- **Ciclo indireto, não só direto, na função pura:** `RegrasDeItemMenu.CriariaCiclo` (Task
-  1) precisa recusar não só "item é pai de si mesmo", mas "item A é avô de si mesmo através
-  de B" — um teste com só dois níveis não prova isso. **Nota de escopo:** nenhum handler
-  desta rodada chama essa função — o único jeito de definir `ParentId` hoje é
-  `CriarItemMenuHandler` (Task 4), e um item recém-criado nunca pode ser ancestral de si
-  mesmo (ele não existia antes). A função existe pronta, testada e correta para quando uma
-  ação futura de "mover para outro pai" precisar dela — mesmo raciocínio de
-  `RegrasDeGestor.CriariaCiclo`, que só passou a valer quando o organograma ganhou edição.
-  Não há regressão a temer aqui: é um invariante do **modelo**, protegido desde já, mesmo
-  sem uma ação de UI que o exercite ainda.
+- **Recurso desligado, mas POST ainda aceito:** desativar `Avisos` tem de fechar também
+  `POST /setor/{slug}/avisos`, não só esconder a aba — senão o recurso some da tela e
+  continua gravável (Task 9, `RecursoDesligado_RecusaPost_MesmoComTokenValido`).
+- **Rota de item Personalizado apontando para fora:** `javascript:…`, `//outro-dominio` e
+  esquemas que não são http(s) vão parar num `Redirect` (Task 9); precisam ser recusados na
+  criação (Task 4, `Rota_SoCaminhoLocalOuHttp`).
 - **Reconciliação rodada duas vezes em um setor que já tem `Documentos` mas não `Avisos`**
   (estado misto, não "nenhum dos dois"): precisa completar só o que falta, sem tentar
-  recriar `Documentos` e sem duplicar (Task 6).
-- **Leitura sem `setor-{slug}:read` em `GET /setor/{slug}` "nua"** (sem nenhum segmento de
-  caminho) — é o gap que a spec fechou; fácil testar só o caminho profundo
-  (`/setor/{slug}/avisos`) e esquecer da raiz (Task 9).
+  recriar `Documentos` e sem duplicar (Task 6) — e percorrer **todas** as páginas de
+  setores, não só a primeira.
+- **Leitura sem `setor-{slug}:read`:** `PodeLerAsync` (Task 9) tem o mesmo bypass de
+  `PodePublicarAsync` — sem autenticação configurada, libera. A suíte roda em `Testing`,
+  onde a autenticação nunca é configurada, então **não existe teste de integração possível
+  para o ramo restritivo**; a permissão em si é coberta por `PermissoesDeSetorTests`. Quem
+  revisar deve conferir por leitura que `Resolver` chama `PodeLerAsync` **antes** de
+  resolver o caminho (inclusive com caminho vazio), e não aceitar um teste "sem permissão →
+  404" que passe pelo motivo errado.
+
+Sobre ciclos na árvore (invariante da spec): nenhuma ação desta rodada altera o `ParentId`
+de um item existente — ele é definido só na criação, apontando para um nó que já existe. Um
+item novo não pode ser ancestral de ninguém, então a árvore é acíclica **por construção**,
+sem código de checagem. Quando uma ação de "mover para outro pai" existir, ela traz a
+checagem junto (o algoritmo é o de `RegrasDeGestor.CriariaCiclo`, do Diretório); escrever
+isso agora seria código morto.
 
 ---
 
-## Task 1: Entidade `ItemMenu`, enum `TipoDeItemMenu` e checagem de ciclo
+## Task 1: Entidade `ItemMenu` e enum `TipoDeItemMenu`
 
 **Files:**
 - Create: `src/Secco.Intranet.Domain/Menu/ItemMenu.cs`
-- Create: `src/Secco.Intranet.Domain/Menu/RegrasDeItemMenu.cs`
 - Test: `tests/Secco.Intranet.Tests/Unit/ItemMenuTests.cs`
-- Test: `tests/Secco.Intranet.Tests/Unit/RegrasDeItemMenuTests.cs`
 
 **Interfaces:**
 - Produces: `ItemMenu` (construtor `ItemMenu(Guid setorId, Guid? parentId, string nome, string slug, TipoDeItemMenu tipo, string? rota, string? icone, int ordem)`,
   propriedades `Id`/`SetorId`/`ParentId`/`Nome`/`Slug`/`Tipo`/`Rota`/`Icone`/`Ordem`/`Ativo`,
   métodos `Ativar()`/`Desativar()`/`DefinirOrdem(int)`), `TipoDeItemMenu` (`Setor = 0`,
   `Documentos = 1`, `Avisos = 2`, `Personalizado = 3`), `ItemMenu.IconeEhValido(string?)`
-  (reaproveita o mesmo formato de `Setor.IconeEhValido`), `RegrasDeItemMenu.CriariaCiclo(IReadOnlyDictionary<Guid, Guid> paiPorItem, Guid itemId, Guid novoPaiId)`.
+  (reaproveita o mesmo formato de `Setor.IconeEhValido`).
 
 - [ ] **Step 1: Escrever o teste da entidade que falha**
 
@@ -309,131 +315,14 @@ public sealed class ItemMenu : BaseEntity
 Run: `dotnet test tests/Secco.Intranet.Tests --filter ItemMenuTests`
 Expected: PASS
 
-- [ ] **Step 5: Escrever o teste de ciclo que falha**
-
-```csharp
-using AwesomeAssertions;
-using Secco.Intranet.Domain.Menu;
-using Xunit;
-
-namespace Secco.Intranet.Tests.Unit;
-
-public class RegrasDeItemMenuTests
-{
-	[Fact]
-	public void SemNenhumaRelacao_NaoCriaCiclo()
-	{
-		var mapa = new Dictionary<Guid, Guid>();
-
-		RegrasDeItemMenu.CriariaCiclo(mapa, Guid.NewGuid(), Guid.NewGuid()).Should().BeFalse();
-	}
-
-	[Fact]
-	public void ItemComoPaiDeSiMesmo_CriaCiclo()
-	{
-		var item = Guid.NewGuid();
-		var mapa = new Dictionary<Guid, Guid>();
-
-		RegrasDeItemMenu.CriariaCiclo(mapa, item, item).Should().BeTrue();
-	}
-
-	[Fact]
-	public void CicloIndireto_ANetoDeSiMesmoViaB_EDetectado()
-	{
-		// B já é filho de A. Tentar fazer A ser filho de B fecharia o ciclo A -> B -> A.
-		var a = Guid.NewGuid();
-		var b = Guid.NewGuid();
-		var mapa = new Dictionary<Guid, Guid> { [b] = a };
-
-		RegrasDeItemMenu.CriariaCiclo(mapa, a, b).Should().BeTrue();
-	}
-
-	[Fact]
-	public void CicloIndiretoDeTresNiveis_EDetectado()
-	{
-		// C é filho de B, que é filho de A. Tentar fazer A ser filho de C fecha A -> C -> B -> A.
-		var a = Guid.NewGuid();
-		var b = Guid.NewGuid();
-		var c = Guid.NewGuid();
-		var mapa = new Dictionary<Guid, Guid> { [b] = a, [c] = b };
-
-		RegrasDeItemMenu.CriariaCiclo(mapa, a, c).Should().BeTrue();
-	}
-
-	[Fact]
-	public void NovoPaiEmOutroRamo_NaoCriaCiclo()
-	{
-		var a = Guid.NewGuid();
-		var b = Guid.NewGuid();
-		var irmaoDeA = Guid.NewGuid();
-		var mapa = new Dictionary<Guid, Guid> { [b] = a };
-
-		RegrasDeItemMenu.CriariaCiclo(mapa, b, irmaoDeA).Should().BeFalse();
-	}
-}
-```
-
-- [ ] **Step 6: Rodar e confirmar que falha**
-
-Run: `dotnet test tests/Secco.Intranet.Tests --filter RegrasDeItemMenuTests`
-Expected: FAIL (compilação — `RegrasDeItemMenu` não existe)
-
-- [ ] **Step 7: Implementar (mesmo padrão de `RegrasDeGestor.CriariaCiclo`)**
-
-```csharp
-namespace Secco.Intranet.Domain.Menu;
-
-/// <summary>Regras da árvore de itens de menu que dependem do conjunto todo, não de um nó isolado.</summary>
-public static class RegrasDeItemMenu
-{
-	/// <summary>
-	/// Indica se fazer <paramref name="itemId"/> filho de <paramref name="novoPaiId"/> fecharia um
-	/// ciclo: sobe a cadeia de pais a partir do novo pai e vê se chega ao próprio item. Mesmo
-	/// algoritmo de <c>RegrasDeGestor.CriariaCiclo</c>, aplicado à árvore de menu.
-	/// </summary>
-	/// <param name="paiPorItem">Mapa atual item → pai (só quem tem pai).</param>
-	/// <param name="itemId">Item que está mudando de pai.</param>
-	/// <param name="novoPaiId">O pai proposto.</param>
-	public static bool CriariaCiclo(IReadOnlyDictionary<Guid, Guid> paiPorItem, Guid itemId, Guid novoPaiId)
-	{
-		ArgumentNullException.ThrowIfNull(paiPorItem);
-
-		var visitados = new HashSet<Guid>();
-		var atual = novoPaiId;
-
-		while (visitados.Add(atual))
-		{
-			if (atual == itemId)
-			{
-				return true;
-			}
-
-			if (!paiPorItem.TryGetValue(atual, out var proximo))
-			{
-				return false;
-			}
-
-			atual = proximo;
-		}
-
-		return false;
-	}
-}
-```
-
-- [ ] **Step 8: Rodar e confirmar que passa**
-
-Run: `dotnet test tests/Secco.Intranet.Tests --filter "ItemMenuTests|RegrasDeItemMenuTests"`
-Expected: PASS
-
-- [ ] **Step 9: Build completo e commit**
+- [ ] **Step 5: Build completo e commit**
 
 Run: `dotnet build`
 Expected: 0 avisos, 0 erros
 
 ```bash
-git add src/Secco.Intranet.Domain/Menu tests/Secco.Intranet.Tests/Unit/ItemMenuTests.cs tests/Secco.Intranet.Tests/Unit/RegrasDeItemMenuTests.cs
-git commit -m "feat(menu): entidade ItemMenu e checagem de ciclo na árvore"
+git add src/Secco.Intranet.Domain/Menu tests/Secco.Intranet.Tests/Unit/ItemMenuTests.cs
+git commit -m "feat(menu): entidade ItemMenu da árvore de itens por setor"
 ```
 
 ---
@@ -455,7 +344,11 @@ git commit -m "feat(menu): entidade ItemMenu e checagem de ciclo na árvore"
 ```csharp
 using AwesomeAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Domain.Menu;
+using Secco.Intranet.Domain.Setores;
+using Secco.Intranet.Infrastructure.Contexts;
+using Secco.SDK.AspNetCore.Tenancy;
 using Xunit;
 
 namespace Secco.Intranet.Tests.Integration;
@@ -467,26 +360,44 @@ public class ItemMenuPersistenceTests(IntranetWebFactory factory) : IClassFixtur
 	public Task DisposeAsync() => Task.CompletedTask;
 
 	[Fact]
-	public async Task PersisteEReleParenteChildTipoEIcone()
+	public async Task PersisteEReleParentIdTipoEIcone()
 	{
-		await using var scope = factory.Services.CreateAsyncScope();
-		var context = scope.ServiceProvider.GetRequiredService<Secco.Intranet.Infrastructure.Contexts.IntranetDbContext>();
+		Guid setorId;
+		Guid raizId;
+		Guid filhoId;
 
-		var setorId = Guid.NewGuid();
-		var raiz = new ItemMenu(setorId, null, "Financeiro", "financeiro", TipoDeItemMenu.Setor, null, null, 0);
-		context.ItensMenu.Add(raiz);
-		await context.SaveChangesAsync();
+		// Banco por tenant (ADR-0005): o escopo manual precisa do tenant, senão o DbContext não
+		// tem connection string — mesmo padrão de InventarioPersistenciaTests.
+		await using (var scope = factory.Services.CreateAsyncScope())
+		{
+			scope.ServiceProvider.SetTenant(factory.TenantAlfa);
+			var context = scope.ServiceProvider.GetRequiredService<IntranetDbContext>();
 
-		var filho = new ItemMenu(setorId, raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, "bi-folder2", 0);
-		context.ItensMenu.Add(filho);
-		await context.SaveChangesAsync();
+			// id_fk_setor é FK de verdade (Restrict) — o setor precisa existir.
+			var slug = $"pers-{Guid.NewGuid():N}"[..20];
+			var setor = new Setor($"Setor {slug}", slug);
+			context.Setores.Add(setor);
+			await context.SaveChangesAsync();
+			setorId = setor.Id;
+
+			var raiz = new ItemMenu(setorId, null, setor.Nome, slug, TipoDeItemMenu.Setor, null, null, 0);
+			context.ItensMenu.Add(raiz);
+			await context.SaveChangesAsync();
+			raizId = raiz.Id;
+
+			var filho = new ItemMenu(setorId, raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, "bi-folder2", 0);
+			context.ItensMenu.Add(filho);
+			await context.SaveChangesAsync();
+			filhoId = filho.Id;
+		}
 
 		await using var outroScope = factory.Services.CreateAsyncScope();
-		var outroContexto = outroScope.ServiceProvider.GetRequiredService<Secco.Intranet.Infrastructure.Contexts.IntranetDbContext>();
+		outroScope.ServiceProvider.SetTenant(factory.TenantAlfa);
+		var outroContexto = outroScope.ServiceProvider.GetRequiredService<IntranetDbContext>();
 
-		var lido = await outroContexto.ItensMenu.AsNoTracking().FirstAsync(i => i.Id == filho.Id);
+		var lido = await outroContexto.ItensMenu.AsNoTracking().FirstAsync(i => i.Id == filhoId);
 
-		lido.ParentId.Should().Be(raiz.Id);
+		lido.ParentId.Should().Be(raizId);
 		lido.SetorId.Should().Be(setorId);
 		lido.Tipo.Should().Be(TipoDeItemMenu.Documentos);
 		lido.Icone.Should().Be("bi-folder2");
@@ -562,10 +473,15 @@ dotnet ef migrations add ItemMenu --project src/Secco.Intranet.Migrations.SqlSer
 dotnet ef migrations add ItemMenu --project src/Secco.Intranet.Migrations.Postgres --startup-project src/Secco.Intranet.Migrations.Postgres --context IntranetDbContext
 ```
 
-Confira os dois arquivos gerados: a tabela precisa ter `id_fk_setor`, `id_fk_item_menu_pai`
-(nullable), `ds_nome`, `ds_slug`, `nu_tipo`, `ds_rota` (nullable), `ds_icone` (nullable),
-`nu_ordem`, `fl_ativo`, `dt_created_at` — se algum nome sair diferente, a convention não
-reconheceu a coluna do jeito esperado; pare e investigue antes de seguir.
+Confira os dois arquivos gerados contra migrations anteriores, não contra nomes decorados:
+os nomes vêm da convention do `SeccoDbContext` (ADR-0017), então compare cada coluna com a
+equivalente já existente — `Ativo` como `Setor.Ativo`, `Nome`/`Slug`/`Icone` como em `Setor`,
+`Tipo` (enum) como `ItemInventario.Status` em `*_Inventario.cs`, `Ordem` (int) como qualquer
+int já mapeado, `SetorId` como `Documento.SetorId`. O que importa verificar é: as duas FKs
+existem (`SetorId` → `tb_setores`, `ParentId` → a própria tabela), `ParentId`/`Rota`/`Icone`
+são nullable, e nada saiu `nvarchar(max)`/`text` onde o mapeamento pôs `HasMaxLength`. Se a
+FK de `ParentId` sair com um nome estranho, não é defeito — é o que a convention gera para
+autorreferência; só registre no commit.
 
 - [ ] **Step 6: Rodar e confirmar que o teste de persistência passa**
 
@@ -605,10 +521,12 @@ git commit -m "feat(menu): mapeamento EF e migrations de ItemMenu (SqlServer e P
 
 ```csharp
 using AwesomeAssertions;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Domain.Menu;
-using Secco.Intranet.Infrastructure.Repositories;
+using Secco.Intranet.Domain.Setores;
+using Secco.Intranet.Infrastructure.Contexts;
+using Secco.SDK.AspNetCore.Tenancy;
 using Xunit;
 
 namespace Secco.Intranet.Tests.Integration;
@@ -619,19 +537,29 @@ public class ItemMenuRepositoryTests(IntranetWebFactory factory) : IClassFixture
 
 	public Task DisposeAsync() => Task.CompletedTask;
 
-	private async Task<(IItemMenuRepository Repositorio, Secco.Intranet.Infrastructure.Contexts.IntranetDbContext Contexto)> CriarAsync()
+	/// <summary>
+	/// Escopo com tenant resolvido, o repositório real do DI e um setor de verdade — id_fk_setor
+	/// é FK Restrict, então um SetorId inventado falharia no insert. Quem chama descarta o escopo.
+	/// </summary>
+	private async Task<(AsyncServiceScope Escopo, IItemMenuRepository Repositorio, Guid SetorId)> CriarAsync()
 	{
-		var scope = factory.Services.CreateAsyncScope();
-		var contexto = scope.ServiceProvider.GetRequiredService<Secco.Intranet.Infrastructure.Contexts.IntranetDbContext>();
+		var escopo = factory.Services.CreateAsyncScope();
+		escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
 
-		return (new ItemMenuRepository(contexto), contexto);
+		var slug = $"repo-{Guid.NewGuid():N}"[..20];
+		var setor = new Setor($"Setor {slug}", slug);
+		var contexto = escopo.ServiceProvider.GetRequiredService<IntranetDbContext>();
+		contexto.Setores.Add(setor);
+		await contexto.SaveChangesAsync();
+
+		return (escopo, escopo.ServiceProvider.GetRequiredService<IItemMenuRepository>(), setor.Id);
 	}
 
 	[Fact]
 	public async Task ListarPorSetor_DevolveTodaAArvore_InclusiveInativos()
 	{
-		var (repositorio, contexto) = await CriarAsync();
-		var setorId = Guid.NewGuid();
+		var (escopo, repositorio, setorId) = await CriarAsync();
+		await using var _ = escopo;
 		var raiz = new ItemMenu(setorId, null, "X", "x", TipoDeItemMenu.Setor, null, null, 0);
 		var documentos = new ItemMenu(setorId, raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, null, 0);
 		var avisos = new ItemMenu(setorId, raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos, null, null, 1);
@@ -649,8 +577,8 @@ public class ItemMenuRepositoryTests(IntranetWebFactory factory) : IClassFixture
 	[Fact]
 	public async Task ExisteTipo_DetectaDocumentosJaCriado_MasNaoAvisos()
 	{
-		var (repositorio, _) = await CriarAsync();
-		var setorId = Guid.NewGuid();
+		var (escopo, repositorio, setorId) = await CriarAsync();
+		await using var _ = escopo;
 		var raiz = new ItemMenu(setorId, null, "X", "x", TipoDeItemMenu.Setor, null, null, 0);
 		var documentos = new ItemMenu(setorId, raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, null, 0);
 		await repositorio.AddAsync(raiz);
@@ -663,8 +591,8 @@ public class ItemMenuRepositoryTests(IntranetWebFactory factory) : IClassFixture
 	[Fact]
 	public async Task GetParaEdicao_AlterarESalvar_Persiste()
 	{
-		var (repositorio, _) = await CriarAsync();
-		var setorId = Guid.NewGuid();
+		var (escopo, repositorio, setorId) = await CriarAsync();
+		await using var _ = escopo;
 		var item = new ItemMenu(setorId, null, "X", "x", TipoDeItemMenu.Setor, null, null, 0);
 		await repositorio.AddAsync(item);
 
@@ -786,7 +714,7 @@ git commit -m "feat(menu): porta e adaptador de persistência de ItemMenu"
 - Test: `tests/Secco.Intranet.Tests/Unit/CriarItemMenuHandlerTests.cs`
 
 **Interfaces:**
-- Consumes: `IItemMenuRepository` (Task 3), `ItemMenu`/`TipoDeItemMenu`/`RegrasDeItemMenu` (Task 1).
+- Consumes: `IItemMenuRepository` (Task 3), `ItemMenu`/`TipoDeItemMenu` (Task 1).
 - Produces: `ItemMenuDto` (record: `Id`, `ParentId`, `Nome`, `Slug`, `Tipo`, `Rota`,
   `Icone`, `Ordem`, `Ativo`), `CriarItemMenuCommand` (record: `SetorId`, `ParentId`,
   `Nome`, `Slug`, `Tipo`, `Rota`, `Icone`), `CriarItemMenuHandler.HandleAsync(CriarItemMenuCommand, CancellationToken) -> Task<Result<ItemMenuDto>>`,
@@ -906,6 +834,109 @@ public class CriarItemMenuHandlerTests
 		resultado.IsFailure.Should().BeTrue();
 		resultado.Error.Should().Be(IntranetErrors.Menu.PaiInvalido);
 	}
+
+	// A tela nunca oferece Tipo = Setor, mas o handler é a fronteira: um POST forjado (ou um
+	// número de enum fora da faixa) chega aqui do mesmo jeito.
+	[Theory]
+	[InlineData(TipoDeItemMenu.Setor)]
+	[InlineData((TipoDeItemMenu)99)]
+	public async Task TipoSetorOuForaDoEnum_Recusa(TipoDeItemMenu tipo)
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = CriarRaiz(repo);
+		var handler = new CriarItemMenuHandler(repo);
+
+		var resultado = await handler.HandleAsync(
+			new CriarItemMenuCommand(SetorId, raiz.Id, "Nome", "slug", tipo, null, null));
+
+		resultado.Error.Should().Be(IntranetErrors.Menu.TipoInvalido);
+		repo.Itens.Should().ContainSingle("só a raiz — nada foi criado");
+	}
+
+	// O slug vira segmento de URL (/setor/x/{slug}); com barra, espaço ou maiúscula o item
+	// ficaria inalcançável pela resolução de caminho.
+	[Theory]
+	[InlineData("com/barra")]
+	[InlineData("com espaco")]
+	[InlineData("-comeca-com-hifen")]
+	[InlineData("acentuação")]
+	public async Task SlugForaDoFormato_Recusa(string slug)
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = CriarRaiz(repo);
+		var handler = new CriarItemMenuHandler(repo);
+
+		var resultado = await handler.HandleAsync(
+			new CriarItemMenuCommand(SetorId, raiz.Id, "Nome", slug, TipoDeItemMenu.Personalizado, null, null));
+
+		resultado.Error.Should().Be(IntranetErrors.Menu.SlugInvalido);
+	}
+
+	[Fact]
+	public async Task SlugEmMaiusculas_ENormalizado_NaoRecusado()
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = CriarRaiz(repo);
+		var handler = new CriarItemMenuHandler(repo);
+
+		var resultado = await handler.HandleAsync(
+			new CriarItemMenuCommand(SetorId, raiz.Id, "Nome", "Relatorios-2026", TipoDeItemMenu.Personalizado, null, null));
+
+		resultado.Value.Slug.Should().Be("relatorios-2026");
+	}
+
+	[Fact]
+	public async Task NomeAcimaDoLimite_Recusa_EmVezDeEstourarNoBanco()
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = CriarRaiz(repo);
+		var handler = new CriarItemMenuHandler(repo);
+
+		var resultado = await handler.HandleAsync(
+			new CriarItemMenuCommand(SetorId, raiz.Id, new string('x', 257), "slug", TipoDeItemMenu.Personalizado, null, null));
+
+		resultado.Error.Type.Should().Be(Secco.SharedKernel.Results.ErrorType.Validation);
+	}
+
+	// Rota é destino de redirect (Task 9). Aceita caminho local ou http(s) absoluto; recusa
+	// "//host" (vira redirect para outro domínio sem esquema), javascript: e afins (ADR-0020).
+	[Theory]
+	[InlineData("/relatorios/vendas", true)]
+	[InlineData("https://bi.exemplo.com/painel", true)]
+	[InlineData("http://intranet-legado/x", true)]
+	[InlineData("//outro-dominio.com", false)]
+	[InlineData("javascript:alert(1)", false)]
+	[InlineData("relativo-sem-barra", false)]
+	[InlineData("ftp://x/y", false)]
+	public async Task Rota_SoCaminhoLocalOuHttp(string rota, bool aceita)
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = CriarRaiz(repo);
+		var handler = new CriarItemMenuHandler(repo);
+
+		var resultado = await handler.HandleAsync(
+			new CriarItemMenuCommand(SetorId, raiz.Id, "Nome", "slug", TipoDeItemMenu.Personalizado, rota, null));
+
+		resultado.IsSuccess.Should().Be(aceita);
+
+		if (!aceita)
+		{
+			resultado.Error.Should().Be(IntranetErrors.Menu.RotaInvalida);
+		}
+	}
+
+	[Fact]
+	public async Task RotaEmTipoQueNaoEPersonalizado_EIgnorada()
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = CriarRaiz(repo);
+		var handler = new CriarItemMenuHandler(repo);
+
+		var resultado = await handler.HandleAsync(
+			new CriarItemMenuCommand(SetorId, raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos, "/qualquer", null));
+
+		resultado.Value.Rota.Should().BeNull("Rota só tem papel em Personalizado — não guardar lixo nos outros tipos");
+	}
 }
 ```
 
@@ -967,7 +998,7 @@ outros `public static class` do arquivo):
 		public static readonly Error TipoJaExiste =
 			Error.Conflict("Intranet.Menu.TipoJaExiste", "Este setor já tem um item desse tipo.");
 
-		/// <summary>O pai informado não existe, é de outro setor, ou fecharia um ciclo.</summary>
+		/// <summary>O pai informado não existe ou é de outro setor.</summary>
 		public static readonly Error PaiInvalido =
 			Error.Validation("Intranet.Menu.PaiInvalido", "Pai inválido para este item.");
 
@@ -986,12 +1017,33 @@ outros `public static class` do arquivo):
 		/// <summary>Só itens Personalizado se excluem — os embutidos só desativam.</summary>
 		public static readonly Error TipoEmbutidoNaoExclui =
 			Error.Validation("Intranet.Menu.TipoEmbutidoNaoExclui", "Este item é embutido no produto e só pode ser desativado, não excluído.");
+
+		/// <summary>Tipo ausente do enum, ou <c>Setor</c> (a raiz não se cria pela tela).</summary>
+		public static readonly Error TipoInvalido =
+			Error.Validation("Intranet.Menu.TipoInvalido", "Tipo de item inválido.");
+
+		/// <summary>Slug fora do formato de segmento de URL.</summary>
+		public static readonly Error SlugInvalido =
+			Error.Validation(
+				"Intranet.Menu.SlugInvalido",
+				"O identificador aceita só letras minúsculas sem acento, dígitos e hífen entre eles (ex.: relatorios-2026).");
+
+		/// <summary>Nome, slug, rota ou ícone acima do tamanho da coluna.</summary>
+		public static Error CampoMuitoLongo(string campo, int limite) =>
+			Error.Validation("Intranet.Menu.CampoMuitoLongo", $"{campo} excede o limite de {limite} caracteres.");
+
+		/// <summary>Rota que não é caminho local nem URL http(s) absoluta (ADR-0020: destino de redirect).</summary>
+		public static readonly Error RotaInvalida =
+			Error.Validation(
+				"Intranet.Menu.RotaInvalida",
+				"A rota precisa ser um caminho da própria intranet (começando com /) ou um endereço http/https completo.");
 	}
 ```
 
 - [ ] **Step 4: `CriarItemMenuHandler`**
 
 ```csharp
+using System.Text.RegularExpressions;
 using Secco.Intranet.Domain.Menu;
 using Secco.SharedKernel.Results;
 
@@ -1001,6 +1053,15 @@ namespace Secco.Intranet.Application.Menu;
 /// <param name="repository">Persistência da árvore.</param>
 public sealed class CriarItemMenuHandler(IItemMenuRepository repository)
 {
+	// Limites = HasMaxLength de ItemMenuConfiguration (Task 2). Validar aqui é o que
+	// transforma "estourou a coluna" (500) em Result de validação (ADR-0004).
+	private const int LimiteNome = 256;
+	private const int LimiteSlug = 128;
+	private const int LimiteRota = 512;
+	private const int LimiteIcone = 64;
+
+	private static readonly Regex FormatoDoSlug = new("^[a-z0-9]+(-[a-z0-9]+)*$", RegexOptions.Compiled);
+
 	/// <summary>Executa o caso de uso.</summary>
 	/// <param name="command">Dados do novo item.</param>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
@@ -1008,9 +1069,19 @@ public sealed class CriarItemMenuHandler(IItemMenuRepository repository)
 	{
 		ArgumentNullException.ThrowIfNull(command);
 
+		if (!Enum.IsDefined(command.Tipo) || command.Tipo == TipoDeItemMenu.Setor)
+		{
+			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.TipoInvalido);
+		}
+
 		if (string.IsNullOrWhiteSpace(command.Nome))
 		{
 			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.NomeRequired);
+		}
+
+		if (command.Nome.Trim().Length > LimiteNome)
+		{
+			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.CampoMuitoLongo("O nome", LimiteNome));
 		}
 
 		if (string.IsNullOrWhiteSpace(command.Slug))
@@ -1018,9 +1089,42 @@ public sealed class CriarItemMenuHandler(IItemMenuRepository repository)
 			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.SlugRequired);
 		}
 
+		var slugNormalizado = command.Slug.Trim().ToLowerInvariant();
+
+		if (slugNormalizado.Length > LimiteSlug)
+		{
+			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.CampoMuitoLongo("O identificador", LimiteSlug));
+		}
+
+		if (!FormatoDoSlug.IsMatch(slugNormalizado))
+		{
+			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.SlugInvalido);
+		}
+
 		if (!ItemMenu.IconeEhValido(command.Icone))
 		{
 			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.IconeInvalido);
+		}
+
+		if (command.Icone?.Trim().Length > LimiteIcone)
+		{
+			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.CampoMuitoLongo("O ícone", LimiteIcone));
+		}
+
+		// Rota só tem papel em Personalizado; nos outros tipos é descartada, não validada.
+		var rota = command.Tipo == TipoDeItemMenu.Personalizado ? command.Rota?.Trim() : null;
+
+		if (!string.IsNullOrEmpty(rota))
+		{
+			if (rota.Length > LimiteRota)
+			{
+				return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.CampoMuitoLongo("A rota", LimiteRota));
+			}
+
+			if (!RotaEhValida(rota))
+			{
+				return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.RotaInvalida);
+			}
 		}
 
 		var arvore = await repository.ListarPorSetorAsync(command.SetorId, cancellationToken).ConfigureAwait(false);
@@ -1030,8 +1134,6 @@ public sealed class CriarItemMenuHandler(IItemMenuRepository repository)
 		{
 			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.PaiInvalido);
 		}
-
-		var slugNormalizado = command.Slug.Trim().ToLowerInvariant();
 
 		if (arvore.Any(item => item.ParentId == command.ParentId
 			&& string.Equals(item.Slug, slugNormalizado, StringComparison.Ordinal)))
@@ -1049,12 +1151,22 @@ public sealed class CriarItemMenuHandler(IItemMenuRepository repository)
 
 		var item = new ItemMenu(
 			command.SetorId, command.ParentId, command.Nome.Trim(), slugNormalizado, command.Tipo,
-			command.Rota, command.Icone, proximaOrdem);
+			rota, command.Icone, proximaOrdem);
 
 		await repository.AddAsync(item, cancellationToken).ConfigureAwait(false);
 
 		return ItemMenuDto.FromEntity(item);
 	}
+
+	/// <summary>
+	/// Rota é destino de <c>Redirect</c> (Task 9): caminho local começando com uma barra só
+	/// (<c>//host</c> seria outro domínio), ou URL absoluta http/https. Qualquer outro esquema
+	/// (<c>javascript:</c>, <c>data:</c>, <c>ftp:</c>) é recusado.
+	/// </summary>
+	private static bool RotaEhValida(string rota) =>
+		(rota.StartsWith('/') && !rota.StartsWith("//", StringComparison.Ordinal) && !rota.StartsWith("/\\", StringComparison.Ordinal))
+		|| (Uri.TryCreate(rota, UriKind.Absolute, out var uri)
+			&& (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps));
 }
 ```
 
@@ -1110,7 +1222,7 @@ public sealed class ItemMenuRepositorioFalso : IItemMenuRepository
 - [ ] **Step 7: Rodar e confirmar que tudo passa**
 
 Run: `dotnet test tests/Secco.Intranet.Tests --filter CriarItemMenuHandlerTests`
-Expected: PASS (7 testes)
+Expected: PASS (todos — 6 casos originais mais os de tipo, slug, tamanho e rota)
 
 - [ ] **Step 8: Registrar o handler no DI**
 
@@ -1502,11 +1614,17 @@ public sealed class MoverItemMenuHandler(IItemMenuRepository repository)
 			return Result.Success();
 		}
 
-		var vizinho = irmaos[indiceDoVizinho];
-		var atualRastreado = await repository.GetParaEdicaoAsync(item.Id, cancellationToken).ConfigureAwait(false);
-		var vizinhoRastreado = await repository.GetParaEdicaoAsync(vizinho.Id, cancellationToken).ConfigureAwait(false);
+		// Troca de posição na lista e renumera TODOS os irmãos 0..n-1. Trocar só os dois
+		// valores de Ordem não basta: depois de uma exclusão as ordens ficam com buraco
+		// (ex.: 0, 5, 6, 7), e dar ao par os índices novos quebraria a ordem dos vizinhos.
+		// Também resolve empate de Ordem, se algum dia existir.
+		(irmaos[indice], irmaos[indiceDoVizinho]) = (irmaos[indiceDoVizinho], irmaos[indice]);
 
-		(atualRastreado!.DefinirOrdem(vizinho.Ordem), vizinhoRastreado!.DefinirOrdem(item.Ordem));
+		for (var posicao = 0; posicao < irmaos.Count; posicao++)
+		{
+			var rastreado = await repository.GetParaEdicaoAsync(irmaos[posicao].Id, cancellationToken).ConfigureAwait(false);
+			rastreado!.DefinirOrdem(posicao);
+		}
 
 		await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
@@ -1514,6 +1632,34 @@ public sealed class MoverItemMenuHandler(IItemMenuRepository repository)
 	}
 }
 ```
+
+Os valores esperados dos testes do Step 1 (`MoverParaCima` → B fica 0 e A fica 1;
+`MoverParaBaixo` → B fica 2 e C fica 1) continuam os mesmos com a renumeração, porque o
+cenário já parte de 0, 1, 2. Acrescente ao arquivo `MoverItemMenuHandlerTests.cs` o caso
+que só a renumeração acerta:
+
+```csharp
+	[Fact]
+	public async Task OrdensComBuraco_MoverOUltimoParaCima_MantemAOrdemDosOutros()
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = new ItemMenu(Guid.NewGuid(), null, "X", "x", TipoDeItemMenu.Setor, null, null, 0);
+		var a = new ItemMenu(raiz.SetorId, raiz.Id, "A", "a", TipoDeItemMenu.Personalizado, null, null, 0);
+		var b = new ItemMenu(raiz.SetorId, raiz.Id, "B", "b", TipoDeItemMenu.Personalizado, null, null, 5);
+		var c = new ItemMenu(raiz.SetorId, raiz.Id, "C", "c", TipoDeItemMenu.Personalizado, null, null, 6);
+		var d = new ItemMenu(raiz.SetorId, raiz.Id, "D", "d", TipoDeItemMenu.Personalizado, null, null, 7);
+		repo.Itens.AddRange([raiz, a, b, c, d]);
+
+		await new MoverItemMenuHandler(repo).HandleAsync(d.Id, paraCima: true);
+
+		repo.Itens.Where(i => i.ParentId == raiz.Id).OrderBy(i => i.Ordem).Select(i => i.Nome)
+			.Should().Equal("A", "B", "D", "C");
+	}
+```
+
+Note sobre o dublê: em `ItemMenuRepositorioFalso`, `GetByIdAsync` e `GetParaEdicaoAsync`
+devolvem **a mesma instância** — por isso o handler lê tudo que precisa (`irmaos`, índices)
+antes de começar a mutar. Não reintroduza leitura de `item.Ordem` depois do laço.
 
 - [ ] **Step 4: Rodar e confirmar que tudo passa**
 
@@ -1755,52 +1901,121 @@ namespace Secco.Intranet.Application.Menu;
 /// <param name="repository">Persistência da árvore.</param>
 public sealed class ReconciliarItensDeMenuHandler(SearchSetoresHandler searchSetores, IItemMenuRepository repository)
 {
+	// Mesmo tamanho de página de ReconciliarPermissoesHandler — e o mesmo laço: sem ele só a
+	// primeira página de setores seria reconciliada, em silêncio.
+	private const int TamanhoDaPagina = 100;
+
 	/// <summary>Executa o caso de uso.</summary>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
 	/// <returns>Quantos setores ganharam a raiz e/ou algum dos dois itens embutidos.</returns>
 	public async Task<int> HandleAsync(CancellationToken cancellationToken = default)
 	{
-		var setores = await searchSetores.HandleAsync(new SetorSearchCriteria(), cancellationToken).ConfigureAwait(false);
 		var alterados = 0;
+		var pagina = PageRequest.FirstPage;
 
-		foreach (var setor in setores.Value.Items)
+		while (true)
 		{
-			var itens = await repository.ListarPorSetorAsync(setor.Id, cancellationToken).ConfigureAwait(false);
-			var raiz = itens.FirstOrDefault(item => item.Tipo == TipoDeItemMenu.Setor);
-			var mudou = false;
+			var busca = await searchSetores
+				.HandleAsync(new SetorSearchCriteria(Page: new PageRequest(pagina, TamanhoDaPagina)), cancellationToken)
+				.ConfigureAwait(false);
 
-			if (raiz is null)
+			foreach (var setor in busca.Value.Items)
 			{
-				raiz = new ItemMenu(setor.Id, null, setor.Nome, setor.Slug, TipoDeItemMenu.Setor, null, null, 0);
-				await repository.AddAsync(raiz, cancellationToken).ConfigureAwait(false);
-				mudou = true;
+				if (await ReconciliarSetorAsync(setor, cancellationToken).ConfigureAwait(false))
+				{
+					alterados++;
+				}
 			}
 
-			if (!itens.Any(item => item.Tipo == TipoDeItemMenu.Documentos))
+			if (!busca.Value.HasNextPage)
 			{
-				await repository.AddAsync(
-					new ItemMenu(setor.Id, raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, null, 0),
-					cancellationToken).ConfigureAwait(false);
-				mudou = true;
+				break;
 			}
 
-			if (!itens.Any(item => item.Tipo == TipoDeItemMenu.Avisos))
-			{
-				await repository.AddAsync(
-					new ItemMenu(setor.Id, raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos, null, null, 1),
-					cancellationToken).ConfigureAwait(false);
-				mudou = true;
-			}
-
-			if (mudou)
-			{
-				alterados++;
-			}
+			pagina++;
 		}
 
 		return alterados;
 	}
+
+	private async Task<bool> ReconciliarSetorAsync(SetorDto setor, CancellationToken cancellationToken)
+	{
+		var itens = (await repository.ListarPorSetorAsync(setor.Id, cancellationToken).ConfigureAwait(false)).ToList();
+		var raiz = itens.FirstOrDefault(item => item.Tipo == TipoDeItemMenu.Setor);
+		var mudou = false;
+
+		if (raiz is null)
+		{
+			raiz = new ItemMenu(setor.Id, null, setor.Nome, setor.Slug, TipoDeItemMenu.Setor, null, null, 0);
+			await repository.AddAsync(raiz, cancellationToken).ConfigureAwait(false);
+			itens.Add(raiz);
+			mudou = true;
+		}
+
+		// Documentos antes de Avisos, de propósito (diferente da criação, que é alfabética):
+		// estes setores já existem, e hoje /setor/{slug} abre em Documentos — reconciliar não
+		// deve mudar a página de entrada de ninguém. O admin reordena depois, se quiser.
+		foreach (var (tipo, nome, slugDesejado) in new[]
+		{
+			(TipoDeItemMenu.Documentos, "Documentos", "documentos"),
+			(TipoDeItemMenu.Avisos, "Avisos", "avisos"),
+		})
+		{
+			if (itens.Any(item => item.Tipo == tipo))
+			{
+				continue;
+			}
+
+			var irmaos = itens.Where(item => item.ParentId == raiz.Id).ToList();
+			var ordem = irmaos.Select(item => item.Ordem).DefaultIfEmpty(-1).Max() + 1;
+			var item = new ItemMenu(setor.Id, raiz.Id, nome, SlugLivre(slugDesejado, irmaos), tipo, null, null, ordem);
+
+			await repository.AddAsync(item, cancellationToken).ConfigureAwait(false);
+			itens.Add(item);
+			mudou = true;
+		}
+
+		return mudou;
+	}
+
+	/// <summary>
+	/// Um Personalizado criado pela tela pode já ter tomado o slug "documentos" debaixo da
+	/// raiz; nesse caso sufixa (-2, -3…) em vez de gravar dois irmãos com o mesmo slug.
+	/// </summary>
+	private static string SlugLivre(string desejado, IReadOnlyCollection<ItemMenu> irmaos)
+	{
+		var candidato = desejado;
+		var sufixo = 2;
+
+		while (irmaos.Any(item => string.Equals(item.Slug, candidato, StringComparison.Ordinal)))
+		{
+			candidato = $"{desejado}-{sufixo++}";
+		}
+
+		return candidato;
+	}
 }
+```
+
+Precisa de `using Secco.SharedKernel.Pagination;` no topo (para `PageRequest`). Acrescente
+ao arquivo de teste do Step 1 o caso de colisão:
+
+```csharp
+	[Fact]
+	public async Task PersonalizadoJaUsandoOSlugDocumentos_ReconciliaComSufixo()
+	{
+		var setores = new FakeSetorRepository().Com("rh-colisao");
+		var setorId = setores.Todos.Single().Id;
+		var itens = new ItemMenuRepositorioFalso();
+		var raiz = new ItemMenu(setorId, null, "rh", "rh", TipoDeItemMenu.Setor, null, null, 0);
+		itens.Itens.Add(raiz);
+		itens.Itens.Add(new ItemMenu(setorId, raiz.Id, "Documentos antigos", "documentos", TipoDeItemMenu.Personalizado, "/x", null, 0));
+		var handler = new ReconciliarItensDeMenuHandler(new SearchSetoresHandler(setores), itens);
+
+		await handler.HandleAsync();
+
+		itens.Itens.Single(i => i.SetorId == setorId && i.Tipo == TipoDeItemMenu.Documentos).Slug.Should().Be("documentos-2");
+	}
 ```
 
 - [ ] **Step 4: Rodar e confirmar que tudo passa**
@@ -1833,8 +2048,9 @@ git commit -m "feat(menu): montar a árvore aninhada e reconciliar setores antig
 
 **Files:**
 - Modify: `src/Secco.Intranet.Application/Setores/CreateSetorHandler.cs`
-- Test: `tests/Secco.Intranet.Tests/Unit/CreateSetorHandlerTests.cs` (crie se não existir; se
-  já existir, acrescente os casos abaixo aos que já existem)
+- Modify (test): `tests/Secco.Intranet.Tests/Unit/CreateSetorHandlerTests.cs` (já existe —
+  6 call sites a ajustar + 2 testes novos)
+- Modify (test): `tests/Secco.Intranet.Tests/Unit/AuditoriaDeSetorTests.cs` (1 call site)
 
 **Interfaces:**
 - Consumes: `IItemMenuRepository` (Task 3), `ItemMenu`/`TipoDeItemMenu` (Task 1).
@@ -1864,6 +2080,13 @@ primeira (`Handle_WithValidCommand_PersistsAndReturnsDto`) fica:
 Repita a mesma troca (só acrescentar `, new ItemMenuRepositorioFalso()` ao final da lista
 de argumentos) nas outras 5 chamadas do arquivo. Acrescentar
 `using Secco.Intranet.Tests.Support;` ao topo do arquivo, se ainda não houver.
+
+Há um **segundo** arquivo que constrói o handler:
+`tests/Secco.Intranet.Tests/Unit/AuditoriaDeSetorTests.cs`, método `Criar_RegistraSetorCriar`
+(`new CreateSetorHandler(new RepositorioFalso(setor: null), new IntranetOptions(), new ProvisionerFalso(), trilha)`).
+Mesma troca ali — acrescentar `, new ItemMenuRepositorioFalso()` e o `using`. Antes de
+seguir, rode `grep -rn "new CreateSetorHandler(" tests/ src/` e confirme que não sobrou
+nenhum call site de 4 argumentos (o DI resolve sozinho; só construção manual quebra).
 
 - [ ] **Step 2: Rodar e confirmar que falha só por causa da assinatura nova**
 
@@ -2054,7 +2277,7 @@ public sealed class CreateSetorHandler(
 
 - [ ] **Step 4: Rodar e confirmar que passa**
 
-Run: `dotnet test tests/Secco.Intranet.Tests --filter "CreateSetorHandlerItemMenuTests|CreateSetorHandlerTests"`
+Run: `dotnet test tests/Secco.Intranet.Tests --filter "CreateSetorHandlerTests|AuditoriaDeSetorTests"`
 Expected: PASS — inclusive os testes **já existentes** de `CreateSetorHandler` (o
 construtor ganhou um parâmetro novo; eles precisam ser ajustados para passar um
 `ItemMenuRepositorioFalso`, não só os testes novos)
@@ -2065,11 +2288,53 @@ Run: `dotnet build`
 Expected: 0 avisos, 0 erros — se algo mais construía `CreateSetorHandler` diretamente
 (fora do DI), vai aparecer aqui
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Seeder de desenvolvimento cria a árvore também**
+
+`src/Secco.Intranet.Infrastructure/Seeding/SetoresDesenvolvimentoSeeder.cs` grava os
+setores de amostra direto no `DbContext`, sem passar por `CreateSetorHandler` — logo, sem
+árvore. Sem este step, depois da Task 9 todo setor de amostra abriria em "Nenhum item
+ainda" em DEV. Acrescentar ao fim do laço por tenant (fora do `if (novos.Count == 0)
+continue;` — ele precisa rodar também para setores de amostra que já existiam antes desta
+feature no banco de DEV de quem desenvolve), com `using Secco.Intranet.Domain.Menu;`:
+
+```csharp
+			// Setores sem árvore (os recém-inseridos e os que já existiam antes do ItemMenu)
+			// ganham raiz + Documentos + Avisos — mesma regra e mesma ordem da reconciliação
+			// (Documentos primeiro, como a página abria antes). Idempotente como o resto.
+			var setoresComArvore = await context.ItensMenu
+				.Where(item => item.Tipo == TipoDeItemMenu.Setor)
+				.Select(item => item.SetorId)
+				.ToListAsync(cancellationToken)
+				.ConfigureAwait(false);
+
+			var semArvore = await context.Setores
+				.Where(setor => !setoresComArvore.Contains(setor.Id))
+				.ToListAsync(cancellationToken)
+				.ConfigureAwait(false);
+
+			foreach (var setor in semArvore)
+			{
+				var raiz = new ItemMenu(setor.Id, null, setor.Nome, setor.Slug, TipoDeItemMenu.Setor, null, null, 0);
+				context.ItensMenu.Add(raiz);
+				context.ItensMenu.Add(new ItemMenu(setor.Id, raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, null, 0));
+				context.ItensMenu.Add(new ItemMenu(setor.Id, raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos, null, null, 1));
+			}
+
+			await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+```
+
+Para isso, trocar o `continue` de `if (novos.Count == 0)` por um `if (novos.Count > 0) { AddRange + SaveChanges }`
+e deixar o bloco acima logo depois, sempre executado. (Um setor de amostra que o dev já
+tenha customizado nunca cai aqui — ele já tem a raiz.)
+
+Não há teste automatizado para o seeder (roda só em Development, e a suíte roda em
+Testing) — a verificação é o Step 5 da Task 10, subindo a aplicação.
+
+- [ ] **Step 7: Commit**
 
 ```bash
-git add src/Secco.Intranet.Application/Setores/CreateSetorHandler.cs tests/Secco.Intranet.Tests/Unit/CreateSetorHandlerItemMenuTests.cs
-git commit -m "feat(menu): CreateSetorHandler cria a raiz e Documentos/Avisos opcionais"
+git add src/Secco.Intranet.Application/Setores/CreateSetorHandler.cs src/Secco.Intranet.Infrastructure/Seeding/SetoresDesenvolvimentoSeeder.cs tests/Secco.Intranet.Tests/Unit/CreateSetorHandlerTests.cs tests/Secco.Intranet.Tests/Unit/AuditoriaDeSetorTests.cs
+git commit -m "feat(menu): setor nasce com a raiz da árvore e Documentos/Avisos opcionais"
 ```
 
 ---
@@ -2084,10 +2349,13 @@ git commit -m "feat(menu): CreateSetorHandler cria a raiz e Documentos/Avisos op
 - Consumes: `IItemMenuRepository` (Task 3), `ItemMenuDto` (Task 4).
 - Produces: `ResultadoDaResolucao` (record: `No` (`ItemMenuDto`), `Irmaos`
   (`IReadOnlyList<ItemMenuDto>`, ativos, ordenados — para a barra de abas), `CaminhoCompleto`
-  (`IReadOnlyList<string>`, os slugs até o nó, para montar URL de cada aba)),
-  `ResolverCaminhoDeMenuHandler.HandleAsync(Guid setorId, IReadOnlyList<string> caminho, CancellationToken) -> Task<Result<ResultadoDaResolucao>>`.
-  Erro `IntranetErrors.Menu.NotFound` para qualquer segmento sem match ou nó inativo no
-  meio do caminho.
+  (`IReadOnlyList<string>`, os slugs até o nó, inclusive ele), `PrimeiroFilhoAtivo`
+  (`ItemMenuDto?`)),
+  `ResolverCaminhoDeMenuHandler.HandleAsync(Guid setorId, IReadOnlyList<string> caminho, CancellationToken) -> Task<Result<ResultadoDaResolucao>>`
+  (erro `IntranetErrors.Menu.NotFound` para qualquer segmento sem match ou nó inativo no
+  meio do caminho) e
+  `ResolverCaminhoDeMenuHandler.CaminhoDoTipoAsync(Guid setorId, TipoDeItemMenu tipo, CancellationToken) -> Task<IReadOnlyList<string>?>`
+  (nulo = recurso desligado para o setor).
 
 - [ ] **Step 1: Escrever o teste que falha**
 
@@ -2277,7 +2545,91 @@ public sealed class ResolverCaminhoDeMenuHandler(IItemMenuRepository repository)
 
 		return new ResultadoDaResolucao(ItemMenuDto.FromEntity(atual), irmaos, caminho, primeiroFilhoAtivo);
 	}
+
+	/// <summary>
+	/// Caminho (slugs a partir da raiz) do item de um tipo embutido — Documentos ou Avisos,
+	/// no máximo um por setor. Nulo se o setor não tem esse item, ou se ele ou qualquer
+	/// ancestral está desativado: nesse caso o recurso está desligado para o setor.
+	/// </summary>
+	/// <param name="setorId">Setor dono da árvore.</param>
+	/// <param name="tipo">Tipo procurado.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	public async Task<IReadOnlyList<string>?> CaminhoDoTipoAsync(
+		Guid setorId, TipoDeItemMenu tipo, CancellationToken cancellationToken = default)
+	{
+		var todos = await repository.ListarPorSetorAsync(setorId, cancellationToken).ConfigureAwait(false);
+		var atual = todos.FirstOrDefault(item => item.Tipo == tipo);
+		var caminho = new List<string>();
+
+		while (atual is not null && atual.Tipo != TipoDeItemMenu.Setor)
+		{
+			if (!atual.Ativo)
+			{
+				return null;
+			}
+
+			caminho.Insert(0, atual.Slug);
+			var paiId = atual.ParentId;
+			atual = todos.FirstOrDefault(item => item.Id == paiId);
+		}
+
+		// Sem item do tipo, ou cadeia que não termina na raiz (dado corrompido): desligado.
+		return atual is null ? null : caminho;
+	}
 }
+```
+
+Acrescente os testes de `CaminhoDoTipoAsync` à mesma classe de teste:
+
+```csharp
+	[Fact]
+	public async Task CaminhoDoTipo_DocumentosNoNivel1_DevolveUmSegmento()
+	{
+		var (repo, setorId, _, _, _) = Cenario();
+
+		var caminho = await new ResolverCaminhoDeMenuHandler(repo).CaminhoDoTipoAsync(setorId, TipoDeItemMenu.Documentos);
+
+		caminho.Should().Equal("documentos");
+	}
+
+	[Fact]
+	public async Task CaminhoDoTipo_ItemDesativado_DevolveNulo()
+	{
+		var (repo, setorId, _, avisos, _) = Cenario();
+		repo.Itens.Single(i => i.Id == avisos.Id).Desativar();
+
+		var caminho = await new ResolverCaminhoDeMenuHandler(repo).CaminhoDoTipoAsync(setorId, TipoDeItemMenu.Avisos);
+
+		caminho.Should().BeNull();
+	}
+
+	[Fact]
+	public async Task CaminhoDoTipo_AninhadoDebaixoDeAncestralDesativado_DevolveNulo()
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var setorId = Guid.NewGuid();
+		var raiz = new ItemMenu(setorId, null, "X", "x", TipoDeItemMenu.Setor, null, null, 0);
+		var grupo = new ItemMenu(setorId, raiz.Id, "Recursos", "recursos", TipoDeItemMenu.Personalizado, null, null, 0);
+		var documentos = new ItemMenu(setorId, grupo.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, null, 0);
+		grupo.Desativar();
+		repo.Itens.AddRange([raiz, grupo, documentos]);
+
+		var caminho = await new ResolverCaminhoDeMenuHandler(repo).CaminhoDoTipoAsync(setorId, TipoDeItemMenu.Documentos);
+
+		caminho.Should().BeNull("o pai está desativado — o recurso ficou inalcançável, logo desligado");
+	}
+
+	[Fact]
+	public async Task CaminhoDoTipo_SemOItem_DevolveNulo()
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var setorId = Guid.NewGuid();
+		repo.Itens.Add(new ItemMenu(setorId, null, "X", "x", TipoDeItemMenu.Setor, null, null, 0));
+
+		var caminho = await new ResolverCaminhoDeMenuHandler(repo).CaminhoDoTipoAsync(setorId, TipoDeItemMenu.Documentos);
+
+		caminho.Should().BeNull();
+	}
 ```
 
 Note: quando `atual` é a raiz (`caminho` vazio), `atual.ParentId` é `null` — o filtro
@@ -2329,7 +2681,7 @@ Acrescentar à classe `ResolverCaminhoDeMenuHandlerTests` (mesmo arquivo do Step
 ```
 
 Run: `dotnet test tests/Secco.Intranet.Tests --filter ResolverCaminhoDeMenuHandlerTests`
-Expected: PASS (9 testes)
+Expected: PASS (13 testes — 9 de resolução/`PrimeiroFilhoAtivo` e 4 de `CaminhoDoTipoAsync`)
 
 - [ ] **Step 5: Registrar no DI e commit**
 
@@ -2346,54 +2698,76 @@ git commit -m "feat(menu): resolução de caminho na árvore, segmento a segment
 
 ---
 
-## Task 9: `SetorController` — rota recursiva e leitura exige permissão
+## Task 9: `SetorController` — rota recursiva, recurso desligado e leitura por permissão
 
 **Files:**
 - Modify: `src/Secco.Intranet.Web/Controllers/SetorController.cs`
+- Create: `src/Secco.Intranet.Web/Models/ItemMenuAbaDto.cs`
 - Modify: `src/Secco.Intranet.Web/Models/Documentos/SetorDocumentosViewModel.cs`
 - Modify: `src/Secco.Intranet.Web/Models/Publicacoes/SetorAvisosViewModel.cs`
 - Test: `tests/Secco.Intranet.Tests/Integration/SetorMenuRotaTests.cs`
 
 **Interfaces:**
-- Consumes: `ResolverCaminhoDeMenuHandler`/`ResultadoDaResolucao` (Task 8), `IPermissoesDeSetor` (já existente).
-- Produces: os dois `ViewModel`s ganham `IReadOnlyList<ItemMenuAbaDto> Abas` (nova classe
-  simples, `record ItemMenuAbaDto(string Nome, string? Icone, string Url, bool Ativa)`, em
-  `src/Secco.Intranet.Web/Models/ItemMenuAbaDto.cs`) — quem consome (a view, Task 10) monta
-  a barra de abas a partir disso, em vez do link fixo Documentos/Avisos de hoje.
+- Consumes: `ResolverCaminhoDeMenuHandler` (`HandleAsync`, `CaminhoDoTipoAsync`) e
+  `ResultadoDaResolucao` (Task 8), `IPermissoesDeSetor` (já existente).
+- Produces: `ItemMenuAbaDto(string Nome, string? Icone, string Url, bool Ativa)`; os dois
+  `ViewModel`s ganham `IReadOnlyList<ItemMenuAbaDto> Abas` como último parâmetro — a view
+  (Task 10) monta a barra de abas a partir disso.
 
-Esta task muda o comportamento de rota mais do que o texto do controller deixa óbvio —
-leia com atenção antes de editar:
+O que muda de comportamento, e o que **não** muda:
 
-- `[HttpGet("")]`/`[HttpGet("documentos")]`/`[HttpGet("avisos")]` (as três rotas GET de
-  hoje) saem. Entra uma rota única, `[HttpGet("{**caminho}")]`, que resolve pelo tipo do
-  nó encontrado.
-- As rotas **POST** (`documentos`, `documentos/{id}/arquivar`, `avisos`,
-  `avisos/{id}/arquivar`) **não mudam** — continuam fixas, porque só pode existir um
-  `Documentos`/`Avisos` por setor (Task 4 garante isso).
-- A leitura passa a exigir `setor-{slug}:read` — hoje não exige nada além de autenticação
-  (achado registrado na spec). Mesma forma de `PodePublicarAsync`, mas com `"read"`.
+- As três rotas GET de hoje (`""`, `documentos`, `avisos`) saem; entra
+  `[HttpGet("{**caminho}")] Resolver`. Como os setores nascem com `Documentos`/`Avisos` de
+  slug `documentos`/`avisos` no nível 1 (Task 7) e os antigos são reconciliados com esses
+  mesmos slugs (Task 6), as URLs `/setor/{slug}/documentos` e `/setor/{slug}/avisos`
+  continuam valendo — `DocumentoFluxoTests`/`PublicacaoFluxoTests` não precisam mudar.
+- `/setor/{slug}` "nua" deixa de mostrar sempre Documentos: redireciona para o primeiro
+  filho ativo. Setor novo → Avisos (ordem alfabética, Task 7); setor antigo reconciliado →
+  Documentos, como hoje (Task 6).
+- As rotas **POST** continuam fixas (`documentos`, `documentos/{id}/arquivar`, `avisos`,
+  `avisos/{id}/arquivar`) — só pode existir um item de cada tipo por setor. Mas agora
+  respondem **404 quando o recurso está desligado** (item desativado, ou ausente): desligar
+  Documentos sem bloquear o POST deixaria o recurso "escondido" e ainda gravável.
+- Depois de publicar/arquivar, o redirect vai para o caminho real do item na árvore (que
+  pode não ser o nível 1), e não mais para `nameof(Documentos)`/`nameof(Avisos)` — esses
+  métodos deixam de existir e o `nameof` não compilaria.
+- Leitura passa a checar `setor-{slug}:read` (`PodeLerAsync`), com **o mesmo bypass de
+  `PodePublicarAsync`** (sem autenticação configurada, libera) — consistente com o menu,
+  que no mesmo modo mostra todo setor. **Consequência para teste:** o ambiente `Testing`
+  nunca tem autenticação configurada, então o ramo restritivo **não é alcançável por HTTP
+  nesta suíte** — exatamente a limitação que `MenuVisibilidadeDeSetorTests` já documenta
+  para o menu e para `PodePublicarAsync`. Não escreva um teste de integração "sem
+  permissão → 404": ele passaria ou falharia pelo motivo errado. A função de permissão em
+  si já é coberta por `PermissoesDeSetorTests`; o que fica sem prova por HTTP é só a
+  chamada dela pelo controller, e isso vai registrado no próprio arquivo de teste (Step 1).
 
-- [ ] **Step 1: Escrever o teste de rota que falha**
+- [ ] **Step 1: Escrever os testes de rota que falham**
 
 ```csharp
 using System.Net;
+using System.Text.RegularExpressions;
 using AwesomeAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Tests.Integration.TestAuthentication;
+using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SharedKernel.Constants;
 using Xunit;
 
 namespace Secco.Intranet.Tests.Integration;
 
 /// <summary>
-/// A árvore de itens de menu substitui as duas abas fixas de /setor/{slug}. Cada teste cria
-/// o próprio setor, com um slug sufixado por GUID (mesmo padrão de
-/// <c>AcessoTelasTests.CriarSetorAsync</c>) — não existe setor fixo "financeiro" na
-/// fixture.
+/// A árvore de itens de menu substitui as duas abas fixas de /setor/{slug}. Cada teste cria o
+/// próprio setor com slug sufixado por GUID — não existe setor fixo na fixture.
 /// </summary>
+/// <remarks>
+/// Sem teste de "usuário sem setor-{slug}:read recebe 404": PodeLerAsync tem o mesmo bypass de
+/// PodePublicarAsync (sem autenticação configurada, libera), e o ambiente Testing nunca liga a
+/// autenticação — o ramo restritivo não é alcançável por HTTP aqui. Mesma limitação registrada
+/// em MenuVisibilidadeDeSetorTests; a permissão em si está coberta em PermissoesDeSetorTests.
+/// </remarks>
 public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<IntranetWebFactory>, IAsyncLifetime
 {
 	public async Task InitializeAsync() => await factory.EnsureDatabaseMigratedAsync();
@@ -2413,7 +2787,16 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 		return client;
 	}
 
-	/// <summary>Cria um setor com Documentos e Avisos habilitados (padrão do comando) e devolve o slug único gerado.</summary>
+	private static async Task<string> TokenAsync(HttpClient client, string url)
+	{
+		var html = await client.GetStringAsync(url);
+		var token = Regex.Match(html, "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"");
+
+		token.Success.Should().BeTrue($"a página {url} precisa trazer o token antifalsificação");
+
+		return token.Groups[1].Value;
+	}
+
 	private async Task<string> CriarSetorAsync(bool habilitarDocumentos = true, bool habilitarAvisos = true)
 	{
 		var slug = $"menu-{Guid.NewGuid():N}"[..20];
@@ -2423,24 +2806,47 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 
 		var criado = await escopo.ServiceProvider
 			.GetRequiredService<CreateSetorHandler>()
-			.HandleAsync(new CreateSetorCommand($"Setor {slug}", slug, HabilitarDocumentos: habilitarDocumentos, HabilitarAvisos: habilitarAvisos));
+			.HandleAsync(new CreateSetorCommand(
+				$"Setor {slug}", slug, HabilitarDocumentos: habilitarDocumentos, HabilitarAvisos: habilitarAvisos));
 
 		criado.IsSuccess.Should().BeTrue();
 
 		return slug;
 	}
 
+	private async Task DesativarAsync(string slug, TipoDeItemMenu tipo)
+	{
+		await using var escopo = factory.Services.CreateAsyncScope();
+		escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
+
+		var setor = await escopo.ServiceProvider.GetRequiredService<GetSetorBySlugHandler>().HandleAsync(slug);
+		var arvore = await escopo.ServiceProvider.GetRequiredService<IItemMenuRepository>().ListarPorSetorAsync(setor.Value.Id);
+		var item = arvore.Single(i => i.Tipo == tipo);
+
+		(await escopo.ServiceProvider.GetRequiredService<AtivarDesativarItemMenuHandler>()
+			.HandleAsync(item.Id, ativar: false)).IsSuccess.Should().BeTrue();
+	}
+
 	[Fact]
 	public async Task CaminhoVazio_RedirecionaParaOPrimeiroFilhoAtivo()
 	{
-		// Avisos vem antes de Documentos em ordem alfabética (Task 7).
 		var slug = await CriarSetorAsync();
 
-		var resposta = await CriarCliente($"{slug}-user").GetAsync($"/setor/{slug}");
+		var resposta = await CriarCliente().GetAsync($"/setor/{slug}");
 
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
 		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be($"/setor/{slug}/avisos",
-			"o redirecionamento leva ao primeiro filho ativo por ordem alfabética");
+			"Avisos vem antes de Documentos em ordem alfabética (Task 7)");
+	}
+
+	[Fact]
+	public async Task Documentos_ContinuaNaMesmaUrl_ComAbaDinamica()
+	{
+		var slug = await CriarSetorAsync();
+
+		var html = await CriarCliente().GetStringAsync($"/setor/{slug}/documentos");
+
+		html.Should().Contain($"href=\"/setor/{slug}/avisos\"", "a aba de Avisos vem da árvore, não mais de um link fixo");
 	}
 
 	[Fact]
@@ -2448,36 +2854,52 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 	{
 		var slug = await CriarSetorAsync(habilitarDocumentos: false, habilitarAvisos: false);
 
-		var resposta = await CriarCliente($"{slug}-user").GetAsync($"/setor/{slug}");
+		var resposta = await CriarCliente().GetAsync($"/setor/{slug}");
 
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-		var corpo = await resposta.Content.ReadAsStringAsync();
-		corpo.Should().Contain("Nenhum item ainda");
+		(await resposta.Content.ReadAsStringAsync()).Should().Contain("Nenhum item ainda");
 	}
 
 	[Fact]
 	public async Task ItemDesativado_Da404_NoCaminhoQueAntesFuncionava()
 	{
 		var slug = await CriarSetorAsync();
+		await DesativarAsync(slug, TipoDeItemMenu.Documentos);
 
-		await using (var scope = factory.Services.CreateAsyncScope())
-		{
-			scope.ServiceProvider.SetTenant(factory.TenantAlfa);
-
-			var setorHandler = scope.ServiceProvider.GetRequiredService<GetSetorBySlugHandler>();
-			var itens = scope.ServiceProvider.GetRequiredService<IItemMenuRepository>();
-			var alternar = scope.ServiceProvider.GetRequiredService<AtivarDesativarItemMenuHandler>();
-
-			var setor = await setorHandler.HandleAsync(slug);
-			var arvore = await itens.ListarPorSetorAsync(setor.Value.Id);
-			var documentos = arvore.Single(item => item.Tipo == TipoDeItemMenu.Documentos);
-
-			await alternar.HandleAsync(documentos.Id, ativar: false);
-		}
-
-		var resposta = await CriarCliente($"{slug}-user").GetAsync($"/setor/{slug}/documentos");
+		var resposta = await CriarCliente().GetAsync($"/setor/{slug}/documentos");
 
 		resposta.StatusCode.Should().Be(HttpStatusCode.NotFound);
+	}
+
+	[Fact]
+	public async Task ItemDesativado_SaiDaBarraDeAbasDosIrmaos()
+	{
+		var slug = await CriarSetorAsync();
+		await DesativarAsync(slug, TipoDeItemMenu.Documentos);
+
+		var html = await CriarCliente().GetStringAsync($"/setor/{slug}/avisos");
+
+		html.Should().NotContain($"href=\"/setor/{slug}/documentos\"");
+	}
+
+	[Fact]
+	public async Task RecursoDesligado_RecusaPost_MesmoComTokenValido()
+	{
+		var slug = await CriarSetorAsync();
+		await DesativarAsync(slug, TipoDeItemMenu.Avisos);
+		var client = CriarCliente();
+		// O token antifalsificação não é por ação: o da página de Documentos (ainda ligada) vale.
+		var token = await TokenAsync(client, $"/setor/{slug}/documentos");
+
+		var resposta = await client.PostAsync($"/setor/{slug}/avisos", new FormUrlEncodedContent(
+		[
+			new KeyValuePair<string, string>("Form.Titulo", "Não deveria entrar"),
+			new KeyValuePair<string, string>("Form.Corpo", "Avisos está desligado neste setor."),
+			new KeyValuePair<string, string>("__RequestVerificationToken", token),
+		]));
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.NotFound,
+			"desligar o recurso precisa fechar a escrita também, não só esconder a aba");
 	}
 
 	[Fact]
@@ -2485,50 +2907,30 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 	{
 		var slug = await CriarSetorAsync();
 
-		var resposta = await CriarCliente($"{slug}-user").GetAsync($"/setor/{slug}/caminho-que-nao-existe");
+		var resposta = await CriarCliente().GetAsync($"/setor/{slug}/caminho-que-nao-existe");
 
 		resposta.StatusCode.Should().Be(HttpStatusCode.NotFound);
-	}
-
-	[Fact]
-	public async Task SemPermissaoDeLeituraDoSetor_Da404_MesmoAutenticado()
-	{
-		var slug = await CriarSetorAsync();
-		var outroSlug = await CriarSetorAsync();
-
-		var resposta = await CriarCliente($"{outroSlug}-user").GetAsync($"/setor/{slug}");
-
-		resposta.StatusCode.Should().Be(HttpStatusCode.NotFound,
-			"achado da spec: ler exige setor-{slug}:read, não só estar autenticado");
-	}
-
-	[Fact]
-	public async Task ComPermissaoDeLeitura_AbreNormalmente()
-	{
-		var slug = await CriarSetorAsync();
-
-		var resposta = await CriarCliente($"{slug}-admin").GetAsync($"/setor/{slug}/documentos");
-
-		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
 	}
 }
 ```
 
-`escopo.ServiceProvider.SetTenant(factory.TenantAlfa)` é a mesma extensão que
-`AcessoTelasTests.CriarSetorAsync` (e outros 12 arquivos de teste de integração) já usam
-para dar ao escopo manual o `ITenantContext` que o middleware normalmente resolveria de uma
-requisição HTTP real — sem isso, `CreateSetorHandler` (e qualquer handler que dependa do
-tenant atual) falha fora de uma requisição.
+Confira o nome dos campos do formulário de aviso em `PublicacaoFluxoTests.PublicarAsync`
+antes de rodar (`Form.Titulo`, `Form.Corpo`, `Form.PublicadoEm`…) — o teste acima só
+precisa de um POST que **passaria** se o recurso estivesse ligado; se o binder exigir mais
+campos para chegar ao ponto da checagem, copie exatamente o conjunto de lá. A checagem de
+recurso desligado (Step 3) vem **antes** de `ModelState.IsValid`, então campos faltando não
+mascaram o 404.
 
 - [ ] **Step 2: Rodar e confirmar que falha**
 
 Run: `dotnet test tests/Secco.Intranet.Tests --filter SetorMenuRotaTests`
-Expected: FAIL — hoje `GET /setor/financeiro` mostra Documentos (não Avisos), e
-`SemPermissaoDeLeitura` passaria com 200 em vez de 404 (comprova o gap que a spec fechou)
+Expected: FAIL — `CaminhoVazio_…` recebe `/setor/{slug}` (hoje a raiz é a própria página de
+Documentos, não redireciona), `SetorSemNenhumItemAtivo_…` mostra Documentos em vez do
+estado vazio, os de item desativado dão 200, e `RecursoDesligado_…` aceita o POST.
 
-- [ ] **Step 3: `ItemMenuAbaDto` e os dois `ViewModel`s**
+- [ ] **Step 3: `ItemMenuAbaDto` e os `ViewModel`s**
 
-Create: `src/Secco.Intranet.Web/Models/ItemMenuAbaDto.cs`
+Create `src/Secco.Intranet.Web/Models/ItemMenuAbaDto.cs`:
 
 ```csharp
 namespace Secco.Intranet.Web.Models;
@@ -2536,46 +2938,70 @@ namespace Secco.Intranet.Web.Models;
 /// <summary>Uma aba da barra de navegação dentro da página de um setor.</summary>
 /// <param name="Nome">Rótulo.</param>
 /// <param name="Icone">Classe do Bootstrap Icons; nulo = sem ícone.</param>
-/// <param name="Url">Link absoluto da aba.</param>
-/// <param name="Ativa">Se é a aba correspondente à página atual.</param>
+/// <param name="Url">Link da aba.</param>
+/// <param name="Ativa">Se é a aba da página atual.</param>
 public sealed record ItemMenuAbaDto(string Nome, string? Icone, string Url, bool Ativa);
 ```
 
-Em `src/Secco.Intranet.Web/Models/Documentos/SetorDocumentosViewModel.cs`, acrescentar o
-parâmetro `Abas` (mantendo os demais existentes — confira o record atual antes de editar):
+Em `SetorDocumentosViewModel.cs`, o record passa a ser (só o último parâmetro é novo; o
+`DocumentoFormViewModel` do mesmo arquivo não muda):
 
 ```csharp
 public sealed record SetorDocumentosViewModel(
-	SetorDto Setor, IReadOnlyList<DocumentoDto> Documentos, bool PodePublicar,
-	DocumentoFormViewModel Form, long TamanhoMaximoBytes, IReadOnlyList<ItemMenuAbaDto> Abas);
+	SetorDto Setor,
+	IReadOnlyList<DocumentoDto> Documentos,
+	bool PodePublicar,
+	DocumentoFormViewModel Form,
+	long TamanhoMaximoBytes,
+	IReadOnlyList<ItemMenuAbaDto> Abas);
 ```
 
-Mesma mudança, mesmo padrão, em `SetorAvisosViewModel` (acrescentar `IReadOnlyList<ItemMenuAbaDto> Abas`
-ao final do record).
-
-- [ ] **Step 4: Reescrever `SetorController`**
-
-Trocar as três rotas GET fixas por uma só, e injetar `ResolverCaminhoDeMenuHandler`. O
-construtor ganha o parâmetro novo; os demais parâmetros existentes continuam:
+Em `SetorAvisosViewModel.cs`:
 
 ```csharp
+public sealed record SetorAvisosViewModel(
+	SetorDto Setor,
+	IReadOnlyList<PublicacaoDto> Publicacoes,
+	bool PodePublicar,
+	PublicacaoFormViewModel Form,
+	DateTimeOffset Agora,
+	IReadOnlyList<ItemMenuAbaDto> Abas);
+```
+
+Os dois arquivos precisam de `using Secco.Intranet.Web.Models;` (namespace de
+`ItemMenuAbaDto`) — eles vivem em `Secco.Intranet.Web.Models.Documentos`/`.Publicacoes`.
+
+- [ ] **Step 4: `SetorController` — GET único e helpers**
+
+Construtor: acrescentar `ResolverCaminhoDeMenuHandler resolverCaminho` ao fim da lista
+(documentar no `<param>` como os outros). `using` novos: `Secco.Intranet.Application.Menu`,
+`Secco.Intranet.Domain.Menu`, `Secco.Intranet.Web.Models`.
+
+Apagar os métodos `Documentos(string slug, …)` (com `[HttpGet("")]`/`[HttpGet("documentos")]`),
+`Avisos(string slug, …)` (`[HttpGet("avisos")]`), `MontarAsync` e `MontarAvisosAsync`.
+Acrescentar:
+
+```csharp
+	/// <summary>
+	/// Qualquer nó da árvore do setor: nó com filhos redireciona para o primeiro filho ativo;
+	/// folha renderiza pelo tipo.
+	/// </summary>
+	/// <param name="slug">Slug do setor.</param>
+	/// <param name="caminho">Slugs da árvore separados por barra; vazio é a raiz.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
 	[HttpGet("{**caminho}")]
 	public async Task<IActionResult> Resolver(string slug, string? caminho, CancellationToken cancellationToken = default)
 	{
 		var setor = await getSetorHandler.HandleAsync(slug, cancellationToken).ConfigureAwait(false);
 
-		if (setor.IsFailure || !setor.Value.Ativo)
+		if (setor.IsFailure || !setor.Value.Ativo || !await PodeLerAsync(slug, cancellationToken).ConfigureAwait(false))
 		{
+			// Sem permissão responde igual a inexistente — não revela que o setor existe.
 			return NotFound();
 		}
 
-		if (!await PodeLerAsync(slug, cancellationToken).ConfigureAwait(false))
-		{
-			return NotFound();
-		}
-
-		var segmentos = string.IsNullOrWhiteSpace(caminho)
-			? Array.Empty<string>()
+		IReadOnlyList<string> segmentos = string.IsNullOrWhiteSpace(caminho)
+			? []
 			: caminho.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
 		var resolvido = await resolverCaminho.HandleAsync(setor.Value.Id, segmentos, cancellationToken).ConfigureAwait(false);
@@ -2585,46 +3011,111 @@ construtor ganha o parâmetro novo; os demais parâmetros existentes continuam:
 			return NotFound();
 		}
 
-		// Nó com pelo menos um filho ativo (inclusive a raiz, caminho vazio): redireciona
-		// para o primeiro por Ordem — mesma UX de hoje, onde a URL "nua" já mostra o
-		// primeiro recurso. ResolverCaminhoDeMenuHandler já calculou isso numa consulta só,
-		// sem round-trip extra.
 		if (resolvido.Value.PrimeiroFilhoAtivo is { } primeiroFilho)
 		{
-			var caminhoDoFilho = string.Join('/', [.. segmentos, primeiroFilho.Slug]);
-
-			return RedirectToAction(nameof(Resolver), new { slug, caminho = caminhoDoFilho });
+			return RedirectToAction(nameof(Resolver), new { slug, caminho = string.Join('/', [.. segmentos, primeiroFilho.Slug]) });
 		}
 
 		var no = resolvido.Value.No;
 
 		return no.Tipo switch
 		{
-			Domain.Menu.TipoDeItemMenu.Documentos => await RenderizarDocumentosAsync(slug, resolvido.Value, cancellationToken),
-			Domain.Menu.TipoDeItemMenu.Avisos => await RenderizarAvisosAsync(slug, resolvido.Value, cancellationToken),
-			Domain.Menu.TipoDeItemMenu.Personalizado when !string.IsNullOrWhiteSpace(no.Rota) => Redirect(no.Rota),
-			Domain.Menu.TipoDeItemMenu.Personalizado => View("SemConteudo", setor.Value),
-			_ => View("SemItens", setor.Value), // Setor (raiz) sem nenhum item ativo
+			TipoDeItemMenu.Documentos => View(
+				"Documentos",
+				await MontarDocumentosAsync(setor.Value, resolvido.Value, new DocumentoFormViewModel(), cancellationToken).ConfigureAwait(false)),
+			TipoDeItemMenu.Avisos => View(
+				"Avisos",
+				await MontarAvisosAsync(setor.Value, resolvido.Value, new PublicacaoFormViewModel(), cancellationToken).ConfigureAwait(false)),
+			// Rota já validada na criação (Task 4): caminho local ou http(s) absoluto.
+			TipoDeItemMenu.Personalizado when !string.IsNullOrWhiteSpace(no.Rota) => Redirect(no.Rota),
+			TipoDeItemMenu.Personalizado => View("SemConteudo", setor.Value),
+			// Tipo Setor sem nenhum filho ativo: setor criado sem recursos, ou todos desligados.
+			_ => View("SemItens", setor.Value),
 		};
 	}
-```
 
-Sem `PrimeiroFilhoAtivo`, os únicos `Tipo` que sobram no `switch` são: `Documentos`/`Avisos`
-(sempre folha — nunca têm filho, Task 4 impede um segundo nível debaixo deles por
-convenção de uso, ainda que o modelo não proíba tecnicamente), `Personalizado` sem filhos
-ativos (com ou sem `Rota`), e `Setor` sem nenhum filho ativo (setor criado com os dois
-checkboxes desmarcados, e ninguém ainda adicionou nada pela tela de administração).
+	/// <summary>
+	/// Setor e posição na árvore do item de um tipo embutido. Nulo quando o setor não existe
+	/// ou está inativo, ou quando o recurso está desligado (item ausente, ou ele/um ancestral
+	/// desativado) — quem chama responde 404 nos três casos.
+	/// </summary>
+	private async Task<(SetorDto Setor, ResultadoDaResolucao Resolucao)?> ResolverTipoAsync(
+		string slug, TipoDeItemMenu tipo, CancellationToken cancellationToken)
+	{
+		var setor = await getSetorHandler.HandleAsync(slug, cancellationToken).ConfigureAwait(false);
 
-Os métodos privados `RenderizarDocumentosAsync`/`RenderizarAvisosAsync` substituem
-`MontarAsync`/`MontarAvisosAsync` de hoje: mesmo corpo, trocando a montagem do
-`Setor`/`Documentos`/`PodePublicar` por reaproveitar o que `Resolver` já resolveu (nada de
-buscar o setor de novo), e acrescentando `Abas` ao `ViewModel` — construído a partir de
-`resolvido.Value.Irmaos`, mapeando cada um para
-`new ItemMenuAbaDto(irmao.Nome, irmao.Icone, Url.Action(nameof(Resolver), new { slug, caminho = irmao.Slug }), irmao.Id == no.Id)`.
+		if (setor.IsFailure || !setor.Value.Ativo)
+		{
+			return null;
+		}
 
-Acrescentar `PodeLerAsync`, espelhando `PodePublicarAsync` já existente:
+		var caminho = await resolverCaminho.CaminhoDoTipoAsync(setor.Value.Id, tipo, cancellationToken).ConfigureAwait(false);
 
-```csharp
+		if (caminho is null)
+		{
+			return null;
+		}
+
+		var resolvido = await resolverCaminho.HandleAsync(setor.Value.Id, caminho, cancellationToken).ConfigureAwait(false);
+
+		return resolvido.IsFailure ? null : (setor.Value, resolvido.Value);
+	}
+
+	private RedirectToActionResult VoltarPara(string slug, ResultadoDaResolucao resolucao) =>
+		RedirectToAction(nameof(Resolver), new { slug, caminho = string.Join('/', resolucao.CaminhoCompleto) });
+
+	/// <summary>Abas = irmãos ativos do nó; a URL de cada um é o caminho do pai + o slug dele.</summary>
+	private IReadOnlyList<ItemMenuAbaDto> MontarAbas(string slug, ResultadoDaResolucao resolucao)
+	{
+		var caminhoDoPai = resolucao.CaminhoCompleto.Take(resolucao.CaminhoCompleto.Count - 1).ToList();
+
+		return
+		[
+			.. resolucao.Irmaos.Select(irmao => new ItemMenuAbaDto(
+				irmao.Nome,
+				irmao.Icone,
+				Url.Action(nameof(Resolver), new { slug, caminho = string.Join('/', [.. caminhoDoPai, irmao.Slug]) })!,
+				irmao.Id == resolucao.No.Id)),
+		];
+	}
+
+	private async Task<SetorDocumentosViewModel> MontarDocumentosAsync(
+		SetorDto setor, ResultadoDaResolucao resolucao, DocumentoFormViewModel form, CancellationToken cancellationToken)
+	{
+		var documentos = await listarHandler
+			.HandleAsync(new ListarDocumentosQuery(setor.Slug), cancellationToken)
+			.ConfigureAwait(false);
+
+		return new SetorDocumentosViewModel(
+			setor,
+			documentos.IsSuccess ? documentos.Value : [],
+			await PodePublicarAsync(setor.Slug, cancellationToken).ConfigureAwait(false),
+			form,
+			documentoOptions.TamanhoMaximoBytes,
+			MontarAbas(setor.Slug, resolucao));
+	}
+
+	private async Task<SetorAvisosViewModel> MontarAvisosAsync(
+		SetorDto setor, ResultadoDaResolucao resolucao, PublicacaoFormViewModel form, CancellationToken cancellationToken)
+	{
+		var publicacoes = await listarPublicacoesDoSetorHandler
+			.HandleAsync(setor.Slug, cancellationToken)
+			.ConfigureAwait(false);
+
+		return new SetorAvisosViewModel(
+			setor,
+			publicacoes.IsSuccess ? publicacoes.Value : [],
+			await PodePublicarAsync(setor.Slug, cancellationToken).ConfigureAwait(false),
+			form,
+			DateTimeOffset.UtcNow,
+			MontarAbas(setor.Slug, resolucao));
+	}
+
+	/// <summary>
+	/// Ler exige a permissão de leitura do setor (ADR-0021). Mesmo bypass de
+	/// <see cref="PodePublicarAsync"/>: sem autenticação configurada (DEV aberto/Testing) não
+	/// há permissão a resolver — consistente com o menu, que nesse modo mostra todo setor.
+	/// </summary>
 	private async Task<bool> PodeLerAsync(string slug, CancellationToken cancellationToken)
 	{
 		if (!IntranetAuthenticationExtensions.IsConfigured(configuration))
@@ -2640,28 +3131,117 @@ Acrescentar `PodeLerAsync`, espelhando `PodePublicarAsync` já existente:
 	}
 ```
 
-- [ ] **Step 5: Rodar e confirmar que passa**
+- [ ] **Step 5: `SetorController` — as quatro ações POST**
 
-Run: `dotnet test tests/Secco.Intranet.Tests --filter SetorMenuRotaTests`
-Expected: PASS (7 testes)
+`Publicar` passa a ser (a parte de gravação no meio não muda):
 
-- [ ] **Step 6: Rodar a suíte inteira — este é o ponto de maior risco de regressão**
+```csharp
+	public async Task<IActionResult> Publicar(
+		string slug,
+		DocumentoFormViewModel form,
+		IFormFile? arquivo,
+		CancellationToken cancellationToken = default)
+	{
+		ArgumentNullException.ThrowIfNull(form);
 
-Run: `dotnet test`
-Expected: PASS — preste atenção especial em qualquer teste existente que dependia da URL
-`/setor/{slug}/documentos` ou `/setor/{slug}/avisos` continuar batendo direto (POST não
-muda, mas qualquer teste que fazia `GET` numa dessas URLs esperando Documentos/Avisos
-específico pode precisar de ajuste, já que agora a resposta depende da árvore)
+		if (!await PodePublicarAsync(slug, cancellationToken).ConfigureAwait(false))
+		{
+			// Mesma resposta de setor inexistente: quem não administra o setor não deve
+			// conseguir distinguir "não posso" de "não existe".
+			return NotFound();
+		}
 
-- [ ] **Step 7: Build completo e commit**
+		// Recurso desligado também é 404 — antes de validar o formulário, para campos
+		// faltando não mascararem a recusa.
+		var alvo = await ResolverTipoAsync(slug, TipoDeItemMenu.Documentos, cancellationToken).ConfigureAwait(false);
+
+		if (alvo is null)
+		{
+			return NotFound();
+		}
+
+		var (setor, resolucao) = alvo.Value;
+
+		if (arquivo is null || arquivo.Length == 0)
+		{
+			ModelState.AddModelError(string.Empty, "Escolha um arquivo para publicar.");
+		}
+
+		if (!ModelState.IsValid)
+		{
+			return View("Documentos", await MontarDocumentosAsync(setor, resolucao, form, cancellationToken).ConfigureAwait(false));
+		}
+
+		await using var conteudo = arquivo!.OpenReadStream();
+
+		var resultado = await publicarDocumentoHandler.HandleAsync(
+			new PublicarDocumentoCommand(
+				slug,
+				form.Titulo,
+				form.Descricao,
+				arquivo.FileName,
+				arquivo.Length,
+				conteudo,
+				form.Visibilidade,
+				User.Identity?.Name ?? "desconhecido"),
+			cancellationToken).ConfigureAwait(false);
+
+		if (resultado.IsFailure)
+		{
+			ModelState.AddModelError(string.Empty, resultado.Error.Description);
+
+			return View("Documentos", await MontarDocumentosAsync(setor, resolucao, form, cancellationToken).ConfigureAwait(false));
+		}
+
+		TempData[FeedbackViewComponent.ChaveDaMensagem] = $"Documento \"{resultado.Value.Titulo}\" publicado.";
+
+		return VoltarPara(slug, resolucao);
+	}
+```
+
+`Arquivar`: primeira coisa do método, o mesmo bloco `alvo`/`NotFound`/desconstrução com
+`TipoDeItemMenu.Documentos`; o `return RedirectToAction(nameof(Documentos), new { slug });`
+do final vira `return VoltarPara(slug, resolucao);`.
+
+`SalvarAviso`: depois do `PodePublicarAsync`, o mesmo bloco com `TipoDeItemMenu.Avisos`.
+No ramo `!ModelState.IsValid`, trocar o `MontarAvisosAsync(slug, form, …)` antigo por
+`return View("Avisos", await MontarAvisosAsync(setor, resolucao, form, cancellationToken).ConfigureAwait(false));`.
+As duas chamadas a `ComErroAsync(slug, form, mensagem, …)` passam a
+`ComErroAsync(setor, resolucao, form, mensagem, …)`, e o redirect final
+`RedirectToAction(nameof(Avisos), new { slug })` vira `VoltarPara(slug, resolucao)`.
+`ComErroAsync` fica:
+
+```csharp
+	private async Task<IActionResult> ComErroAsync(
+		SetorDto setor,
+		ResultadoDaResolucao resolucao,
+		PublicacaoFormViewModel form,
+		string mensagem,
+		CancellationToken cancellationToken)
+	{
+		ModelState.AddModelError(string.Empty, mensagem);
+
+		return View("Avisos", await MontarAvisosAsync(setor, resolucao, form, cancellationToken).ConfigureAwait(false));
+	}
+```
+
+`ArquivarAviso`: bloco `alvo` com `TipoDeItemMenu.Avisos` no começo; redirect final vira
+`VoltarPara(slug, resolucao)`.
+
+Ao terminar, `grep -n "nameof(Documentos)\|nameof(Avisos)\|MontarAsync(" src/Secco.Intranet.Web/Controllers/SetorController.cs`
+não pode devolver nada.
+
+- [ ] **Step 6: Build e testes parciais**
 
 Run: `dotnet build`
-Expected: 0 avisos, 0 erros
+Expected: 0 avisos, 0 erros — `asp-action="Documentos"`/`"Avisos"` nas views apontam para
+actions que não existem mais, mas isso não é erro de compilação: o tag helper gera `href`
+vazio em runtime. É exatamente o que a Task 10 troca.
 
-```bash
-git add src/Secco.Intranet.Web/Controllers/SetorController.cs src/Secco.Intranet.Web/Models tests/Secco.Intranet.Tests/Integration/SetorMenuRotaTests.cs
-git commit -m "feat(menu): SetorController resolve a árvore em vez de abas fixas; leitura exige setor-{slug}:read"
-```
+Run: `dotnet test tests/Secco.Intranet.Tests --filter "SetorMenuRotaTests|DocumentoFluxoTests|PublicacaoFluxoTests"`
+Expected: PASS, **exceto** `Documentos_ContinuaNaMesmaUrl_ComAbaDinamica` (a aba ainda é
+o link fixo, com `href` vazio). **Não commite entre a Task 9 e a Task 10**: as duas são uma
+mudança só; o commit fica no fim da Task 10.
 
 ---
 
@@ -2719,18 +3299,25 @@ exato pode variar um pouco).
 
 - [ ] **Step 3: Views novas**
 
-`SemConteudo.cshtml` (item `Personalizado` sem `Rota`):
+`SemConteudo.cshtml` (item `Personalizado` sem `Rota`). Mesmo formato das views
+existentes (`Documentos.cshtml`): os modelos de partial montados no bloco `@{ }` e
+passados por nome — nada de expressão C# inline em atributo com aspas simples:
 
 ```cshtml
 @using Secco.Intranet.Application.Setores
 @model SetorDto
 @{
     ViewData["Title"] = Model.Nome;
-    var cabecalho = new Secco.Intranet.Web.Theming.Contracts.PageHeaderModel(Model.Nome, "Este item ainda não tem conteúdo.", Model.Slug);
+
+    var cabecalho = new PageHeaderModel(Model.Nome, "Este item ainda não tem conteúdo.", Model.Slug);
+    var vazio = new EmptyStateModel(
+        "bi-tools",
+        "Sem conteúdo ainda",
+        "Um intranet-admin pode configurar uma rota para este item, ou ele aguarda desenvolvimento próprio.");
 }
 
 <partial name="_PageHeader" model="cabecalho" />
-<partial name="_EmptyState" model='@(new Secco.Intranet.Web.Theming.Contracts.EmptyStateModel("bi-tools", "Sem conteúdo ainda", "Quem administra este item pode configurar uma rota, ou este espaço aguarda desenvolvimento próprio."))' />
+<partial name="_EmptyState" model="vazio" />
 ```
 
 `SemItens.cshtml` (setor sem nenhum item ativo):
@@ -2740,33 +3327,40 @@ exato pode variar um pouco).
 @model SetorDto
 @{
     ViewData["Title"] = Model.Nome;
-    var cabecalho = new Secco.Intranet.Web.Theming.Contracts.PageHeaderModel(Model.Nome, "Este setor ainda não tem nenhum item de menu.", Model.Slug);
+
+    var cabecalho = new PageHeaderModel(Model.Nome, "Este setor ainda não tem nenhum item de menu.", Model.Slug);
+    var vazio = new EmptyStateModel(
+        "bi-folder-x",
+        "Nenhum item ainda",
+        "Um intranet-admin pode adicionar itens na administração de Setores.");
 }
 
 <partial name="_PageHeader" model="cabecalho" />
-<partial name="_EmptyState" model='@(new Secco.Intranet.Web.Theming.Contracts.EmptyStateModel("bi-folder-x", "Nenhum item ainda", "Um intranet-admin pode adicionar itens na administração de Setores."))' />
+<partial name="_EmptyState" model="vazio" />
 ```
 
 - [ ] **Step 4: Rodar a suíte inteira**
 
 Run: `dotnet test`
-Expected: PASS
+Expected: PASS — inclusive `Documentos_ContinuaNaMesmaUrl_ComAbaDinamica`, que ficou
+pendente na Task 9.
 
 - [ ] **Step 5: Rodar a aplicação e conferir visualmente**
 
-Run: `dotnet run --project src/Secco.Intranet.Web` (ambiente Development, seed automático)
-Abra `http://localhost:5xxx/setor/financeiro` (ou o setor que o seed criar) e confirme: a
-barra de abas aparece, reflete os itens reais (não mais hardcoded), e navegar entre
-Avisos/Documentos funciona.
+Run: `dotnet run --project src/Secco.Intranet.Web` (ambiente Development; o seed cria os
+setores de amostra **com** a árvore — Task 7, Step 6). Abra `/setor/financeiro`: redireciona
+para Documentos (setor de amostra, mesma regra da reconciliação), a barra de abas vem da
+árvore, e Avisos/Documentos alternam. Confira nos **dois** temas (`Vertical` e
+`Horizontal`) — a barra de abas é conteúdo de página, mas o CSS de `sc-tabs` vive no tema.
 
-- [ ] **Step 6: Build completo e commit**
+- [ ] **Step 6: Build completo e um commit só para Tasks 9 e 10**
 
 Run: `dotnet build`
 Expected: 0 avisos, 0 erros
 
 ```bash
-git add src/Secco.Intranet.Web/Views/Setor
-git commit -m "feat(menu): barra de abas dinâmica e telas de item sem conteúdo/setor sem itens"
+git add src/Secco.Intranet.Web tests/Secco.Intranet.Tests/Integration/SetorMenuRotaTests.cs
+git commit -m "feat(menu): página do setor resolve a árvore; recurso desligado fecha leitura e escrita"
 ```
 
 ---
@@ -2777,6 +3371,7 @@ git commit -m "feat(menu): barra de abas dinâmica e telas de item sem conteúdo
 - Create: `src/Secco.Intranet.Web/Models/SetorMenuViewModel.cs`
 - Modify: `src/Secco.Intranet.Web/Controllers/SetoresController.cs`
 - Create: `src/Secco.Intranet.Web/Views/Setores/Menu.cshtml`
+- Modify: `src/Secco.Intranet.Web/Views/Setores/Details.cshtml` (link "Itens de menu")
 - Modify: `src/Secco.Intranet.Web/Models/SetorFormViewModel.cs`
 - Modify: `src/Secco.Intranet.Web/Views/Setores/Create.cshtml`
 - Modify: `tests/Secco.Intranet.Tests/Integration/SetoresAutorizacaoTests.cs`
@@ -2924,7 +3519,14 @@ O construtor de `SetoresController` ganha `ObterArvoreDeMenuHandler obterArvore`
 `ExcluirItemMenuHandler excluirItem`, `MoverItemMenuHandler moverItem` — acrescentar aos
 parâmetros existentes, sem remover nenhum.
 
-- [ ] **Step 4: View `Menu.cshtml`**
+- [ ] **Step 4: View `Menu.cshtml` e o link para ela**
+
+A árvore é achatada no bloco `@{ }` numa lista `(nó, profundidade)` e renderizada com dois
+`foreach` simples — sem função local com markup dentro de `@{ }`, e sem expressão C# inline
+em atributo com aspas simples (o `model='@(...)'` que já deu problema neste projeto). O
+dropdown de Tipo **só oferece Documentos/Avisos se o setor ainda não tem** (exigência da
+spec, Seção Administração); o handler continua recusando no back-end (`TipoJaExiste`) para
+POST forjado.
 
 ```cshtml
 @using Secco.Intranet.Application.Menu
@@ -2932,9 +3534,28 @@ parâmetros existentes, sem remover nenhum.
 @model SetorMenuViewModel
 @{
     ViewData["Title"] = $"Menu de {Model.Setor.Nome}";
-    var cabecalho = new Secco.Intranet.Web.Theming.Contracts.PageHeaderModel($"Menu de {Model.Setor.Nome}", "Itens de menu deste setor.", Model.Setor.Slug);
 
-    void Linha(NoDaArvoreDto no, int profundidade)
+    var cabecalho = new PageHeaderModel(
+        $"Menu de {Model.Setor.Nome}",
+        "Itens da página deste setor. Documentos e Avisos só desativam; itens personalizados também se excluem.",
+        Model.Setor.Slug,
+        new[]
+        {
+            new PageActionModel("Voltar para o setor", Url.Action("Details", new { id = Model.Setor.Id })!, "bi-arrow-left"),
+        });
+
+    static IEnumerable<(NoDaArvoreDto No, int Profundidade)> Achatar(NoDaArvoreDto no, int profundidade) =>
+        new[] { (no, profundidade) }.Concat(no.Filhos.SelectMany(filho => Achatar(filho, profundidade + 1)));
+
+    var linhas = Achatar(Model.Raiz, 0).ToList();
+    var tiposExistentes = linhas.Select(linha => linha.No.Item.Tipo).ToHashSet();
+    var desativado = new BadgeModel("Desativado", BadgeVariante.Neutro);
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<ul class="sc-list mb-3">
+    @foreach (var (no, profundidade) in linhas)
     {
         <li class="sc-list__item" style="padding-left: @(profundidade * 1.5)rem">
             <div class="sc-list__text">
@@ -2944,10 +3565,10 @@ parâmetros existentes, sem remover nenhum.
                         <i class="bi @no.Item.Icone" aria-hidden="true"></i>
                     }
                     @no.Item.Nome
-                    <span class="sc-meta">(@no.Item.Tipo)</span>
+                    <span class="sc-meta">@no.Item.Tipo · @no.Item.Slug</span>
                     @if (!no.Item.Ativo)
                     {
-                        <partial name="_Badge" model='@(new Secco.Intranet.Web.Theming.Contracts.BadgeModel("Desativado", Secco.Intranet.Web.Theming.Contracts.BadgeVariante.Neutro))' />
+                        <partial name="_Badge" model="desativado" />
                     }
                 </p>
                 @if (no.Item.Tipo != TipoDeItemMenu.Setor)
@@ -2956,20 +3577,20 @@ parâmetros existentes, sem remover nenhum.
                         <form method="post" asp-action="AlternarItemDeMenu" class="d-inline">
                             <input type="hidden" name="setorId" value="@Model.Setor.Id" />
                             <input type="hidden" name="itemId" value="@no.Item.Id" />
-                            <input type="hidden" name="ativar" value="@(!no.Item.Ativo)" />
+                            <input type="hidden" name="ativar" value="@(no.Item.Ativo ? "false" : "true")" />
                             <button class="btn btn-sm btn-outline-secondary" type="submit">@(no.Item.Ativo ? "Desativar" : "Ativar")</button>
                         </form>
                         <form method="post" asp-action="MoverItemDeMenu" class="d-inline">
                             <input type="hidden" name="setorId" value="@Model.Setor.Id" />
                             <input type="hidden" name="itemId" value="@no.Item.Id" />
                             <input type="hidden" name="paraCima" value="true" />
-                            <button class="btn btn-sm btn-outline-secondary" type="submit">&uarr;</button>
+                            <button class="btn btn-sm btn-outline-secondary" type="submit" aria-label="Mover para cima">&uarr;</button>
                         </form>
                         <form method="post" asp-action="MoverItemDeMenu" class="d-inline">
                             <input type="hidden" name="setorId" value="@Model.Setor.Id" />
                             <input type="hidden" name="itemId" value="@no.Item.Id" />
                             <input type="hidden" name="paraCima" value="false" />
-                            <button class="btn btn-sm btn-outline-secondary" type="submit">&darr;</button>
+                            <button class="btn btn-sm btn-outline-secondary" type="submit" aria-label="Mover para baixo">&darr;</button>
                         </form>
                         @if (no.Item.Tipo == TipoDeItemMenu.Personalizado)
                         {
@@ -2983,18 +3604,7 @@ parâmetros existentes, sem remover nenhum.
                 }
             </div>
         </li>
-
-        foreach (var filho in no.Filhos)
-        {
-            Linha(filho, profundidade + 1);
-        }
     }
-}
-
-<partial name="_PageHeader" model="cabecalho" />
-
-<ul class="sc-list mb-3">
-    @{ Linha(Model.Raiz, 0); }
 </ul>
 
 <div class="sc-panel">
@@ -3004,36 +3614,41 @@ parâmetros existentes, sem remover nenhum.
         <div class="col-sm-3">
             <label class="form-label" for="parentId">Pai</label>
             <select class="form-select" id="parentId" name="parentId">
-                @{ void Opcao(NoDaArvoreDto no, int profundidade) {
-                    <option value="@no.Item.Id">@(new string('-', profundidade)) @no.Item.Nome</option>
-                    foreach (var filho in no.Filhos) { Opcao(filho, profundidade + 1); }
-                } }
-                @{ Opcao(Model.Raiz, 0); }
+                @foreach (var (no, profundidade) in linhas)
+                {
+                    <option value="@no.Item.Id">@(new string('—', profundidade)) @no.Item.Nome</option>
+                }
             </select>
         </div>
         <div class="col-sm-3">
             <label class="form-label" for="nome">Nome</label>
-            <input class="form-control" id="nome" name="nome" required />
+            <input class="form-control" id="nome" name="nome" maxlength="256" required />
         </div>
         <div class="col-sm-2">
-            <label class="form-label" for="slug">Slug</label>
-            <input class="form-control" id="slug" name="slug" required />
+            <label class="form-label" for="slug">Identificador</label>
+            <input class="form-control" id="slug" name="slug" maxlength="128" pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="relatorios" required />
         </div>
         <div class="col-sm-2">
             <label class="form-label" for="tipo">Tipo</label>
             <select class="form-select" id="tipo" name="tipo">
-                <option value="@((int)TipoDeItemMenu.Personalizado)">Personalizado</option>
-                <option value="@((int)TipoDeItemMenu.Documentos)">Documentos</option>
-                <option value="@((int)TipoDeItemMenu.Avisos)">Avisos</option>
+                <option value="@TipoDeItemMenu.Personalizado">Personalizado</option>
+                @if (!tiposExistentes.Contains(TipoDeItemMenu.Documentos))
+                {
+                    <option value="@TipoDeItemMenu.Documentos">Documentos</option>
+                }
+                @if (!tiposExistentes.Contains(TipoDeItemMenu.Avisos))
+                {
+                    <option value="@TipoDeItemMenu.Avisos">Avisos</option>
+                }
             </select>
         </div>
         <div class="col-sm-2">
             <label class="form-label" for="icone">Ícone</label>
-            <input class="form-control" id="icone" name="icone" placeholder="bi-cash-coin" />
+            <input class="form-control" id="icone" name="icone" maxlength="64" placeholder="bi-cash-coin" />
         </div>
         <div class="col-sm-4">
             <label class="form-label" for="rota">Rota (só Personalizado)</label>
-            <input class="form-control" id="rota" name="rota" placeholder="/algum/caminho" />
+            <input class="form-control" id="rota" name="rota" maxlength="512" placeholder="/relatorios ou https://…" />
         </div>
         <div class="col-sm-2 d-flex align-items-end">
             <button class="btn btn-primary w-100" type="submit">Criar</button>
@@ -3042,13 +3657,15 @@ parâmetros existentes, sem remover nenhum.
 </div>
 ```
 
-> Nota: o dropdown "Tipo" acima não filtra Documentos/Avisos já existentes no setor — a
-> spec (Seção Administração) pede isso ("o dropdown não oferece Documentos/Avisos se
-> aquele setor já os tem"). Deixado como melhoria de UX fora do critério de teste
-> automatizado desta task (o handler já recusa no back-end, Task 4,
-> `TipoJaExiste`) — quem quiser fechar isso por completo pode filtrar as `<option>` em
-> JavaScript ou repassando `Model.Raiz` para calcular quais tipos já existem antes de
-> renderizar as opções. Registrar como débito consciente, não esquecimento.
+O enum vai no `value` pelo **nome** (`Personalizado`), não pelo número — o model binder de
+enum aceita os dois, e o nome não quebra se a ordem do enum mudar um dia.
+
+Link de entrada: em `Views/Setores/Details.cshtml`, acrescentar uma ação ao cabeçalho (entre
+"Editar" e "Voltar para setores"):
+
+```cshtml
+            new PageActionModel("Itens de menu", Url.Action("Menu", new { id = Model.Id })!, "bi-list-nested"),
+```
 
 - [ ] **Step 5: Atualizar `SetoresAutorizacaoTests`**
 
@@ -3208,11 +3825,13 @@ Mesma mecânica do Step 5 da Task 11 — `/Setores/ReconciliarItensDeMenu` entra
 - [ ] **Step 7: Suíte completa, um review final contra o "Review Focus" do topo deste plano**
 
 Run: `dotnet test`
-Expected: PASS — confira explicitamente, um por um, os cinco pontos do "Review Focus":
-setor com os dois checkboxes desmarcados (Task 9/10), item desativado no meio do caminho
-vira 404 (Task 9), ciclo indireto detectado (Task 1), reconciliação em estado misto (Task
-6), leitura sem `setor-{slug}:read` na raiz "nua" (Task 9). Se qualquer um não tiver um
-teste que o exercite claramente, volte e escreva antes de considerar esta task concluída.
+Expected: PASS — confira explicitamente, um por um, os pontos do "Review Focus": setor
+com os dois checkboxes desmarcados (Task 9), item desativado vira 404 e sai das abas (Task
+9), POST em recurso desligado recusado (Task 9), rota maliciosa recusada (Task 4),
+reconciliação em estado misto e com colisão de slug (Task 6). O único sem teste
+automatizado é a leitura sem `setor-{slug}:read` — confira por leitura que `Resolver`
+chama `PodeLerAsync` antes de resolver o caminho. Se algum dos outros não tiver um teste
+que o exercite claramente, volte e escreva antes de considerar esta task concluída.
 
 - [ ] **Step 8: Build completo e commit**
 

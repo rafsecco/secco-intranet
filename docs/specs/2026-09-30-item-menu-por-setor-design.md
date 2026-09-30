@@ -78,8 +78,11 @@ Invariantes:
   setor (não existem dois repositórios de documentos do mesmo setor); `Personalizado` não
   tem esse limite.
 - `ParentId`, quando informado, precisa apontar para um `ItemMenu` do **mesmo** `SetorId`.
-- Sem ciclo: um nó não pode ser ancestral de si mesmo. Mesma checagem que já existe para
-  gestor no organograma do Diretório (`MontarOrganogramaHandler`), reaproveitada aqui.
+- Sem ciclo: um nó não pode ser ancestral de si mesmo. Nesta rodada isso vale **por
+  construção**: `ParentId` só é definido na criação, apontando para um nó que já existe, e
+  nenhuma ação o altera depois — um item novo não pode ser ancestral de ninguém. Quando
+  existir uma ação de "mover para outro pai", ela traz a checagem (o algoritmo de
+  `RegrasDeGestor.CriariaCiclo`, do Diretório); escrevê-la agora seria código morto.
 - Toda linha `Tipo = Setor` é única por `SetorId` e nasce/morre junto com o `Setor` — não é
   criável nem excluível pela tela.
 - `Documentos`/`Avisos` nunca se excluem pela tela, só desativam (`Ativo = false`) — o
@@ -142,8 +145,14 @@ mesmo padrão de `AcessoController.Perfil` ser uma tela de detalhe separada da l
 
 ## Autorização
 
-- Ler a árvore de um setor (raiz e qualquer nó) exige `setor-{slug}:read`.
-- Criar, editar, (des)ativar, excluir ou reordenar itens exige `setor-{slug}:write`.
+- **Ler** a árvore (raiz e qualquer nó, em `/setor/{slug}/{**caminho}`) exige
+  `setor-{slug}:read` — mesma permissão de sempre, `{slug}-user`/`{slug}-admin` já a têm.
+- **Administrar** a árvore (criar, editar, (des)ativar, excluir, reordenar item — a tela de
+  `SetoresController.Menu`) é **exclusiva do `intranet-admin`**, a mesma fronteira do
+  cadastro/edição do próprio Setor (`SomenteIntranetAdminAttribute`) — não
+  `setor-{slug}:write`. Um `{slug}-admin` continua podendo publicar/arquivar Documentos e
+  Avisos (isso não muda), mas não decide se esses itens existem, em que ordem, nem cria
+  itens `Personalizado`.
 - `intranet-admin` continua liberado em tudo, como em todo o resto do produto (ADR-0008).
 - Nenhuma permissão nova nasce nesta spec — reaproveita o par que a spec do modelo de
   permissões (2026-09-27) já criou.
@@ -164,10 +173,19 @@ mesmo padrão de `AcessoController.Perfil` ser uma tela de detalhe separada da l
   - Resolução de rota: caminho vazio abre a raiz (abas dos filhos ativos); item desativado
     no meio do caminho é 404; item com filhos abre abas; item folha abre a tela certa por
     `Tipo`; `Personalizado` sem `Rota` mostra o placeholder, com `Rota` redireciona.
-  - Autorização: mesma matriz que já existe para `setor-{slug}:read/write`, agora cobrindo
-    a árvore — usuário sem a permissão não lê nem escreve nenhum nó, `{slug}-user` lê,
-    `{slug}-admin` edita. Inclui o teste que faltava hoje: usuário autenticado **sem**
-    `setor-{slug}:read` recebe 404 ao tentar `GET /setor/{slug}` — não só ao tentar publicar.
+  - Autorização de leitura: usuário sem `setor-{slug}:read` recebe 404 em qualquer nó da
+    árvore, inclusive `GET /setor/{slug}` "puro". **Sem teste de integração possível**: a
+    checagem tem o mesmo bypass da escrita (`PodePublicarAsync` — sem autenticação
+    configurada, libera), e o ambiente `Testing` nunca configura autenticação; é a mesma
+    limitação já registrada em `MenuVisibilidadeDeSetorTests`. A permissão em si é coberta
+    em `PermissoesDeSetorTests`; a chamada pelo controller é conferida em revisão.
+  - Recurso desligado (item Documentos/Avisos desativado, ou ancestral desativado): 404 na
+    leitura **e** na escrita (`POST` de publicar/arquivar) — desligar não pode só esconder
+    a aba.
+  - Autorização de administração: mesma matriz que já existe para as rotas de
+    `SetoresController` (intranet-admin liberado, `{slug}-admin` sem `intranet-admin`
+    bloqueado, usuário comum bloqueado) — reaproveitada 1:1 para as rotas de
+    `SetoresController.Menu`, sem teste novo a inventar.
   - Criação de setor: checkboxes marcados geram os dois filhos, em ordem alfabética;
     desmarcados geram só a raiz.
   - Reconciliação: setor sem nenhum `ItemMenu` passa a ter raiz + Documentos + Avisos.
