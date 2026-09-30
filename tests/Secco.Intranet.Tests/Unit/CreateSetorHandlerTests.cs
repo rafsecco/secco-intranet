@@ -5,6 +5,7 @@ using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Setores;
 using Secco.SharedKernel.Pagination;
 using Secco.SharedKernel.Results;
+using Secco.Intranet.Tests.Support;
 using Xunit;
 
 namespace Secco.Intranet.Tests.Unit;
@@ -66,7 +67,7 @@ public class CreateSetorHandlerTests
 	public async Task Handle_WithValidCommand_PersistsAndReturnsDto()
 	{
 		var repository = new FakeRepository();
-		var handler = new CreateSetorHandler(repository, Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa());
+		var handler = new CreateSetorHandler(repository, Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), new ItemMenuRepositorioFalso());
 
 		var result = await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
 
@@ -80,7 +81,7 @@ public class CreateSetorHandlerTests
 	[InlineData("   ")]
 	public async Task Handle_WithoutNome_ReturnsValidationFailure(string? nome)
 	{
-		var handler = new CreateSetorHandler(new FakeRepository(), Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa());
+		var handler = new CreateSetorHandler(new FakeRepository(), Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), new ItemMenuRepositorioFalso());
 
 		var result = await handler.HandleAsync(new CreateSetorCommand(nome, "financeiro"));
 
@@ -91,7 +92,7 @@ public class CreateSetorHandlerTests
 	[Fact]
 	public async Task Handle_WithNomeAboveLimit_ReturnsValidationFailure()
 	{
-		var handler = new CreateSetorHandler(new FakeRepository(), Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa());
+		var handler = new CreateSetorHandler(new FakeRepository(), Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), new ItemMenuRepositorioFalso());
 
 		var result = await handler.HandleAsync(
 			new CreateSetorCommand(new string('x', Options.MaxNameLength + 1), "financeiro"));
@@ -104,7 +105,7 @@ public class CreateSetorHandlerTests
 	public async Task Handle_WithDuplicateSlug_ReturnsConflictFailure()
 	{
 		var repository = new FakeRepository();
-		var handler = new CreateSetorHandler(repository, Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa());
+		var handler = new CreateSetorHandler(repository, Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), new ItemMenuRepositorioFalso());
 
 		await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
 		var result = await handler.HandleAsync(new CreateSetorCommand("Financeiro Filial", "financeiro"));
@@ -121,7 +122,7 @@ public class CreateSetorHandlerTests
 		{
 			ResultToReturn = Result.Failure(IntranetErrors.Setores.AccessProvisioningUnavailable),
 		};
-		var handler = new CreateSetorHandler(repository, Options, provisioner, new TrilhaFalsa());
+		var handler = new CreateSetorHandler(repository, Options, provisioner, new TrilhaFalsa(), new ItemMenuRepositorioFalso());
 
 		var result = await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
 
@@ -134,10 +135,45 @@ public class CreateSetorHandlerTests
 	public async Task Handle_WithValidCommand_CallsProvisionerWithCommandSlug()
 	{
 		var provisioner = new FakeSetorAccessProvisioner();
-		var handler = new CreateSetorHandler(new FakeRepository(), Options, provisioner, new TrilhaFalsa());
+		var handler = new CreateSetorHandler(new FakeRepository(), Options, provisioner, new TrilhaFalsa(), new ItemMenuRepositorioFalso());
 
 		await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
 
 		provisioner.LastSlug.Should().Be("financeiro");
+	}
+
+	[Fact]
+	public async Task Handle_ComOsDoisRecursosHabilitados_CriaRaizEOsDoisEmOrdemAlfabetica()
+	{
+		var repository = new FakeRepository();
+		var itens = new ItemMenuRepositorioFalso();
+		var handler = new CreateSetorHandler(repository, Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), itens);
+
+		var resultado = await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
+
+		resultado.IsSuccess.Should().BeTrue();
+		var setorId = resultado.Value.Id;
+		var raiz = itens.Itens.Single(i => i.SetorId == setorId && i.Tipo == Secco.Intranet.Domain.Menu.TipoDeItemMenu.Setor);
+		var avisos = itens.Itens.Single(i => i.SetorId == setorId && i.Tipo == Secco.Intranet.Domain.Menu.TipoDeItemMenu.Avisos);
+		var documentos = itens.Itens.Single(i => i.SetorId == setorId && i.Tipo == Secco.Intranet.Domain.Menu.TipoDeItemMenu.Documentos);
+
+		avisos.ParentId.Should().Be(raiz.Id);
+		documentos.ParentId.Should().Be(raiz.Id);
+		avisos.Ordem.Should().BeLessThan(documentos.Ordem, "Avisos vem antes de Documentos em ordem alfabética");
+	}
+
+	[Fact]
+	public async Task Handle_ComOsDoisRecursosDesabilitados_SoCriaARaiz()
+	{
+		var repository = new FakeRepository();
+		var itens = new ItemMenuRepositorioFalso();
+		var handler = new CreateSetorHandler(repository, Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), itens);
+
+		var resultado = await handler.HandleAsync(
+			new CreateSetorCommand("TI", "ti", HabilitarDocumentos: false, HabilitarAvisos: false));
+
+		resultado.IsSuccess.Should().BeTrue();
+		var setorId = resultado.Value.Id;
+		itens.Itens.Where(i => i.SetorId == setorId).Should().ContainSingle(i => i.Tipo == Secco.Intranet.Domain.Menu.TipoDeItemMenu.Setor);
 	}
 }

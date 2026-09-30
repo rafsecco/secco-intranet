@@ -6,6 +6,7 @@ using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Setores;
 using Secco.SharedKernel.Pagination;
 using Secco.SharedKernel.Results;
+using Secco.Intranet.Tests.Support;
 using Xunit;
 
 namespace Secco.Intranet.Tests.Unit;
@@ -65,7 +66,7 @@ public class AuditoriaDeSetorTests
 	{
 		var trilha = new TrilhaFalsa();
 		var handler = new CreateSetorHandler(
-			new RepositorioFalso(setor: null), new IntranetOptions(), new ProvisionerFalso(), trilha);
+			new RepositorioFalso(setor: null), new IntranetOptions(), new ProvisionerFalso(), trilha, new ItemMenuRepositorioFalso());
 
 		var resultado = await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
 

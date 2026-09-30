@@ -1,5 +1,7 @@
 ﻿using System.Text.Json;
 using Secco.Intranet.Application.Auditoria;
+using Secco.Intranet.Application.Menu;
+using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Domain.Setores;
 using Secco.SharedKernel.Results;
 
@@ -10,7 +12,11 @@ namespace Secco.Intranet.Application.Setores;
 /// <param name="Slug">Identificador curto. Obrigatório, único por tenant.</param>
 /// <param name="Fixo">Se o setor nasce como fixo do sistema. Default <c>false</c>.</param>
 /// <param name="Icone">Classe do Bootstrap Icons para o menu; vazio usa o padrão.</param>
-public sealed record CreateSetorCommand(string? Nome, string? Slug, bool Fixo = false, string? Icone = null);
+/// <param name="HabilitarDocumentos">Se nasce com o item Documentos na árvore de menu. Default <c>true</c>.</param>
+/// <param name="HabilitarAvisos">Se nasce com o item Avisos na árvore de menu. Default <c>true</c>.</param>
+public sealed record CreateSetorCommand(
+	string? Nome, string? Slug, bool Fixo = false, string? Icone = null,
+	bool HabilitarDocumentos = true, bool HabilitarAvisos = true);
 
 /// <summary>
 /// Caso de uso: valida unicidade do slug (ADR-0020), provisiona as Roles do setor no
@@ -21,11 +27,13 @@ public sealed record CreateSetorCommand(string? Nome, string? Slug, bool Fixo = 
 /// <param name="options">Limites de entrada do produto.</param>
 /// <param name="accessProvisioner">Provisionamento das Roles do setor no SecureGate.</param>
 /// <param name="trilha">Trilha de auditoria.</param>
+/// <param name="itemMenuRepository">Persistência da árvore de itens de menu do setor.</param>
 public sealed class CreateSetorHandler(
 	ISetorRepository repository,
 	IntranetOptions options,
 	ISetorAccessProvisioner accessProvisioner,
-	ITrilhaDeAuditoria trilha)
+	ITrilhaDeAuditoria trilha,
+	IItemMenuRepository itemMenuRepository)
 {
 	/// <summary>Executa o caso de uso.</summary>
 	/// <param name="command">Comando de criação.</param>
@@ -80,6 +88,27 @@ public sealed class CreateSetorHandler(
 		var setor = new Setor(command.Nome, command.Slug, command.Fixo, command.Icone);
 
 		await repository.AddAsync(setor, cancellationToken).ConfigureAwait(false);
+
+		// A raiz da árvore nasce sempre; Documentos/Avisos são escolha do formulário. Ordem
+		// alfabética entre os dois: "Avisos" antes de "Documentos".
+		var raiz = new ItemMenu(setor.Id, null, setor.Nome, setor.Slug, TipoDeItemMenu.Setor, null, null, 0);
+		await itemMenuRepository.AddAsync(raiz, cancellationToken).ConfigureAwait(false);
+
+		var ordem = 0;
+
+		if (command.HabilitarAvisos)
+		{
+			await itemMenuRepository.AddAsync(
+				new ItemMenu(setor.Id, raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos, null, null, ordem++),
+				cancellationToken).ConfigureAwait(false);
+		}
+
+		if (command.HabilitarDocumentos)
+		{
+			await itemMenuRepository.AddAsync(
+				new ItemMenu(setor.Id, raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, null, ordem),
+				cancellationToken).ConfigureAwait(false);
+		}
 
 		await trilha
 			.RegistrarAsync(

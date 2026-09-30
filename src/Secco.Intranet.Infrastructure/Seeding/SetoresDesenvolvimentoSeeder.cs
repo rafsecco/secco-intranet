@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Domain.Setores;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SDK.EntityFrameworkCore.Seeding;
@@ -53,13 +54,48 @@ internal sealed class SetoresDesenvolvimentoSeeder(
 				.Select(amostra => new Setor(amostra.Nome, amostra.Slug, amostra.Fixo))
 				.ToList();
 
-			if (novos.Count == 0)
+			if (novos.Count > 0)
 			{
-				continue;
+				context.Setores.AddRange(novos);
+				await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 			}
 
-			context.Setores.AddRange(novos);
-			await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+			await GarantirArvoresAsync(context, cancellationToken).ConfigureAwait(false);
 		}
+	}
+
+	/// <summary>
+	/// Setor gravado direto no banco não passa pelo <c>CreateSetorHandler</c>, então nasce sem
+	/// árvore de menu — e a página dele abriria vazia. Dá raiz + Documentos + Avisos a todo
+	/// setor sem raiz (os recém-inseridos e os que já existiam antes do ItemMenu), na mesma
+	/// ordem da reconciliação: Documentos primeiro, como a página abria antes.
+	/// </summary>
+	private static async Task GarantirArvoresAsync(Contexts.IntranetDbContext context, CancellationToken cancellationToken)
+	{
+		var setoresComArvore = await context.ItensMenu
+			.Where(item => item.Tipo == TipoDeItemMenu.Setor)
+			.Select(item => item.SetorId)
+			.ToListAsync(cancellationToken)
+			.ConfigureAwait(false);
+
+		var semArvore = await context.Setores
+			.Where(setor => !setoresComArvore.Contains(setor.Id))
+			.ToListAsync(cancellationToken)
+			.ConfigureAwait(false);
+
+		if (semArvore.Count == 0)
+		{
+			return;
+		}
+
+		foreach (var setor in semArvore)
+		{
+			var raiz = new ItemMenu(setor.Id, null, setor.Nome, setor.Slug, TipoDeItemMenu.Setor, null, null, 0);
+			context.ItensMenu.Add(raiz);
+			context.ItensMenu.Add(new ItemMenu(setor.Id, raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, null, 0));
+			context.ItensMenu.Add(new ItemMenu(setor.Id, raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos, null, null, 1));
+		}
+
+		await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 	}
 }
