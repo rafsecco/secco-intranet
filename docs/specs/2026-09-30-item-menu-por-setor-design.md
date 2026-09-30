@@ -147,6 +147,12 @@ mesmo padrão de `AcessoController.Perfil` ser uma tela de detalhe separada da l
 - `intranet-admin` continua liberado em tudo, como em todo o resto do produto (ADR-0008).
 - Nenhuma permissão nova nasce nesta spec — reaproveita o par que a spec do modelo de
   permissões (2026-09-27) já criou.
+- **Achado ao planejar a implementação (2026-09-30):** `GET /setor/{slug}` (Documentos e
+  Avisos) hoje **não** checa `setor-{slug}:read` — só exige autenticação; só a escrita
+  (`PodePublicarAsync`) checa permissão do setor. Confirmado com o dono do produto: esta
+  spec fecha essa lacuna junto — a resolução da árvore passa a checar `read` do mesmo jeito
+  que a escrita já checa `write`, usando o `IPermissoesDeSetor` que já existe. É uma mudança
+  de comportamento em Documentos/Avisos, não só a superfície nova do `ItemMenu`.
 
 ## Testes
 
@@ -160,7 +166,8 @@ mesmo padrão de `AcessoController.Perfil` ser uma tela de detalhe separada da l
     `Tipo`; `Personalizado` sem `Rota` mostra o placeholder, com `Rota` redireciona.
   - Autorização: mesma matriz que já existe para `setor-{slug}:read/write`, agora cobrindo
     a árvore — usuário sem a permissão não lê nem escreve nenhum nó, `{slug}-user` lê,
-    `{slug}-admin` edita.
+    `{slug}-admin` edita. Inclui o teste que faltava hoje: usuário autenticado **sem**
+    `setor-{slug}:read` recebe 404 ao tentar `GET /setor/{slug}` — não só ao tentar publicar.
   - Criação de setor: checkboxes marcados geram os dois filhos, em ordem alfabética;
     desmarcados geram só a raiz.
   - Reconciliação: setor sem nenhum `ItemMenu` passa a ter raiz + Documentos + Avisos.
