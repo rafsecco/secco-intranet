@@ -29,4 +29,11 @@ public sealed class ItemMenuRepositorioFalso : IItemMenuRepository
 		Task.FromResult(Itens.Any(item => item.SetorId == setorId && item.Tipo == tipo));
 
 	public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+	public Task ExcluirAsync(Guid id, CancellationToken cancellationToken = default)
+	{
+		Itens.RemoveAll(item => item.Id == id);
+
+		return Task.CompletedTask;
+	}
 }

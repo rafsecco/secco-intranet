@@ -40,4 +40,15 @@ internal sealed class ItemMenuRepository(IntranetDbContext context) : IItemMenuR
 
 	public async Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
 		await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+	public async Task ExcluirAsync(Guid id, CancellationToken cancellationToken = default)
+	{
+		var item = await context.ItensMenu.FirstOrDefaultAsync(i => i.Id == id, cancellationToken).ConfigureAwait(false);
+
+		if (item is not null)
+		{
+			context.ItensMenu.Remove(item);
+			await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+		}
+	}
 }

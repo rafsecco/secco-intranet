@@ -37,4 +37,9 @@ public interface IItemMenuRepository
 	/// <summary>Grava alterações pendentes de itens já rastreados.</summary>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
 	Task SaveChangesAsync(CancellationToken cancellationToken = default);
+
+	/// <summary>Exclui um item — só chamado para <c>TipoDeItemMenu.Personalizado</c>.</summary>
+	/// <param name="id">Identificador do item.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	Task ExcluirAsync(Guid id, CancellationToken cancellationToken = default);
 }
