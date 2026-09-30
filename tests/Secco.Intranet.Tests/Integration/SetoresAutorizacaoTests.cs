@@ -76,6 +76,7 @@ public class SetoresAutorizacaoTests(IntranetWebFactory factory) : IClassFixture
 		"/Setores/AlternarItemDeMenu",
 		"/Setores/ExcluirItemDeMenu",
 		"/Setores/MoverItemDeMenu",
+		"/Setores/ReconciliarItensDeMenu",
 	];
 
 	[Theory]

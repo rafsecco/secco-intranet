@@ -25,6 +25,7 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="alternarItem">Ativação/desativação de item.</param>
 /// <param name="excluirItem">Exclusão de item personalizado.</param>
 /// <param name="moverItem">Reordenação de item entre os irmãos.</param>
+/// <param name="reconciliar">Garante a árvore mínima nos setores criados antes dela existir.</param>
 [SomenteIntranetAdmin]
 public sealed class SetoresController(
 	CreateSetorHandler createHandler,
@@ -35,8 +36,24 @@ public sealed class SetoresController(
 	CriarItemMenuHandler criarItem,
 	AtivarDesativarItemMenuHandler alternarItem,
 	ExcluirItemMenuHandler excluirItem,
-	MoverItemMenuHandler moverItem) : Controller
+	MoverItemMenuHandler moverItem,
+	ReconciliarItensDeMenuHandler reconciliar) : Controller
 {
+	/// <summary>Garante a raiz e os itens Documentos/Avisos em todo setor que ainda não os tem.</summary>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> ReconciliarItensDeMenu(CancellationToken cancellationToken = default)
+	{
+		var quantos = await reconciliar.HandleAsync(cancellationToken);
+
+		TempData[FeedbackViewComponent.ChaveDaMensagem] = quantos == 0
+			? "Nenhum setor precisava de reconciliação."
+			: $"{quantos} setor(es) ganharam os itens de menu que faltavam.";
+
+		return RedirectToAction(nameof(Index));
+	}
+
 	/// <summary>Árvore de itens de menu da página de um setor.</summary>
 	/// <param name="id">Identificador do setor.</param>
 	/// <param name="cancellationToken">Token de cancelamento.</param>

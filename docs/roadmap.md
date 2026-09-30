@@ -80,9 +80,15 @@ processos (maior risco técnico) só entra com a base já sólida.
       vive na Área administrativa de acesso (#26 entregue), não aqui. Ganhou um nível de
       só-consulta, `inventario:read`, quando o modelo de permissões chegou (ver abaixo) —
       o administrativo continua só por `inventario-admin`
-- [ ] `Recurso` + `SetorRecurso` (catálogo de módulos habilitáveis por setor)
-- [ ] Tela de administração de setores (cadastro + toggle de recursos). O cadastro de setores
-      passa a exigir `intranet-admin` junto do primeiro corte da Área administrativa de acesso
+- [x] Recursos habilitáveis por setor e tela de administração deles —
+      [spec](specs/2026-09-30-item-menu-por-setor-design.md). Entregue como árvore de itens de
+      menu por setor (`ItemMenu`), que substituiu o `Recurso`/`SetorRecurso` previsto: ligar um
+      recurso é existir um item ativo daquele tipo debaixo da raiz do setor. Documentos e Avisos
+      são os dois tipos embutidos; itens "Personalizado" apontam para uma rota e podem ter
+      filhos. Cadastro de setor escolhe os recursos (marcados por padrão); `/Setores/Menu/{id}`,
+      exclusivo do `intranet-admin`, cria, liga/desliga, reordena e exclui itens. Desligar um
+      recurso fecha leitura **e** escrita dele. A página do setor passou a exigir
+      `setor-{slug}:read`. Setores de antes disso: "Reconciliar itens de menu" na lista de setores
 - [x] Central de notificação in-app (sino + toast), consumindo o canal in-app do
       `Secco.NotificationHub`. O `AvisoUsuario` da redação original **não** vai existir:
       o Hub é dono do estado de lida, e uma cópia local violaria a ADR-0006. O toast virou
@@ -95,8 +101,9 @@ processos (maior risco técnico) só entra com a base já sólida.
       envolvidos quando uma etapa inicia
 - [ ] Onboarding de novo colaborador implementado como um processo (caso de teste real)
 - [ ] Notificação ao usuário, ao abrir a intranet, de processos pendentes para ele
-- [ ] `ItemMenu` — tabela autorecursiva + tela de montagem de menu com níveis, para
-      recursos próprios que a instituição adotante desenvolver
+- [ ] `ItemMenu` além da página do setor — a tabela autorrecursiva e a tela de montagem já
+      existem **dentro** de cada setor (ver Fase 1); falta, se um dia for preciso, o topo do menu
+      (Mural, Diretório, Inventário, a lista de setores) vir da mesma árvore
 - [x] Área administrativa de acesso, primeiro corte: perfis e usuários do próprio tenant,
       exclusiva do `intranet-admin`, com testes de autorização em toda rota —
       [spec](specs/2026-09-23-area-administrativa-acesso-design.md). Entregue: só o
