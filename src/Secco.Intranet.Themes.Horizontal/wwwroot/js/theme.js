@@ -102,4 +102,16 @@
       }).show();
     });
   }
+
+  // Acao irreversivel: <form data-confirmar="Pergunta?"> pergunta antes de enviar. Sem JS o
+  // formulario envia direto — o mesmo de antes deste atributo existir, entao uma falha de
+  // script nao trava nada. Delegado no document para valer em formularios de qualquer view.
+  document.addEventListener('submit', function (evento) {
+    var formulario = evento.target;
+    var pergunta = formulario instanceof HTMLFormElement ? formulario.getAttribute('data-confirmar') : null;
+
+    if (pergunta && !window.confirm(pergunta)) {
+      evento.preventDefault();
+    }
+  });
 })();

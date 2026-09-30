@@ -135,7 +135,7 @@
 @if (podeExcluir)
 {
     <div class="sc-panel mt-3">
-        <form method="post" asp-action="ExcluirPerfil">
+        <form method="post" asp-action="ExcluirPerfil" data-confirmar="Excluir o perfil &quot;@perfil.Nome&quot;? Não dá para desfazer.">
             <input type="hidden" name="nome" value="@perfil.Nome" />
             <button class="btn btn-outline-danger" type="submit">Excluir perfil</button>
             <div class="form-text">Só é possível quando o perfil não tem membros.</div>

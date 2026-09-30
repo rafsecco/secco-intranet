@@ -101,6 +101,12 @@ public class SetorMenuAdministracaoTests(IntranetWebFactory factory) : IClassFix
 		// E entra na barra de abas dos irmãos.
 		var documentos = await client.GetStringAsync($"/setor/{slug}/documentos");
 		documentos.Should().Contain($"href=\"/setor/{slug}/relatorios\"");
+
+		// Excluir é irreversível: o formulário do item pede confirmação (theme.js).
+		var menu = await client.GetStringAsync($"/Setores/Menu/{setorId}");
+		var form = Regex.Match(menu, "<form[^>]*action=\"/Setores/ExcluirItemDeMenu\"[^>]*>");
+		form.Success.Should().BeTrue();
+		WebUtility.HtmlDecode(form.Value).Should().Contain("data-confirmar=").And.Contain("Relatórios");
 	}
 
 	[Fact]

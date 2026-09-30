@@ -63,7 +63,8 @@
                         </form>
                         @if (no.Item.Tipo == TipoDeItemMenu.Personalizado)
                         {
-                            <form method="post" asp-action="ExcluirItemDeMenu" class="d-inline">
+                            <form method="post" asp-action="ExcluirItemDeMenu" class="d-inline"
+                                  data-confirmar="Excluir o item &quot;@no.Item.Nome&quot;? Não dá para desfazer.">
                                 <input type="hidden" name="setorId" value="@Model.Setor.Id" />
                                 <input type="hidden" name="itemId" value="@no.Item.Id" />
                                 <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>

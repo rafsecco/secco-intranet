@@ -179,6 +179,19 @@ public class AcessoTelasTests(IntranetWebFactory factory) : IClassFixture<Intran
 	}
 
 	[Fact]
+	public async Task Perfil_ExcluirPedeConfirmacao()
+	{
+		var html = await CriarClienteAdmin(CenarioDePerfil()).GetStringAsync("/Acesso/Perfil?nome=gerente-de-compras");
+
+		// Exclusão é irreversível: o formulário carrega a pergunta que o theme.js mostra antes de
+		// enviar. Localiza a tag pelo action no HTML cru (o tag helper põe o action no fim, e o
+		// texto da pergunta vem com &quot;) e só então decodifica.
+		var form = System.Text.RegularExpressions.Regex.Match(html, "<form[^>]*action=\"/Acesso/ExcluirPerfil\"[^>]*>");
+		form.Success.Should().BeTrue();
+		Decodificar(form.Value).Should().Contain("data-confirmar=").And.Contain("gerente-de-compras");
+	}
+
+	[Fact]
 	public async Task EditarPermissoes_SubstituiAListaEVoltaParaOPerfil()
 	{
 		var gestao = CenarioDePerfil();

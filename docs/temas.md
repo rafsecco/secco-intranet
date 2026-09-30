@@ -81,6 +81,13 @@ nenhuma view de tema injeta serviço.
 O `_Layout` precisa expor uma âncora `id="conteudo"` para o link de pular navegação, e
 renderizar a seção opcional `Scripts`.
 
+Ações irreversíveis (excluir perfil, excluir item de menu) vêm em
+`<form data-confirmar="Pergunta?">`. O tema precisa, no JS dele, pedir confirmação com esse
+texto antes de enviar o formulário e cancelar o envio se a pessoa desistir — os dois temas
+publicados fazem isso em `wwwroot/js/theme.js`, com um listener de `submit` no `document`
+(vale para qualquer view, inclusive as que ainda não existem). Sem o script, o formulário
+envia direto: um tema que esqueça disso não quebra nada, mas perde a confirmação.
+
 ## Modo claro e escuro é obrigatório
 
 Todo tema publicado declara as duas variantes por `data-bs-theme`. Não basta inverter as
