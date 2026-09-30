@@ -232,6 +232,71 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
                     b.ToTable("tb_itens_inventario");
                 });
 
+            modelBuilder.Entity("Secco.Intranet.Domain.Menu.ItemMenu", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id_pk_item_menu");
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("bit")
+                        .HasColumnName("fl_ativo");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("dt_created_at");
+
+                    b.Property<string>("Icone")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("ds_icone");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("ds_nome");
+
+                    b.Property<int>("Ordem")
+                        .HasColumnType("int")
+                        .HasColumnName("nr_ordem");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id_fk_parent");
+
+                    b.Property<string>("Rota")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)")
+                        .HasColumnName("ds_rota");
+
+                    b.Property<Guid>("SetorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id_fk_setor");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)")
+                        .HasColumnName("ds_slug");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("int")
+                        .HasColumnName("ie_tipo");
+
+                    b.HasKey("Id")
+                        .HasName("pk_itens_menu");
+
+                    b.HasIndex("SetorId")
+                        .HasDatabaseName("idx_itens_menu_id_fk_setor");
+
+                    b.HasIndex("ParentId", "Slug")
+                        .HasDatabaseName("idx_itens_menu_id_fk_parent_ds_slug");
+
+                    b.ToTable("tb_itens_menu");
+                });
+
             modelBuilder.Entity("Secco.Intranet.Domain.Publicacoes.Publicacao", b =>
                 {
                     b.Property<Guid>("Id")
@@ -382,6 +447,22 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
                         .HasForeignKey("SetorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_itens_inventario_setor");
+                });
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Menu.ItemMenu", b =>
+                {
+                    b.HasOne("Secco.Intranet.Domain.Menu.ItemMenu", null)
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_itens_menu_item_menu");
+
+                    b.HasOne("Secco.Intranet.Domain.Setores.Setor", null)
+                        .WithMany()
+                        .HasForeignKey("SetorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_itens_menu_setor");
                 });
 
             modelBuilder.Entity("Secco.Intranet.Domain.Publicacoes.Publicacao", b =>

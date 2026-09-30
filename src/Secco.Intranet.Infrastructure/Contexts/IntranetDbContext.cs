@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Secco.Intranet.Domain.Diretorio;
 using Secco.Intranet.Domain.Documentos;
 using Secco.Intranet.Domain.Inventario;
+using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Domain.Publicacoes;
 using Secco.Intranet.Domain.Setores;
 using Secco.SDK.EntityFrameworkCore;
@@ -30,6 +31,9 @@ public sealed class IntranetDbContext(DbContextOptions<IntranetDbContext> option
 
 	/// <summary>Perfis complementares de colaborador (tabela <c>tb_perfis_colaboradores</c>).</summary>
 	public DbSet<PerfilColaborador> PerfisColaboradores => Set<PerfilColaborador>();
+
+	/// <summary>Árvore de itens de menu da página de cada setor.</summary>
+	public DbSet<ItemMenu> ItensMenu => Set<ItemMenu>();
 
 	/// <inheritdoc />
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
