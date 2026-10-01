@@ -176,4 +176,23 @@ public class CreateSetorHandlerTests
 		var setorId = resultado.Value.Id;
 		itens.Itens.Where(i => i.SetorId == setorId).Should().ContainSingle(i => i.Tipo == Secco.Intranet.Domain.Menu.TipoDeItemMenu.Setor);
 	}
+
+	[Theory]
+	[InlineData("mural")]
+	[InlineData("Setores")]
+	[InlineData(" acesso ")]
+	[InlineData("setor")]
+	public async Task Handle_ComSlugReservado_RecusaSemProvisionarRoles(string slug)
+	{
+		var repository = new FakeRepository();
+		var provisioner = new FakeSetorAccessProvisioner();
+		var handler = new CreateSetorHandler(repository, Options, provisioner, new TrilhaFalsa(), new ItemMenuRepositorioFalso());
+
+		var resultado = await handler.HandleAsync(new CreateSetorCommand("Qualquer", slug));
+
+		resultado.IsFailure.Should().BeTrue();
+		resultado.Error.Code.Should().Be("Intranet.Setor.SlugReservado");
+		provisioner.LastSlug.Should().BeNull("a recusa vem antes de criar Role no SecureGate");
+		repository.Added.Should().BeEmpty();
+	}
 }

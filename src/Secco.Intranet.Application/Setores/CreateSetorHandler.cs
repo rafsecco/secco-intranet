@@ -57,6 +57,12 @@ public sealed class CreateSetorHandler(
 			return IntranetErrors.Setores.SlugRequired;
 		}
 
+		// O setor mora na raiz da URL; um slug igual a uma rota do produto ficaria inalcançável.
+		if (SlugsReservados.Contem(command.Slug))
+		{
+			return IntranetErrors.Setores.SlugReservado(command.Slug.Trim());
+		}
+
 		// A entidade recusa ícone fora do formato com exceção, que é a rede de segurança para
 		// chamador interno. Entrada de usuário vira Result (ADR-0004), então a checagem
 		// acontece aqui — e antes de provisionar Roles, para não deixar Role órfã por causa

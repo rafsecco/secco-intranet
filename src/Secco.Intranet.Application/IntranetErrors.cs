@@ -24,6 +24,10 @@ public static class IntranetErrors
 		public static Error SlugAlreadyExists(string slug) =>
 			Error.Conflict("Intranet.Setor.SlugAlreadyExists", $"Já existe um setor com o slug '{slug}'.");
 
+		/// <summary>Slug que colide com uma rota do produto (o setor mora na raiz da URL).</summary>
+		public static Error SlugReservado(string slug) =>
+			Error.Validation("Intranet.Setor.SlugReservado", $"O slug '{slug}' é usado pelo próprio sistema. Escolha outro.");
+
 		/// <summary>Tentativa de desativar um setor fixo do sistema.</summary>
 		public static readonly Error FixoNaoDesativa =
 			Error.Validation(
