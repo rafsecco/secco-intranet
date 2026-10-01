@@ -87,13 +87,13 @@ recurso está desligado).
 A lista fica num lugar só (`SlugsReservados` no Application) e inclui, além dos prefixos dos
 controllers, os caminhos de infraestrutura (`_content`, `css`, `js`, `lib`, `health`, …).
 
-Um **teste estrutural** varre por reflexão todo controller da Web e o primeiro segmento de
-toda rota literal (atributo e convenção) e falha se algum não estiver em `SlugsReservados`.
-Um controller novo que esqueça de reservar o nome quebra o build, não a produção.
+Um **teste estrutural** percorre todos os endpoints registrados (`EndpointDataSource`: rota
+de atributo, rota convencional, health check) e falha se o primeiro segmento fixo de algum
+não estiver em `SlugsReservados`. Um controller novo que esqueça de reservar o nome quebra
+o teste, não a produção.
 
-Setores já existentes com slug reservado: a reconciliação não renomeia; o teste de
-integração do seeder garante que os slugs de desenvolvimento não colidem. Em produção não
-há setores ainda (ver "URLs antigas").
+Setores já existentes com slug reservado não são renomeados: os de desenvolvimento não
+colidem, e em produção não há setores ainda (ver "URLs antigas").
 
 **O que cada caminho abre:**
 
@@ -164,7 +164,7 @@ As ações da árvore entram na trilha (`ITrilhaDeAuditoria`), só depois de sal
 | `menu.item-ativar` / `menu.item-desativar` | `AtivarDesativarItemMenuHandler` | setor, item, nome, tipo |
 | `menu.item-mover` | `MoverItemMenuHandler` (só quando muda de posição) | setor, item, nome, posição anterior e nova |
 | `menu.item-excluir` | `ExcluirItemMenuHandler` | setor, item, nome, slug, rota |
-| `menu.reconciliar` | `ReconciliarItensDeMenuHandler` (só quando criou algo) | quantidade de setores e de itens criados |
+| `menu.reconciliar` | `ReconciliarItensDeMenuHandler` (só quando criou algo) | quantidade de setores alterados |
 
 Recurso novo `RecursosDeAuditoria.Menu = "menu"`; o identificador do registro é o id do
 item (ou `"reconciliacao"`). A criação automática da árvore junto com o setor não gera
@@ -180,13 +180,15 @@ registro próprio — já está coberta por `setor.criar`.
   - `ResolverCaminhoDeMenuHandler`: devolve nó e ancestrais; 404 nos casos da tabela;
   - cada handler da árvore registra o verbo de auditoria certo, e não registra quando a
     ação falha.
-- **Estrutural:** reflexão sobre rotas literais × `SlugsReservados`.
+- **Estrutural:** endpoints registrados × `SlugsReservados`.
 - **Integração**
   - `SetorMenuRotaTests` e `SetorMenuAdministracaoTests` reescritos para `/{slug}/…`, sem
     abas e sem redirecionamento; `/setor/{slug}/…` responde 404;
   - o menu renderizado traz o setor como `<button aria-expanded>` com os filhos aninhados,
     nos dois temas;
-  - setor sem permissão de leitura não aparece no menu;
+  - setor sem permissão de leitura não aparece no menu — o filtro do componente não muda;
+    por HTTP ele não é alcançável no ambiente Testing (sem autenticação configurada, o
+    componente mostra todo setor ativo), então continua coberto em `PermissoesDeSetorTests`;
   - POST de Documentos/Avisos nas rotas novas, inclusive 404 com recurso desligado.
 - **Comportamento dos submenus (JS):** sem teste automatizado; verificação no navegador nos
   dois temas — mouse, teclado, Vertical recolhido, largura de celular e sem script.
