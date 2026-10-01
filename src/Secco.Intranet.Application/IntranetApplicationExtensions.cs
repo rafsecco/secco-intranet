@@ -68,6 +68,7 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ObterArvoreDeMenuHandler>();
 		services.AddScoped<ReconciliarItensDeMenuHandler>();
 		services.AddScoped<ResolverCaminhoDeMenuHandler>();
+		services.AddScoped<ListarArvoresDosSetoresHandler>();
 
 		services.AddScoped<ListarPessoasHandler>();
 		services.AddScoped<ObterPessoaHandler>();

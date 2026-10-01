@@ -32,6 +32,21 @@ internal sealed class ItemMenuRepository(IntranetDbContext context) : IItemMenuR
 			.ToListAsync(cancellationToken)
 			.ConfigureAwait(false);
 
+	public async Task<IReadOnlyList<ItemMenu>> ListarPorSetoresAsync(
+		IReadOnlyCollection<Guid> setorIds, CancellationToken cancellationToken = default)
+	{
+		if (setorIds.Count == 0)
+		{
+			return [];
+		}
+
+		return await context.ItensMenu
+			.AsNoTracking()
+			.Where(item => setorIds.Contains(item.SetorId))
+			.ToListAsync(cancellationToken)
+			.ConfigureAwait(false);
+	}
+
 	public async Task<bool> ExisteTipoAsync(Guid setorId, TipoDeItemMenu tipo, CancellationToken cancellationToken = default) =>
 		await context.ItensMenu
 			.AsNoTracking()

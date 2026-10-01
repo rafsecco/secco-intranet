@@ -25,6 +25,9 @@ public sealed class ItemMenuRepositorioFalso : IItemMenuRepository
 	public Task<IReadOnlyList<ItemMenu>> ListarPorSetorAsync(Guid setorId, CancellationToken cancellationToken = default) =>
 		Task.FromResult<IReadOnlyList<ItemMenu>>([.. Itens.Where(item => item.SetorId == setorId)]);
 
+	public Task<IReadOnlyList<ItemMenu>> ListarPorSetoresAsync(IReadOnlyCollection<Guid> setorIds, CancellationToken cancellationToken = default) =>
+		Task.FromResult<IReadOnlyList<ItemMenu>>([.. Itens.Where(item => setorIds.Contains(item.SetorId))]);
+
 	public Task<bool> ExisteTipoAsync(Guid setorId, TipoDeItemMenu tipo, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Itens.Any(item => item.SetorId == setorId && item.Tipo == tipo));
 

@@ -28,6 +28,11 @@ public interface IItemMenuRepository
 	/// <param name="cancellationToken">Token de cancelamento.</param>
 	Task<IReadOnlyList<ItemMenu>> ListarPorSetorAsync(Guid setorId, CancellationToken cancellationToken = default);
 
+	/// <summary>As árvores de vários setores numa consulta só — o menu principal carrega todas por página.</summary>
+	/// <param name="setorIds">Setores cujas árvores trazer; vazio devolve vazio sem consultar.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	Task<IReadOnlyList<ItemMenu>> ListarPorSetoresAsync(IReadOnlyCollection<Guid> setorIds, CancellationToken cancellationToken = default);
+
 	/// <summary>Indica se o setor já tem um item do tipo informado, ativo ou não.</summary>
 	/// <param name="setorId">Setor dono da árvore.</param>
 	/// <param name="tipo">Tipo procurado.</param>

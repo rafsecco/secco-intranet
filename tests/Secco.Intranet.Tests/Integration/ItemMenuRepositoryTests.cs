@@ -81,4 +81,33 @@ public class ItemMenuRepositoryTests(IntranetWebFactory factory) : IClassFixture
 		var relido = await repositorio.GetByIdAsync(item.Id);
 		relido!.Ativo.Should().BeFalse();
 	}
+
+	[Fact]
+	public async Task ListarPorSetores_TrazSoOsSetoresPedidos()
+	{
+		var (escopoA, repositorio, setorA) = await CriarAsync();
+		await using var _ = escopoA;
+		var (escopoB, _, setorB) = await CriarAsync();
+		await using var __ = escopoB;
+		var (escopoC, _, setorC) = await CriarAsync();
+		await using var ___ = escopoC;
+
+		foreach (var setorId in new[] { setorA, setorB, setorC })
+		{
+			await repositorio.AddAsync(new ItemMenu(setorId, null, "X", "x", TipoDeItemMenu.Setor, null, null, 0));
+		}
+
+		var lista = await repositorio.ListarPorSetoresAsync([setorA, setorB]);
+
+		lista.Select(item => item.SetorId).Should().BeEquivalentTo([setorA, setorB]);
+	}
+
+	[Fact]
+	public async Task ListarPorSetores_ListaVazia_NaoConsulta()
+	{
+		var (escopo, repositorio, _) = await CriarAsync();
+		await using var _ = escopo;
+
+		(await repositorio.ListarPorSetoresAsync([])).Should().BeEmpty();
+	}
 }
