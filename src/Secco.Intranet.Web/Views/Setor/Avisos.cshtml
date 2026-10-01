@@ -4,12 +4,9 @@
 @using Secco.Intranet.Web.Models.Publicacoes
 @model SetorAvisosViewModel
 @{
-    ViewData["Title"] = $"Avisos · {Model.Setor.Nome}";
+    ViewData["Title"] = $"{Model.Titulo} · {Model.Setor.Nome}";
 
-    var cabecalho = new PageHeaderModel(
-        Model.Setor.Nome,
-        "Avisos publicados por este setor no mural.",
-        Model.Setor.Slug);
+    var cabecalho = new PageHeaderModel(Model.Titulo, Model.Trilho, Model.Setor.Slug);
 
     var vazio = new EmptyStateModel(
         "bi-megaphone",
@@ -37,8 +34,6 @@
 }
 
 <partial name="_PageHeader" model="cabecalho" />
-
-<partial name="_AbasDoSetor" model="Model.Abas" />
 
 @if (Model.PodePublicar)
 {

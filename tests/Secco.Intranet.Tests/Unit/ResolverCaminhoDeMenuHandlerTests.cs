@@ -35,19 +35,6 @@ public class ResolverCaminhoDeMenuHandlerTests
 		resultado.Value.No.Id.Should().Be(raiz.Id);
 	}
 
-	// As abas só aparecem numa folha — a raiz com filhos redireciona, sem filhos mostra o estado
-	// vazio. Por isso os irmãos são conferidos num item do nível 1, onde a barra existe.
-	[Fact]
-	public async Task FolhaDoNivel1_IrmaosSaoAsAbasDoNivel_EmOrdem()
-	{
-		var (repo, setorId, _, _, _) = Cenario();
-		var handler = new ResolverCaminhoDeMenuHandler(repo);
-
-		var resultado = await handler.HandleAsync(setorId, ["documentos"]);
-
-		resultado.Value.Irmaos.Select(i => i.Slug).Should().Equal("avisos", "documentos");
-	}
-
 	[Fact]
 	public async Task CaminhoDeUmSegmento_ResolveOFilho()
 	{
@@ -84,18 +71,6 @@ public class ResolverCaminhoDeMenuHandlerTests
 
 		resultado.IsFailure.Should().BeTrue();
 		resultado.Error.Should().Be(IntranetErrors.Menu.NotFound);
-	}
-
-	[Fact]
-	public async Task ItemDesativado_NaoAparaceNaListaDeIrmaos()
-	{
-		var (repo, setorId, _, avisos, documentos) = Cenario();
-		repo.Itens.Single(i => i.Id == avisos.Id).Desativar();
-		var handler = new ResolverCaminhoDeMenuHandler(repo);
-
-		var resultado = await handler.HandleAsync(setorId, ["documentos"]);
-
-		resultado.Value.Irmaos.Should().ContainSingle(i => i.Id == documentos.Id);
 	}
 
 	[Fact]
@@ -168,38 +143,42 @@ public class ResolverCaminhoDeMenuHandlerTests
 	}
 
 	[Fact]
-	public async Task CaminhoVazio_PrimeiroFilhoAtivoEAvisos_PorSerOPrimeiroEmOrdem()
+	public async Task Neto_DevolveOsAncestraisSemARaiz()
+	{
+		var (repo, setorId, raiz, _, _) = Cenario();
+		var relatorios = new ItemMenu(setorId, raiz.Id, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado, null, null, 2);
+		var vendas = new ItemMenu(setorId, relatorios.Id, "Vendas", "vendas", TipoDeItemMenu.Personalizado, "/v", null, 0);
+		repo.Itens.AddRange([relatorios, vendas]);
+
+		var resultado = await new ResolverCaminhoDeMenuHandler(repo).HandleAsync(setorId, ["relatorios", "vendas"]);
+
+		resultado.IsSuccess.Should().BeTrue();
+		resultado.Value.No.Id.Should().Be(vendas.Id);
+		resultado.Value.Ancestrais.Select(a => a.Slug).Should().Equal("relatorios");
+		resultado.Value.CaminhoCompleto.Should().Equal("relatorios", "vendas");
+	}
+
+	[Fact]
+	public async Task FilhoDaRaiz_NaoTemAncestrais()
 	{
 		var (repo, setorId, _, avisos, _) = Cenario();
-		var handler = new ResolverCaminhoDeMenuHandler(repo);
 
-		var resultado = await handler.HandleAsync(setorId, []);
+		var resultado = await new ResolverCaminhoDeMenuHandler(repo).HandleAsync(setorId, ["avisos"]);
 
-		resultado.Value.PrimeiroFilhoAtivo.Should().NotBeNull();
-		resultado.Value.PrimeiroFilhoAtivo!.Id.Should().Be(avisos.Id);
+		resultado.Value.No.Id.Should().Be(avisos.Id);
+		resultado.Value.Ancestrais.Should().BeEmpty();
 	}
 
 	[Fact]
-	public async Task NoFolha_PrimeiroFilhoAtivoENulo()
+	public async Task AncestralDesativado_Falha()
 	{
-		var (repo, setorId, _, _, _) = Cenario();
-		var handler = new ResolverCaminhoDeMenuHandler(repo);
+		var (repo, setorId, raiz, _, _) = Cenario();
+		var relatorios = new ItemMenu(setorId, raiz.Id, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado, null, null, 2);
+		relatorios.Desativar();
+		repo.Itens.AddRange([relatorios, new ItemMenu(setorId, relatorios.Id, "Vendas", "vendas", TipoDeItemMenu.Personalizado, "/v", null, 0)]);
 
-		var resultado = await handler.HandleAsync(setorId, ["documentos"]);
+		var resultado = await new ResolverCaminhoDeMenuHandler(repo).HandleAsync(setorId, ["relatorios", "vendas"]);
 
-		resultado.Value.PrimeiroFilhoAtivo.Should().BeNull();
-	}
-
-	[Fact]
-	public async Task NoComTodosOsFilhosDesativados_PrimeiroFilhoAtivoENulo()
-	{
-		var (repo, setorId, _, avisos, documentos) = Cenario();
-		repo.Itens.Single(i => i.Id == avisos.Id).Desativar();
-		repo.Itens.Single(i => i.Id == documentos.Id).Desativar();
-		var handler = new ResolverCaminhoDeMenuHandler(repo);
-
-		var resultado = await handler.HandleAsync(setorId, []);
-
-		resultado.Value.PrimeiroFilhoAtivo.Should().BeNull();
+		resultado.IsFailure.Should().BeTrue();
 	}
 }

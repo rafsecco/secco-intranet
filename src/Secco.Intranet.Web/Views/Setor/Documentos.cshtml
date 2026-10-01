@@ -4,12 +4,9 @@
 @using Secco.Intranet.Web.Models.Documentos
 @model SetorDocumentosViewModel
 @{
-    ViewData["Title"] = Model.Setor.Nome;
+    ViewData["Title"] = $"{Model.Titulo} · {Model.Setor.Nome}";
 
-    var cabecalho = new PageHeaderModel(
-        Model.Setor.Nome,
-        "Documentos publicados por este setor.",
-        Model.Setor.Slug);
+    var cabecalho = new PageHeaderModel(Model.Titulo, Model.Trilho, Model.Setor.Slug);
 
     var vazio = new EmptyStateModel(
         "bi-folder2-open",
@@ -27,8 +24,6 @@
 }
 
 <partial name="_PageHeader" model="cabecalho" />
-
-<partial name="_AbasDoSetor" model="Model.Abas" />
 
 @if (Model.PodePublicar)
 {

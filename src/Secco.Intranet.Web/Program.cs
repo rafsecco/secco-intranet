@@ -26,6 +26,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 
+// A página do setor mora na raiz (/{slug}/…): a restrição recusa os slugs reservados.
+builder.Services.Configure<RouteOptions>(opcoes =>
+	opcoes.ConstraintMap[SlugDeSetorRouteConstraint.Nome] = typeof(SlugDeSetorRouteConstraint));
+
 // Sistema de temas (ADR-0003/ADR-0004): o expander da precedencia as views do tema ativo.
 builder.Services.AddIntranetTheming();
 builder.Services.AddSingleton<IRenderizadorMarkdown, RenderizadorMarkdown>();

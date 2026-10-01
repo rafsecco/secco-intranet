@@ -5,15 +5,9 @@ namespace Secco.Intranet.Application.Menu;
 
 /// <summary>Resultado de resolver um caminho na árvore de um setor.</summary>
 /// <param name="No">O nó resolvido.</param>
-/// <param name="Irmaos">Irmãos ativos do nó (inclusive ele), ordenados — para a barra de abas.</param>
+/// <param name="Ancestrais">Nós entre a raiz (exclusive) e o nó (exclusive), de cima para baixo — o trilho da página.</param>
 /// <param name="CaminhoCompleto">Os slugs percorridos até o nó.</param>
-/// <param name="PrimeiroFilhoAtivo">
-/// O primeiro filho ativo do nó, por <c>Ordem</c> — nulo se o nó não tem nenhum filho ativo
-/// (é folha, ou tem só filhos desativados). Quem chama usa isto para decidir entre
-/// redirecionar para o filho (nó com filhos) ou renderizar o próprio nó (folha).
-/// </param>
-public sealed record ResultadoDaResolucao(
-	ItemMenuDto No, IReadOnlyList<ItemMenuDto> Irmaos, IReadOnlyList<string> CaminhoCompleto, ItemMenuDto? PrimeiroFilhoAtivo);
+public sealed record ResultadoDaResolucao(ItemMenuDto No, IReadOnlyList<ItemMenuDto> Ancestrais, IReadOnlyList<string> CaminhoCompleto);
 
 /// <summary>Desce a árvore de um setor segmento a segmento, casando pelo <c>Slug</c> de um filho ativo.</summary>
 /// <param name="repository">Persistência da árvore.</param>
@@ -37,6 +31,7 @@ public sealed class ResolverCaminhoDeMenuHandler(IItemMenuRepository repository)
 		}
 
 		var atual = raiz;
+		var ancestrais = new List<ItemMenuDto>();
 
 		foreach (var segmento in caminho)
 		{
@@ -48,22 +43,15 @@ public sealed class ResolverCaminhoDeMenuHandler(IItemMenuRepository repository)
 				return Result.Failure<ResultadoDaResolucao>(IntranetErrors.Menu.NotFound);
 			}
 
+			if (atual.Tipo != TipoDeItemMenu.Setor)
+			{
+				ancestrais.Add(ItemMenuDto.FromEntity(atual));
+			}
+
 			atual = proximo;
 		}
 
-		var irmaos = todos
-			.Where(item => item.ParentId == atual.ParentId && item.Ativo)
-			.OrderBy(item => item.Ordem)
-			.Select(ItemMenuDto.FromEntity)
-			.ToList();
-
-		var primeiroFilhoAtivo = todos
-			.Where(item => item.ParentId == atual.Id && item.Ativo)
-			.OrderBy(item => item.Ordem)
-			.Select(ItemMenuDto.FromEntity)
-			.FirstOrDefault();
-
-		return new ResultadoDaResolucao(ItemMenuDto.FromEntity(atual), irmaos, caminho, primeiroFilhoAtivo);
+		return new ResultadoDaResolucao(ItemMenuDto.FromEntity(atual), ancestrais, caminho);
 	}
 
 	/// <summary>

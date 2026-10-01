@@ -50,7 +50,7 @@ public class ReconciliarItensDeMenuTests(IntranetWebFactory factory) : IClassFix
 		var slug = await CriarSetorAntigoAsync();
 		var client = CriarCliente();
 
-		(await client.GetAsync($"/setor/{slug}")).StatusCode.Should().Be(HttpStatusCode.NotFound,
+		(await client.GetAsync($"/{slug}/documentos")).StatusCode.Should().Be(HttpStatusCode.NotFound,
 			"sem raiz na árvore não há o que resolver");
 
 		var html = await client.GetStringAsync("/Setores");
@@ -63,9 +63,7 @@ public class ReconciliarItensDeMenuTests(IntranetWebFactory factory) : IClassFix
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
 		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be("/Setores");
 
-		var pagina = await client.GetAsync($"/setor/{slug}");
-		pagina.StatusCode.Should().Be(HttpStatusCode.OK);
-		pagina.RequestMessage!.RequestUri!.AbsolutePath.Should().Be($"/setor/{slug}/documentos",
-			"setor antigo reconciliado continua abrindo em Documentos, como antes");
+		var pagina = await client.GetAsync($"/{slug}/documentos");
+		pagina.StatusCode.Should().Be(HttpStatusCode.OK, "setor antigo reconciliado ganha Documentos de volta");
 	}
 }

@@ -77,7 +77,7 @@ public class DocumentoFluxoTests(IntranetWebFactory factory) : IClassFixture<Int
 
 	private static async Task PublicarAsync(HttpClient client, string slug, string titulo, byte[] conteudo)
 	{
-		var token = await TokenAntiFalsificacaoAsync(client, $"/setor/{slug}/documentos");
+		var token = await TokenAntiFalsificacaoAsync(client, $"/{slug}/documentos");
 
 		using var arquivo = new ByteArrayContent(conteudo);
 		using var form = new MultipartFormDataContent
@@ -88,7 +88,7 @@ public class DocumentoFluxoTests(IntranetWebFactory factory) : IClassFixture<Int
 			{ arquivo, "arquivo", "politica-interna.pdf" },
 		};
 
-		var resposta = await client.PostAsync($"/setor/{slug}/documentos", form);
+		var resposta = await client.PostAsync($"/{slug}/documentos", form);
 
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK, "a publicação redireciona de volta para a aba");
 	}
@@ -102,7 +102,7 @@ public class DocumentoFluxoTests(IntranetWebFactory factory) : IClassFixture<Int
 		await CriarSetorAsync(client, "Setor de Teste", slug);
 		await PublicarAsync(client, slug, "Política interna", ConteudoPdf);
 
-		var pagina = await client.GetStringAsync($"/setor/{slug}/documentos");
+		var pagina = await client.GetStringAsync($"/{slug}/documentos");
 		var link = Regex.Match(pagina, @"/[Dd]ocumentos/([0-9a-fA-F-]{36})/[Dd]ownload");
 
 		link.Success.Should().BeTrue("o documento publicado precisa aparecer na listagem com link de download");
@@ -169,20 +169,20 @@ public class DocumentoFluxoTests(IntranetWebFactory factory) : IClassFixture<Int
 		await CriarSetorAsync(client, "Setor de Teste", slug);
 		await PublicarAsync(client, slug, "Política interna", ConteudoPdf);
 
-		var pagina = await client.GetStringAsync($"/setor/{slug}/documentos");
+		var pagina = await client.GetStringAsync($"/{slug}/documentos");
 		var id = Regex.Match(pagina, @"/[Dd]ocumentos/([0-9a-fA-F-]{36})/[Dd]ownload").Groups[1].Value;
 
 		id.Should().NotBeEmpty();
 
-		var token = await TokenAntiFalsificacaoAsync(client, $"/setor/{slug}/documentos");
+		var token = await TokenAntiFalsificacaoAsync(client, $"/{slug}/documentos");
 
 		var resposta = await client.PostAsync(
-			$"/setor/{slug}/documentos/{id}/arquivar",
+			$"/{slug}/documentos/{id}/arquivar",
 			new FormUrlEncodedContent([new KeyValuePair<string, string>("__RequestVerificationToken", token)]));
 
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK, "arquivar redireciona de volta para a aba");
 
-		var depois = await client.GetStringAsync($"/setor/{slug}/documentos");
+		var depois = await client.GetStringAsync($"/{slug}/documentos");
 
 		depois.Should().NotContain(id, "o documento arquivado sai da listagem");
 		depois.Should().Contain("sc-empty", "sem documentos ativos, a aba mostra o estado vazio");

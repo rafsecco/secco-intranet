@@ -162,7 +162,7 @@ public class CriarItemMenuHandlerTests
 		repo.Itens.Should().ContainSingle("só a raiz — nada foi criado");
 	}
 
-	// O slug vira segmento de URL (/setor/x/{slug}); com barra, espaço ou maiúscula o item
+	// O slug vira segmento de URL (/x/{slug}); com barra, espaço ou maiúscula o item
 	// ficaria inalcançável pela resolução de caminho.
 	[Theory]
 	[InlineData("com/barra")]

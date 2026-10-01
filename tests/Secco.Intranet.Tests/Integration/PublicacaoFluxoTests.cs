@@ -52,9 +52,9 @@ public class PublicacaoFluxoTests(IntranetWebFactory factory) : IClassFixture<In
 
 	private static async Task PublicarAsync(HttpClient client, string slug, string titulo, DateTime publicadoEm)
 	{
-		var token = await TokenAsync(client, $"/setor/{slug}/avisos");
+		var token = await TokenAsync(client, $"/{slug}/avisos");
 
-		var resposta = await client.PostAsync($"/setor/{slug}/avisos", new FormUrlEncodedContent(
+		var resposta = await client.PostAsync($"/{slug}/avisos", new FormUrlEncodedContent(
 		[
 			new KeyValuePair<string, string>("Form.Titulo", titulo),
 			new KeyValuePair<string, string>("Form.Corpo", "Corpo em **markdown**."),
@@ -96,7 +96,7 @@ public class PublicacaoFluxoTests(IntranetWebFactory factory) : IClassFixture<In
 
 		(await client.GetStringAsync("/")).Should().NotContain(titulo);
 
-		var aba = await client.GetStringAsync($"/setor/{slug}/avisos");
+		var aba = await client.GetStringAsync($"/{slug}/avisos");
 		aba.Should().Contain(titulo, "quem administra precisa ver a agendada para poder editá-la");
 		aba.Should().Contain("Agendada");
 	}
@@ -111,13 +111,13 @@ public class PublicacaoFluxoTests(IntranetWebFactory factory) : IClassFixture<In
 		await CriarSetorAsync(client, slug);
 		await PublicarAsync(client, slug, titulo, DateTime.Now.AddMinutes(-5));
 
-		var aba = await client.GetStringAsync($"/setor/{slug}/avisos");
+		var aba = await client.GetStringAsync($"/{slug}/avisos");
 		var id = Regex.Match(aba, @"/avisos/([0-9a-fA-F-]{36})/arquivar").Groups[1].Value;
 		id.Should().NotBeEmpty();
 
-		var token = await TokenAsync(client, $"/setor/{slug}/avisos");
+		var token = await TokenAsync(client, $"/{slug}/avisos");
 		var resposta = await client.PostAsync(
-			$"/setor/{slug}/avisos/{id}/arquivar",
+			$"/{slug}/avisos/{id}/arquivar",
 			new FormUrlEncodedContent([new KeyValuePair<string, string>("__RequestVerificationToken", token)]));
 
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK);

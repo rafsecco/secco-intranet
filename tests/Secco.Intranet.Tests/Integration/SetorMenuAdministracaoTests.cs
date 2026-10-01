@@ -94,13 +94,8 @@ public class SetorMenuAdministracaoTests(IntranetWebFactory factory) : IClassFix
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
 		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be($"/Setores/Menu/{setorId}");
 
-		// Sem rota, o item personalizado abre a página "sem conteúdo ainda".
-		var pagina = WebUtility.HtmlDecode(await client.GetStringAsync($"/setor/{slug}/relatorios"));
-		pagina.Should().Contain("Sem conteúdo ainda");
-
-		// E entra na barra de abas dos irmãos.
-		var documentos = await client.GetStringAsync($"/setor/{slug}/documentos");
-		documentos.Should().Contain($"href=\"/setor/{slug}/relatorios\"");
+		// Sem rota e sem filhos, o item só agrupa: não há página para ele.
+		(await client.GetAsync($"/{slug}/relatorios")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
 		// Excluir é irreversível: o formulário do item pede confirmação (theme.js).
 		var menu = await client.GetStringAsync($"/Setores/Menu/{setorId}");
@@ -133,7 +128,7 @@ public class SetorMenuAdministracaoTests(IntranetWebFactory factory) : IClassFix
 			new KeyValuePair<string, string>("__RequestVerificationToken", token),
 		]));
 
-		(await client.GetAsync($"/setor/{slug}/documentos")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+		(await client.GetAsync($"/{slug}/documentos")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 	}
 
 	[Fact]

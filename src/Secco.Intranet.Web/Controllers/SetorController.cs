@@ -17,10 +17,10 @@ using Secco.SharedKernel.Pagination;
 namespace Secco.Intranet.Web.Controllers;
 
 /// <summary>
-/// Página de um setor. O que aparece nela vem da árvore de itens de menu do setor
-/// (<c>ItemMenu</c>): nó com filhos redireciona para o primeiro filho ativo, folha renderiza
-/// pelo tipo. Separada de <c>SetoresController</c>, que é a administração do cadastro: aqui é
-/// onde quem pertence ao setor trabalha.
+/// Página de um item da árvore de menu de um setor, em <c>/{setor}/{item}/…</c> na raiz da URL —
+/// as rotas fixas do produto vencem por precedência, e <c>SlugsReservados</c> impede setor com o
+/// nome delas. O menu principal é quem navega a árvore; aqui só se resolve o nó pelo tipo.
+/// Separada de <c>SetoresController</c>, que é a administração do cadastro.
 /// </summary>
 /// <param name="getSetorHandler">Leitura do setor pelo slug.</param>
 /// <param name="listarHandler">Listagem de documentos do setor.</param>
@@ -35,7 +35,7 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="searchSetores">Busca de setores, para saber o universo de slugs a checar.</param>
 /// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura/escrita (ADR-0021).</param>
 /// <param name="resolverCaminho">Resolução de caminho na árvore de itens de menu do setor.</param>
-[Route("setor/{slug}")]
+[Route("{slug:" + SlugDeSetorRouteConstraint.Nome + "}")]
 public sealed class SetorController(
 	GetSetorBySlugHandler getSetorHandler,
 	ListarDocumentosHandler listarHandler,
@@ -54,8 +54,7 @@ public sealed class SetorController(
 	private const int LimiteSetoresConsultados = 200;
 
 	/// <summary>
-	/// Qualquer nó da árvore do setor: nó com filhos redireciona para o primeiro filho ativo;
-	/// folha renderiza pelo tipo.
+	/// Qualquer nó da árvore do setor: renderiza pelo tipo; nó que só agrupa responde 404.
 	/// </summary>
 	/// <param name="slug">Slug do setor.</param>
 	/// <param name="caminho">Slugs da árvore separados por barra; vazio é a raiz.</param>
@@ -82,11 +81,6 @@ public sealed class SetorController(
 			return NotFound();
 		}
 
-		if (resolvido.Value.PrimeiroFilhoAtivo is { } primeiroFilho)
-		{
-			return RedirectToAction(nameof(Resolver), new { slug, caminho = string.Join('/', [.. segmentos, primeiroFilho.Slug]) });
-		}
-
 		var no = resolvido.Value.No;
 
 		return no.Tipo switch
@@ -99,9 +93,8 @@ public sealed class SetorController(
 				await MontarAvisosAsync(setor.Value, resolvido.Value, new PublicacaoFormViewModel(), cancellationToken).ConfigureAwait(false)),
 			// Rota validada na criação do item: caminho local ou http(s) absoluto.
 			TipoDeItemMenu.Personalizado when !string.IsNullOrWhiteSpace(no.Rota) => Redirect(no.Rota),
-			TipoDeItemMenu.Personalizado => View("SemConteudo", setor.Value),
-			// Raiz sem nenhum filho ativo: setor criado sem recursos, ou todos desligados.
-			_ => View("SemItens", setor.Value),
+			// A raiz e o Personalizado sem rota só agrupam: o menu não oferece link para eles.
+			_ => NotFound(),
 		};
 	}
 
@@ -374,20 +367,9 @@ public sealed class SetorController(
 	private RedirectToActionResult VoltarPara(string slug, ResultadoDaResolucao resolucao) =>
 		RedirectToAction(nameof(Resolver), new { slug, caminho = string.Join('/', resolucao.CaminhoCompleto) });
 
-	/// <summary>Abas = irmãos ativos do nó; a URL de cada um é o caminho do pai + o slug dele.</summary>
-	private List<ItemMenuAbaDto> MontarAbas(string slug, ResultadoDaResolucao resolucao)
-	{
-		var caminhoDoPai = resolucao.CaminhoCompleto.Take(resolucao.CaminhoCompleto.Count - 1).ToList();
-
-		return
-		[
-			.. resolucao.Irmaos.Select(irmao => new ItemMenuAbaDto(
-				irmao.Nome,
-				irmao.Icone,
-				Url.Action(nameof(Resolver), new { slug, caminho = string.Join('/', [.. caminhoDoPai, irmao.Slug]) })!,
-				irmao.Id == resolucao.No.Id)),
-		];
-	}
+	/// <summary>"Financeiro › Relatórios": o setor e os ancestrais do nó, para o subtítulo da página.</summary>
+	private static string Trilho(SetorDto setor, ResultadoDaResolucao resolucao) =>
+		string.Join(" › ", [setor.Nome, .. resolucao.Ancestrais.Select(ancestral => ancestral.Nome)]);
 
 	private async Task<SetorDocumentosViewModel> MontarDocumentosAsync(
 		SetorDto setor, ResultadoDaResolucao resolucao, DocumentoFormViewModel form, CancellationToken cancellationToken)
@@ -402,7 +384,8 @@ public sealed class SetorController(
 			await PodePublicarAsync(setor.Slug, cancellationToken).ConfigureAwait(false),
 			form,
 			documentoOptions.TamanhoMaximoBytes,
-			MontarAbas(setor.Slug, resolucao));
+			resolucao.No.Nome,
+			Trilho(setor, resolucao));
 	}
 
 	private async Task<SetorAvisosViewModel> MontarAvisosAsync(
@@ -418,7 +401,8 @@ public sealed class SetorController(
 			await PodePublicarAsync(setor.Slug, cancellationToken).ConfigureAwait(false),
 			form,
 			DateTimeOffset.UtcNow,
-			MontarAbas(setor.Slug, resolucao));
+			resolucao.No.Nome,
+			Trilho(setor, resolucao));
 	}
 
 	/// <summary>

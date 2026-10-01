@@ -13,8 +13,9 @@ using Xunit;
 namespace Secco.Intranet.Tests.Integration;
 
 /// <summary>
-/// A árvore de itens de menu substitui as duas abas fixas de /setor/{slug}. Cada teste cria o
-/// próprio setor com slug sufixado por GUID — não existe setor fixo na fixture.
+/// A página do setor mora na raiz: /{setor}/{item}/…, sem prefixo, sem abas e sem
+/// redirecionamento — quem navega pela árvore é o menu principal. Cada teste cria o próprio
+/// setor com slug sufixado por GUID — não existe setor fixo na fixture.
 /// </summary>
 /// <remarks>
 /// Sem teste de "usuário sem setor-{slug}:read recebe 404": PodeLerAsync tem o mesmo bypass de
@@ -82,58 +83,77 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 	}
 
 	[Fact]
-	public async Task CaminhoVazio_RedirecionaParaOPrimeiroFilhoAtivo()
+	public async Task Documentos_AbreNaRaiz_SemAbas()
 	{
 		var slug = await CriarSetorAsync();
 
-		var resposta = await CriarCliente().GetAsync($"/setor/{slug}");
+		var html = await CriarCliente().GetStringAsync($"/{slug}/documentos");
 
-		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be($"/setor/{slug}/avisos",
-			"Avisos vem antes de Documentos em ordem alfabética (Task 7)");
+		html.Should().Contain($"action=\"/{slug}/documentos\"", "o formulário de publicação posta na rota nova");
+		// A ausência das abas é garantida pela remoção da partial (grep do Step 9): checar
+		// href aqui quebraria na Task 5, quando o próprio menu passa a ter o link de Avisos.
 	}
 
 	[Fact]
-	public async Task Documentos_ContinuaNaMesmaUrl_ComAbaDinamica()
+	public async Task RaizDoSetor_Da404_PorqueSoAgrupa()
 	{
 		var slug = await CriarSetorAsync();
 
-		var html = await CriarCliente().GetStringAsync($"/setor/{slug}/documentos");
-
-		html.Should().Contain($"href=\"/setor/{slug}/avisos\"", "a aba de Avisos vem da árvore, não mais de um link fixo");
+		(await CriarCliente().GetAsync($"/{slug}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 	}
 
 	[Fact]
-	public async Task SetorSemNenhumItemAtivo_MostraOEstadoVazio()
+	public async Task PrefixoAntigo_Da404()
 	{
-		var slug = await CriarSetorAsync(habilitarDocumentos: false, habilitarAvisos: false);
+		var slug = await CriarSetorAsync();
 
-		var resposta = await CriarCliente().GetAsync($"/setor/{slug}");
-
-		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-		(await resposta.Content.ReadAsStringAsync()).Should().Contain("Nenhum item ainda");
+		(await CriarCliente().GetAsync($"/setor/{slug}/documentos")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 	}
 
 	[Fact]
-	public async Task ItemDesativado_Da404_NoCaminhoQueAntesFuncionava()
+	public async Task ItemDesativado_Da404()
 	{
 		var slug = await CriarSetorAsync();
 		await DesativarAsync(slug, TipoDeItemMenu.Documentos);
 
-		var resposta = await CriarCliente().GetAsync($"/setor/{slug}/documentos");
-
-		resposta.StatusCode.Should().Be(HttpStatusCode.NotFound);
+		(await CriarCliente().GetAsync($"/{slug}/documentos")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 	}
 
 	[Fact]
-	public async Task ItemDesativado_SaiDaBarraDeAbasDosIrmaos()
+	public async Task SegmentoSemMatchNenhum_Da404()
 	{
 		var slug = await CriarSetorAsync();
-		await DesativarAsync(slug, TipoDeItemMenu.Documentos);
 
-		var html = await CriarCliente().GetStringAsync($"/setor/{slug}/avisos");
+		(await CriarCliente().GetAsync($"/{slug}/caminho-que-nao-existe")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+	}
 
-		html.Should().NotContain($"href=\"/setor/{slug}/documentos\"");
+	[Theory]
+	[InlineData("/nao-existe-setor-assim")]
+	[InlineData("/nao-existe/nem/isto")]
+	[InlineData("/favicon-inexistente.ico")]
+	public async Task CaminhoDesconhecidoNaRaiz_Da404_NaoErro(string caminho) =>
+		(await CriarCliente().GetAsync(caminho)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+	[Theory]
+	[InlineData("/Setores")]
+	[InlineData("/Acesso")]
+	[InlineData("/diretorio")]
+	[InlineData("/health/live")]
+	public async Task RotaFixa_ContinuaVencendoOSetor(string caminho)
+	{
+		var resposta = await CriarCliente("intranet-admin").GetAsync(caminho);
+
+		resposta.StatusCode.Should().NotBe(HttpStatusCode.NotFound, $"{caminho} é rota do produto, não setor");
+	}
+
+	[Fact]
+	public async Task Documentos_TrazOTrilhoDoSetorNoCabecalho()
+	{
+		var slug = await CriarSetorAsync();
+
+		var html = await CriarCliente().GetStringAsync($"/{slug}/documentos");
+
+		html.Should().Contain($"Setor {slug}", "o subtítulo mostra de que setor é a página");
 	}
 
 	[Fact]
@@ -143,12 +163,10 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 		await DesativarAsync(slug, TipoDeItemMenu.Avisos);
 		var client = CriarCliente();
 		// O token antifalsificação não é por ação: o da página de Documentos (ainda ligada) vale.
-		var token = await TokenAsync(client, $"/setor/{slug}/documentos");
+		var token = await TokenAsync(client, $"/{slug}/documentos");
 
-		var resposta = await client.PostAsync($"/setor/{slug}/avisos", new FormUrlEncodedContent(
+		var resposta = await client.PostAsync($"/{slug}/avisos", new FormUrlEncodedContent(
 		[
-			// Mesmo conjunto de PublicacaoFluxoTests.PublicarAsync: com Avisos ligado este POST
-			// publicaria — o 404 só pode vir do recurso desligado.
 			new KeyValuePair<string, string>("Form.Titulo", "Não deveria entrar"),
 			new KeyValuePair<string, string>("Form.Corpo", "Avisos está desligado neste setor."),
 			new KeyValuePair<string, string>("Form.Tipo", "0"),
@@ -158,17 +176,6 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 			new KeyValuePair<string, string>("__RequestVerificationToken", token),
 		]));
 
-		resposta.StatusCode.Should().Be(HttpStatusCode.NotFound,
-			"desligar o recurso precisa fechar a escrita também, não só esconder a aba");
-	}
-
-	[Fact]
-	public async Task SegmentoSemMatchNenhum_Da404()
-	{
-		var slug = await CriarSetorAsync();
-
-		var resposta = await CriarCliente().GetAsync($"/setor/{slug}/caminho-que-nao-existe");
-
-		resposta.StatusCode.Should().Be(HttpStatusCode.NotFound);
+		resposta.StatusCode.Should().Be(HttpStatusCode.NotFound, "desligar o recurso fecha a escrita também");
 	}
 }
