@@ -33,6 +33,24 @@ public static class VerbosDeAuditoria
 	/// <summary>Setor voltou a ativo.</summary>
 	public const string SetorReativar = "setor.reativar";
 
+	/// <summary>Item criado na árvore de menu de um setor.</summary>
+	public const string MenuItemCriar = "menu.item-criar";
+
+	/// <summary>Item da árvore reativado.</summary>
+	public const string MenuItemAtivar = "menu.item-ativar";
+
+	/// <summary>Item da árvore desativado — tira o item (e o recurso, se for Documentos/Avisos) do ar.</summary>
+	public const string MenuItemDesativar = "menu.item-desativar";
+
+	/// <summary>Item trocou de posição com um irmão.</summary>
+	public const string MenuItemMover = "menu.item-mover";
+
+	/// <summary>Item personalizado excluído — irreversível.</summary>
+	public const string MenuItemExcluir = "menu.item-excluir";
+
+	/// <summary>Reconciliação em lote das árvores de menu dos setores antigos.</summary>
+	public const string MenuReconciliar = "menu.reconciliar";
+
 	/// <summary>Item de inventário criado.</summary>
 	public const string InventarioCriar = "inventario.criar";
 
@@ -96,6 +114,9 @@ public static class RecursosDeAuditoria
 
 	/// <summary>Setor.</summary>
 	public const string Setor = "setor";
+
+	/// <summary>Item da árvore de menu de um setor.</summary>
+	public const string Menu = "menu";
 
 	/// <summary>Item de inventário.</summary>
 	public const string Inventario = "inventario";

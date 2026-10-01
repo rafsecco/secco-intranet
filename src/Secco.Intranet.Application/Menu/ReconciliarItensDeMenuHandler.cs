@@ -1,3 +1,4 @@
+using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Menu;
 using Secco.SharedKernel.Pagination;
@@ -11,7 +12,9 @@ namespace Secco.Intranet.Application.Menu;
 /// </summary>
 /// <param name="searchSetores">Busca dos setores do tenant.</param>
 /// <param name="repository">Persistência da árvore.</param>
-public sealed class ReconciliarItensDeMenuHandler(SearchSetoresHandler searchSetores, IItemMenuRepository repository)
+/// <param name="trilha">Trilha de auditoria.</param>
+public sealed class ReconciliarItensDeMenuHandler(
+	SearchSetoresHandler searchSetores, IItemMenuRepository repository, ITrilhaDeAuditoria trilha)
 {
 	// Mesmo tamanho de página de ReconciliarPermissoesHandler — e o mesmo laço: sem ele só a
 	// primeira página de setores seria reconciliada, em silêncio.
@@ -47,6 +50,11 @@ public sealed class ReconciliarItensDeMenuHandler(SearchSetoresHandler searchSet
 			pagina++;
 		}
 
+		if (alterados > 0)
+		{
+			await AuditoriaDeMenu.ReconciliacaoAsync(trilha, alterados, cancellationToken).ConfigureAwait(false);
+		}
+
 		return alterados;
 	}
 
@@ -65,8 +73,8 @@ public sealed class ReconciliarItensDeMenuHandler(SearchSetoresHandler searchSet
 		}
 
 		// Documentos antes de Avisos, de propósito (diferente da criação, que é alfabética):
-		// estes setores já existem, e hoje /setor/{slug} abre em Documentos — reconciliar não
-		// deve mudar a página de entrada de ninguém. O admin reordena depois, se quiser.
+		// estes setores já existiam com Documentos como primeira entrada, e reconciliar não
+		// deve mudar a ordem que as pessoas já conhecem. O admin reordena depois, se quiser.
 		foreach (var (tipo, nome, slugDesejado) in new[]
 		{
 			(TipoDeItemMenu.Documentos, "Documentos", "documentos"),

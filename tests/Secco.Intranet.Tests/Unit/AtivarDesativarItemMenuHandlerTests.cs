@@ -17,7 +17,7 @@ public class AtivarDesativarItemMenuHandlerTests
 		var doc = new ItemMenu(raiz.SetorId, raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, null, 0);
 		repo.Itens.Add(raiz);
 		repo.Itens.Add(doc);
-		var handler = new AtivarDesativarItemMenuHandler(repo);
+		var handler = new AtivarDesativarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(doc.Id, ativar: false);
 
@@ -31,7 +31,7 @@ public class AtivarDesativarItemMenuHandlerTests
 		var repo = new ItemMenuRepositorioFalso();
 		var raiz = new ItemMenu(Guid.NewGuid(), null, "X", "x", TipoDeItemMenu.Setor, null, null, 0);
 		repo.Itens.Add(raiz);
-		var handler = new AtivarDesativarItemMenuHandler(repo);
+		var handler = new AtivarDesativarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(raiz.Id, ativar: false);
 
@@ -43,7 +43,7 @@ public class AtivarDesativarItemMenuHandlerTests
 	public async Task ItemInexistente_Recusa()
 	{
 		var repo = new ItemMenuRepositorioFalso();
-		var handler = new AtivarDesativarItemMenuHandler(repo);
+		var handler = new AtivarDesativarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(Guid.NewGuid(), ativar: true);
 

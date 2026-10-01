@@ -17,7 +17,7 @@ public class ExcluirItemMenuHandlerTests
 		var item = new ItemMenu(raiz.SetorId, raiz.Id, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado, null, null, 0);
 		repo.Itens.Add(raiz);
 		repo.Itens.Add(item);
-		var handler = new ExcluirItemMenuHandler(repo);
+		var handler = new ExcluirItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(item.Id);
 
@@ -35,7 +35,7 @@ public class ExcluirItemMenuHandlerTests
 		var relatorios = new ItemMenu(raiz.SetorId, raiz.Id, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado, null, null, 0);
 		var vendas = new ItemMenu(raiz.SetorId, relatorios.Id, "Vendas", "vendas", TipoDeItemMenu.Personalizado, "/x", null, 0);
 		repo.Itens.AddRange([raiz, relatorios, vendas]);
-		var handler = new ExcluirItemMenuHandler(repo);
+		var handler = new ExcluirItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(relatorios.Id);
 
@@ -51,7 +51,7 @@ public class ExcluirItemMenuHandlerTests
 		var doc = new ItemMenu(raiz.SetorId, raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, null, 0);
 		repo.Itens.Add(raiz);
 		repo.Itens.Add(doc);
-		var handler = new ExcluirItemMenuHandler(repo);
+		var handler = new ExcluirItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(doc.Id);
 
@@ -66,7 +66,7 @@ public class ExcluirItemMenuHandlerTests
 		var repo = new ItemMenuRepositorioFalso();
 		var raiz = new ItemMenu(Guid.NewGuid(), null, "X", "x", TipoDeItemMenu.Setor, null, null, 0);
 		repo.Itens.Add(raiz);
-		var handler = new ExcluirItemMenuHandler(repo);
+		var handler = new ExcluirItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(raiz.Id);
 

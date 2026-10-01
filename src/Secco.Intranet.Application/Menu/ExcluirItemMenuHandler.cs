@@ -1,3 +1,4 @@
+using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Domain.Menu;
 using Secco.SharedKernel.Results;
 
@@ -5,7 +6,8 @@ namespace Secco.Intranet.Application.Menu;
 
 /// <summary>Exclui um item — só <see cref="TipoDeItemMenu.Personalizado"/> se exclui de verdade.</summary>
 /// <param name="repository">Persistência da árvore.</param>
-public sealed class ExcluirItemMenuHandler(IItemMenuRepository repository)
+/// <param name="trilha">Trilha de auditoria.</param>
+public sealed class ExcluirItemMenuHandler(IItemMenuRepository repository, ITrilhaDeAuditoria trilha)
 {
 	/// <summary>Executa o caso de uso.</summary>
 	/// <param name="id">Item a excluir.</param>
@@ -38,6 +40,11 @@ public sealed class ExcluirItemMenuHandler(IItemMenuRepository repository)
 		}
 
 		await repository.ExcluirAsync(id, cancellationToken).ConfigureAwait(false);
+
+		await AuditoriaDeMenu.ItemAsync(
+			trilha, VerbosDeAuditoria.MenuItemExcluir, item,
+			new { setorId = item.SetorId, nome = item.Nome, slug = item.Slug, rota = item.Rota },
+			cancellationToken).ConfigureAwait(false);
 
 		return Result.Success();
 	}

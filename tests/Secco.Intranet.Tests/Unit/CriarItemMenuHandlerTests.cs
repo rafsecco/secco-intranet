@@ -24,7 +24,7 @@ public class CriarItemMenuHandlerTests
 	{
 		var repo = new ItemMenuRepositorioFalso();
 		var raiz = CriarRaiz(repo);
-		var handler = new CriarItemMenuHandler(repo);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(
 			new CriarItemMenuCommand(SetorId, raiz.Id, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado, null, null));
@@ -39,7 +39,7 @@ public class CriarItemMenuHandlerTests
 	{
 		var repo = new ItemMenuRepositorioFalso();
 		var raiz = CriarRaiz(repo);
-		var handler = new CriarItemMenuHandler(repo);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(
 			new CriarItemMenuCommand(SetorId, raiz.Id, "", "slug", TipoDeItemMenu.Personalizado, null, null));
@@ -54,7 +54,7 @@ public class CriarItemMenuHandlerTests
 		var repo = new ItemMenuRepositorioFalso();
 		var raiz = CriarRaiz(repo);
 		repo.Itens.Add(new ItemMenu(SetorId, raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, null, 0));
-		var handler = new CriarItemMenuHandler(repo);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(
 			new CriarItemMenuCommand(SetorId, raiz.Id, "Documentos 2", "documentos-2", TipoDeItemMenu.Documentos, null, null));
@@ -69,7 +69,7 @@ public class CriarItemMenuHandlerTests
 		var repo = new ItemMenuRepositorioFalso();
 		var raiz = CriarRaiz(repo);
 		repo.Itens.Add(new ItemMenu(SetorId, raiz.Id, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado, null, null, 0));
-		var handler = new CriarItemMenuHandler(repo);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(
 			new CriarItemMenuCommand(SetorId, raiz.Id, "Outro", "relatorios", TipoDeItemMenu.Personalizado, null, null));
@@ -86,7 +86,7 @@ public class CriarItemMenuHandlerTests
 		var relatorios = new ItemMenu(SetorId, raiz.Id, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado, null, null, 0);
 		repo.Itens.Add(relatorios);
 		repo.Itens.Add(new ItemMenu(SetorId, relatorios.Id, "Vendas", "vendas", TipoDeItemMenu.Personalizado, null, null, 0));
-		var handler = new CriarItemMenuHandler(repo);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		// "vendas" já existe debaixo de Relatórios, mas nasce solto (debaixo da raiz) sem problema.
 		var resultado = await handler.HandleAsync(
@@ -101,7 +101,7 @@ public class CriarItemMenuHandlerTests
 		var repo = new ItemMenuRepositorioFalso();
 		var raizDeOutroSetor = new ItemMenu(Guid.NewGuid(), null, "Y", "y", TipoDeItemMenu.Setor, null, null, 0);
 		repo.Itens.Add(raizDeOutroSetor);
-		var handler = new CriarItemMenuHandler(repo);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(
 			new CriarItemMenuCommand(SetorId, raizDeOutroSetor.Id, "Nome", "slug", TipoDeItemMenu.Personalizado, null, null));
@@ -121,7 +121,7 @@ public class CriarItemMenuHandlerTests
 		var raiz = CriarRaiz(repo);
 		var pai = new ItemMenu(SetorId, raiz.Id, "Recurso", "recurso", tipoDoPai, null, null, 0);
 		repo.Itens.Add(pai);
-		var handler = new CriarItemMenuHandler(repo);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(
 			new CriarItemMenuCommand(SetorId, pai.Id, "Filho", "filho", TipoDeItemMenu.Personalizado, null, null));
@@ -136,7 +136,7 @@ public class CriarItemMenuHandlerTests
 		var raiz = CriarRaiz(repo);
 		var relatorios = new ItemMenu(SetorId, raiz.Id, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado, null, null, 0);
 		repo.Itens.Add(relatorios);
-		var handler = new CriarItemMenuHandler(repo);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(
 			new CriarItemMenuCommand(SetorId, relatorios.Id, "Vendas", "vendas", TipoDeItemMenu.Personalizado, null, null));
@@ -153,7 +153,7 @@ public class CriarItemMenuHandlerTests
 	{
 		var repo = new ItemMenuRepositorioFalso();
 		var raiz = CriarRaiz(repo);
-		var handler = new CriarItemMenuHandler(repo);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(
 			new CriarItemMenuCommand(SetorId, raiz.Id, "Nome", "slug", tipo, null, null));
@@ -173,7 +173,7 @@ public class CriarItemMenuHandlerTests
 	{
 		var repo = new ItemMenuRepositorioFalso();
 		var raiz = CriarRaiz(repo);
-		var handler = new CriarItemMenuHandler(repo);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(
 			new CriarItemMenuCommand(SetorId, raiz.Id, "Nome", slug, TipoDeItemMenu.Personalizado, null, null));
@@ -186,7 +186,7 @@ public class CriarItemMenuHandlerTests
 	{
 		var repo = new ItemMenuRepositorioFalso();
 		var raiz = CriarRaiz(repo);
-		var handler = new CriarItemMenuHandler(repo);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(
 			new CriarItemMenuCommand(SetorId, raiz.Id, "Nome", "Relatorios-2026", TipoDeItemMenu.Personalizado, null, null));
@@ -199,7 +199,7 @@ public class CriarItemMenuHandlerTests
 	{
 		var repo = new ItemMenuRepositorioFalso();
 		var raiz = CriarRaiz(repo);
-		var handler = new CriarItemMenuHandler(repo);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(
 			new CriarItemMenuCommand(SetorId, raiz.Id, new string('x', 257), "slug", TipoDeItemMenu.Personalizado, null, null));
@@ -221,7 +221,7 @@ public class CriarItemMenuHandlerTests
 	{
 		var repo = new ItemMenuRepositorioFalso();
 		var raiz = CriarRaiz(repo);
-		var handler = new CriarItemMenuHandler(repo);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(
 			new CriarItemMenuCommand(SetorId, raiz.Id, "Nome", "slug", TipoDeItemMenu.Personalizado, rota, null));
@@ -239,7 +239,7 @@ public class CriarItemMenuHandlerTests
 	{
 		var repo = new ItemMenuRepositorioFalso();
 		var raiz = CriarRaiz(repo);
-		var handler = new CriarItemMenuHandler(repo);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(
 			new CriarItemMenuCommand(SetorId, raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos, "/qualquer", null));

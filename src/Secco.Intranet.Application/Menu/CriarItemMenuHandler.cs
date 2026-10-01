@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Domain.Menu;
 using Secco.SharedKernel.Results;
 
@@ -6,7 +7,8 @@ namespace Secco.Intranet.Application.Menu;
 
 /// <summary>Cria um item na árvore de um setor.</summary>
 /// <param name="repository">Persistência da árvore.</param>
-public sealed class CriarItemMenuHandler(IItemMenuRepository repository)
+/// <param name="trilha">Trilha de auditoria.</param>
+public sealed class CriarItemMenuHandler(IItemMenuRepository repository, ITrilhaDeAuditoria trilha)
 {
 	// Limites = HasMaxLength de ItemMenuConfiguration (Task 2). Validar aqui é o que
 	// transforma "estourou a coluna" (500) em Result de validação (ADR-0004).
@@ -110,6 +112,11 @@ public sealed class CriarItemMenuHandler(IItemMenuRepository repository)
 			rota, command.Icone, proximaOrdem);
 
 		await repository.AddAsync(item, cancellationToken).ConfigureAwait(false);
+
+		await AuditoriaDeMenu.ItemAsync(
+			trilha, VerbosDeAuditoria.MenuItemCriar, item,
+			new { setorId = item.SetorId, parentId = item.ParentId, nome = item.Nome, slug = item.Slug, tipo = item.Tipo.ToString(), rota = item.Rota },
+			cancellationToken).ConfigureAwait(false);
 
 		return ItemMenuDto.FromEntity(item);
 	}

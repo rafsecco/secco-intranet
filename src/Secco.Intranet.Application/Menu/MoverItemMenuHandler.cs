@@ -1,10 +1,12 @@
+using Secco.Intranet.Application.Auditoria;
 using Secco.SharedKernel.Results;
 
 namespace Secco.Intranet.Application.Menu;
 
 /// <summary>Troca a posição de um item com o irmão adjacente.</summary>
 /// <param name="repository">Persistência da árvore.</param>
-public sealed class MoverItemMenuHandler(IItemMenuRepository repository)
+/// <param name="trilha">Trilha de auditoria.</param>
+public sealed class MoverItemMenuHandler(IItemMenuRepository repository, ITrilhaDeAuditoria trilha)
 {
 	/// <summary>Executa o caso de uso. Mover o primeiro para cima (ou o último para baixo) não faz nada — sucesso, sem efeito.</summary>
 	/// <param name="id">Item a mover.</param>
@@ -45,6 +47,11 @@ public sealed class MoverItemMenuHandler(IItemMenuRepository repository)
 		}
 
 		await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+		await AuditoriaDeMenu.ItemAsync(
+			trilha, VerbosDeAuditoria.MenuItemMover, item,
+			new { setorId = item.SetorId, nome = item.Nome, de = indice, para = indiceDoVizinho },
+			cancellationToken).ConfigureAwait(false);
 
 		return Result.Success();
 	}

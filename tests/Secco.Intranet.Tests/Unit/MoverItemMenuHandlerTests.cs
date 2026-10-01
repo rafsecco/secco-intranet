@@ -27,7 +27,7 @@ public class MoverItemMenuHandlerTests
 	public async Task MoverParaCima_TrocaComOAnterior()
 	{
 		var (repo, a, b, _) = CenarioComTresIrmaos();
-		var handler = new MoverItemMenuHandler(repo);
+		var handler = new MoverItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(b.Id, paraCima: true);
 
@@ -40,7 +40,7 @@ public class MoverItemMenuHandlerTests
 	public async Task MoverParaBaixo_TrocaComOProximo()
 	{
 		var (repo, _, b, c) = CenarioComTresIrmaos();
-		var handler = new MoverItemMenuHandler(repo);
+		var handler = new MoverItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(b.Id, paraCima: false);
 
@@ -53,7 +53,7 @@ public class MoverItemMenuHandlerTests
 	public async Task MoverOPrimeiroParaCima_NaoFazNada()
 	{
 		var (repo, a, _, _) = CenarioComTresIrmaos();
-		var handler = new MoverItemMenuHandler(repo);
+		var handler = new MoverItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(a.Id, paraCima: true);
 
@@ -65,7 +65,7 @@ public class MoverItemMenuHandlerTests
 	public async Task MoverOUltimoParaBaixo_NaoFazNada()
 	{
 		var (repo, _, _, c) = CenarioComTresIrmaos();
-		var handler = new MoverItemMenuHandler(repo);
+		var handler = new MoverItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
 
 		var resultado = await handler.HandleAsync(c.Id, paraCima: false);
 
@@ -84,7 +84,7 @@ public class MoverItemMenuHandlerTests
 		var d = new ItemMenu(raiz.SetorId, raiz.Id, "D", "d", TipoDeItemMenu.Personalizado, null, null, 7);
 		repo.Itens.AddRange([raiz, a, b, c, d]);
 
-		await new MoverItemMenuHandler(repo).HandleAsync(d.Id, paraCima: true);
+		await new MoverItemMenuHandler(repo, new TrilhaDeAcessoFalsa()).HandleAsync(d.Id, paraCima: true);
 
 		repo.Itens.Where(i => i.ParentId == raiz.Id).OrderBy(i => i.Ordem).Select(i => i.Nome)
 			.Should().Equal("A", "B", "D", "C");

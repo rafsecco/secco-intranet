@@ -1,4 +1,5 @@
 using AwesomeAssertions;
+using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Menu;
@@ -40,7 +41,7 @@ public class ReconciliarItensDeMenuHandlerTests
 	{
 		var setores = new FakeSetorRepository().Com("financeiro");
 		var itens = new ItemMenuRepositorioFalso();
-		var handler = new ReconciliarItensDeMenuHandler(new SearchSetoresHandler(setores), itens);
+		var handler = new ReconciliarItensDeMenuHandler(new SearchSetoresHandler(setores), itens, new TrilhaDeAcessoFalsa());
 
 		var quantos = await handler.HandleAsync();
 
@@ -60,7 +61,7 @@ public class ReconciliarItensDeMenuHandlerTests
 		var raiz = new ItemMenu(setorId, null, "ti", "ti", TipoDeItemMenu.Setor, null, null, 0);
 		itens.Itens.Add(raiz);
 		itens.Itens.Add(new ItemMenu(setorId, raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, null, 0));
-		var handler = new ReconciliarItensDeMenuHandler(new SearchSetoresHandler(setores), itens);
+		var handler = new ReconciliarItensDeMenuHandler(new SearchSetoresHandler(setores), itens, new TrilhaDeAcessoFalsa());
 
 		await handler.HandleAsync();
 
@@ -74,7 +75,7 @@ public class ReconciliarItensDeMenuHandlerTests
 	{
 		var setores = new FakeSetorRepository().Com("rh");
 		var itens = new ItemMenuRepositorioFalso();
-		var handler = new ReconciliarItensDeMenuHandler(new SearchSetoresHandler(setores), itens);
+		var handler = new ReconciliarItensDeMenuHandler(new SearchSetoresHandler(setores), itens, new TrilhaDeAcessoFalsa());
 
 		await handler.HandleAsync();
 		await handler.HandleAsync();
@@ -92,10 +93,37 @@ public class ReconciliarItensDeMenuHandlerTests
 		var raiz = new ItemMenu(setorId, null, "rh", "rh", TipoDeItemMenu.Setor, null, null, 0);
 		itens.Itens.Add(raiz);
 		itens.Itens.Add(new ItemMenu(setorId, raiz.Id, "Documentos antigos", "documentos", TipoDeItemMenu.Personalizado, "/x", null, 0));
-		var handler = new ReconciliarItensDeMenuHandler(new SearchSetoresHandler(setores), itens);
+		var handler = new ReconciliarItensDeMenuHandler(new SearchSetoresHandler(setores), itens, new TrilhaDeAcessoFalsa());
 
 		await handler.HandleAsync();
 
 		itens.Itens.Single(i => i.SetorId == setorId && i.Tipo == TipoDeItemMenu.Documentos).Slug.Should().Be("documentos-2");
+	}
+
+	[Fact]
+	public async Task Reconciliar_QueCriouAlgo_RegistraUmaVez()
+	{
+		var setores = new FakeSetorRepository().Com("financeiro").Com("ti");
+		var trilha = new TrilhaDeAcessoFalsa();
+		var handler = new ReconciliarItensDeMenuHandler(new SearchSetoresHandler(setores), new ItemMenuRepositorioFalso(), trilha);
+
+		await handler.HandleAsync();
+
+		var registro = trilha.Registros.Should().ContainSingle().Subject;
+		registro.Verbo.Should().Be(VerbosDeAuditoria.MenuReconciliar);
+		registro.RecursoId.Should().Be("reconciliacao");
+		registro.Metadata.Should().Contain("\"setores\":2");
+	}
+
+	[Fact]
+	public async Task Reconciliar_SemNadaAFazer_NaoRegistra()
+	{
+		var trilha = new TrilhaDeAcessoFalsa();
+		var handler = new ReconciliarItensDeMenuHandler(
+			new SearchSetoresHandler(new FakeSetorRepository()), new ItemMenuRepositorioFalso(), trilha);
+
+		(await handler.HandleAsync()).Should().Be(0);
+
+		trilha.Registros.Should().BeEmpty();
 	}
 }
