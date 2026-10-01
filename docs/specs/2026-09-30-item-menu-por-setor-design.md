@@ -2,6 +2,7 @@
 
 **Data:** 2026-09-30
 **Estado:** rascunho, aguardando revisão
+**Revisada por:** [2026-10-01-menu-principal-arvore-dos-setores-design.md](2026-10-01-menu-principal-arvore-dos-setores-design.md) — a navegação (página do setor com abas, redirecionamento ao primeiro filho, prefixo `/setor/`) foi substituída; dados e administração continuam valendo.
 
 ## Problema
 

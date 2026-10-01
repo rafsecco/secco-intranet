@@ -101,9 +101,10 @@ processos (maior risco técnico) só entra com a base já sólida.
       envolvidos quando uma etapa inicia
 - [ ] Onboarding de novo colaborador implementado como um processo (caso de teste real)
 - [ ] Notificação ao usuário, ao abrir a intranet, de processos pendentes para ele
-- [ ] `ItemMenu` além da página do setor — a tabela autorrecursiva e a tela de montagem já
-      existem **dentro** de cada setor (ver Fase 1); falta, se um dia for preciso, o topo do menu
-      (Mural, Diretório, Inventário, a lista de setores) vir da mesma árvore
+- [ ] `ItemMenu` além dos setores — a seção Setores do menu principal já vem da árvore de cada
+      setor (setor = nível 0, submenus flutuantes, URL `/{setor}/{item}/…` —
+      [spec](specs/2026-10-01-menu-principal-arvore-dos-setores-design.md)); falta, se um dia
+      fizer sentido, os itens fixos (Mural, Diretório, Inventário, Administração) virarem nós
 - [x] Área administrativa de acesso, primeiro corte: perfis e usuários do próprio tenant,
       exclusiva do `intranet-admin`, com testes de autorização em toda rota —
       [spec](specs/2026-09-23-area-administrativa-acesso-design.md). Entregue: só o

@@ -1,4 +1,71 @@
 @model NavigationModel
+@{
+    var sequencia = 0;
+
+    // Um nó e, recursivamente, os filhos. Com Url é link; sem Url só agrupa e vira botão — o
+    // leitor de tela anuncia "expansível", não "link". Ativo marca o caminho todo; aria-current
+    // fica só na página atual (ativo sem filho ativo). Sem JS os submenus aparecem abertos e
+    // recuados; o theme.js é quem os transforma em painéis flutuantes.
+    void Renderizar(NavigationItemModel item, int nivel)
+    {
+        var filhos = item.Filhos ?? [];
+        var temFilhos = filhos.Count > 0;
+        var atual = item.Ativo && !filhos.Any(filho => filho.Ativo);
+        var temSetor = nivel == 0 && !string.IsNullOrWhiteSpace(item.SetorSlug);
+        string? estilo = temSetor ? $"--sc-setor-hue:{SetorHue.From(item.SetorSlug)}" : null;
+        string? painel = temFilhos ? $"sc-nav-sub-{++sequencia}" : null;
+        var classe = item.Ativo ? "sc-nav__item is-active" : "sc-nav__item";
+
+        <li class="@(temFilhos ? "sc-nav__node" : null)">
+            @if (item.Url is null)
+            {
+                @* O title cobre a barra recolhida, onde o rótulo some e sobra só o ícone. *@
+                <button class="@classe sc-nav__item--grupo" type="button" style="@estilo" title="@item.Texto"
+                        data-sc-submenu aria-controls="@painel" aria-expanded="false" aria-haspopup="true">
+                    @if (!string.IsNullOrWhiteSpace(item.Icone))
+                    {
+                        <i class="bi @item.Icone sc-nav__icon @(temSetor ? "sc-nav__icon--setor" : null)" aria-hidden="true"></i>
+                    }
+                    <span class="sc-nav__label">@item.Texto</span>
+                    <i class="bi bi-chevron-right sc-nav__chevron" aria-hidden="true"></i>
+                </button>
+            }
+            else
+            {
+                <div class="sc-nav__row">
+                    <a class="@classe" href="@item.Url" style="@estilo" title="@item.Texto"
+                       aria-current="@(atual ? "page" : null)">
+                        @if (!string.IsNullOrWhiteSpace(item.Icone))
+                        {
+                            <i class="bi @item.Icone sc-nav__icon @(temSetor ? "sc-nav__icon--setor" : null)" aria-hidden="true"></i>
+                        }
+                        <span class="sc-nav__label">@item.Texto</span>
+                    </a>
+                    @if (temFilhos)
+                    {
+                        <button class="sc-nav__toggle" type="button" data-sc-submenu aria-controls="@painel"
+                                aria-expanded="false" aria-label="Abrir @item.Texto">
+                            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                        </button>
+                    }
+                </div>
+            }
+            @if (temFilhos)
+            {
+                <ul class="sc-nav__sub" id="@painel" data-nivel="@(nivel + 1)">
+                    @if (nivel == 0)
+                    {
+                        <li class="sc-nav__sub-title" aria-hidden="true">@item.Texto</li>
+                    }
+                    @foreach (var filho in filhos)
+                    {
+                        Renderizar(filho, nivel + 1);
+                    }
+                </ul>
+            }
+        </li>
+    }
+}
 <ul class="sc-nav">
     @foreach (var grupo in Model.Grupos)
     {
@@ -14,23 +81,7 @@
 
         foreach (var item in grupo.Itens)
         {
-            var temSetor = !string.IsNullOrWhiteSpace(item.SetorSlug);
-            string? estilo = temSetor ? $"--sc-setor-hue:{SetorHue.From(item.SetorSlug)}" : null;
-
-            <li>
-                @* O title cobre a barra recolhida, onde o rótulo some e sobra só o ícone ou o ponto. *@
-                <a class="sc-nav__item @(item.Ativo ? "is-active" : null)"
-                   href="@item.Url"
-                   style="@estilo"
-                   title="@item.Texto"
-                   aria-current="@(item.Ativo ? "page" : null)">
-                    @* O icone do setor herda o matiz dele: a cor continua dizendo de quem e
-                       o item, e o glifo passa a dizer o que e. *@
-                    <i class="bi @item.Icone sc-nav__icon @(temSetor ? "sc-nav__icon--setor" : null)"
-                       aria-hidden="true"></i>
-                    <span class="sc-nav__label">@item.Texto</span>
-                </a>
-            </li>
+            Renderizar(item, 0);
         }
     }
 </ul>

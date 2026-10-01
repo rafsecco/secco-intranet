@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Acesso;
+using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Navigation;
@@ -49,17 +50,44 @@ public sealed class NavigationViewComponent(
 		// respeitar a role, senão nenhum teste distingue quem vê o quê.
 		var modoAberto = AcessoAdministrativo.ModoAbertoDeDev(environment, configuration);
 
+		var setores = await CarregarSetoresAsync(HttpContext.User, autenticacaoAtiva).ConfigureAwait(false);
+
 		var request = new NavigationRequest(
-			await CarregarSetoresAsync(HttpContext.User, autenticacaoAtiva).ConfigureAwait(false),
+			setores,
 			HttpContext.Request.Path.Value ?? "/",
 			MostrarAdministracao: modoAberto || AcessoAdministrativo.SomenteIntranetAdmin(HttpContext.User),
 			MostrarDiretorio: modoAberto
 				|| await AcessoAoDiretorio.NivelAsync(authorizationService, HttpContext.User).ConfigureAwait(false) != NivelDeAcessoAoDiretorio.Nenhum,
 			MostrarInventario: modoAberto
 				|| AcessoAdministrativo.TemAcesso(HttpContext.User, AcessoAdministrativo.RoleInventarioAdmin)
-				|| (await authorizationService.AuthorizeAsync(HttpContext.User, IntranetPermissoes.Inventario.Read).ConfigureAwait(false)).Succeeded);
+				|| (await authorizationService.AuthorizeAsync(HttpContext.User, IntranetPermissoes.Inventario.Read).ConfigureAwait(false)).Succeeded,
+			Arvores: await CarregarArvoresAsync(setores).ConfigureAwait(false));
 
 		return View(IntranetNavigation.Build(request));
+	}
+
+	private async Task<IReadOnlyDictionary<Guid, IReadOnlyList<ItemMenuDto>>?> CarregarArvoresAsync(IReadOnlyList<SetorDto> setores)
+	{
+		// Sem setores (inclusive sem tenant resolvido) não há árvore a consultar.
+		if (setores.Count == 0)
+		{
+			return null;
+		}
+
+		try
+		{
+			return await serviceProvider
+				.GetRequiredService<ListarArvoresDosSetoresHandler>()
+				.HandleAsync([.. setores.Select(setor => setor.Id)], HttpContext.RequestAborted)
+				.ConfigureAwait(false);
+		}
+#pragma warning disable CA1031 // Mesmo motivo de CarregarSetoresAsync: o menu está no layout.
+		catch (Exception exception)
+#pragma warning restore CA1031
+		{
+			logger.LogWarning(exception, "Não foi possível carregar a árvore dos setores do menu; exibindo apenas os itens fixos.");
+			return null;
+		}
 	}
 
 	private async Task<IReadOnlyList<SetorDto>> CarregarSetoresAsync(

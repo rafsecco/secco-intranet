@@ -1,9 +1,12 @@
 using AwesomeAssertions;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Secco.Intranet;
+using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
+using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Web.Navigation;
 using Secco.Intranet.Web.Theming;
+using Secco.Intranet.Web.Theming.Contracts;
 using Xunit;
 
 namespace Secco.Intranet.Tests.Unit;
@@ -63,22 +66,6 @@ public class NavegacaoETemaTests
 	}
 
 	[Fact]
-	public void Build_NaPaginaDeUmSetor_MarcaAqueleItemComoAtivo()
-	{
-		var menu = IntranetNavigation.Build(new NavigationRequest(
-			[Setor("Financeiro", "financeiro"), Setor("Diretoria", "diretoria")],
-			"/setor/financeiro/documentos",
-			MostrarAdministracao: true,
-			MostrarDiretorio: false,
-			MostrarInventario: false));
-
-		var itens = menu.Grupos.SelectMany(grupo => grupo.Itens).ToList();
-
-		itens.Single(item => item.Ativo).SetorSlug.Should().Be("financeiro");
-		itens.Should().Contain(item => item.Texto == "Setores", "o grupo de administração aparece para quem administra");
-	}
-
-	[Fact]
 	public void Build_NaRaiz_MarcaOMuralComoAtivo()
 	{
 		var menu = IntranetNavigation.Build(
@@ -134,5 +121,104 @@ public class NavegacaoETemaTests
 
 		menu.Grupos.SelectMany(grupo => grupo.Itens)
 			.Should().Contain(item => item.Texto == "Diretório" && item.Ativo);
+	}
+
+	private static ItemMenuDto No(Guid? pai, string nome, string slug, TipoDeItemMenu tipo, int ordem = 0, string? rota = null) =>
+		new(Guid.NewGuid(), pai, nome, slug, tipo, rota, null, ordem, Ativo: true);
+
+	private static (SetorDto Setor, Dictionary<Guid, IReadOnlyList<ItemMenuDto>> Arvores) Financeiro(params Func<ItemMenuDto, ItemMenuDto[]>[] filhosDaRaiz)
+	{
+		var setor = Setor("Financeiro", "financeiro");
+		var raiz = No(null, "Financeiro", "financeiro", TipoDeItemMenu.Setor);
+		var itens = new List<ItemMenuDto> { raiz };
+
+		foreach (var filhos in filhosDaRaiz)
+		{
+			itens.AddRange(filhos(raiz));
+		}
+
+		return (setor, new Dictionary<Guid, IReadOnlyList<ItemMenuDto>> { [setor.Id] = itens });
+	}
+
+	private static NavigationItemModel SetorNoMenu(NavigationModel menu) =>
+		menu.Grupos.Single(grupo => grupo.Titulo == "Setores").Itens.Single();
+
+	[Fact]
+	public void Build_SetorViraAgrupadorSemUrl_ComOsFilhosEmOrdem()
+	{
+		var (setor, arvores) = Financeiro(raiz =>
+		[
+			No(raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, ordem: 1),
+			No(raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos, ordem: 0),
+		]);
+
+		var item = SetorNoMenu(IntranetNavigation.Build(new NavigationRequest([setor], "/", false, false, false, arvores)));
+
+		item.Url.Should().BeNull("o setor só agrupa");
+		item.SetorSlug.Should().Be("financeiro");
+		item.Filhos!.Select(filho => filho.Url).Should().Equal("/financeiro/avisos", "/financeiro/documentos");
+	}
+
+	[Fact]
+	public void Build_AtivoMarcaOCaminhoInteiro()
+	{
+		ItemMenuDto relatorios = null!;
+		var (setor, arvores) = Financeiro(raiz =>
+		{
+			relatorios = No(raiz.Id, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado);
+			return [relatorios, No(relatorios.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos)];
+		});
+
+		var item = SetorNoMenu(IntranetNavigation.Build(
+			new NavigationRequest([setor], "/financeiro/relatorios/documentos", false, false, false, arvores)));
+
+		item.Ativo.Should().BeTrue();
+		item.Filhos!.Single().Ativo.Should().BeTrue();
+		item.Filhos!.Single().Filhos!.Single().Ativo.Should().BeTrue();
+	}
+
+	[Fact]
+	public void Build_PersonalizadoComRota_ApontaParaARota()
+	{
+		var (setor, arvores) = Financeiro(raiz => [No(raiz.Id, "Painel BI", "painel-bi", TipoDeItemMenu.Personalizado, rota: "https://bi.exemplo/x")]);
+
+		var item = SetorNoMenu(IntranetNavigation.Build(new NavigationRequest([setor], "/", false, false, false, arvores)));
+
+		item.Filhos!.Single().Url.Should().Be("https://bi.exemplo/x");
+	}
+
+	[Fact]
+	public void Build_CadeiaDeAgrupadoresVazios_SomeJuntoComOSetor()
+	{
+		var (setor, arvores) = Financeiro(raiz =>
+		{
+			var relatorios = No(raiz.Id, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado);
+			return [relatorios, No(relatorios.Id, "Mensais", "mensais", TipoDeItemMenu.Personalizado)];
+		});
+
+		var menu = IntranetNavigation.Build(new NavigationRequest([setor], "/", false, false, false, arvores));
+
+		menu.Grupos.Single(grupo => grupo.Titulo == "Setores").Itens.Should().BeEmpty();
+	}
+
+	[Fact]
+	public void Build_FilhoCujoPaiNaoVeio_FicaDeFora()
+	{
+		// O handler já tira inativos; um filho ativo de pai inativo chega órfão e não pode subir de nível.
+		var (setor, arvores) = Financeiro(raiz =>
+			[No(raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos), No(Guid.NewGuid(), "Órfão", "orfao", TipoDeItemMenu.Documentos)]);
+
+		var item = SetorNoMenu(IntranetNavigation.Build(new NavigationRequest([setor], "/", false, false, false, arvores)));
+
+		item.Filhos!.Select(filho => filho.Texto).Should().Equal("Avisos");
+	}
+
+	[Fact]
+	public void Build_SetorSemArvore_NaoAparece()
+	{
+		var menu = IntranetNavigation.Build(
+			new NavigationRequest([Setor("Financeiro", "financeiro")], "/", false, false, false));
+
+		menu.Grupos.Single(grupo => grupo.Titulo == "Setores").Itens.Should().BeEmpty();
 	}
 }

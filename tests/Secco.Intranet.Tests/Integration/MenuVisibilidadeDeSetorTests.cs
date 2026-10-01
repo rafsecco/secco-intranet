@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Setores;
 using Secco.SDK.AspNetCore.Tenancy;
@@ -35,23 +37,6 @@ public class MenuVisibilidadeDeSetorTests(IntranetWebFactory factory) : IClassFi
 		return slug;
 	}
 
-	[Fact]
-	public async Task ModoAberto_MostraTodoSetorAtivo_SemFiltrarPorRole()
-	{
-		var slug = $"menu-{Guid.NewGuid():N}"[..20];
-		await CriarSetorAsync(slug);
-
-		var client = factory.CreateClient();
-		client.DefaultRequestHeaders.Add(SeccoHeaders.TenantId, factory.TenantAlfa.ToString());
-		// Sem X-Test-Roles: nenhuma role — se o menu ainda filtrasse por role, não veria nada.
-
-		var html = await client.GetStringAsync("/");
-
-		html.Should().Contain(
-			$"href=\"/setor/{slug}\"",
-			"sem SecureGate configurado o ambiente Testing mostra todo setor ativo, do mesmo jeito que o modo aberto de DEV");
-	}
-
 	// Tentei, na auto-revisão final, escrever aqui um teste indo e voltando (com e sem a
 	// permissão de escrita) para PodePublicarAsync do SetorController — e descobri que não dá:
 	// PodePublicarAsync começa com "!IsConfigured(configuration) → libera", exatamente o mesmo
@@ -64,4 +49,44 @@ public class MenuVisibilidadeDeSetorTests(IntranetWebFactory factory) : IClassFi
 	// em `PermissoesDeSetorTests`; o que fica sem prova direta por HTTP é só a chamada dela pelo
 	// controller sob essa condição — registrado para o revisor, não escondido atrás de um teste
 	// que passaria de qualquer jeito.
+
+	[Fact]
+	public async Task ModoAberto_MostraOSetorComoAgrupador_ComOsItensDaArvore()
+	{
+		var slug = $"menu-{Guid.NewGuid():N}"[..20];
+		await CriarSetorAsync(slug);
+
+		var client = factory.CreateClient();
+		client.DefaultRequestHeaders.Add(SeccoHeaders.TenantId, factory.TenantAlfa.ToString());
+		// Sem X-Test-Roles: nenhuma role — se o menu ainda filtrasse por role, não veria nada.
+
+		var html = await client.GetStringAsync("/");
+
+		AssertarArvore(html, slug);
+	}
+
+	[Fact]
+	public async Task TemaHorizontal_RenderizaAMesmaArvore()
+	{
+		var slug = $"menu-{Guid.NewGuid():N}"[..20];
+		await CriarSetorAsync(slug);
+
+		var client = factory
+			.WithWebHostBuilder(builder => builder.UseSetting("Intranet:Theme:Nome", "Horizontal"))
+			.CreateClient();
+		client.DefaultRequestHeaders.Add(SeccoHeaders.TenantId, factory.TenantAlfa.ToString());
+
+		var html = await client.GetStringAsync("/");
+
+		html.Should().Contain("sc-topnav", "garante que o tema trocou de fato");
+		AssertarArvore(html, slug);
+	}
+
+	private static void AssertarArvore(string html, string slug)
+	{
+		html.Should().Contain($"href=\"/{slug}/avisos\"").And.Contain($"href=\"/{slug}/documentos\"");
+		html.Should().NotContain($"href=\"/{slug}\"", "o setor não é link");
+		Regex.IsMatch(html, $"<button[^>]*data-sc-submenu[^>]*aria-expanded=\"false\"[^>]*>(?:(?!</button>).)*Setor {slug}",
+			RegexOptions.Singleline).Should().BeTrue("o setor é um botão expansível com o nome dele");
+	}
 }
