@@ -243,6 +243,91 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+// --- Arvore dos setores ------------------------------------------------------
+// Sem JS os submenus ficam abertos e recuados. Com JS (html.sc-js) viram paineis flutuantes,
+// com position: fixed — a barra rola na horizontal (overflow-x), e um painel absoluto seria cortado.
+.sc-nav__row {
+  display: flex;
+  align-items: center;
+}
+
+.sc-nav__item--grupo {
+  border: 0;
+  background-color: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.sc-nav__chevron {
+  font-size: .75rem;
+}
+
+// Na barra o nivel 0 abre para baixo: a seta aponta para baixo so ali.
+.sc-nav > li > .sc-nav__item--grupo .sc-nav__chevron {
+  transform: rotate(90deg);
+}
+
+.sc-nav__toggle {
+  flex: 0 0 auto;
+  padding: .375rem;
+  border: 0;
+  border-radius: var(--bs-border-radius);
+  background-color: transparent;
+  color: var(--sc-text-muted);
+  font-size: .75rem;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--sc-surface-muted);
+    color: var(--sc-text);
+  }
+}
+
+.sc-nav__sub {
+  display: flex;
+  flex-direction: column;
+  gap: .125rem;
+  margin: 0;
+  padding: 0 0 0 1rem;
+  list-style: none;
+
+  .sc-nav__item--grupo {
+    width: 100%;
+    text-align: left;
+
+    .sc-nav__chevron {
+      margin-left: auto;
+    }
+  }
+}
+
+.sc-nav__sub-title {
+  display: none;
+}
+
+html.sc-js .sc-nav__sub {
+  display: none;
+}
+
+html.sc-js .sc-nav__sub.is-open {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  html.sc-js .sc-nav__sub.is-open {
+    position: fixed;
+    z-index: 1050;
+    min-width: 14rem;
+    max-height: calc(100vh - 1rem);
+    overflow-y: auto;
+    padding: .375rem;
+    border: 1px solid var(--sc-border);
+    border-radius: var(--bs-border-radius-lg);
+    background-color: var(--sc-surface);
+    box-shadow: var(--sc-shadow);
+  }
+}
+
 // Em tela estreita a navegacao sai da linha do cabecalho e vira um painel suspenso,
 // aberto pelo botao de menu. Mesmo padrao de gaveta+fundo do Vertical, so que cai de cima
 // em vez de entrar pela lateral.
@@ -580,10 +665,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 // --- Fundo do painel de navegacao em telas estreitas --------------------------
+// Abaixo do cabecalho (1030): o painel de navegacao mora dentro dele, e o cabecalho sticky
+// e um contexto de empilhamento — acima dele, o fundo cobriria o painel e engoliria os cliques.
 .sc-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1035;
+  z-index: 1025;
   background-color: rgb(17 24 39 / 45%);
 }
 

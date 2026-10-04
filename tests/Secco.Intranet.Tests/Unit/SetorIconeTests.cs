@@ -1,4 +1,6 @@
 using AwesomeAssertions;
+using Secco.Intranet.Application.Menu;
+using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Domain.Setores;
 using Secco.Intranet.Web.Navigation;
 using Secco.Intranet.Application.Setores;
@@ -70,8 +72,12 @@ public class SetorIconeTests
 	{
 		var setor = new SetorDto(
 			Guid.NewGuid(), "Financeiro", "financeiro", "bi-cash-coin", false, true, DateTimeOffset.UtcNow);
+		// Setor sem item ativo na árvore não aparece no menu — o cenário precisa de pelo menos um.
+		var raiz = new ItemMenuDto(Guid.NewGuid(), null, "Financeiro", "financeiro", TipoDeItemMenu.Setor, null, null, 0, true);
+		var documentos = new ItemMenuDto(Guid.NewGuid(), raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, null, 0, true);
+		var arvores = new Dictionary<Guid, IReadOnlyList<ItemMenuDto>> { [setor.Id] = [raiz, documentos] };
 
-		var menu = IntranetNavigation.Build(new NavigationRequest([setor], "/", false, false, false));
+		var menu = IntranetNavigation.Build(new NavigationRequest([setor], "/", false, false, false, arvores));
 
 		menu.Grupos
 			.SelectMany(grupo => grupo.Itens)

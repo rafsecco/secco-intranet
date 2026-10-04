@@ -81,6 +81,16 @@ nenhuma view de tema injeta serviço.
 O `_Layout` precisa expor uma âncora `id="conteudo"` para o link de pular navegação, e
 renderizar a seção opcional `Scripts`.
 
+O menu (`NavigationModel`) é uma árvore: `NavigationItemModel.Filhos` traz os subitens, e
+`Url` nulo quer dizer que o item só agrupa — é o caso de todo setor, que é o nível 0 da seção
+"Setores" e não tem página própria. `Ativo` marca o caminho inteiro até a página atual; use
+`aria-current="page"` só no item ativo sem filho ativo. Os dois temas publicados renderizam a
+árvore inteira no servidor, em listas aninhadas (agrupador = `<button aria-expanded>`), e o
+`theme.js` transforma cada lista em painel flutuante. Duas armadilhas que o tema precisa
+resolver: o menu mora num contêiner com rolagem, então o painel precisa de `position: fixed`
+com a posição calculada no script (um painel `absolute` é cortado); e sem script a árvore tem
+de aparecer aberta, para tudo continuar alcançável.
+
 Ações irreversíveis (excluir perfil, excluir item de menu) vêm em
 `<form data-confirmar="Pergunta?">`. O tema precisa, no JS dele, pedir confirmação com esse
 texto antes de enviar o formulário e cancelar o envio se a pessoa desistir — os dois temas

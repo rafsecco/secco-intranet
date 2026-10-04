@@ -13,6 +13,8 @@
        errado a cada carregamento. Precisa ser inline e vir antes do CSS. *@
     <script>
         (function () {
+            // Com JS os submenus viram painéis; sem ele ficam abertos e recuados (ver theme.js).
+            document.documentElement.classList.add('sc-js');
             try {
                 var tema = localStorage.getItem('sc-theme');
                 if (tema === 'dark' || tema === 'light') {
