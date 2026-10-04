@@ -212,6 +212,12 @@
       }
 
       if (gatilho.getAttribute('aria-expanded') === 'true') {
+        // Com mouse, o hover ja abriu: o clique que vem em seguida e a pessoa "abrindo" o
+        // que ja esta aberto, e fecha-lo pareceria defeito. Quem fecha e o mouseleave.
+        if (evento.detail > 0 && comMouse.matches && largo.matches) {
+          return;
+        }
+
         fecharSubmenu(gatilho);
 
         return;
@@ -296,16 +302,22 @@
     });
 
     // Fora do menu, ou mudou a geometria: fecha (posicao fixa calculada ficaria errada).
+    // Geometria so importa em tela larga: em tela estreita o submenu abre recuado no lugar,
+    // e rolar a gaveta (ou o navegador recolher a barra de endereco) nao pode fecha-lo.
     document.addEventListener('click', function (evento) {
       if (!menu.contains(evento.target)) {
         fecharTudo();
       }
     });
 
-    window.addEventListener('resize', fecharTudo);
+    window.addEventListener('resize', function () {
+      if (largo.matches) {
+        fecharTudo();
+      }
+    });
     window.addEventListener('scroll', function (evento) {
       // Rolar dentro de um painel aberto nao o fecha.
-      if (!(evento.target instanceof Element && evento.target.closest('.sc-nav__sub.is-open'))) {
+      if (largo.matches && !(evento.target instanceof Element && evento.target.closest('.sc-nav__sub.is-open'))) {
         fecharTudo();
       }
     }, true);

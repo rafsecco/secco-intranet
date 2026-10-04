@@ -178,4 +178,17 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 
 		resposta.StatusCode.Should().Be(HttpStatusCode.NotFound, "desligar o recurso fecha a escrita também");
 	}
+
+	[Theory]
+	[InlineData("/nao-existe-setor-assim")]
+	[InlineData("/robots.txt")]
+	public async Task CaminhoDesconhecido_SemTenant_RecusaSemErroDeServidor(string caminho)
+	{
+		// A página do setor mora na raiz: todo caminho desconhecido chega ao SetorController,
+		// inclusive numa requisição sem tenant resolvido — que não tem banco a consultar. A
+		// tenancy do SDK recusa com 4xx antes de qualquer consulta; o que não pode é virar 500.
+		var resposta = await factory.CreateClient().GetAsync(caminho);
+
+		((int)resposta.StatusCode).Should().BeInRange(400, 499);
+	}
 }
