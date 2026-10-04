@@ -74,7 +74,8 @@ public sealed record PaginaDeMembros(
 /// <param name="Email">E-mail.</param>
 /// <param name="Situacao">Situação da conta.</param>
 /// <param name="Perfis">Perfis atribuídos.</param>
-public sealed record UsuarioDto(Guid Id, string Email, SituacaoDoUsuario Situacao, IReadOnlyList<string> Perfis);
+/// <param name="Nome">Nome de exibição (o <c>displayName</c> do SecureGate); nulo quando não definido.</param>
+public sealed record UsuarioDto(Guid Id, string Email, SituacaoDoUsuario Situacao, IReadOnlyList<string> Perfis, string? Nome = null);
 
 /// <summary>Detalhe de um usuário.</summary>
 /// <param name="Id">Identificador.</param>

@@ -62,6 +62,10 @@ public sealed class GestaoDeAcessoIndisponivel : IGestaoDeAcesso
 		Task.FromResult(Result.Failure(Erro));
 
 	/// <inheritdoc />
+	public Task<Result> DefinirNomeDeExibicaoAsync(Guid usuarioId, string? nome, CancellationToken cancellationToken = default) =>
+		Task.FromResult(Result.Failure(Erro));
+
+	/// <inheritdoc />
 	public Task<Result> GarantirPermissoesAsync(
 		string nome, IReadOnlyCollection<string> permissoesMinimas, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Result.Failure(Erro));

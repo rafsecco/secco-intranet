@@ -414,4 +414,16 @@ public class SecureGateGestaoDeAcessoFumacaTests(FumacaFixture f) : IClassFixtur
 
 		public bool IsResolved => true;
 	}
+
+	[FumacaFact]
+	public async Task Usuario_NomeDeExibicao_GravaLeELimpa()
+	{
+		var usuario = await f.CriarUsuarioAsync("nome");
+
+		(await f.Gestao.DefinirNomeDeExibicaoAsync(usuario, "Fumaça da Silva")).IsSuccess.Should().BeTrue();
+		(await f.Gestao.ListarUsuariosAsync()).Value.Single(u => u.Id == usuario).Nome.Should().Be("Fumaça da Silva");
+
+		(await f.Gestao.DefinirNomeDeExibicaoAsync(usuario, null)).IsSuccess.Should().BeTrue();
+		(await f.Gestao.ListarUsuariosAsync()).Value.Single(u => u.Id == usuario).Nome.Should().BeNull();
+	}
 }

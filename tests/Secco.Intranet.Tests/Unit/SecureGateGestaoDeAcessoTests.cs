@@ -122,6 +122,15 @@ public class SecureGateGestaoDeAcessoTests
 
 			PermissoesDefinidas = body.Permissions;
 		}
+
+		public SetDisplayNameRequest? NomeEnviado { get; private set; }
+
+		public override async Task SetUserDisplayNameAsync(
+			Guid tenantId, Guid userId, SetDisplayNameRequest body, CancellationToken cancellationToken)
+		{
+			NomeEnviado = body;
+			await Registrar($"SetUserDisplayName:{tenantId}:{userId}");
+		}
 	}
 
 	private static SecureGateGestaoDeAcesso Montar(ClientFalso client, Guid? tenant = null) =>
@@ -424,5 +433,49 @@ public class SecureGateGestaoDeAcessoTests
 
 		resultado.IsSuccess.Should().BeTrue();
 		client.PermissoesDefinidas.Should().BeEquivalentTo("diretorio:read", "setores:read");
+	}
+
+	[Fact]
+	public async Task ListarUsuarios_TrazONomeDeExibicao()
+	{
+		var id = Guid.NewGuid();
+		var client = new ClientFalso { Usuarios = [new UserDto { Id = id, Email = "ana@x.com", Status = "active", DisplayName = "Ana Ribeiro" }] };
+
+		var lista = await Montar(client).ListarUsuariosAsync();
+
+		lista.Value.Single().Nome.Should().Be("Ana Ribeiro");
+	}
+
+	[Fact]
+	public async Task DefinirNome_EnviaAparadoParaOTenantEUsuarioCertos()
+	{
+		var client = new ClientFalso();
+		var usuario = Guid.NewGuid();
+
+		var resultado = await Montar(client).DefinirNomeDeExibicaoAsync(usuario, "  Ana Ribeiro ");
+
+		resultado.IsSuccess.Should().BeTrue();
+		client.Chamadas.Should().Equal($"SetUserDisplayName:{Tenant}:{usuario}");
+		client.NomeEnviado!.DisplayName.Should().Be("Ana Ribeiro");
+	}
+
+	[Theory]
+	[InlineData(null)]
+	[InlineData("   ")]
+	public async Task DefinirNome_VazioLimpa(string? nome)
+	{
+		var client = new ClientFalso();
+
+		(await Montar(client).DefinirNomeDeExibicaoAsync(Guid.NewGuid(), nome)).IsSuccess.Should().BeTrue();
+
+		client.NomeEnviado!.DisplayName.Should().BeNull("nulo é o que a plataforma entende como limpar");
+	}
+
+	[Fact]
+	public async Task DefinirNome_404_ViraUsuarioNaoEncontrado()
+	{
+		var resultado = await Montar(new ClientFalso { Falha = Api(404) }).DefinirNomeDeExibicaoAsync(Guid.NewGuid(), "Ana");
+
+		resultado.Error.Should().Be(IntranetErrors.Acesso.UsuarioNaoEncontrado);
 	}
 }

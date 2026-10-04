@@ -156,6 +156,8 @@ public class UsuariosParaDiretorioTests
 
 		public Task<Secco.SharedKernel.Results.Result> EncerrarSessoesAsync(Guid usuarioId, CancellationToken cancellationToken = default) => _interno.EncerrarSessoesAsync(usuarioId, cancellationToken);
 
+		public Task<Secco.SharedKernel.Results.Result> DefinirNomeDeExibicaoAsync(Guid usuarioId, string? nome, CancellationToken cancellationToken = default) => _interno.DefinirNomeDeExibicaoAsync(usuarioId, nome, cancellationToken);
+
 		public Task<Secco.SharedKernel.Results.Result> GarantirPermissoesAsync(string nome, IReadOnlyCollection<string> permissoesMinimas, CancellationToken cancellationToken = default) => _interno.GarantirPermissoesAsync(nome, permissoesMinimas, cancellationToken);
 
 		public Task<Secco.SharedKernel.Results.Result> DefinirPermissoesDoPerfilAsync(string nome, IReadOnlyCollection<string> permissoes, CancellationToken cancellationToken = default) => _interno.DefinirPermissoesDoPerfilAsync(nome, permissoes, cancellationToken);

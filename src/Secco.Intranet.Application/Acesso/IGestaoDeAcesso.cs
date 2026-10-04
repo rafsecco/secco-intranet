@@ -71,6 +71,12 @@ public interface IGestaoDeAcesso
 	/// <param name="cancellationToken">Token de cancelamento.</param>
 	Task<Result> EncerrarSessoesAsync(Guid usuarioId, CancellationToken cancellationToken = default);
 
+	/// <summary>Define o nome de exibição do usuário no SecureGate; nulo ou vazio limpa.</summary>
+	/// <param name="usuarioId">Usuário.</param>
+	/// <param name="nome">Nome novo (é aparado).</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	Task<Result> DefinirNomeDeExibicaoAsync(Guid usuarioId, string? nome, CancellationToken cancellationToken = default);
+
 	/// <summary>Garante que um perfil tenha, no mínimo, as permissões informadas — mescla, nunca remove.</summary>
 	/// <param name="nome">Nome do perfil.</param>
 	/// <param name="permissoesMinimas">Permissões que o perfil precisa ter ao final.</param>

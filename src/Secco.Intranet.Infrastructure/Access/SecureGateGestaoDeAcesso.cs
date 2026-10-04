@@ -89,7 +89,7 @@ public sealed class SecureGateGestaoDeAcesso(
 			{
 				var usuarios = await client.ListUsersAsync(tenantId, token).ConfigureAwait(false);
 				IReadOnlyList<UsuarioDto> lista =
-					[.. usuarios.Select(u => new UsuarioDto(u.Id, u.Email, Situacao(u.Status), [.. u.Roles ?? []]))];
+					[.. usuarios.Select(u => new UsuarioDto(u.Id, u.Email, Situacao(u.Status), [.. u.Roles ?? []], u.DisplayName))];
 
 				return lista;
 			},
@@ -167,6 +167,19 @@ public sealed class SecureGateGestaoDeAcesso(
 		EscreverAsync(
 			"reativar usuario",
 			(tenantId, token) => client.ActivateUserAsync(tenantId, usuarioId, token),
+			IntranetErrors.Acesso.UsuarioNaoEncontrado,
+			null,
+			cancellationToken);
+
+	/// <inheritdoc />
+	public Task<Result> DefinirNomeDeExibicaoAsync(Guid usuarioId, string? nome, CancellationToken cancellationToken = default) =>
+		EscreverAsync(
+			"definir nome de exibicao",
+			(tenantId, token) => client.SetUserDisplayNameAsync(
+				tenantId,
+				usuarioId,
+				new SetDisplayNameRequest { DisplayName = string.IsNullOrWhiteSpace(nome) ? null : nome.Trim() },
+				token),
 			IntranetErrors.Acesso.UsuarioNaoEncontrado,
 			null,
 			cancellationToken);

@@ -45,6 +45,9 @@ public sealed class GestaoDeAcessoFalsa : IGestaoDeAcesso
 	/// <summary>Escritas recebidas, no formato <c>acao:alvo</c>.</summary>
 	public List<string> Chamadas { get; } = [];
 
+	/// <summary>Nomes de exibição por usuário (o que a plataforma guardaria).</summary>
+	public Dictionary<Guid, string?> Nomes { get; } = [];
+
 	/// <summary>Quando não nulo, toda escrita falha com este erro.</summary>
 	public Error? FalharCom { get; set; }
 
@@ -104,7 +107,7 @@ public sealed class GestaoDeAcessoFalsa : IGestaoDeAcesso
 	/// <inheritdoc />
 	public Task<Result<IReadOnlyList<UsuarioDto>>> ListarUsuariosAsync(CancellationToken cancellationToken = default)
 	{
-		IReadOnlyList<UsuarioDto> lista = [.. Usuarios.Select(u => new UsuarioDto(u.Id, u.Email, u.Situacao, u.Perfis))];
+		IReadOnlyList<UsuarioDto> lista = [.. Usuarios.Select(u => new UsuarioDto(u.Id, u.Email, u.Situacao, u.Perfis, Nomes.GetValueOrDefault(u.Id)))];
 
 		return Task.FromResult(Result.Success(lista));
 	}
@@ -149,6 +152,10 @@ public sealed class GestaoDeAcessoFalsa : IGestaoDeAcesso
 	/// <inheritdoc />
 	public Task<Result> EncerrarSessoesAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
 		Escrever($"sessoes-encerrar:{usuarioId}", () => { });
+
+	/// <inheritdoc />
+	public Task<Result> DefinirNomeDeExibicaoAsync(Guid usuarioId, string? nome, CancellationToken cancellationToken = default) =>
+		Escrever($"usuario-nome:{usuarioId}:{nome}", () => Nomes[usuarioId] = string.IsNullOrWhiteSpace(nome) ? null : nome.Trim());
 
 	/// <inheritdoc />
 	public Task<Result> GarantirPermissoesAsync(
