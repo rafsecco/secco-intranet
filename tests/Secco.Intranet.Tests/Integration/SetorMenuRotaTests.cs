@@ -138,12 +138,15 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 	[InlineData("/Setores")]
 	[InlineData("/Acesso")]
 	[InlineData("/diretorio")]
+	[InlineData("/inventario")]
 	[InlineData("/health/live")]
 	public async Task RotaFixa_ContinuaVencendoOSetor(string caminho)
 	{
 		var resposta = await CriarCliente("intranet-admin").GetAsync(caminho);
 
-		resposta.StatusCode.Should().NotBe(HttpStatusCode.NotFound, $"{caminho} é rota do produto, não setor");
+		// 200, não só "não 404": um 500 ou um redirecionamento para o setor também seria falha.
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK, $"{caminho} é rota do produto, não setor");
+		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().BeEquivalentTo(caminho);
 	}
 
 	[Fact]
@@ -190,5 +193,42 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 		var resposta = await factory.CreateClient().GetAsync(caminho);
 
 		((int)resposta.StatusCode).Should().BeInRange(400, 499);
+	}
+
+	[Fact]
+	public async Task PersonalizadoComFilhos_SoAgrupa_EOFilhoComRotaRedireciona()
+	{
+		var slug = await CriarSetorAsync();
+
+		await using (var escopo = factory.Services.CreateAsyncScope())
+		{
+			escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
+			var setor = await escopo.ServiceProvider.GetRequiredService<GetSetorBySlugHandler>().HandleAsync(slug);
+			var arvore = await escopo.ServiceProvider.GetRequiredService<IItemMenuRepository>().ListarPorSetorAsync(setor.Value.Id);
+			var criar = escopo.ServiceProvider.GetRequiredService<CriarItemMenuHandler>();
+
+			var relatorios = await criar.HandleAsync(new CriarItemMenuCommand(
+				setor.Value.Id, arvore.Single(i => i.Tipo == TipoDeItemMenu.Setor).Id, "Relatórios", "relatorios",
+				TipoDeItemMenu.Personalizado, null, null));
+			(await criar.HandleAsync(new CriarItemMenuCommand(
+				setor.Value.Id, relatorios.Value.Id, "Vendas", "vendas", TipoDeItemMenu.Personalizado, "/diretorio", null)))
+				.IsSuccess.Should().BeTrue();
+		}
+
+		var client = factory.CreateClient(new() { AllowAutoRedirect = false });
+		client.DefaultRequestHeaders.Add(SeccoHeaders.TenantId, factory.TenantAlfa.ToString());
+
+		(await client.GetAsync($"/{slug}/relatorios")).StatusCode.Should().Be(HttpStatusCode.NotFound, "Relatórios só agrupa");
+
+		var vendas = await client.GetAsync($"/{slug}/relatorios/vendas");
+		vendas.StatusCode.Should().Be(HttpStatusCode.Redirect);
+		vendas.Headers.Location!.OriginalString.Should().Be("/diretorio");
+
+		// No menu, Relatórios é agrupador (botão) e Vendas, debaixo dele, é link direto para a rota.
+		var menu = WebUtility.HtmlDecode(await client.GetStringAsync("/"));
+		Regex.IsMatch(menu, @"<button[^>]*data-sc-submenu[^>]*>\s*<span class=""sc-nav__label"">Relatórios</span>")
+			.Should().BeTrue();
+		Regex.IsMatch(menu, @"<a[^>]*href=""/diretorio""[^>]*>\s*<span class=""sc-nav__label"">Vendas</span>")
+			.Should().BeTrue();
 	}
 }
