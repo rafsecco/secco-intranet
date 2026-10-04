@@ -91,6 +91,11 @@ resolver: o menu mora num contêiner com rolagem, então o painel precisa de `po
 com a posição calculada no script (um painel `absolute` é cortado); e sem script a árvore tem
 de aparecer aberta, para tudo continuar alcançável.
 
+O tema decide como os grupos aparecem. O Vertical mostra o título do grupo como rótulo e os
+itens embaixo; o Horizontal, sem largura para uma fileira por setor, transforma cada grupo com
+título num nó que só agrupa (Setores ▾, Administração ▾) e renderiza os itens um nível abaixo.
+Nada disso muda o contrato — é só outra forma de desenhar a mesma `NavigationModel`.
+
 Ações irreversíveis (excluir perfil, excluir item de menu) vêm em
 `<form data-confirmar="Pergunta?">`. O tema precisa, no JS dele, pedir confirmação com esse
 texto antes de enviar o formulário e cancelar o envio se a pessoa desistir — os dois temas

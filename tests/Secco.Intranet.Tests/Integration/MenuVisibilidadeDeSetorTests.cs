@@ -80,6 +80,12 @@ public class MenuVisibilidadeDeSetorTests(IntranetWebFactory factory) : IClassFi
 
 		html.Should().Contain("sc-topnav", "garante que o tema trocou de fato");
 		AssertarArvore(html, slug);
+
+		// Na barra superior não cabe uma fileira por setor: cada grupo com título vira um botão
+		// expansível, e os setores ficam um nível abaixo dele.
+		Regex.IsMatch(html, @"<button[^>]*data-sc-submenu[^>]*>(?:(?!</button>).)*>Setores<", RegexOptions.Singleline)
+			.Should().BeTrue("o grupo Setores é um botão expansível");
+		html.Should().NotContain("sc-nav__group-title", "o título do grupo deixou de ser um rótulo solto na barra");
 	}
 
 	private static void AssertarArvore(string html, string slug)

@@ -11,7 +11,7 @@
         var filhos = item.Filhos ?? [];
         var temFilhos = filhos.Count > 0;
         var atual = item.Ativo && !filhos.Any(filho => filho.Ativo);
-        var temSetor = nivel == 0 && !string.IsNullOrWhiteSpace(item.SetorSlug);
+        var temSetor = !string.IsNullOrWhiteSpace(item.SetorSlug);
         string? estilo = temSetor ? $"--sc-setor-hue:{SetorHue.From(item.SetorSlug)}" : null;
         string? painel = temFilhos ? $"sc-nav-sub-{++sequencia}" : null;
         var classe = item.Ativo ? "sc-nav__item is-active" : "sc-nav__item";
@@ -73,15 +73,19 @@
             continue;
         }
 
-        if (grupo.Titulo is not null)
+        if (grupo.Titulo is null)
         {
-            <li class="sc-nav__divider" aria-hidden="true"></li>
-            <li class="sc-nav__group-title" aria-hidden="true">@grupo.Titulo</li>
+            foreach (var item in grupo.Itens)
+            {
+                Renderizar(item, 0);
+            }
+
+            continue;
         }
 
-        foreach (var item in grupo.Itens)
-        {
-            Renderizar(item, 0);
-        }
+        // Na barra superior não cabe uma fileira por setor: o grupo com título vira um nó que
+        // só agrupa (Setores ▾, Administração ▾), com os itens um nível abaixo.
+        Renderizar(new NavigationItemModel(
+            grupo.Titulo, Icone: null, Url: null, grupo.Itens.Any(item => item.Ativo), Filhos: grupo.Itens), 0);
     }
 </ul>
