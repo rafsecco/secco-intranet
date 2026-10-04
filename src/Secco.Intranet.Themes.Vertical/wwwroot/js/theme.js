@@ -285,6 +285,9 @@
 
       if (evento.key === 'Escape' || evento.key === 'ArrowLeft') {
         evento.preventDefault();
+        // O primeiro Esc fecha so o submenu: sem isto, o listener da gaveta/painel no document
+        // fecharia tambem o menu inteiro de uma vez.
+        evento.stopPropagation();
         fecharSubmenu(gatilho);
         gatilho.focus();
 
@@ -299,6 +302,22 @@
 
         itens[(proximo + itens.length) % itens.length].focus();
       }
+    });
+
+    // Foco saiu de um no aberto (Tab para o proximo item ou para fora do menu): fecha esse no.
+    // Sem relatedTarget (clique numa area nao focavel) nao fecha — o clique fora ja cuida disso.
+    menu.addEventListener('focusout', function (evento) {
+      var destino = evento.relatedTarget;
+
+      if (!destino) {
+        return;
+      }
+
+      Array.prototype.forEach.call(menu.querySelectorAll('[data-sc-submenu][aria-expanded="true"]'), function (gatilho) {
+        if (!gatilho.closest('li').contains(destino)) {
+          fecharSubmenu(gatilho);
+        }
+      });
     });
 
     // Fora do menu, ou mudou a geometria: fecha (posicao fixa calculada ficaria errada).
