@@ -182,6 +182,10 @@ public class CreateSetorHandlerTests
 	[InlineData("Setores")]
 	[InlineData(" acesso ")]
 	[InlineData("setor")]
+	[InlineData("api")]
+	[InlineData(".well-known")]
+	[InlineData("signin-oidc")]
+	[InlineData("signout-callback-oidc")]
 	public async Task Handle_ComSlugReservado_RecusaSemProvisionarRoles(string slug)
 	{
 		var repository = new FakeRepository();
