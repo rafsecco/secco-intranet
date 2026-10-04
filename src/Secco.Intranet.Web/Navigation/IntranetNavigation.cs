@@ -45,12 +45,6 @@ public static class IntranetNavigation
 				"Diretório", "bi-people", "/diretorio", Corresponde(caminho, "/diretorio")));
 		}
 
-		if (request.MostrarInventario)
-		{
-			principais.Add(new NavigationItemModel(
-				"Inventário", "bi-box-seam", "/inventario", Corresponde(caminho, "/inventario")));
-		}
-
 		var setores = request.Setores
 			.Select(setor => SetorNoMenu(setor, request.Arvores, caminho))
 			.OfType<NavigationItemModel>()
@@ -62,13 +56,25 @@ public static class IntranetNavigation
 			new("Setores", setores),
 		};
 
+		// O Inventário mora na Administração, mas tem gate próprio: quem só tem acesso a ele
+		// (inventario-admin, inventario:read) vê o grupo só com esse item.
+		var administracao = new List<NavigationItemModel>();
+
 		if (request.MostrarAdministracao)
 		{
-			grupos.Add(new NavigationGroupModel("Administração",
-			[
-				new NavigationItemModel("Setores", "bi-sliders", "/setores", Corresponde(caminho, "/setores")),
-				new NavigationItemModel("Acesso", "bi-shield-lock", "/acesso", Corresponde(caminho, "/acesso")),
-			]));
+			administracao.Add(new NavigationItemModel("Setores", "bi-sliders", "/setores", Corresponde(caminho, "/setores")));
+			administracao.Add(new NavigationItemModel("Acesso", "bi-shield-lock", "/acesso", Corresponde(caminho, "/acesso")));
+		}
+
+		if (request.MostrarInventario)
+		{
+			administracao.Add(new NavigationItemModel(
+				"Inventário", "bi-box-seam", "/inventario", Corresponde(caminho, "/inventario")));
+		}
+
+		if (administracao.Count > 0)
+		{
+			grupos.Add(new NavigationGroupModel("Administração", administracao));
 		}
 
 		return new NavigationModel(grupos);
@@ -78,7 +84,8 @@ public static class IntranetNavigation
 	private static NavigationItemModel? SetorNoMenu(
 		SetorDto setor, IReadOnlyDictionary<Guid, IReadOnlyList<ItemMenuDto>>? arvores, string caminho)
 	{
-		if (arvores is null || !arvores.TryGetValue(setor.Id, out var itens))
+		// Setor criado antes da lista de reservados: a rota fixa vence a dele e o link daria 404.
+		if (SlugsReservados.Contem(setor.Slug) || arvores is null || !arvores.TryGetValue(setor.Id, out var itens))
 		{
 			return null;
 		}

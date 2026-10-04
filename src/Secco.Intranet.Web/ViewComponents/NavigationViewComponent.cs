@@ -52,6 +52,14 @@ public sealed class NavigationViewComponent(
 
 		var setores = await CarregarSetoresAsync(HttpContext.User, autenticacaoAtiva).ConfigureAwait(false);
 
+		foreach (var setor in setores.Where(setor => SlugsReservados.Contem(setor.Slug)))
+		{
+			// A montagem do menu tira o setor (o link daria 404); sem este aviso ele some calado.
+			logger.LogWarning(
+				"O setor {SetorSlug} usa um slug reservado por uma rota do produto e ficou fora do menu; renomeie-o.",
+				setor.Slug);
+		}
+
 		var request = new NavigationRequest(
 			setores,
 			HttpContext.Request.Path.Value ?? "/",

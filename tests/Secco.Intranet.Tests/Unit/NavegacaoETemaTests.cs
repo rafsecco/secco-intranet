@@ -221,4 +221,51 @@ public class NavegacaoETemaTests
 
 		menu.Grupos.Single(grupo => grupo.Titulo == "Setores").Itens.Should().BeEmpty();
 	}
+
+	[Fact]
+	public void Build_Inventario_FicaNoGrupoAdministracao()
+	{
+		var menu = IntranetNavigation.Build(
+			new NavigationRequest([], "/inventario", MostrarAdministracao: true, MostrarDiretorio: false, MostrarInventario: true));
+
+		menu.Grupos.Single(grupo => grupo.Titulo is null).Itens.Should().NotContain(item => item.Texto == "Inventário");
+		menu.Grupos.Single(grupo => grupo.Titulo == "Administração").Itens.Select(item => item.Texto)
+			.Should().Equal("Setores", "Acesso", "Inventário");
+	}
+
+	[Fact]
+	public void Build_SoComInventario_MostraAdministracaoSoComEle()
+	{
+		// inventario-admin sem intranet-admin: vê o Inventário, mas não Setores nem Acesso.
+		var menu = IntranetNavigation.Build(
+			new NavigationRequest([], "/", MostrarAdministracao: false, MostrarDiretorio: false, MostrarInventario: true));
+
+		menu.Grupos.Single(grupo => grupo.Titulo == "Administração").Itens
+			.Should().ContainSingle().Which.Texto.Should().Be("Inventário");
+	}
+
+	[Fact]
+	public void Build_SemAdministracaoNemInventario_NaoMostraOGrupo()
+	{
+		var menu = IntranetNavigation.Build(
+			new NavigationRequest([], "/", MostrarAdministracao: false, MostrarDiretorio: false, MostrarInventario: false));
+
+		menu.Grupos.Should().NotContain(grupo => grupo.Titulo == "Administração");
+	}
+
+	[Fact]
+	public void Build_SetorComSlugReservado_NaoApareceNoMenu()
+	{
+		// Criado antes da lista de reservados existir: a rota fixa vence e o link daria 404.
+		var setor = Setor("Documentos", "documentos");
+		var raiz = No(null, "Documentos", "documentos", TipoDeItemMenu.Setor);
+		var arvores = new Dictionary<Guid, IReadOnlyList<ItemMenuDto>>
+		{
+			[setor.Id] = [raiz, No(raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos)],
+		};
+
+		var menu = IntranetNavigation.Build(new NavigationRequest([setor], "/", false, false, false, arvores));
+
+		menu.Grupos.Single(grupo => grupo.Titulo == "Setores").Itens.Should().BeEmpty();
+	}
 }
