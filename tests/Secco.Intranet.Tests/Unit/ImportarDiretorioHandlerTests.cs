@@ -296,4 +296,22 @@ public class ImportarDiretorioHandlerTests
 	private static ImportarDiretorioHandler Criar(
 		UsuariosParaDiretorioFalso usuarios, GestaoDeAcessoFalsa gestao, PerfisColaboradorFalso? perfis = null) =>
 		new(usuarios, perfis ?? new PerfisColaboradorFalso(), new SetoresFalsos(), gestao, new TrilhaDeAcessoFalsa());
+
+	[Fact]
+	public async Task Importar_SecureGateForaDoAr_NaoInsisteLinhaALinha()
+	{
+		// Com a plataforma fora, cada chamada esperaria o timeout do HttpClient, em série: depois da
+		// primeira indisponibilidade, as linhas seguintes com nome viram erro sem chamar de novo.
+		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com").Com(Bruno, "bruno@x.com").Com(Carla, "carla@x.com");
+		var gestao = new GestaoDeAcessoFalsa { FalharCom = IntranetErrors.Acesso.Indisponivel };
+		var perfis = new PerfisColaboradorFalso();
+
+		var relatorio = await Criar(usuarios, gestao, perfis).AplicarAsync(new ImportarDiretorioCommand(
+			Cabecalho + "ana@x.com;Ana;;;;\nbruno@x.com;Bruno;;;;\ncarla@x.com;;Analista;;;\n"));
+
+		gestao.Chamadas.Should().ContainSingle("só a primeira linha com nome chega à plataforma");
+		relatorio.Value.Linhas.Where(l => l.Email != "carla@x.com").Should().OnlyContain(l => l.Status == StatusDaLinha.Erro);
+		relatorio.Value.Linhas.Single(l => l.Email == "carla@x.com").Status.Should().Be(StatusDaLinha.Criar, "linha sem nome segue normal");
+		relatorio.Value.Linhas.Single(l => l.Email == "bruno@x.com").Erro.Should().Contain("não foi possível gravar o nome");
+	}
 }

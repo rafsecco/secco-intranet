@@ -107,21 +107,23 @@ public sealed class ImportarDiretorioHandler(
 
 		var relatorioPorNumero = plano.Value.ToDictionary(linha => linha.Relatorio.Numero, linha => linha.Relatorio);
 		var algumNome = false;
+		Error? plataformaFora = null;
 
 		foreach (var linha in plano.Value.Where(linha => linha.Relatorio.Status is StatusDaLinha.Criar or StatusDaLinha.Atualizar))
 		{
 			// Mesma regra da edição: o nome vai primeiro; recusado, a linha inteira vira erro.
 			if (linha.NomeNovo is not null)
 			{
-				var gravado = await gestao.DefinirNomeDeExibicaoAsync(linha.UsuarioId, linha.NomeNovo, cancellationToken).ConfigureAwait(false);
+				// Fora do ar, cada chamada esperaria o timeout em série: depois da primeira
+				// indisponibilidade, as demais linhas com nome falham sem insistir.
+				var gravado = plataformaFora is not null
+					? Result.Failure(plataformaFora)
+					: await gestao.DefinirNomeDeExibicaoAsync(linha.UsuarioId, linha.NomeNovo, cancellationToken).ConfigureAwait(false);
 
 				if (gravado.IsFailure)
 				{
-					relatorioPorNumero[linha.Relatorio.Numero] = linha.Relatorio with
-					{
-						Status = StatusDaLinha.Erro,
-						Erro = $"o SecureGate recusou o nome: {gravado.Error.Description}",
-					};
+					plataformaFora ??= gravado.Error.Type == ErrorType.Unavailable ? gravado.Error : null;
+					relatorioPorNumero[linha.Relatorio.Numero] = ComErroDeNome(linha.Relatorio, gravado.Error);
 
 					continue;
 				}
@@ -302,6 +304,9 @@ public sealed class ImportarDiretorioHandler(
 			setorId,
 			gestorId);
 	}
+
+	private static LinhaDoRelatorio ComErroDeNome(LinhaDoRelatorio linha, Error erro) =>
+		linha with { Status = StatusDaLinha.Erro, Erro = $"não foi possível gravar o nome: {erro.Description}" };
 
 	private static bool Mudou(string? atual, string? novo) =>
 		novo is not null && !string.Equals(atual, novo, StringComparison.Ordinal);
