@@ -89,9 +89,22 @@ Quem lê esse arquivo:
   `Secco__Tenancy__Tenants__<id>__ConnectionString` chega na configuração da aplicação —
   o provider de variáveis de ambiente do ASP.NET Core troca `__` por `:`.
 
-Para `dotnet run` direto no terminal, exporte as variáveis à mão antes. E note que
-`set -a; . ./.env` **não** serve para a linha da connection string: o nome carrega os
-hífens do GUID do tenant, que não formam nome de variável válido no shell.
+- **Terminal:** use o script de DEV, que lê o `.env`, tira as aspas dos valores, sobe o SQL
+  (`docker compose up -d`) e roda a aplicação:
+
+  ```powershell
+  ./scripts/dev.ps1                      # Windows (PowerShell)
+  ./scripts/dev.ps1 -Tema Horizontal -SemDocker
+  ```
+
+  ```bash
+  ./scripts/dev.sh                       # Linux/macOS
+  ./scripts/dev.sh --tema Horizontal --sem-docker
+  ```
+
+  `dotnet run` direto não enxerga o `.env`, e `set -a; . ./.env` **não** serve para a linha
+  da connection string: o nome carrega os hífens do GUID do tenant, que não formam nome de
+  variável válido no shell — é exatamente o que o script contorna.
 
 ### Autenticar no feed de pacotes
 
