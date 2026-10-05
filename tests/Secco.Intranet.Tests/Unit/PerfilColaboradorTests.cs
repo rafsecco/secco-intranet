@@ -24,7 +24,7 @@ public class PerfilColaboradorTests
 		var perfil = new PerfilColaborador(Ana);
 
 		perfil.UsuarioId.Should().Be(Ana);
-		perfil.NomeExibicao.Should().BeNull();
+		perfil.Ramal.Should().BeNull();
 		perfil.Cargo.Should().BeNull();
 		perfil.UpdatedAt.Should().BeNull();
 	}
@@ -34,11 +34,11 @@ public class PerfilColaboradorTests
 	{
 		var perfil = new PerfilColaborador(Ana);
 
-		var alterados = perfil.EditarContato("  Ana Ribeiro ", " 2100 ", null);
+		var alterados = perfil.EditarContato(" 2100 ", "  Sobre a Ana ");
 
-		alterados.Should().Equal(PerfilColaborador.CampoNome, PerfilColaborador.CampoRamal);
-		perfil.NomeExibicao.Should().Be("Ana Ribeiro");
+		alterados.Should().Equal(PerfilColaborador.CampoRamal, PerfilColaborador.CampoSobre);
 		perfil.Ramal.Should().Be("2100");
+		perfil.Sobre.Should().Be("Sobre a Ana");
 		perfil.UpdatedAt.Should().NotBeNull();
 	}
 
@@ -46,12 +46,11 @@ public class PerfilColaboradorTests
 	public void EditarContato_TextoEmBranco_ViraNulo()
 	{
 		var perfil = new PerfilColaborador(Ana);
-		perfil.EditarContato("Ana", "1", "sobre");
+		perfil.EditarContato("1", "sobre");
 
-		var alterados = perfil.EditarContato("   ", "", null);
+		var alterados = perfil.EditarContato("", "   ");
 
-		alterados.Should().Equal(PerfilColaborador.CampoNome, PerfilColaborador.CampoRamal, PerfilColaborador.CampoSobre);
-		perfil.NomeExibicao.Should().BeNull();
+		alterados.Should().Equal(PerfilColaborador.CampoRamal, PerfilColaborador.CampoSobre);
 		perfil.Ramal.Should().BeNull();
 		perfil.Sobre.Should().BeNull();
 	}
@@ -60,24 +59,23 @@ public class PerfilColaboradorTests
 	public void EditarContato_SemMudanca_NaoDevolveCampoNemAtualizaData()
 	{
 		var perfil = new PerfilColaborador(Ana);
-		perfil.EditarContato("Ana", null, null);
+		perfil.EditarContato("2100", null);
 		var atualizado = perfil.UpdatedAt;
 
-		var alterados = perfil.EditarContato("Ana", null, null);
+		var alterados = perfil.EditarContato("2100", null);
 
 		alterados.Should().BeEmpty();
 		perfil.UpdatedAt.Should().Be(atualizado);
 	}
 
 	[Theory]
-	[InlineData(PerfilColaborador.NomeMaxLength + 1, 0, 0)]
-	[InlineData(0, PerfilColaborador.RamalMaxLength + 1, 0)]
-	[InlineData(0, 0, PerfilColaborador.SobreMaxLength + 1)]
-	public void EditarContato_AcimaDoLimite_Recusa(int nome, int ramal, int sobre)
+	[InlineData(PerfilColaborador.RamalMaxLength + 1, 0)]
+	[InlineData(0, PerfilColaborador.SobreMaxLength + 1)]
+	public void EditarContato_AcimaDoLimite_Recusa(int ramal, int sobre)
 	{
 		var perfil = new PerfilColaborador(Ana);
 
-		var editar = () => perfil.EditarContato(new string('a', nome), new string('1', ramal), new string('s', sobre));
+		var editar = () => perfil.EditarContato(new string('1', ramal), new string('s', sobre));
 
 		editar.Should().Throw<DomainInvariantException>();
 	}
@@ -86,13 +84,12 @@ public class PerfilColaboradorTests
 	public void EditarContato_Recusado_NaoAlteraNada()
 	{
 		var perfil = new PerfilColaborador(Ana);
-		perfil.EditarContato("Ana", "1", null);
+		perfil.EditarContato("1", null);
 
-		var editar = () => perfil.EditarContato("Outro", "2", new string('s', PerfilColaborador.SobreMaxLength + 1));
+		var editar = () => perfil.EditarContato("2", new string('s', PerfilColaborador.SobreMaxLength + 1));
 
 		editar.Should().Throw<DomainInvariantException>();
-		perfil.NomeExibicao.Should().Be("Ana", "a validação acontece antes de qualquer atribuição");
-		perfil.Ramal.Should().Be("1");
+		perfil.Ramal.Should().Be("1", "a validação acontece antes de qualquer atribuição");
 	}
 
 	[Fact]

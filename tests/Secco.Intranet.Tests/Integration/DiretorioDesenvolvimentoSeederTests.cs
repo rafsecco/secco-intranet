@@ -49,7 +49,7 @@ public class DiretorioDesenvolvimentoSeederTests(IntranetWebFactory factory) : I
 		var gravados = await contexto.PerfisColaboradores.Where(perfil => ids.Contains(perfil.UsuarioId)).ToListAsync();
 
 		gravados.Should().HaveCount(PessoasDeDesenvolvimento.Todas.Count, "rodar duas vezes não duplica");
-		gravados.Single(perfil => perfil.UsuarioId == PessoasDeDesenvolvimento.AnaId).NomeExibicao.Should().Be("Ana Ribeiro");
+		gravados.Single(perfil => perfil.UsuarioId == PessoasDeDesenvolvimento.AnaId).Ramal.Should().Be("2100");
 		gravados.Single(perfil => perfil.UsuarioId == PessoasDeDesenvolvimento.CamilaId).GestorUsuarioId
 			.Should().Be(PessoasDeDesenvolvimento.AnaId);
 	}

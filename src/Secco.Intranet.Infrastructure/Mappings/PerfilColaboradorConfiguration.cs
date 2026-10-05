@@ -23,7 +23,6 @@ internal sealed class PerfilColaboradorConfiguration : IEntityTypeConfiguration<
 			.OnDelete(DeleteBehavior.Restrict)
 			.IsRequired(false);
 
-		builder.Property(perfil => perfil.NomeExibicao).HasMaxLength(PerfilColaborador.NomeMaxLength);
 		builder.Property(perfil => perfil.Cargo).HasMaxLength(PerfilColaborador.CargoMaxLength);
 		builder.Property(perfil => perfil.Ramal).HasMaxLength(PerfilColaborador.RamalMaxLength);
 		builder.Property(perfil => perfil.Sobre).HasMaxLength(PerfilColaborador.SobreMaxLength);

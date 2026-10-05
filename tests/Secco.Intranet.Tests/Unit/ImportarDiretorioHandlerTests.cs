@@ -21,7 +21,8 @@ public class ImportarDiretorioHandlerTests
 		PerfisColaboradorFalso Perfis,
 		TrilhaDeAcessoFalsa Trilha,
 		SetoresFalsos Setores,
-		UsuariosParaDiretorioFalso Usuarios);
+		UsuariosParaDiretorioFalso Usuarios,
+		GestaoDeAcessoFalsa Gestao);
 
 	private static Ambiente Montar(Action<SetoresFalsos>? setores = null, Action<PerfisColaboradorFalso>? perfis = null)
 	{
@@ -31,8 +32,10 @@ public class ImportarDiretorioHandlerTests
 		var perfisFalsos = new PerfisColaboradorFalso();
 		perfis?.Invoke(perfisFalsos);
 		var trilha = new TrilhaDeAcessoFalsa();
+		var gestao = new GestaoDeAcessoFalsa();
 
-		return new Ambiente(new ImportarDiretorioHandler(usuarios, perfisFalsos, setoresFalsos, trilha), perfisFalsos, trilha, setoresFalsos, usuarios);
+		return new Ambiente(
+			new ImportarDiretorioHandler(usuarios, perfisFalsos, setoresFalsos, gestao, trilha), perfisFalsos, trilha, setoresFalsos, usuarios, gestao);
 	}
 
 	[Fact]
@@ -61,7 +64,7 @@ public class ImportarDiretorioHandlerTests
 		resultado.Value.Aplicado.Should().BeTrue();
 		ambiente.Perfis.Perfis.Should().HaveCount(2);
 		var ana = ambiente.Perfis.Perfis.Single(p => p.UsuarioId == Ana);
-		ana.NomeExibicao.Should().Be("Ana Ribeiro");
+		ambiente.Gestao.Nomes[Ana].Should().Be("Ana Ribeiro", "o nome vai para o SecureGate");
 		ana.Cargo.Should().Be("Controller");
 		ana.SetorId.Should().NotBeNull();
 		ambiente.Perfis.Perfis.Single(p => p.UsuarioId == Bruno).GestorUsuarioId.Should().Be(Ana);
@@ -76,7 +79,9 @@ public class ImportarDiretorioHandlerTests
 	public async Task Reimportar_OMesmoArquivo_NaoMudaNada()
 	{
 		var ambiente = Montar();
-		var csv = new ImportarDiretorioCommand(Cabecalho + "ana@x.com;Ana;Diretora;2100;;\n");
+		// Nome vazio: o dublê de usuários não reflete o que a gestão gravou, e o que se prova aqui é
+		// o perfil local — o nome tem testes próprios mais abaixo.
+		var csv = new ImportarDiretorioCommand(Cabecalho + "ana@x.com;;Diretora;2100;;\n");
 		await ambiente.Handler.AplicarAsync(csv);
 
 		var segunda = await ambiente.Handler.AplicarAsync(csv);
@@ -90,14 +95,14 @@ public class ImportarDiretorioHandlerTests
 	public async Task CelulaVazia_MantemOValorAtual_NaoLimpa()
 	{
 		var existente = new PerfilColaborador(Ana);
-		existente.EditarContato("Ana", "2100", null);
+		existente.EditarContato("2100", null);
 		existente.EditarDadosFuncionais("Diretora", null, Bruno);
 		var ambiente = Montar(perfis: perfis => perfis.Com(existente));
 
 		var resultado = await ambiente.Handler.AplicarAsync(new ImportarDiretorioCommand(Cabecalho + "ana@x.com;;Presidente;;;\n"));
 
 		resultado.Value.Atualizados.Should().Be(1);
-		existente.NomeExibicao.Should().Be("Ana");
+		ambiente.Gestao.Chamadas.Should().BeEmpty("nome vazio no CSV não mexe no nome");
 		existente.Ramal.Should().Be("2100");
 		existente.Cargo.Should().Be("Presidente");
 		existente.GestorUsuarioId.Should().Be(Bruno, "gestor vazio no CSV não limpa o gestor atual");
@@ -120,7 +125,8 @@ public class ImportarDiretorioHandlerTests
 		var ambiente = Montar();
 
 		var resultado = await ambiente.Handler.AplicarAsync(new ImportarDiretorioCommand(
-			Cabecalho + "fantasma@x.com;Fantasma;;;;\nana@x.com;Ana;;;;\n"));
+			// Ana ganha cargo: linha só com nome não cria perfil local (o nome é do SecureGate).
+			Cabecalho + "fantasma@x.com;Fantasma;;;;\nana@x.com;Ana;Analista;;;\n"));
 
 		resultado.Value.ComErro.Should().Be(1);
 		resultado.Value.Linhas.Single(l => l.Status == StatusDaLinha.Erro).Erro.Should().Contain("usuário ativo");
@@ -133,7 +139,7 @@ public class ImportarDiretorioHandlerTests
 		var ambiente = Montar();
 
 		var resultado = await ambiente.Handler.PrevisualizarAsync(new ImportarDiretorioCommand(
-			Cabecalho + "ana@x.com;Ana;;;;\nANA@x.com;Outra;;;;\n"));
+			Cabecalho + "ana@x.com;Ana;Analista;;;\nANA@x.com;Outra;;;;\n"));
 
 		resultado.Value.Linhas[0].Status.Should().Be(StatusDaLinha.Criar);
 		resultado.Value.Linhas[1].Status.Should().Be(StatusDaLinha.Erro);
@@ -206,7 +212,7 @@ public class ImportarDiretorioHandlerTests
 		var ambiente = Montar();
 
 		var resultado = await ambiente.Handler.PrevisualizarAsync(new ImportarDiretorioCommand(
-			Cabecalho + $"ana@x.com;{new string('n', PerfilColaborador.NomeMaxLength + 1)};;;;\n"));
+			Cabecalho + $"ana@x.com;{new string('n', NomeDeExibicao.MaxLength + 1)};;;;\n"));
 
 		resultado.Value.Linhas.Single().Status.Should().Be(StatusDaLinha.Erro);
 	}
@@ -239,9 +245,55 @@ public class ImportarDiretorioHandlerTests
 	{
 		var ambiente = Montar();
 
-		var resultado = await ambiente.Handler.PrevisualizarAsync(new ImportarDiretorioCommand(Cabecalho + ";Sem email;;;;\nana@x.com;Ana;;;;\n"));
+		var resultado = await ambiente.Handler.PrevisualizarAsync(new ImportarDiretorioCommand(Cabecalho + ";Sem email;;;;\nana@x.com;Ana;Analista;;;\n"));
 
 		resultado.Value.Linhas.Should().Contain(l => l.Numero == 2 && l.Status == StatusDaLinha.Erro);
 		resultado.Value.Linhas.Should().Contain(l => l.Numero == 3 && l.Status == StatusDaLinha.Criar);
 	}
+
+	[Fact]
+	public async Task Importar_NomeQueMuda_VaiParaAPlataforma_ENomeIgualNao()
+	{
+		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com", "Ana").Com(Bruno, "bruno@x.com", "Bruno");
+		var gestao = new GestaoDeAcessoFalsa();
+		var handler = Criar(usuarios, gestao);
+
+		var relatorio = await handler.AplicarAsync(new ImportarDiretorioCommand(
+			Cabecalho + "ana@x.com;Ana Ribeiro;;;;\nbruno@x.com;Bruno;;;;\n"));
+
+		gestao.Chamadas.Should().Equal($"usuario-nome:{Ana}:Ana Ribeiro");
+		relatorio.Value.Atualizados.Should().Be(1);
+		relatorio.Value.SemAlteracao.Should().Be(1);
+		usuarios.Esquecimentos.Should().Be(1, "uma vez no fim do lote");
+	}
+
+	[Fact]
+	public async Task Importar_NomeVazioNoCsv_NaoMexeNoNome()
+	{
+		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com", "Ana");
+		var gestao = new GestaoDeAcessoFalsa();
+
+		await Criar(usuarios, gestao).AplicarAsync(new ImportarDiretorioCommand(Cabecalho + "ana@x.com;;Analista;;;\n"));
+
+		gestao.Chamadas.Should().BeEmpty("célula vazia no CSV é 'não alterar'");
+	}
+
+	[Fact]
+	public async Task Importar_PlataformaRecusaUmNome_LinhaViraErroEOLoteContinua()
+	{
+		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com").Com(Bruno, "bruno@x.com");
+		var gestao = new GestaoDeAcessoFalsa { FalharCom = IntranetErrors.Acesso.Indisponivel };
+		var perfis = new PerfisColaboradorFalso();
+
+		var relatorio = await Criar(usuarios, gestao, perfis).AplicarAsync(new ImportarDiretorioCommand(
+			Cabecalho + "ana@x.com;Ana;;;;\nbruno@x.com;;Analista;;;\n"));
+
+		relatorio.Value.Linhas.Single(l => l.Email == "ana@x.com").Status.Should().Be(StatusDaLinha.Erro);
+		relatorio.Value.Linhas.Single(l => l.Email == "bruno@x.com").Status.Should().Be(StatusDaLinha.Criar);
+		perfis.Perfis.Should().ContainSingle(p => p.UsuarioId == Bruno && p.Cargo == "Analista");
+	}
+
+	private static ImportarDiretorioHandler Criar(
+		UsuariosParaDiretorioFalso usuarios, GestaoDeAcessoFalsa gestao, PerfisColaboradorFalso? perfis = null) =>
+		new(usuarios, perfis ?? new PerfisColaboradorFalso(), new SetoresFalsos(), gestao, new TrilhaDeAcessoFalsa());
 }

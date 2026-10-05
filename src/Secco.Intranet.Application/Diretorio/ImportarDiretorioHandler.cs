@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Diretorio;
@@ -55,22 +56,26 @@ public sealed record RelatorioDeImportacao(IReadOnlyList<LinhaDoRelatorio> Linha
 /// Importa o diretório de um CSV. <b>Não cria usuário</b>: o e-mail precisa ser de um usuário ativo
 /// do SecureGate. Duas etapas sobre o mesmo planejamento: <see cref="PrevisualizarAsync"/> só valida
 /// e conta; <see cref="AplicarAsync"/> planeja <b>de novo</b> (nunca confia numa pré-visualização
-/// antiga) e grava as linhas válidas. Célula vazia significa "não alterar".
+/// antiga) e grava as linhas válidas. Célula vazia significa "não alterar". O nome vai para o
+/// SecureGate, só quando muda.
 /// </summary>
 /// <param name="usuarios">Fonte de identidade.</param>
 /// <param name="perfis">Perfis locais.</param>
 /// <param name="setores">Setores do tenant.</param>
+/// <param name="gestao">Gestão de acesso — dona do nome de exibição.</param>
 /// <param name="trilha">Trilha de auditoria.</param>
 public sealed class ImportarDiretorioHandler(
 	IUsuariosParaDiretorio usuarios,
 	IPerfilColaboradorRepository perfis,
 	ISetorRepository setores,
+	IGestaoDeAcesso gestao,
 	ITrilhaDeAuditoria trilha)
 {
+	// NomeNovo: nome a gravar no SecureGate; nulo = não mexer.
 	private sealed record LinhaPlanejada(
 		LinhaDoRelatorio Relatorio,
 		Guid UsuarioId,
-		string? Nome,
+		string? NomeNovo,
 		string? Cargo,
 		string? Ramal,
 		Guid? SetorId,
@@ -100,19 +105,46 @@ public sealed class ImportarDiretorioHandler(
 			return Result.Failure<RelatorioDeImportacao>(plano.Error);
 		}
 
+		var relatorioPorNumero = plano.Value.ToDictionary(linha => linha.Relatorio.Numero, linha => linha.Relatorio);
+		var algumNome = false;
+
 		foreach (var linha in plano.Value.Where(linha => linha.Relatorio.Status is StatusDaLinha.Criar or StatusDaLinha.Atualizar))
 		{
+			// Mesma regra da edição: o nome vai primeiro; recusado, a linha inteira vira erro.
+			if (linha.NomeNovo is not null)
+			{
+				var gravado = await gestao.DefinirNomeDeExibicaoAsync(linha.UsuarioId, linha.NomeNovo, cancellationToken).ConfigureAwait(false);
+
+				if (gravado.IsFailure)
+				{
+					relatorioPorNumero[linha.Relatorio.Numero] = linha.Relatorio with
+					{
+						Status = StatusDaLinha.Erro,
+						Erro = $"o SecureGate recusou o nome: {gravado.Error.Description}",
+					};
+
+					continue;
+				}
+
+				algumNome = true;
+			}
+
 			await EdicaoDePerfil.AplicarAsync(
 				perfis,
 				linha.UsuarioId,
 				perfil => [
-					.. perfil.EditarContato(linha.Nome ?? perfil.NomeExibicao, linha.Ramal ?? perfil.Ramal, perfil.Sobre),
+					.. perfil.EditarContato(linha.Ramal ?? perfil.Ramal, perfil.Sobre),
 					.. perfil.EditarDadosFuncionais(linha.Cargo ?? perfil.Cargo, linha.SetorId ?? perfil.SetorId, linha.GestorId ?? perfil.GestorUsuarioId),
 				],
 				cancellationToken).ConfigureAwait(false);
 		}
 
-		var relatorio = new RelatorioDeImportacao([.. plano.Value.Select(linha => linha.Relatorio)], Aplicado: true);
+		if (algumNome)
+		{
+			usuarios.Esquecer();
+		}
+
+		var relatorio = new RelatorioDeImportacao([.. relatorioPorNumero.OrderBy(par => par.Key).Select(par => par.Value)], Aplicado: true);
 
 		await trilha.RegistrarAsync(
 			new RegistroDeAuditoria(
@@ -199,7 +231,7 @@ public sealed class ImportarDiretorioHandler(
 			return Rejeitada(linha.Numero, linha.Email, "e-mail repetido no arquivo.");
 		}
 
-		if ((linha.Nome?.Length ?? 0) > PerfilColaborador.NomeMaxLength
+		if ((linha.Nome?.Length ?? 0) > NomeDeExibicao.MaxLength
 			|| (linha.Cargo?.Length ?? 0) > PerfilColaborador.CargoMaxLength
 			|| (linha.Ramal?.Length ?? 0) > PerfilColaborador.RamalMaxLength)
 		{
@@ -244,18 +276,27 @@ public sealed class ImportarDiretorioHandler(
 
 		perfilPorUsuario.TryGetValue(usuario.Id, out var atual);
 
-		var mudou = Mudou(atual?.NomeExibicao, linha.Nome)
-			|| Mudou(atual?.Cargo, linha.Cargo)
+		// Nome vazio na célula é "não alterar"; preenchido, só conta como mudança se diferir do
+		// displayName atual no SecureGate.
+		var nomeNovo = linha.Nome is not null
+			&& !string.Equals(NomeDeExibicao.Normalizar(linha.Nome), NomeDeExibicao.Normalizar(usuario.Nome), StringComparison.Ordinal)
+			? linha.Nome
+			: null;
+
+		var mudouLocal = Mudou(atual?.Cargo, linha.Cargo)
 			|| Mudou(atual?.Ramal, linha.Ramal)
 			|| (setorId is not null && setorId != atual?.SetorId)
 			|| (gestorId is not null && gestorId != atual?.GestorUsuarioId);
 
-		var status = !mudou ? StatusDaLinha.SemAlteracao : atual is null ? StatusDaLinha.Criar : StatusDaLinha.Atualizar;
+		// Só o nome mudando não cria perfil local: a linha é "atualizar" (o nome é do SecureGate).
+		var status = !mudouLocal && nomeNovo is null
+			? StatusDaLinha.SemAlteracao
+			: atual is null && mudouLocal ? StatusDaLinha.Criar : StatusDaLinha.Atualizar;
 
 		return new LinhaPlanejada(
 			new LinhaDoRelatorio(linha.Numero, linha.Email, status, null),
 			usuario.Id,
-			linha.Nome,
+			nomeNovo,
 			linha.Cargo,
 			linha.Ramal,
 			setorId,

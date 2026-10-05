@@ -18,8 +18,9 @@ public class EscritaDoDiretorioHandlersTests
 	private static UsuariosParaDiretorioFalso Usuarios() =>
 		new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com").Com(Bruno, "bruno@x.com").Com(Carla, "carla@x.com");
 
-	private static EditarContatoHandler Contato(UsuariosParaDiretorioFalso usuarios, PerfisColaboradorFalso perfis, TrilhaDeAcessoFalsa trilha) =>
-		new(usuarios, perfis, trilha);
+	private static EditarContatoHandler Contato(
+		UsuariosParaDiretorioFalso usuarios, PerfisColaboradorFalso perfis, TrilhaDeAcessoFalsa trilha, GestaoDeAcessoFalsa? gestao = null) =>
+		new(usuarios, perfis, gestao ?? new GestaoDeAcessoFalsa(), trilha);
 
 	private static EditarDadosFuncionaisHandler Funcionais(
 		UsuariosParaDiretorioFalso usuarios, PerfisColaboradorFalso perfis, SetoresFalsos setores, TrilhaDeAcessoFalsa trilha) =>
@@ -37,7 +38,7 @@ public class EscritaDoDiretorioHandlersTests
 			.HandleAsync(new EditarContatoCommand(Ana, "Ana Ribeiro", "2100", null));
 
 		resultado.IsSuccess.Should().BeTrue();
-		perfis.Perfis.Should().ContainSingle().Which.NomeExibicao.Should().Be("Ana Ribeiro");
+		perfis.Perfis.Should().ContainSingle().Which.Ramal.Should().Be("2100");
 		var registro = trilha.Registros.Should().ContainSingle().Subject;
 		registro.Verbo.Should().Be(VerbosDeAuditoria.DiretorioPerfilEditar);
 		registro.Recurso.Should().Be(RecursosDeAuditoria.Diretorio);
@@ -64,14 +65,14 @@ public class EscritaDoDiretorioHandlersTests
 	public async Task Contato_PerfilExistente_Atualiza()
 	{
 		var existente = new PerfilColaborador(Ana);
-		existente.EditarContato("Ana", null, null);
+		existente.EditarContato("1000", null);
 		var perfis = new PerfisColaboradorFalso().Com(existente);
 
 		var resultado = await Contato(Usuarios(), perfis, new TrilhaDeAcessoFalsa())
-			.HandleAsync(new EditarContatoCommand(Ana, "Ana Ribeiro", null, null));
+			.HandleAsync(new EditarContatoCommand(Ana, null, "2100", null));
 
 		resultado.IsSuccess.Should().BeTrue();
-		existente.NomeExibicao.Should().Be("Ana Ribeiro");
+		existente.Ramal.Should().Be("2100");
 		perfis.Salvou.Should().Be(1);
 	}
 
@@ -85,7 +86,6 @@ public class EscritaDoDiretorioHandlersTests
 	}
 
 	[Theory]
-	[InlineData(PerfilColaborador.NomeMaxLength + 1, 0, 0)]
 	[InlineData(0, PerfilColaborador.RamalMaxLength + 1, 0)]
 	[InlineData(0, 0, PerfilColaborador.SobreMaxLength + 1)]
 	public async Task Contato_AcimaDoLimite_RecusaSemGravar(int nome, int ramal, int sobre)
@@ -235,13 +235,12 @@ public class EscritaDoDiretorioHandlersTests
 	public async Task Funcionais_NuncaMexeNoContato()
 	{
 		var existente = new PerfilColaborador(Ana);
-		existente.EditarContato("Ana", "2100", "Sobre");
+		existente.EditarContato("2100", "Sobre");
 		var perfis = new PerfisColaboradorFalso().Com(existente);
 
 		await Funcionais(Usuarios(), perfis, new SetoresFalsos(), new TrilhaDeAcessoFalsa())
 			.HandleAsync(new EditarDadosFuncionaisCommand(Ana, "Diretora", null, null));
 
-		existente.NomeExibicao.Should().Be("Ana");
 		existente.Ramal.Should().Be("2100");
 		existente.Sobre.Should().Be("Sobre");
 	}
@@ -258,5 +257,87 @@ public class EscritaDoDiretorioHandlersTests
 
 		resultado.IsSuccess.Should().BeTrue();
 		existente.GestorUsuarioId.Should().BeNull();
+	}
+
+	[Fact]
+	public async Task Contato_NomeIgualAoAtual_NaoChamaAPlataforma()
+	{
+		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com", "Ana Ribeiro");
+		var gestao = new GestaoDeAcessoFalsa();
+		var handler = new EditarContatoHandler(usuarios, new PerfisColaboradorFalso(), gestao, new TrilhaDeAcessoFalsa());
+
+		(await handler.HandleAsync(new EditarContatoCommand(Ana, " Ana Ribeiro ", "2100", null))).IsSuccess.Should().BeTrue();
+
+		gestao.Chamadas.Should().BeEmpty();
+	}
+
+	[Fact]
+	public async Task Contato_NomeMudou_GravaNaPlataformaEEsqueceOCache()
+	{
+		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com");
+		var gestao = new GestaoDeAcessoFalsa();
+		var trilha = new TrilhaDeAcessoFalsa();
+		var handler = new EditarContatoHandler(usuarios, new PerfisColaboradorFalso(), gestao, trilha);
+
+		(await handler.HandleAsync(new EditarContatoCommand(Ana, "Ana Ribeiro", null, null))).IsSuccess.Should().BeTrue();
+
+		gestao.Chamadas.Should().Equal($"usuario-nome:{Ana}:Ana Ribeiro");
+		usuarios.Esquecimentos.Should().Be(1);
+		trilha.Registros.Should().ContainSingle().Which.Metadata.Should().Contain("\"nome\"");
+	}
+
+	[Fact]
+	public async Task Contato_NomeVazioEmQuemTinhaNome_LimpaNaPlataforma()
+	{
+		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com", "Ana Ribeiro");
+		var gestao = new GestaoDeAcessoFalsa();
+		var handler = new EditarContatoHandler(usuarios, new PerfisColaboradorFalso(), gestao, new TrilhaDeAcessoFalsa());
+
+		(await handler.HandleAsync(new EditarContatoCommand(Ana, "   ", null, null))).IsSuccess.Should().BeTrue();
+
+		gestao.Chamadas.Should().Equal($"usuario-nome:{Ana}:   ");
+		gestao.Nomes[Ana].Should().BeNull();
+	}
+
+	[Fact]
+	public async Task Contato_PlataformaRecusaONome_NaoGravaOPerfilLocal()
+	{
+		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com");
+		var perfis = new PerfisColaboradorFalso();
+		var gestao = new GestaoDeAcessoFalsa { FalharCom = IntranetErrors.Acesso.Indisponivel };
+		var handler = new EditarContatoHandler(usuarios, perfis, gestao, new TrilhaDeAcessoFalsa());
+
+		var resultado = await handler.HandleAsync(new EditarContatoCommand(Ana, "Ana", "2100", "sobre"));
+
+		resultado.Error.Should().Be(IntranetErrors.Acesso.Indisponivel);
+		perfis.Perfis.Should().BeEmpty("o ramal não é gravado sozinho quando o nome falhou");
+	}
+
+	[Fact]
+	public async Task Contato_SoRamal_FuncionaComAPlataformaForaDoAr()
+	{
+		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com", "Ana");
+		var perfis = new PerfisColaboradorFalso();
+		var gestao = new GestaoDeAcessoFalsa { FalharCom = IntranetErrors.Acesso.Indisponivel };
+		var handler = new EditarContatoHandler(usuarios, perfis, gestao, new TrilhaDeAcessoFalsa());
+
+		(await handler.HandleAsync(new EditarContatoCommand(Ana, "Ana", "2100", null))).IsSuccess.Should().BeTrue();
+
+		perfis.Perfis.Single().Ramal.Should().Be("2100");
+	}
+
+	[Theory]
+	[InlineData(160, true)]
+	[InlineData(161, false)]
+	public async Task Contato_LimiteDoNome(int tamanho, bool aceito)
+	{
+		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com");
+		var gestao = new GestaoDeAcessoFalsa();
+		var handler = new EditarContatoHandler(usuarios, new PerfisColaboradorFalso(), gestao, new TrilhaDeAcessoFalsa());
+
+		var resultado = await handler.HandleAsync(new EditarContatoCommand(Ana, new string('n', tamanho), null, null));
+
+		resultado.IsSuccess.Should().Be(aceito);
+		gestao.Chamadas.Should().HaveCount(aceito ? 1 : 0);
 	}
 }

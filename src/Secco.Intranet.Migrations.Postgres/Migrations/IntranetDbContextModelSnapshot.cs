@@ -42,11 +42,6 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("gestor_usuario_id");
 
-                    b.Property<string>("NomeExibicao")
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)")
-                        .HasColumnName("ds_nome_exibicao");
-
                     b.Property<string>("Ramal")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")

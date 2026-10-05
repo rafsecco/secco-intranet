@@ -16,9 +16,13 @@ public class DiretorioImportacaoTests(IntranetWebFactory factory) : IClassFixtur
 {
 	public async Task InitializeAsync() => await factory.EnsureDatabaseMigratedAsync();
 
+	// O nome vai para o SecureGate: sem uma gestão de acesso, a linha com nome seria recusada.
+	private readonly GestaoDeAcessoFalsa _gestao = new();
+
 	public Task DisposeAsync()
 	{
 		factory.UsuariosDoDiretorio = null;
+		factory.GestaoDeAcesso = null;
 
 		return Task.CompletedTask;
 	}
@@ -26,6 +30,7 @@ public class DiretorioImportacaoTests(IntranetWebFactory factory) : IClassFixtur
 	private HttpClient CriarCliente(UsuariosParaDiretorioFalso? usuarios, params string[] roles)
 	{
 		factory.UsuariosDoDiretorio = usuarios;
+		factory.GestaoDeAcesso = _gestao;
 		var client = factory.CreateClient();
 		client.DefaultRequestHeaders.Add(SeccoHeaders.TenantId, factory.TenantAlfa.ToString());
 
@@ -126,6 +131,7 @@ public class DiretorioImportacaoTests(IntranetWebFactory factory) : IClassFixtur
 		var html = Decodificar(await resposta.Content.ReadAsStringAsync());
 		html.Should().Contain("Importação concluída").And.Contain("data-total=\"criados\">1<");
 		(await TemPerfilAsync(usuarios, ana)).Should().BeTrue();
+		_gestao.Nomes[ana].Should().Be("Ana Ribeiro");
 	}
 
 	[Fact]

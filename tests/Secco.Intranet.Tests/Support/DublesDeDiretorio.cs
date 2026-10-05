@@ -19,13 +19,19 @@ public sealed class UsuariosParaDiretorioFalso : IUsuariosParaDiretorio
 	/// <summary>Quantas vezes a lista foi pedida.</summary>
 	public int Chamadas { get; private set; }
 
-	/// <summary>Acrescenta um usuário ativo.</summary>
-	public UsuariosParaDiretorioFalso Com(Guid id, string email)
+	/// <summary>Quantas vezes o cache foi descartado.</summary>
+	public int Esquecimentos { get; private set; }
+
+	/// <summary>Acrescenta um usuário ativo, com o nome de exibição que a plataforma teria.</summary>
+	public UsuariosParaDiretorioFalso Com(Guid id, string email, string? nome = null)
 	{
-		Usuarios.Add(new UsuarioParaDiretorio(id, email));
+		Usuarios.Add(new UsuarioParaDiretorio(id, email, nome));
 
 		return this;
 	}
+
+	/// <inheritdoc />
+	public void Esquecer() => Esquecimentos++;
 
 	/// <inheritdoc />
 	public Task<Result<IReadOnlyList<UsuarioParaDiretorio>>> ListarAtivosAsync(CancellationToken cancellationToken = default)

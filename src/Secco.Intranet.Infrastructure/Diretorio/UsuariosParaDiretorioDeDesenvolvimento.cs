@@ -14,8 +14,14 @@ public sealed class UsuariosParaDiretorioDeDesenvolvimento : IUsuariosParaDireto
 	public Task<Result<IReadOnlyList<UsuarioParaDiretorio>>> ListarAtivosAsync(CancellationToken cancellationToken = default)
 	{
 		IReadOnlyList<UsuarioParaDiretorio> usuarios =
-			[.. PessoasDeDesenvolvimento.Todas.Select(pessoa => new UsuarioParaDiretorio(pessoa.Id, pessoa.Email))];
+			[.. PessoasDeDesenvolvimento.Todas.Select(pessoa => new UsuarioParaDiretorio(pessoa.Id, pessoa.Email, pessoa.Nome))];
 
 		return Task.FromResult(Result.Success(usuarios));
+	}
+
+	/// <inheritdoc />
+	public void Esquecer()
+	{
+		// Lista fixa, sem cache: não há o que descartar.
 	}
 }

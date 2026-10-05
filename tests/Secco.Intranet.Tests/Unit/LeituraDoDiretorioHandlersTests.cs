@@ -14,10 +14,10 @@ public class LeituraDoDiretorioHandlersTests
 	private static readonly Guid Carla = Guid.NewGuid();
 	private static readonly Guid Desativado = Guid.NewGuid();
 
-	private static PerfilColaborador Perfil(Guid usuario, string? nome, string? cargo = null, Guid? setor = null, Guid? gestor = null)
+	// O nome não mora mais no perfil: vem do usuário (o displayName do SecureGate).
+	private static PerfilColaborador Perfil(Guid usuario, string? cargo = null, Guid? setor = null, Guid? gestor = null)
 	{
 		var perfil = new PerfilColaborador(usuario);
-		perfil.EditarContato(nome, null, null);
 		perfil.EditarDadosFuncionais(cargo, setor, gestor);
 
 		return perfil;
@@ -56,8 +56,8 @@ public class LeituraDoDiretorioHandlersTests
 	[Fact]
 	public async Task PerfilDeUsuarioDesativado_NaoAparece()
 	{
-		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com");
-		var perfis = new PerfisColaboradorFalso().Com(Perfil(Ana, "Ana Ribeiro")).Com(Perfil(Desativado, "Fantasma"));
+		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com", "Ana Ribeiro");
+		var perfis = new PerfisColaboradorFalso().Com(Perfil(Ana)).Com(Perfil(Desativado, "Fantasma"));
 		var (listar, _, _) = Montar(usuarios, perfis);
 
 		var resultado = await listar.HandleAsync(new ListarPessoasQuery(null, null, 1));
@@ -68,8 +68,8 @@ public class LeituraDoDiretorioHandlersTests
 	[Fact]
 	public async Task OrdenaPorNome_SemDiferenciarCaixa()
 	{
-		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "a@x.com").Com(Bruno, "b@x.com").Com(Carla, "c@x.com");
-		var perfis = new PerfisColaboradorFalso().Com(Perfil(Ana, "zélia")).Com(Perfil(Bruno, "Bruno")).Com(Perfil(Carla, "ana"));
+		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "a@x.com", "zélia").Com(Bruno, "b@x.com", "Bruno").Com(Carla, "c@x.com", "ana");
+		var perfis = new PerfisColaboradorFalso();
 		var (listar, _, _) = Montar(usuarios, perfis);
 
 		var resultado = await listar.HandleAsync(new ListarPessoasQuery(null, null, 1));
@@ -80,13 +80,13 @@ public class LeituraDoDiretorioHandlersTests
 	[Fact]
 	public async Task Busca_AchaPorNomeCargoSetorEEmail()
 	{
-		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com").Com(Bruno, "bruno@y.com").Com(Carla, "carla@z.com");
+		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com", "Ana Ribeiro").Com(Bruno, "bruno@y.com", "Bruno").Com(Carla, "carla@z.com", "Carla");
 		var (listar, _, setores) = Montar(usuarios, new PerfisColaboradorFalso());
 		var financeiro = setores.Com("Financeiro", "financeiro");
 		var perfis = new PerfisColaboradorFalso()
-			.Com(Perfil(Ana, "Ana Ribeiro", "Controller"))
-			.Com(Perfil(Bruno, "Bruno", "Analista", financeiro.Id))
-			.Com(Perfil(Carla, "Carla"));
+			.Com(Perfil(Ana, "Controller"))
+			.Com(Perfil(Bruno, "Analista", financeiro.Id))
+			.Com(Perfil(Carla));
 		var handler = new ListarPessoasHandler(usuarios, perfis, setores);
 
 		(await handler.HandleAsync(new ListarPessoasQuery("ribeiro", null, 1))).Value.Pagina.Items.Should().ContainSingle();
@@ -98,10 +98,10 @@ public class LeituraDoDiretorioHandlersTests
 	[Fact]
 	public async Task FiltroPorSetor_RestringePeloSlug()
 	{
-		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com").Com(Bruno, "bruno@x.com");
+		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com", "Ana").Com(Bruno, "bruno@x.com", "Bruno");
 		var setores = new SetoresFalsos();
 		var rh = setores.Com("RH", "rh");
-		var perfis = new PerfisColaboradorFalso().Com(Perfil(Ana, "Ana", setor: rh.Id)).Com(Perfil(Bruno, "Bruno"));
+		var perfis = new PerfisColaboradorFalso().Com(Perfil(Ana, setor: rh.Id)).Com(Perfil(Bruno));
 		var handler = new ListarPessoasHandler(usuarios, perfis, setores);
 
 		var resultado = await handler.HandleAsync(new ListarPessoasQuery(null, "RH", 1));
@@ -116,7 +116,7 @@ public class LeituraDoDiretorioHandlersTests
 		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com");
 		var setores = new SetoresFalsos();
 		var antigo = setores.Com("Antigo", "antigo", ativo: false);
-		var perfis = new PerfisColaboradorFalso().Com(Perfil(Ana, "Ana", setor: antigo.Id));
+		var perfis = new PerfisColaboradorFalso().Com(Perfil(Ana, setor: antigo.Id));
 		var handler = new ListarPessoasHandler(usuarios, perfis, setores);
 
 		var resultado = await handler.HandleAsync(new ListarPessoasQuery(null, null, 1));
@@ -170,11 +170,11 @@ public class LeituraDoDiretorioHandlersTests
 	[Fact]
 	public async Task Obter_TrazGestorEEquipe_ComGestorInativoMarcado()
 	{
-		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com").Com(Bruno, "bruno@x.com").Com(Carla, "carla@x.com");
+		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com", "Ana").Com(Bruno, "bruno@x.com", "Bruno").Com(Carla, "carla@x.com", "Carla");
 		var perfis = new PerfisColaboradorFalso()
-			.Com(Perfil(Ana, "Ana"))
-			.Com(Perfil(Bruno, "Bruno", gestor: Ana))
-			.Com(Perfil(Carla, "Carla", gestor: Desativado));
+			.Com(Perfil(Ana))
+			.Com(Perfil(Bruno, gestor: Ana))
+			.Com(Perfil(Carla, gestor: Desativado));
 		var (_, obter, _) = Montar(usuarios, perfis);
 
 		var deAna = (await obter.HandleAsync(Ana)).Value;
@@ -194,5 +194,18 @@ public class LeituraDoDiretorioHandlersTests
 		var (_, obter, _) = Montar(new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com"), new PerfisColaboradorFalso());
 
 		(await obter.HandleAsync(Desativado)).Error.Should().Be(IntranetErrors.Diretorio.PessoaNaoEncontrada);
+	}
+
+	[Fact]
+	public async Task NomeDeExibicao_ENuloSemDisplayName_MesmoComPerfil()
+	{
+		var usuarios = new UsuariosParaDiretorioFalso().Com(Ana, "ana@x.com");
+		var perfis = new PerfisColaboradorFalso().Com(Perfil(Ana, cargo: "Analista"));
+		var (_, obter, _) = Montar(usuarios, perfis);
+
+		var pessoa = (await obter.HandleAsync(Ana)).Value.Pessoa;
+
+		pessoa.Nome.Should().Be("ana@x.com", "a tela cai no e-mail");
+		pessoa.NomeDeExibicao.Should().BeNull("o formulário não pode ser preenchido com o e-mail");
 	}
 }

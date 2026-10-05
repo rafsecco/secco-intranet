@@ -184,7 +184,7 @@ public sealed class DiretorioController(
 
 		var pessoa = resultado.Value.Pessoa;
 
-		return View(new MeuPerfilViewModel(pessoa, new EditarContatoForm { Nome = pessoa.TemPerfil ? pessoa.Nome : null, Ramal = pessoa.Ramal, Sobre = pessoa.Sobre }));
+		return View(new MeuPerfilViewModel(pessoa, new EditarContatoForm { Nome = pessoa.NomeDeExibicao, Ramal = pessoa.Ramal, Sobre = pessoa.Sobre }));
 	}
 
 	/// <summary>
@@ -245,7 +245,7 @@ public sealed class DiretorioController(
 			resultado.Value,
 			new EditarPessoaForm
 			{
-				Nome = pessoa.TemPerfil ? pessoa.Nome : null,
+				Nome = pessoa.NomeDeExibicao,
 				Ramal = pessoa.Ramal,
 				Sobre = pessoa.Sobre,
 				Cargo = pessoa.Cargo,

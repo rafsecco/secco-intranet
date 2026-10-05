@@ -2,6 +2,7 @@
 
 **Data:** 2026-09-24
 **Estado:** rascunho, aguardando revisão
+**Revisada por:** [2026-10-04-nome-de-exibicao-na-plataforma-design.md](2026-10-04-nome-de-exibicao-na-plataforma-design.md) — o nome de exibição passou para a plataforma; a etapa 6 (foto) saiu do MVP e espera a #29.
 
 ## Problema
 

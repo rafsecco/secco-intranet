@@ -5,14 +5,11 @@ namespace Secco.Intranet.Domain.Diretorio;
 
 /// <summary>
 /// Perfil complementar de um colaborador: só o que o SecureGate não guarda. Identidade (id,
-/// e-mail, situação da conta) vive na plataforma; <see cref="UsuarioId"/> é um Guid dela, sem FK
+/// e-mail, situação da conta, nome de exibição) vive na plataforma; <see cref="UsuarioId"/> é um Guid dela, sem FK
 /// (ADR-0006). Nasce na primeira edição — quem não tem perfil aparece pelo e-mail.
 /// </summary>
 public sealed class PerfilColaborador : BaseEntity
 {
-	/// <summary>Tamanho máximo do nome de exibição.</summary>
-	public const int NomeMaxLength = 120;
-
 	/// <summary>Tamanho máximo do cargo.</summary>
 	public const int CargoMaxLength = 120;
 
@@ -22,7 +19,10 @@ public sealed class PerfilColaborador : BaseEntity
 	/// <summary>Tamanho máximo do texto "sobre".</summary>
 	public const int SobreMaxLength = 500;
 
-	/// <summary>Nome de campo usado na auditoria.</summary>
+	/// <summary>
+	/// Nome de campo usado na auditoria. O nome mora no SecureGate, mas a mudança dele entra no
+	/// mesmo registro de edição do perfil.
+	/// </summary>
 	public const string CampoNome = "nome";
 
 	/// <summary>Nome de campo usado na auditoria.</summary>
@@ -62,9 +62,6 @@ public sealed class PerfilColaborador : BaseEntity
 	/// <summary>Id do usuário no SecureGate. Único, sem FK.</summary>
 	public Guid UsuarioId { get; private set; }
 
-	/// <summary>Nome de exibição; nulo cai no e-mail na tela.</summary>
-	public string? NomeExibicao { get; private set; }
-
 	/// <summary>Cargo. Só o admin do diretório edita.</summary>
 	public string? Cargo { get; private set; }
 
@@ -88,15 +85,13 @@ public sealed class PerfilColaborador : BaseEntity
 
 	/// <summary>Altera o contato. Devolve os nomes dos campos que <b>de fato</b> mudaram.</summary>
 	/// <exception cref="DomainInvariantException">Algum campo acima do limite; nada é alterado.</exception>
-	public IReadOnlyList<string> EditarContato(string? nome, string? ramal, string? sobre)
+	public IReadOnlyList<string> EditarContato(string? ramal, string? sobre)
 	{
-		var novoNome = Normalizar(nome, NomeMaxLength, "nome");
 		var novoRamal = Normalizar(ramal, RamalMaxLength, "ramal");
 		var novoSobre = Normalizar(sobre, SobreMaxLength, "sobre");
 
 		var alterados = new List<string>();
 
-		Atribuir(NomeExibicao, novoNome, valor => NomeExibicao = valor, CampoNome, alterados);
 		Atribuir(Ramal, novoRamal, valor => Ramal = valor, CampoRamal, alterados);
 		Atribuir(Sobre, novoSobre, valor => Sobre = valor, CampoSobre, alterados);
 

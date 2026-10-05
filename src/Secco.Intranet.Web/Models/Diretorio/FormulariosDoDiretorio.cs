@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Secco.Intranet.Application.Diretorio;
 using Secco.Intranet.Domain.Diretorio;
 
 namespace Secco.Intranet.Web.Models.Diretorio;
@@ -11,7 +12,7 @@ namespace Secco.Intranet.Web.Models.Diretorio;
 public class EditarContatoForm
 {
 	/// <summary>Nome de exibição.</summary>
-	[StringLength(PerfilColaborador.NomeMaxLength)]
+	[StringLength(NomeDeExibicao.MaxLength)]
 	public string? Nome { get; set; }
 
 	/// <summary>Ramal.</summary>

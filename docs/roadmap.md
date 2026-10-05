@@ -57,18 +57,14 @@ processos (maior risco técnico) só entra com a base já sólida.
       recusada por volume) e **quem entrou** (login — nunca esteve no escopo deste item)
       (entidade, publicação, edição). Um recurso só, com discriminador de tipo
       (aviso, evento, notícia)
-- [ ] Diretório organizacional (perfil de colaborador, organograma básico) —
-      [spec](specs/2026-09-24-diretorio-organizacional-design.md). **Etapas 1–5 entregues**: perfil
-      complementar local por usuário do SecureGate, busca de pessoas, "Meu perfil" e edição pelo admin
-      (cargo, setor e gestor só do admin), organograma por gestor com regra de ciclo, importação CSV
-      em duas etapas, e acesso só de `intranet-admin`/`diretorio-admin`/`diretorio-user`. A demonstração
-      estática e o flag `Intranet:Demo:Habilitado` saíram. **Falta só a foto**, bloqueada por
-      [secco-platform#29](https://github.com/rafsecco/secco-platform/issues/29) (SDK de imagem) — a
-      plataforma tirou a #29 do MVP e ela foi para a fila atrás de #27/#28; se essa etapa avançar
-      antes da SDK existir, a mitigação mínima registrada na spec (assinatura de arquivo, nunca SVG,
-      nome gerado pelo servidor, `nosniff`, EXIF não removido documentado) é obrigatória. O nome
-      de exibição migra para a plataforma quando a
-      [#30](https://github.com/rafsecco/secco-platform/issues/30) sair
+- [x] Diretório organizacional (perfil de colaborador, organograma básico) —
+      [spec](specs/2026-09-24-diretorio-organizacional-design.md): perfil complementar local por
+      usuário do SecureGate, busca de pessoas, "Meu perfil" e edição pelo admin (cargo, setor e
+      gestor só do admin), organograma por gestor com regra de ciclo, importação CSV em duas etapas,
+      e acesso só de `intranet-admin`/`diretorio-admin`/`diretorio-user`. O nome de exibição vem do
+      SecureGate ([#30](https://github.com/rafsecco/secco-platform/issues/30)) —
+      [spec](specs/2026-10-04-nome-de-exibicao-na-plataforma-design.md). A foto saiu do MVP: ver
+      Fase 3
 - [x] Repositório de documentos por setor: upload cifrado em envelope, visibilidade por
       documento (só o setor ou a empresa toda), download autorizado e arquivamento (o
       registro e o arquivo permanecem) — ADR-0005
@@ -135,6 +131,12 @@ processos (maior risco técnico) só entra com a base já sólida.
 
 ## Fase 3 — Operacional
 
+- [ ] Foto do colaborador no Diretório — upload, recorte e redução pela SDK de imagem; bloqueado
+      por [secco-platform#29](https://github.com/rafsecco/secco-platform/issues/29). Até lá, avatar
+      por iniciais. Se a etapa avançar antes da SDK existir, a mitigação mínima registrada na
+      [spec do Diretório](specs/2026-09-24-diretorio-organizacional-design.md) (assinatura de
+      arquivo, nunca SVG, nome gerado pelo servidor, `nosniff`, EXIF não removido documentado) é
+      obrigatória
 - [ ] Recurso de aviso de vencimento (`ItemVencimento` + `AvisoAntecedencia`, múltiplos
       avisos escalonados) — ex: renovação de certificado
 - [ ] RH self-service (férias, holerites) — pode reaproveitar o motor de processos da

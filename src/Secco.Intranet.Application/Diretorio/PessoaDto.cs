@@ -15,6 +15,10 @@ namespace Secco.Intranet.Application.Diretorio;
 /// <param name="GestorNome">Nome do gestor, quando ele é um usuário ativo.</param>
 /// <param name="GestorInativo">Verdadeiro se há gestor definido mas ele não é mais um usuário ativo.</param>
 /// <param name="TemPerfil">Se existe perfil local para a pessoa.</param>
+/// <param name="NomeDeExibicao">
+/// O <c>displayName</c> cru, nulo quando não definido — para pré-preencher formulário. Para
+/// mostrar, use <see cref="Nome"/>, que cai no e-mail.
+/// </param>
 public sealed record PessoaDto(
 	Guid UsuarioId,
 	string Email,
@@ -29,4 +33,5 @@ public sealed record PessoaDto(
 	Guid? GestorUsuarioId,
 	string? GestorNome,
 	bool GestorInativo,
-	bool TemPerfil);
+	bool TemPerfil,
+	string? NomeDeExibicao = null);

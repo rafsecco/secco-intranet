@@ -30,7 +30,7 @@ public class PerfilColaboradorPersistenciaTests(IntranetWebFactory factory) : IC
 	{
 		var usuario = Guid.NewGuid();
 		var perfil = new PerfilColaborador(usuario);
-		perfil.EditarContato("Ana Ribeiro", "2100", "Sobre a Ana");
+		perfil.EditarContato("2100", "Sobre a Ana");
 
 		using (var escopo = NovoEscopo())
 		{
@@ -43,8 +43,8 @@ public class PerfilColaboradorPersistenciaTests(IntranetWebFactory factory) : IC
 		var lido = await leitura.ServiceProvider.GetRequiredService<IPerfilColaboradorRepository>().GetByUsuarioIdAsync(usuario);
 
 		lido.Should().NotBeNull();
-		lido!.NomeExibicao.Should().Be("Ana Ribeiro");
-		lido.Ramal.Should().Be("2100");
+		lido!.Ramal.Should().Be("2100");
+		lido.Sobre.Should().Be("Sobre a Ana");
 	}
 
 	[Fact]

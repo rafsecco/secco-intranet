@@ -13,4 +13,10 @@ public sealed class UsuariosParaDiretorioIndisponivel : IUsuariosParaDiretorio
 	/// <inheritdoc />
 	public Task<Result<IReadOnlyList<UsuarioParaDiretorio>>> ListarAtivosAsync(CancellationToken cancellationToken = default) =>
 		Task.FromResult(Result.Failure<IReadOnlyList<UsuarioParaDiretorio>>(IntranetErrors.Acesso.NaoConfigurado));
+
+	/// <inheritdoc />
+	public void Esquecer()
+	{
+		// Sem fonte, sem cache.
+	}
 }

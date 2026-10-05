@@ -20,9 +20,14 @@ public class DiretorioEdicaoTests(IntranetWebFactory factory) : IClassFixture<In
 {
 	public async Task InitializeAsync() => await factory.EnsureDatabaseMigratedAsync();
 
+	// O nome de exibição mora no SecureGate: a gestão falsa é por teste (o xUnit cria uma instância
+	// da classe por teste) e é onde se confere o que foi gravado.
+	private readonly GestaoDeAcessoFalsa _gestao = new();
+
 	public Task DisposeAsync()
 	{
 		factory.UsuariosDoDiretorio = null;
+		factory.GestaoDeAcesso = null;
 
 		return Task.CompletedTask;
 	}
@@ -30,6 +35,7 @@ public class DiretorioEdicaoTests(IntranetWebFactory factory) : IClassFixture<In
 	private HttpClient CriarCliente(UsuariosParaDiretorioFalso usuarios, Guid? usuarioId, params string[] roles)
 	{
 		factory.UsuariosDoDiretorio = usuarios;
+		factory.GestaoDeAcesso = _gestao;
 		var client = factory.CreateClient();
 		client.DefaultRequestHeaders.Add(SeccoHeaders.TenantId, factory.TenantAlfa.ToString());
 
@@ -91,9 +97,9 @@ public class DiretorioEdicaoTests(IntranetWebFactory factory) : IClassFixture<In
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK, "salvar redireciona de volta para Meu perfil");
 		Decodificar(await resposta.Content.ReadAsStringAsync()).Should().Contain("Perfil atualizado");
 
+		_gestao.Chamadas.Should().Equal($"usuario-nome:{eu}:Eva Souza");
 		var lida = await LerAsync(usuarios, eu);
-		lida!.Nome.Should().Be("Eva Souza");
-		lida.Ramal.Should().Be("2222");
+		lida!.Ramal.Should().Be("2222");
 		lida.Sobre.Should().Be("Trabalho com dados.");
 	}
 
@@ -123,8 +129,8 @@ public class DiretorioEdicaoTests(IntranetWebFactory factory) : IClassFixture<In
 			("__RequestVerificationToken", token)));
 
 		var lida = await LerAsync(usuarios, eu);
-		lida!.Nome.Should().Be("Eva Souza", "o contato é dela e mudou");
-		lida.Cargo.Should().Be("Analista", "cargo forjado é ignorado");
+		_gestao.Chamadas.Should().Contain($"usuario-nome:{eu}:Eva Souza", "o contato é dela e mudou");
+		lida!.Cargo.Should().Be("Analista", "cargo forjado é ignorado");
 		lida.SetorId.Should().Be(setor.Id, "setor forjado é ignorado");
 		lida.GestorUsuarioId.Should().Be(chefe, "gestor forjado é ignorado");
 	}
@@ -142,7 +148,7 @@ public class DiretorioEdicaoTests(IntranetWebFactory factory) : IClassFixture<In
 			("Nome", "Eva"), ("UsuarioId", outro.ToString()), ("usuarioId", outro.ToString()), ("id", outro.ToString()),
 			("__RequestVerificationToken", token)));
 
-		(await LerAsync(usuarios, eu))!.Nome.Should().Be("Eva");
+		_gestao.Chamadas.Should().Equal($"usuario-nome:{eu}:Eva");
 		(await LerAsync(usuarios, outro))!.TemPerfil.Should().BeFalse("o id de quem sou vem do claim, nunca do formulário");
 	}
 
@@ -154,10 +160,11 @@ public class DiretorioEdicaoTests(IntranetWebFactory factory) : IClassFixture<In
 		var client = CriarCliente(usuarios, eu, "diretorio-user");
 		var token = await TokenAsync(client, "/diretorio/perfil");
 
-		var resposta = await client.PostAsync("/diretorio/perfil", Form(("Nome", new string('n', 121)), ("__RequestVerificationToken", token)));
+		var resposta = await client.PostAsync("/diretorio/perfil", Form(("Nome", new string('n', NomeDeExibicao.MaxLength + 1)), ("__RequestVerificationToken", token)));
 
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
 		(await LerAsync(usuarios, eu))!.TemPerfil.Should().BeFalse();
+		_gestao.Chamadas.Should().BeEmpty("acima do limite, nem chega à plataforma");
 	}
 
 	[Fact]
@@ -293,5 +300,27 @@ public class DiretorioEdicaoTests(IntranetWebFactory factory) : IClassFixture<In
 		var resposta = await client.PostAsync($"/diretorio/{alvo}/editar", Form(("Cargo", "X")));
 
 		resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+	}
+
+	[Fact]
+	public async Task Meu_perfil_ComPerfilESemNome_SalvarSoORamal_NaoGravaOEmailComoNome()
+	{
+		var eu = Guid.NewGuid();
+		var usuarios = new UsuariosParaDiretorioFalso().Com(eu, "eu@x.com");
+		var client = CriarCliente(usuarios, eu, "diretorio-user");
+
+		// Primeiro salvamento cria o perfil local (só ramal).
+		var token = await TokenAsync(client, "/diretorio/perfil");
+		await client.PostAsync("/diretorio/perfil", Form(("Ramal", "1111"), ("__RequestVerificationToken", token)));
+
+		// Reabre o formulário: o campo Nome não pode vir com o e-mail.
+		var html = Decodificar(await client.GetStringAsync("/diretorio/perfil"));
+		html.Should().NotContain("value=\"eu@x.com\"");
+
+		// Reenvia o que o formulário trouxe, mudando só o ramal.
+		token = await TokenAsync(client, "/diretorio/perfil");
+		await client.PostAsync("/diretorio/perfil", Form(("Nome", ""), ("Ramal", "2222"), ("__RequestVerificationToken", token)));
+
+		_gestao.Chamadas.Should().BeEmpty("o nome não mudou — continua sem nome");
 	}
 }

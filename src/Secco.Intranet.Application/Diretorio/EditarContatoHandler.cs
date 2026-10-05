@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Domain.Diretorio;
 using Secco.SharedKernel.Results;
@@ -15,14 +16,17 @@ public sealed record EditarContatoCommand(Guid UsuarioId, string? Nome, string? 
 /// <summary>
 /// Edita o contato de uma pessoa (o próprio colaborador ou um admin — quem pode é decisão do
 /// controller). Não conhece cargo, setor nem gestor: é por isso que o formulário do colaborador
-/// não consegue alterá-los, mesmo forjado.
+/// não consegue alterá-los, mesmo forjado. O nome mora no SecureGate (secco-platform#30); ramal e
+/// "sobre", no perfil local.
 /// </summary>
 /// <param name="usuarios">Fonte de identidade.</param>
 /// <param name="perfis">Perfis locais.</param>
+/// <param name="gestao">Gestão de acesso — dona do nome de exibição.</param>
 /// <param name="trilha">Trilha de auditoria.</param>
 public sealed class EditarContatoHandler(
 	IUsuariosParaDiretorio usuarios,
 	IPerfilColaboradorRepository perfis,
+	IGestaoDeAcesso gestao,
 	ITrilhaDeAuditoria trilha)
 {
 	/// <summary>Executa o caso de uso.</summary>
@@ -32,9 +36,9 @@ public sealed class EditarContatoHandler(
 	{
 		ArgumentNullException.ThrowIfNull(command);
 
-		if (Tamanho(command.Nome) > PerfilColaborador.NomeMaxLength)
+		if (Tamanho(command.Nome) > NomeDeExibicao.MaxLength)
 		{
-			return Result.Failure(IntranetErrors.Diretorio.NomeTooLong(PerfilColaborador.NomeMaxLength));
+			return Result.Failure(IntranetErrors.Diretorio.NomeTooLong(NomeDeExibicao.MaxLength));
 		}
 
 		if (Tamanho(command.Ramal) > PerfilColaborador.RamalMaxLength)
@@ -54,14 +58,33 @@ public sealed class EditarContatoHandler(
 			return Result.Failure(ativos.Error);
 		}
 
-		if (!ativos.Value.Any(usuario => usuario.Id == command.UsuarioId))
+		var usuario = ativos.Value.FirstOrDefault(candidato => candidato.Id == command.UsuarioId);
+
+		if (usuario is null)
 		{
 			return Result.Failure(IntranetErrors.Diretorio.PessoaNaoEncontrada);
 		}
 
-		var campos = await EdicaoDePerfil
-			.AplicarAsync(perfis, command.UsuarioId, perfil => perfil.EditarContato(command.Nome, command.Ramal, command.Sobre), cancellationToken)
-			.ConfigureAwait(false);
+		var campos = new List<string>();
+
+		// O nome mora no SecureGate. Só vai para lá quando muda — editar ramal ou "sobre" não
+		// depende da plataforma estar no ar — e vai primeiro: se ela recusar, nada local é gravado.
+		if (!string.Equals(NomeDeExibicao.Normalizar(command.Nome), NomeDeExibicao.Normalizar(usuario.Nome), StringComparison.Ordinal))
+		{
+			var gravado = await gestao.DefinirNomeDeExibicaoAsync(command.UsuarioId, command.Nome, cancellationToken).ConfigureAwait(false);
+
+			if (gravado.IsFailure)
+			{
+				return gravado;
+			}
+
+			usuarios.Esquecer();
+			campos.Add(PerfilColaborador.CampoNome);
+		}
+
+		campos.AddRange(await EdicaoDePerfil
+			.AplicarAsync(perfis, command.UsuarioId, perfil => perfil.EditarContato(command.Ramal, command.Sobre), cancellationToken)
+			.ConfigureAwait(false));
 
 		if (campos.Count > 0)
 		{

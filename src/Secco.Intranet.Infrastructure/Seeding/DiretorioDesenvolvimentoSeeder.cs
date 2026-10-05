@@ -51,7 +51,7 @@ internal sealed class DiretorioDesenvolvimentoSeeder(
 			foreach (var pessoa in novos)
 			{
 				var perfil = new PerfilColaborador(pessoa.Id);
-				perfil.EditarContato(pessoa.Nome, pessoa.Ramal, null);
+				perfil.EditarContato(pessoa.Ramal, null);
 				perfil.EditarDadosFuncionais(
 					pessoa.Cargo,
 					setores.TryGetValue(pessoa.SetorSlug, out var setorId) ? setorId : null,

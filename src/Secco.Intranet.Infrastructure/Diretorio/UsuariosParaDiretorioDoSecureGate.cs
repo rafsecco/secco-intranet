@@ -32,9 +32,7 @@ public sealed class UsuariosParaDiretorioDoSecureGate(
 			return Result.Failure<IReadOnlyList<UsuarioParaDiretorio>>(IntranetErrors.Acesso.Indisponivel);
 		}
 
-		var chave = $"diretorio:usuarios:{tenantContext.TenantId}";
-
-		if (cache.TryGetValue(chave, out IReadOnlyList<UsuarioParaDiretorio>? guardada) && guardada is not null)
+		if (cache.TryGetValue(Chave, out IReadOnlyList<UsuarioParaDiretorio>? guardada) && guardada is not null)
 		{
 			return Result.Success(guardada);
 		}
@@ -50,11 +48,22 @@ public sealed class UsuariosParaDiretorioDoSecureGate(
 		[
 			.. lida.Value
 				.Where(usuario => usuario.Situacao != SituacaoDoUsuario.Desativado)
-				.Select(usuario => new UsuarioParaDiretorio(usuario.Id, usuario.Email ?? string.Empty)),
+				.Select(usuario => new UsuarioParaDiretorio(usuario.Id, usuario.Email ?? string.Empty, usuario.Nome)),
 		];
 
-		cache.Set(chave, ativos, Validade);
+		cache.Set(Chave, ativos, Validade);
 
 		return Result.Success(ativos);
 	}
+
+	/// <inheritdoc />
+	public void Esquecer()
+	{
+		if (tenantContext.IsResolved)
+		{
+			cache.Remove(Chave);
+		}
+	}
+
+	private string Chave => $"diretorio:usuarios:{tenantContext.TenantId}";
 }

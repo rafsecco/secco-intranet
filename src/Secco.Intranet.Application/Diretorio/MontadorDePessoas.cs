@@ -29,9 +29,10 @@ public static class MontadorDePessoas
 		var perfilPorUsuario = perfis.GroupBy(perfil => perfil.UsuarioId).ToDictionary(grupo => grupo.Key, grupo => grupo.First());
 		var setorPorId = setores.GroupBy(setor => setor.Id).ToDictionary(grupo => grupo.Key, grupo => grupo.First());
 
-		string NomeDe(UsuarioParaDiretorio usuario) =>
-			perfilPorUsuario.TryGetValue(usuario.Id, out var perfil) && !string.IsNullOrWhiteSpace(perfil.NomeExibicao)
-				? perfil.NomeExibicao
+		// O nome é o displayName do SecureGate; sem ele, o e-mail, e sem e-mail, o id.
+		static string NomeDe(UsuarioParaDiretorio usuario) =>
+			!string.IsNullOrWhiteSpace(usuario.Nome)
+				? usuario.Nome
 				: string.IsNullOrWhiteSpace(usuario.Email) ? usuario.Id.ToString() : usuario.Email;
 
 		return
@@ -73,7 +74,8 @@ public static class MontadorDePessoas
 					perfil?.GestorUsuarioId,
 					gestorNome,
 					gestorInativo,
-					perfil is not null);
+					perfil is not null,
+					NomeDeExibicao.Normalizar(usuario.Nome));
 			}),
 		];
 	}

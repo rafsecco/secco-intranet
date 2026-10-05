@@ -166,4 +166,38 @@ public class UsuariosParaDiretorioTests
 
 		public Task<Secco.SharedKernel.Results.Result> DefinirFederacaoAsync(Guid directoryId, bool habilitada, CancellationToken cancellationToken = default) => _interno.DefinirFederacaoAsync(directoryId, habilitada, cancellationToken);
 	}
+
+	[Fact]
+	public async Task SecureGate_TrazONome()
+	{
+		var id = Guid.NewGuid();
+		var gestao = new ContadorDeListagens().ComUsuario(id, "ana@x.com");
+		// ComUsuario do contador delega ao GestaoDeAcessoFalsa interno; o nome entra pelo dublê.
+		await gestao.DefinirNomeDeExibicaoAsync(id, "Ana Ribeiro");
+
+		var lidos = await Montar(gestao).ListarAtivosAsync();
+
+		lidos.Value.Single().Nome.Should().Be("Ana Ribeiro");
+	}
+
+	[Fact]
+	public async Task Esquecer_FazAProximaListagemIrAPlataforma()
+	{
+		var gestao = new ContadorDeListagens().ComUsuario(Guid.NewGuid(), "ana@x.com");
+		var adaptador = Montar(gestao);
+		await adaptador.ListarAtivosAsync();
+
+		adaptador.Esquecer();
+		await adaptador.ListarAtivosAsync();
+
+		gestao.Listagens.Should().Be(2, "sem esquecer, a segunda viria do cache");
+	}
+
+	[Fact]
+	public async Task Desenvolvimento_TrazOsNomesFicticios()
+	{
+		var lidos = await new UsuariosParaDiretorioDeDesenvolvimento().ListarAtivosAsync();
+
+		lidos.Value.Single(u => u.Id == PessoasDeDesenvolvimento.AnaId).Nome.Should().Be("Ana Ribeiro");
+	}
 }
