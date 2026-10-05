@@ -65,7 +65,8 @@
         </li>
     }
 }
-<ul class="sc-nav">
+@* data-sc-abre-abaixo: na barra do topo o nível 1 abre abaixo do item (menu-arvore.js). *@
+<ul class="sc-nav" data-sc-abre-abaixo>
     @foreach (var grupo in Model.Grupos)
     {
         if (grupo.Itens.Count == 0)

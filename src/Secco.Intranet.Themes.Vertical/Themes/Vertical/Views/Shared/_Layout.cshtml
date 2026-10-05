@@ -13,7 +13,7 @@
        errado a cada carregamento. Precisa ser inline e vir antes do CSS. *@
     <script>
         (function () {
-            // Com JS os submenus viram painéis; sem ele ficam abertos e recuados (ver theme.js).
+            // Com JS os submenus viram painéis; sem ele ficam abertos e recuados (ver menu-arvore.js).
             document.documentElement.classList.add('sc-js');
             try {
                 var tema = localStorage.getItem('sc-theme');
@@ -77,6 +77,8 @@
     @await Component.InvokeAsync("Feedback")
 
     <script src="@Assets/vendor/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
+    @* Submenus da árvore: comportamento compartilhado pelos temas, servido pelo contrato. *@
+    <script src="~/_content/Secco.Intranet.Web.Theming/js/menu-arvore.js" asp-append-version="true"></script>
     <script src="@Assets/js/theme.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

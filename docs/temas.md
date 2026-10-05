@@ -85,11 +85,36 @@ O menu (`NavigationModel`) é uma árvore: `NavigationItemModel.Filhos` traz os 
 `Url` nulo quer dizer que o item só agrupa — é o caso de todo setor, que é o nível 0 da seção
 "Setores" e não tem página própria. `Ativo` marca o caminho inteiro até a página atual; use
 `aria-current="page"` só no item ativo sem filho ativo. Os dois temas publicados renderizam a
-árvore inteira no servidor, em listas aninhadas (agrupador = `<button aria-expanded>`), e o
-`theme.js` transforma cada lista em painel flutuante. Duas armadilhas que o tema precisa
-resolver: o menu mora num contêiner com rolagem, então o painel precisa de `position: fixed`
-com a posição calculada no script (um painel `absolute` é cortado); e sem script a árvore tem
-de aparecer aberta, para tudo continuar alcançável.
+árvore inteira no servidor, em listas aninhadas (agrupador = `<button aria-expanded>`), e um
+script **compartilhado pelo contrato** transforma cada lista em painel flutuante:
+
+```cshtml
+<script src="~/_content/Secco.Intranet.Web.Theming/js/menu-arvore.js" asp-append-version="true"></script>
+```
+
+O tema inclui o script no `_Layout` e só precisa seguir a marcação: gatilho com
+`data-sc-submenu` e `aria-controls` apontando para um `<ul class="sc-nav__sub" data-nivel="N">`,
+nó com filhos em `<li class="sc-nav__node">`, e `data-sc-abre-abaixo` no `<ul class="sc-nav">`
+quando a barra fica no topo (o nível 1 abre abaixo do item; sem o atributo, abre à direita).
+Duas armadilhas o script já resolve, e um tema com script próprio teria de resolver: o menu mora
+num contêiner com rolagem, então o painel precisa de `position: fixed` com a posição calculada
+(um painel `absolute` é cortado); e sem script a árvore tem de aparecer aberta, para tudo
+continuar alcançável. Uma terceira fica com o CSS do tema: o contêiner do menu cria contexto de
+empilhamento (`sticky`), então ele precisa de `z-index` acima do conteúdo, senão o painel fica
+atrás dos cards.
+
+**Testes de tela.** `tests/Secco.Intranet.Tests/Ui` roda o menu num Chromium de verdade, nos dois
+temas (hover, clique, teclado, celular, sem JavaScript). São opt-in: instale o navegador uma vez
+e ligue a variável.
+
+```powershell
+dotnet build tests/Secco.Intranet.Tests
+./tests/Secco.Intranet.Tests/bin/Debug/net10.0/playwright.ps1 install chromium
+$env:SECCO_UI_TESTS = '1'; dotnet test tests/Secco.Intranet.Tests --filter "FullyQualifiedName~Ui"
+```
+
+Sem a variável eles ficam ignorados. Mexeu em CSS ou JS de tema? Rode-os — e recompile antes:
+o host serve as versões pré-comprimidas geradas no build, não o arquivo do `wwwroot`.
 
 O tema decide como os grupos aparecem. O Vertical mostra o título do grupo como rótulo e os
 itens embaixo; o Horizontal, sem largura para uma fileira por setor, transforma cada grupo com

@@ -214,6 +214,15 @@ public class MenuDaArvoreTelaTests(TelaFixture f) : IClassFixture<TelaFixture>
 			"p => { const r = p.getBoundingClientRect(); return document.elementFromPoint(r.x + r.width / 2, r.y + 12)?.closest('.sc-nav__sub') === p; }");
 		noTopo.Should().BeTrue("o painel precisa ficar por cima do conteúdo da página, não atrás dos cards");
 
+		if (tema == "Horizontal")
+		{
+			// data-sc-abre-abaixo: na barra do topo o nível 1 (o grupo Setores) sai debaixo do botão.
+			var grupo = pagina.Locator($"{Grupo}:has-text('Setores')");
+			var abaixo = await grupo.EvaluateAsync<bool>(
+				"g => document.getElementById(g.getAttribute('aria-controls')).getBoundingClientRect().top >= g.getBoundingClientRect().bottom - 1");
+			abaixo.Should().BeTrue("o nível 1 do Horizontal abre abaixo da barra");
+		}
+
 		var relatorios = painel.Locator("button[data-sc-submenu]:has-text('Relatórios')");
 		await relatorios.HoverAsync();
 		await Expect(painel.Locator("a:has-text('Vendas')")).ToBeVisibleAsync();
