@@ -1,0 +1,13 @@
+@model SegundoFatorViewModel
+@{
+    ViewData["Title"] = "Tenants";
+
+    var cabecalho = new PageHeaderModel("Tenants", "Sistemas da empresa administrados por esta Intranet.");
+    var vazio = new EmptyStateModel(
+        "bi-plug",
+        "Não foi possível confirmar o segundo fator",
+        "O SecureGate não respondeu agora. Por segurança, a área fica fechada até a confirmação. Tente novamente em instantes.");
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+<partial name="_EmptyState" model="vazio" />

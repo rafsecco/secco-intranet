@@ -74,6 +74,15 @@ public sealed class GestaoDeAcessoFalsa : IGestaoDeAcesso
 		return this;
 	}
 
+	/// <summary>Marca o usuário como tendo segundo fator ativo.</summary>
+	public GestaoDeAcessoFalsa ComDoisFatores(Guid id)
+	{
+		var indice = Usuarios.FindIndex(u => u.Id == id);
+		Usuarios[indice] = Usuarios[indice] with { DoisFatoresAtivo = true };
+
+		return this;
+	}
+
 	/// <inheritdoc />
 	public Task<Result<IReadOnlyList<PerfilDto>>> ListarPerfisAsync(CancellationToken cancellationToken = default)
 	{
@@ -115,6 +124,11 @@ public sealed class GestaoDeAcessoFalsa : IGestaoDeAcesso
 	/// <inheritdoc />
 	public Task<Result<UsuarioDetalheDto>> ObterUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default)
 	{
+		if (FalharCom is { } erro)
+		{
+			return Task.FromResult(Result.Failure<UsuarioDetalheDto>(erro));
+		}
+
 		var usuario = Usuarios.FirstOrDefault(u => u.Id == usuarioId);
 
 		return Task.FromResult(usuario is null
