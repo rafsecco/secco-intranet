@@ -21,6 +21,7 @@ using Secco.Intranet.Infrastructure.Diretorio;
 using Secco.Intranet.Infrastructure.Notificacao;
 using Secco.Intranet.Infrastructure.Repositories;
 using Secco.Intranet.Infrastructure.Seeding;
+using Secco.Intranet.Infrastructure.Tenants;
 using Secco.LogStream.Client;
 using Secco.NotificationHub.Client;
 using Secco.SDK.AspNetCore.Tenancy;
@@ -136,6 +137,8 @@ public static class IntranetInfrastructureExtensions
 		});
 
 		services.AddScoped(CriarGestaoDeAcesso);
+		services.AddScoped(CriarGestaoDeTenants);
+		services.AddScoped<ITenantsProtegidos, TenantsProtegidosDoCatalogo>();
 
 		services.AddMemoryCache();
 		services.AddScoped<IDevelopmentDataSeeder, DiretorioDesenvolvimentoSeeder>();
@@ -222,6 +225,19 @@ public static class IntranetInfrastructureExtensions
 		return credenciais.IsConfigured
 			? ActivatorUtilities.CreateInstance<SecureGateGestaoDeAcesso>(serviceProvider)
 			: ActivatorUtilities.CreateInstance<GestaoDeAcessoIndisponivel>(serviceProvider);
+	}
+
+	/// <summary>
+	/// Escolhe o adapter da gestão de tenants pela mesma configuração do client administrativo:
+	/// com <c>Secco:SecureGate</c> presente, o real; sem ela, o que responde "não configurado".
+	/// </summary>
+	private static IGestaoDeTenants CriarGestaoDeTenants(IServiceProvider serviceProvider)
+	{
+		var credenciais = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();
+
+		return credenciais.IsConfigured
+			? ActivatorUtilities.CreateInstance<SecureGateGestaoDeTenants>(serviceProvider)
+			: new GestaoDeTenantsIndisponivel();
 	}
 
 	private static TOptions BindSection<TOptions>(IServiceProvider serviceProvider, string sectionKey, TOptions options)
