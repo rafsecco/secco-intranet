@@ -19,8 +19,11 @@ permissions:
   packages: read
 
 jobs:
+  # Runner fixado em ubuntu-24.04, não ubuntu-latest: a troca para o Ubuntu 26 (que o
+  # ubuntu-latest passa a apontar em 2026-10-19) vira um commit deliberado, não uma
+  # migração silenciosa no meio de outro trabalho.
   build-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -76,7 +79,7 @@ jobs:
     # O CSS e os bundles compilados dos temas são versionados. Este job reconstrói a partir do
     # SCSS e dos pacotes travados no package-lock e reprova se o resultado divergir do commit:
     # pega o SCSS editado sem rodar `npm run build`.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
