@@ -130,7 +130,16 @@ processos (maior risco técnico) só entra com a base já sólida.
       provisionamento de banco por produto) já existe; falta só construir aqui. Exclusiva da
       Role `intranet-admin`, sem relação com `{slug}-admin` de setor. Link para
       [secco-platform#4](https://github.com/rafsecco/secco-platform/issues/4) mantido como
-      referência histórica da decisão de modelo (2026-09-04), não mais como bloqueio
+      referência histórica da decisão de modelo (2026-09-04), não mais como bloqueio —
+      [spec do subsistema 1](specs/2026-10-07-area-administrativa-tenants-design.md). Dividida em
+      quatro subsistemas, cada um com spec própria; a área exige `intranet-admin` **com 2FA**:
+  - [ ] 1. Ciclo de vida do tenant: criar, adotar, ligar recursos (SecureGate, LogStream,
+        NotificationHub), status, ativar/desativar
+  - [ ] 2. Perfis e usuários do tenant administrado, reaproveitando `/acesso`
+  - [ ] 3. Leitor de logs da Intranet e dos tenants administrados, por elevação explícita
+        (ADR-0030/0031 da plataforma)
+  - [ ] 4. ⛔ Credencial do sistema administrado (client OAuth vinculado ao tenant) —
+        [secco-platform#31](https://github.com/rafsecco/secco-platform/issues/31)
 
 ## Fase 3 — Operacional
 

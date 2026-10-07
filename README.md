@@ -232,6 +232,10 @@ tela também oferece criar a Role `intranet-admin` e a `inventario-admin` quando
 A Intranet não deixa o tenant ficar sem `intranet-admin` ativo: retirar o perfil ou desativar
 a conta do último é recusado, e ninguém retira o próprio perfil nem se desativa.
 
+A área de **Tenants** (`/administracao/tenants`) exige, além da Role, **segundo fator ativo** na
+conta do `intranet-admin` — cadastre o 2FA no SecureGate antes. Sem ele a área explica o motivo e
+não abre; com o SecureGate fora do ar, fica fechada.
+
 O Diretório organizacional (`/diretorio`) usa duas Roles do produto: `diretorio-admin` (edita
 cargo, setor e gestor de todos, importa CSV) e `diretorio-user` (vê o diretório e edita o próprio
 contato). O `intranet-admin` tem o mesmo acesso do `diretorio-admin`. As duas Roles são oferecidas
