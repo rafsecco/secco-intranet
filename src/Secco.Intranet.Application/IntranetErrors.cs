@@ -363,4 +363,93 @@ public static class IntranetErrors
 				"Intranet.Menu.RotaInvalida",
 				"A rota precisa ser um caminho da própria intranet (começando com /) ou um endereço http/https completo.");
 	}
+
+	/// <summary>Erros da área de tenants administrados.</summary>
+	public static class Tenants
+	{
+		/// <summary>SecureGate não configurado neste ambiente.</summary>
+		public static readonly Error NaoConfigurado =
+			Error.Unavailable(
+				"Intranet.Tenants.NaoConfigurado",
+				"O SecureGate não está configurado neste ambiente, então a administração de tenants não está disponível.");
+
+		/// <summary>SecureGate fora do ar, lento ou recusando — sem detalhe interno (ADR-0020).</summary>
+		public static readonly Error Indisponivel =
+			Error.Unavailable(
+				"Intranet.Tenants.Indisponivel",
+				"Não foi possível falar com o SecureGate agora. Tente novamente em instantes.");
+
+		/// <summary>Tenant fora do cadastro, ou inexistente na plataforma.</summary>
+		public static readonly Error NaoEncontrado =
+			Error.NotFound("Intranet.Tenants.NaoEncontrado", "Tenant não encontrado.");
+
+		/// <summary>Sistema não informado.</summary>
+		public static readonly Error SistemaRequired =
+			Error.Validation("Intranet.Tenants.SistemaRequired", "Informe o sistema que o tenant representa.");
+
+		/// <summary>Sistema acima do limite.</summary>
+		public static readonly Error SistemaTooLong =
+			Error.Validation("Intranet.Tenants.SistemaTooLong", "O nome do sistema excede 120 caracteres.");
+
+		/// <summary>Responsável não informado.</summary>
+		public static readonly Error ResponsavelRequired =
+			Error.Validation("Intranet.Tenants.ResponsavelRequired", "Informe o responsável pelo sistema.");
+
+		/// <summary>Responsável acima do limite.</summary>
+		public static readonly Error ResponsavelTooLong =
+			Error.Validation("Intranet.Tenants.ResponsavelTooLong", "O responsável excede 120 caracteres.");
+
+		/// <summary>Nome do tenant não informado.</summary>
+		public static readonly Error NomeRequired =
+			Error.Validation("Intranet.Tenants.NomeRequired", "Informe o nome do tenant.");
+
+		/// <summary>Nome do tenant acima do limite.</summary>
+		public static readonly Error NomeTooLong =
+			Error.Validation("Intranet.Tenants.NomeTooLong", "O nome do tenant excede 200 caracteres.");
+
+		/// <summary>Slug fora do formato.</summary>
+		public static readonly Error SlugInvalido =
+			Error.Validation(
+				"Intranet.Tenants.SlugInvalido",
+				"O slug aceita só letras minúsculas sem acento, dígitos e hífen entre eles, com até 50 caracteres (ex.: sistema-de-compras).");
+
+		/// <summary>Slug já usado por outro tenant.</summary>
+		public static readonly Error SlugJaExiste =
+			Error.Conflict("Intranet.Tenants.SlugJaExiste", "Já existe um tenant com esse slug.");
+
+		/// <summary>Tenant protegido: instalação, a própria Intranet ou outra Intranet.</summary>
+		public static readonly Error NaoAdotavel =
+			Error.Validation(
+				"Intranet.Tenants.NaoAdotavel",
+				"Este tenant não pode ser administrado por aqui: é o da plataforma ou o de uma Intranet.");
+
+		/// <summary>Tenant já no cadastro.</summary>
+		public static readonly Error JaAdministrado =
+			Error.Conflict("Intranet.Tenants.JaAdministrado", "Este tenant já é administrado por esta Intranet.");
+
+		/// <summary>Recurso fora da lista fechada.</summary>
+		public static readonly Error RecursoInvalido =
+			Error.Validation("Intranet.Tenants.RecursoInvalido", "Recurso inválido.");
+
+		/// <summary>Recurso já ligado.</summary>
+		public static readonly Error RecursoJaLigado =
+			Error.Conflict("Intranet.Tenants.RecursoJaLigado", "Este recurso já está ligado para o tenant.");
+
+		/// <summary>Slug digitado na confirmação não confere.</summary>
+		public static readonly Error ConfirmacaoNaoConfere =
+			Error.Validation(
+				"Intranet.Tenants.ConfirmacaoNaoConfere",
+				"Para desativar, digite exatamente o slug do tenant.");
+
+		/// <summary>A plataforma recusou a desativação.</summary>
+		public static readonly Error DesativacaoRecusada =
+			Error.Conflict("Intranet.Tenants.DesativacaoRecusada", "A plataforma recusou a desativação deste tenant.");
+
+		/// <summary>Criado no SecureGate, mas o cadastro local falhou.</summary>
+		/// <param name="slug">Slug criado, para o admin achar o tenant em Adotar.</param>
+		public static Error RegistroLocalFalhou(string slug) =>
+			Error.Failure(
+				"Intranet.Tenants.RegistroLocalFalhou",
+				$"O tenant '{slug}' foi criado no SecureGate, mas não foi registrado nesta Intranet. Use Adotar para registrá-lo.");
+	}
 }

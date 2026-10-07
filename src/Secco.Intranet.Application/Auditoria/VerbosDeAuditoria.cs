@@ -101,6 +101,24 @@ public static class VerbosDeAuditoria
 
 	/// <summary>Importação CSV aplicada.</summary>
 	public const string DiretorioImportar = "diretorio.importar";
+
+	/// <summary>Criação de tenant administrado.</summary>
+	public const string TenantCriar = "tenant.criar";
+
+	/// <summary>Adoção de tenant existente.</summary>
+	public const string TenantAdotar = "tenant.adotar";
+
+	/// <summary>Recurso ligado para um tenant.</summary>
+	public const string TenantRecursoLigar = "tenant.recurso.ligar";
+
+	/// <summary>Script de provisionamento gerado (o script em si nunca entra na trilha).</summary>
+	public const string TenantRecursoScriptGerado = "tenant.recurso.script-gerado";
+
+	/// <summary>Tenant ativado.</summary>
+	public const string TenantAtivar = "tenant.ativar";
+
+	/// <summary>Tenant desativado.</summary>
+	public const string TenantDesativar = "tenant.desativar";
 }
 
 /// <summary>Tipos de recurso da trilha.</summary>
@@ -126,4 +144,7 @@ public static class RecursosDeAuditoria
 
 	/// <summary>Perfil de colaborador no Diretório.</summary>
 	public const string Diretorio = "diretorio";
+
+	/// <summary>Tenant administrado (ADR-0008).</summary>
+	public const string Tenant = "tenant";
 }
