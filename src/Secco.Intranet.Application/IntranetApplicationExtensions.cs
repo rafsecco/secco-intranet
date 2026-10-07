@@ -6,6 +6,7 @@ using Secco.Intranet.Application.Inventario;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Setores;
+using Secco.Intranet.Application.Tenants;
 
 namespace Secco.Intranet.Application;
 
@@ -77,6 +78,11 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ObterPessoaParaEdicaoHandler>();
 		services.AddScoped<MontarOrganogramaHandler>();
 		services.AddScoped<ImportarDiretorioHandler>();
+
+		services.AddScoped<ListarTenantsAdministradosHandler>();
+		services.AddScoped<ObterTenantAdministradoHandler>();
+		services.AddScoped<ListarTenantsAdotaveisHandler>();
+		services.AddScoped<VerificarTenantAdministradoHandler>();
 
 		return services;
 	}
