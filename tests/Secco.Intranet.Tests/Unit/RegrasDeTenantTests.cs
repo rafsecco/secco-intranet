@@ -27,6 +27,8 @@ public class RegrasDeTenantTests
 	[InlineData("compras_2")]
 	[InlineData("compras;drop")]
 	[InlineData("comprás")]
+	[InlineData("compras\n")]
+	[InlineData("compras\r\n")]
 	public void SlugValido_ForaDoFormato_Recusa(string? slug) =>
 		RegrasDeTenant.SlugValido(slug).Should().BeFalse();
 

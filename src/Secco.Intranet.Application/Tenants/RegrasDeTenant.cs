@@ -86,6 +86,6 @@ public static partial class RegrasDeTenant
 		return ator.Atual()?.Nome is { Length: > 0 } nome ? nome : "desconhecido";
 	}
 
-	[GeneratedRegex("^[a-z0-9]+(?:-[a-z0-9]+)*$", RegexOptions.CultureInvariant)]
+	[GeneratedRegex(@"^[a-z0-9]+(?:-[a-z0-9]+)*\z", RegexOptions.CultureInvariant)]
 	private static partial Regex PadraoDoSlug();
 }
