@@ -17,7 +17,7 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.10")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -414,6 +414,61 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .HasDatabaseName("uk_setores_ds_slug");
 
                     b.ToTable("tb_setores");
+                });
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Tenants.TenantAdministrado", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id_pk_tenant_administrado");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dt_created_at");
+
+                    b.Property<int>("Origem")
+                        .HasColumnType("integer")
+                        .HasColumnName("ie_origem");
+
+                    b.Property<string>("RegistradoPor")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("ds_registrado_por");
+
+                    b.Property<string>("Responsavel")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("ds_responsavel");
+
+                    b.Property<bool>("SecureGateHabilitado")
+                        .HasColumnType("boolean")
+                        .HasColumnName("fl_secure_gate_habilitado");
+
+                    b.Property<string>("Sistema")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("ds_sistema");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dt_updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tenants_administrados");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("uk_tenants_administrados_tenant_id");
+
+                    b.ToTable("tb_tenants_administrados");
                 });
 
             modelBuilder.Entity("Secco.Intranet.Domain.Diretorio.PerfilColaborador", b =>

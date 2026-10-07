@@ -5,6 +5,7 @@ using Secco.Intranet.Domain.Inventario;
 using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Domain.Publicacoes;
 using Secco.Intranet.Domain.Setores;
+using Secco.Intranet.Domain.Tenants;
 using Secco.SDK.EntityFrameworkCore;
 
 namespace Secco.Intranet.Infrastructure.Contexts;
@@ -34,6 +35,9 @@ public sealed class IntranetDbContext(DbContextOptions<IntranetDbContext> option
 
 	/// <summary>Árvore de itens de menu da página de cada setor.</summary>
 	public DbSet<ItemMenu> ItensMenu => Set<ItemMenu>();
+
+	/// <summary>Tenants de outros sistemas que esta Intranet administra (ADR-0008).</summary>
+	public DbSet<TenantAdministrado> TenantsAdministrados => Set<TenantAdministrado>();
 
 	/// <inheritdoc />
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
