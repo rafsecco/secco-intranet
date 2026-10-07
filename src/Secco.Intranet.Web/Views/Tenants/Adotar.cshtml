@@ -1,0 +1,44 @@
+@model AdotarTenantViewModel
+@{
+    ViewData["Title"] = "Adotar tenant";
+
+    var cabecalho = new PageHeaderModel("Adotar tenant", "Traz para esta Intranet um tenant que já existe no SecureGate.");
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+@if (Model.Erro is { } erro)
+{
+    <div class="alert alert-danger" role="alert">@erro</div>
+}
+
+@if (Model.Adotaveis.Count == 0)
+{
+    var vazio = new EmptyStateModel("bi-inbox", "Nada para adotar", "Todos os tenants da instalação já são administrados, ou são da plataforma ou de uma Intranet.");
+    <partial name="_EmptyState" model="vazio" />
+}
+else
+{
+    <form method="post" action="/tenants/adotar" class="sc-panel" style="max-width: 40rem">
+        @Html.AntiForgeryToken()
+        <div class="mb-3">
+            <label class="form-label" for="TenantId">Tenant</label>
+            <select class="form-select" id="TenantId" name="TenantId" required>
+                @foreach (var t in Model.Adotaveis)
+                {
+                    <option value="@t.Id" selected="@(Model.TenantId == t.Id)">@t.Nome (@t.Slug)@(t.Ativo ? "" : " — desativado")</option>
+                }
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="Sistema">Sistema</label>
+            <input class="form-control" id="Sistema" name="Sistema" value="@Model.Sistema" maxlength="120" required />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="Responsavel">Responsável</label>
+            <input class="form-control" id="Responsavel" name="Responsavel" value="@Model.Responsavel" maxlength="120" required />
+        </div>
+        <button class="btn btn-primary" type="submit">Adotar</button>
+        <a class="btn btn-link" href="/tenants">Cancelar</a>
+    </form>
+}

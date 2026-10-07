@@ -11,7 +11,7 @@ public static class SlugsReservados
 	public static IReadOnlySet<string> Todos { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
 	{
 		// Controllers (rota de atributo e convencional).
-		"acesso", "conta", "diretorio", "documentos", "home", "inventario", "mural", "publicacoes", "setores",
+		"acesso", "conta", "diretorio", "documentos", "home", "inventario", "mural", "publicacoes", "setores", "tenants",
 		// Prefixo antigo da página do setor: reservado para nunca virar um setor que confunda links velhos.
 		"setor",
 		// Infraestrutura e arquivos estáticos.

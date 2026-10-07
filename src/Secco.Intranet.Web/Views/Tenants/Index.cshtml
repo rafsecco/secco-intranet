@@ -1,0 +1,49 @@
+@model IReadOnlyList<TenantAdministradoResumoDto>
+@{
+    ViewData["Title"] = "Tenants";
+
+    var cabecalho = new PageHeaderModel("Tenants", "Sistemas da empresa administrados por esta Intranet — exclusivo do intranet-admin.");
+
+    static BadgeModel BadgeDaSituacao(TenantAdministradoResumoDto t) =>
+        !t.EncontradoNaPlataforma ? new BadgeModel("Não encontrado", BadgeVariante.Perigo)
+        : t.Ativo ? new BadgeModel("Ativo", BadgeVariante.Sucesso)
+        : new BadgeModel("Desativado", BadgeVariante.Aviso);
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn btn-primary" href="/tenants/novo">Novo tenant</a>
+    <a class="btn btn-outline-primary" href="/tenants/adotar">Adotar tenant existente</a>
+</div>
+
+@if (Model.Count == 0)
+{
+    var vazio = new EmptyStateModel(
+        "bi-diagram-3",
+        "Nenhum tenant administrado",
+        "Crie um tenant para um sistema da empresa, ou adote um que já exista no SecureGate.");
+    <partial name="_EmptyState" model="vazio" />
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr><th>Sistema</th><th>Tenant</th><th>Situação</th><th>Recursos</th><th>Origem</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var t in Model)
+                {
+                    <tr>
+                        <td><a href="/tenants/@t.TenantId">@t.Sistema</a></td>
+                        <td>@t.Nome <span class="text-body-secondary">@t.Slug</span></td>
+                        <td><partial name="_Badge" model="BadgeDaSituacao(t)" /></td>
+                        <td>@(t.RecursosLigados.Count == 0 ? "—" : string.Join(", ", t.RecursosLigados.Select(RecursosDaPlataforma.Nome)))</td>
+                        <td>@(t.Origem == OrigemDoTenant.Criado ? "Criado aqui" : "Adotado")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

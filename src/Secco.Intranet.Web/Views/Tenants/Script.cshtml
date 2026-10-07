@@ -1,0 +1,18 @@
+@model ScriptDeProvisionamentoViewModel
+@{
+    ViewData["Title"] = "Script de provisionamento";
+
+    var cabecalho = new PageHeaderModel("Script de provisionamento", $"{Model.Recurso} para {Model.Sistema}.");
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="alert alert-warning" role="alert">
+    <strong>Esta é a única vez que este script aparece.</strong> Ele contém a senha do usuário do banco.
+    Entregue ao DBA por um canal seguro; a Intranet não guarda cópia, e recarregar esta página não o mostra de novo.
+    Depois de aplicado, o recurso passa a aparecer como "Ligado" na página do tenant.
+</div>
+
+<pre class="sc-panel" style="white-space: pre-wrap"><code>@Model.Script</code></pre>
+
+<a class="btn btn-primary" href="/tenants/@Model.TenantId">Voltar ao tenant</a>

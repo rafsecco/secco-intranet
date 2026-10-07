@@ -230,7 +230,7 @@ public class NavegacaoETemaTests
 
 		menu.Grupos.Single(grupo => grupo.Titulo is null).Itens.Should().NotContain(item => item.Texto == "Inventário");
 		menu.Grupos.Single(grupo => grupo.Titulo == "Administração").Itens.Select(item => item.Texto)
-			.Should().Equal("Setores", "Acesso", "Inventário");
+			.Should().Equal("Setores", "Acesso", "Tenants", "Inventário");
 	}
 
 	[Fact]

@@ -1,0 +1,64 @@
+@model TenantAdministradoDetalheDto
+@{
+    ViewData["Title"] = Model.Sistema;
+
+    var cabecalho = new PageHeaderModel(Model.Sistema, $"Tenant {Model.Nome} ({Model.Slug}) — responsável: {Model.Responsavel}.");
+
+    static BadgeModel BadgeDoRecurso(RecursoDoTenantDto r) => r.Situacao switch
+    {
+        SituacaoDoRecurso.Ligado => new BadgeModel("Ligado", BadgeVariante.Sucesso),
+        SituacaoDoRecurso.LigadoSemResponder => new BadgeModel("Ligado, sem responder", BadgeVariante.Aviso),
+        _ => new BadgeModel("Não ligado", BadgeVariante.Neutro),
+    };
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<p>
+    <partial name="_Badge" model="@(Model.Ativo ? new BadgeModel("Ativo", BadgeVariante.Sucesso) : new BadgeModel("Desativado", BadgeVariante.Aviso))" />
+    <span class="text-body-secondary ms-2">@(Model.Origem == OrigemDoTenant.Criado ? "Criado" : "Adotado") por @Model.RegistradoPor em @Model.RegistradoEm.ToString("dd/MM/yyyy")</span>
+</p>
+
+<h2 class="h5 mt-4">Recursos</h2>
+<div class="table-responsive">
+    <table class="table align-middle">
+        <tbody>
+            @foreach (var r in Model.Recursos)
+            {
+                <tr>
+                    <th scope="row">@RecursosDaPlataforma.Nome(r.Recurso)</th>
+                    <td><partial name="_Badge" model="BadgeDoRecurso(r)" /> @if (r.Motivo is { } motivo) { <span class="text-body-secondary">@motivo</span> }</td>
+                    <td class="text-end">
+                        @if (r.Situacao == SituacaoDoRecurso.NaoLigado)
+                        {
+                            <form method="post" action="/tenants/@Model.TenantId/recursos/@RecursosDaPlataforma.Rota(r.Recurso)" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-outline-primary btn-sm" type="submit">Ligar</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<h2 class="h5 mt-4">Situação do tenant</h2>
+@if (Model.Ativo)
+{
+    <form method="post" action="/tenants/@Model.TenantId/desativar" class="sc-panel" style="max-width: 40rem">
+        @Html.AntiForgeryToken()
+        <p>Desativar corta o login e o catálogo do sistema em instantes. Para confirmar, digite o slug <code>@Model.Slug</code>.</p>
+        <div class="input-group">
+            <input class="form-control" name="confirmacao" aria-label="Slug para confirmar" autocomplete="off" required />
+            <button class="btn btn-outline-danger" type="submit">Desativar</button>
+        </div>
+    </form>
+}
+else
+{
+    <form method="post" action="/tenants/@Model.TenantId/ativar">
+        @Html.AntiForgeryToken()
+        <button class="btn btn-outline-primary" type="submit">Ativar</button>
+    </form>
+}

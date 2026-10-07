@@ -1,0 +1,10 @@
+@model TenantsIndisponivelViewModel
+@{
+    ViewData["Title"] = "Tenants";
+
+    var cabecalho = new PageHeaderModel("Tenants", "Sistemas da empresa administrados por esta Intranet.");
+    var vazio = new EmptyStateModel("bi-plug", "Administração de tenants indisponível", Model.Mensagem);
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+<partial name="_EmptyState" model="vazio" />

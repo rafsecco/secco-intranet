@@ -1,0 +1,36 @@
+@model NovoTenantViewModel
+@{
+    ViewData["Title"] = "Novo tenant";
+
+    var cabecalho = new PageHeaderModel("Novo tenant", "Um tenant por sistema da empresa. Os recursos são ligados depois, na página do tenant.");
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+@if (Model.Erro is { } erro)
+{
+    <div class="alert alert-danger" role="alert">@erro</div>
+}
+
+<form method="post" action="/tenants/novo" class="sc-panel" style="max-width: 40rem">
+    @Html.AntiForgeryToken()
+    <div class="mb-3">
+        <label class="form-label" for="Sistema">Sistema</label>
+        <input class="form-control" id="Sistema" name="Sistema" value="@Model.Sistema" maxlength="120" required placeholder="Sistema de compras" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label" for="Responsavel">Responsável</label>
+        <input class="form-control" id="Responsavel" name="Responsavel" value="@Model.Responsavel" maxlength="120" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label" for="Nome">Nome do tenant</label>
+        <input class="form-control" id="Nome" name="Nome" value="@Model.Nome" maxlength="200" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label" for="Slug">Slug</label>
+        <input class="form-control" id="Slug" name="Slug" value="@Model.Slug" maxlength="50" required pattern="[a-z0-9]+(-[a-z0-9]+)*" aria-describedby="slug-ajuda" />
+        <div id="slug-ajuda" class="form-text">Letras minúsculas sem acento, dígitos e hífen. Vira parte do nome do banco de cada recurso.</div>
+    </div>
+    <button class="btn btn-primary" type="submit">Criar tenant</button>
+    <a class="btn btn-link" href="/tenants">Cancelar</a>
+</form>
