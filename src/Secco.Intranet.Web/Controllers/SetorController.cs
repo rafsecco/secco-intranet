@@ -5,7 +5,6 @@ using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Menu;
-using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Models;
 using Secco.Intranet.Web.Models.Documentos;
 using Secco.Intranet.Web.Models.Publicacoes;
@@ -32,6 +31,7 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="listarPublicacoesDoSetorHandler">Listagem de avisos do setor.</param>
 /// <param name="documentoOptions">Limites de upload.</param>
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
+/// <param name="environment">Ambiente de hospedagem — o modo aberto só vale em Development (ADR-0020).</param>
 /// <param name="searchSetores">Busca de setores, para saber o universo de slugs a checar.</param>
 /// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura/escrita (ADR-0021).</param>
 /// <param name="resolverCaminho">Resolução de caminho na árvore de itens de menu do setor.</param>
@@ -47,6 +47,7 @@ public sealed class SetorController(
 	ListarPublicacoesDoSetorHandler listarPublicacoesDoSetorHandler,
 	DocumentoOptions documentoOptions,
 	IConfiguration configuration,
+	IWebHostEnvironment environment,
 	SearchSetoresHandler searchSetores,
 	IPermissoesDeSetor permissoesDeSetor,
 	ResolverCaminhoDeMenuHandler resolverCaminho) : Controller
@@ -187,7 +188,7 @@ public sealed class SetorController(
 			new ArquivarDocumentoCommand(
 				id,
 				await SlugsComEscritaAsync(cancellationToken).ConfigureAwait(false),
-				ExigirVinculo: IntranetAuthenticationExtensions.IsConfigured(configuration)),
+				ExigirVinculo: !AcessoAdministrativo.ModoAbertoDeDev(environment, configuration)),
 			cancellationToken).ConfigureAwait(false);
 
 		if (resultado.IsFailure)
@@ -232,7 +233,7 @@ public sealed class SetorController(
 			return View("Avisos", await MontarAvisosAsync(setor, resolucao, form, cancellationToken).ConfigureAwait(false));
 		}
 
-		var exigirVinculo = IntranetAuthenticationExtensions.IsConfigured(configuration);
+		var exigirVinculo = !AcessoAdministrativo.ModoAbertoDeDev(environment, configuration);
 		var publicadoEm = new DateTimeOffset(form.PublicadoEm, DateTimeOffset.Now.Offset);
 		DateTimeOffset? expiraEm = form.ExpiraEm is null
 			? null
@@ -305,7 +306,7 @@ public sealed class SetorController(
 			new ArquivarPublicacaoCommand(
 				id,
 				await SlugsComEscritaAsync(cancellationToken).ConfigureAwait(false),
-				ExigirVinculo: IntranetAuthenticationExtensions.IsConfigured(configuration)),
+				ExigirVinculo: !AcessoAdministrativo.ModoAbertoDeDev(environment, configuration)),
 			cancellationToken).ConfigureAwait(false);
 
 		if (resultado.IsFailure)
@@ -407,12 +408,15 @@ public sealed class SetorController(
 
 	/// <summary>
 	/// Ler exige a permissão de leitura do setor (ADR-0021). Mesmo bypass de
-	/// <see cref="PodePublicarAsync"/>: sem autenticação configurada (DEV aberto/Testing) não
-	/// há permissão a resolver — consistente com o menu, que nesse modo mostra todo setor.
+	/// <see cref="PodePublicarAsync"/>: só em Development sem autenticação configurada (modo
+	/// aberto de DEV local) não há permissão a resolver — consistente com o menu, que nesse modo
+	/// mostra todo setor. Em Testing (que também não configura SecureGate) e em qualquer outro
+	/// ambiente, o caminho de permissão de verdade roda sempre, para nunca ficar aberto por
+	/// engano fora do Development (ADR-0020).
 	/// </summary>
 	private async Task<bool> PodeLerAsync(string slug, CancellationToken cancellationToken)
 	{
-		if (!IntranetAuthenticationExtensions.IsConfigured(configuration))
+		if (AcessoAdministrativo.ModoAbertoDeDev(environment, configuration))
 		{
 			return true;
 		}
@@ -425,12 +429,14 @@ public sealed class SetorController(
 	}
 
 	/// <summary>
-	/// Publicar exige a permissão de escrita do setor (ADR-0021). Sem autenticação configurada —
-	/// o modo aberto de DEV — não há permissão a resolver, e a checagem é dispensada.
+	/// Publicar exige a permissão de escrita do setor (ADR-0021). Só em Development sem
+	/// autenticação configurada — o modo aberto de DEV local — não há permissão a resolver, e a
+	/// checagem é dispensada; fora do Development, mesmo sem SecureGate configurado, a permissão
+	/// de verdade é sempre consultada (ADR-0020).
 	/// </summary>
 	private async Task<bool> PodePublicarAsync(string slug, CancellationToken cancellationToken)
 	{
-		if (!IntranetAuthenticationExtensions.IsConfigured(configuration))
+		if (AcessoAdministrativo.ModoAbertoDeDev(environment, configuration))
 		{
 			return true;
 		}
@@ -443,12 +449,13 @@ public sealed class SetorController(
 	}
 
 	/// <summary>
-	/// Setores em que o usuário tem escrita — vazio sem autenticação configurada (modo aberto de
-	/// DEV/Testing), quando o handler ignora o filtro por completo (<c>ExigirVinculo: false</c>).
+	/// Setores em que o usuário tem escrita — vazio só no modo aberto de DEV local (Development
+	/// sem autenticação configurada), quando o handler ignora o filtro por completo
+	/// (<c>ExigirVinculo: false</c>). Fora do Development a lista vem sempre da permissão real.
 	/// </summary>
 	private async Task<IReadOnlySet<string>> SlugsComEscritaAsync(CancellationToken cancellationToken)
 	{
-		if (!IntranetAuthenticationExtensions.IsConfigured(configuration))
+		if (AcessoAdministrativo.ModoAbertoDeDev(environment, configuration))
 		{
 			return new HashSet<string>();
 		}

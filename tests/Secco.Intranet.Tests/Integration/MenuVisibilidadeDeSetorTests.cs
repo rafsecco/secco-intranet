@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Setores;
+using Secco.Intranet.Tests.Integration.TestAuthentication;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SharedKernel.Constants;
 using AwesomeAssertions;
@@ -10,12 +11,15 @@ using Xunit;
 namespace Secco.Intranet.Tests.Integration;
 
 /// <summary>
-/// O menu (<see cref="Secco.Intranet.Web.ViewComponents.NavigationViewComponent"/>) passou a
-/// filtrar setores por permissão (ADR-0021), não mais por nome de Role — a lógica que
-/// <c>SetorAcesso.Visiveis</c> continha antes de sair do código. O ramo restritivo (autenticação
-/// configurada) depende de <c>IsConfigured</c>, que esta fábrica de testes nunca liga — coberto
-/// pelos testes de <see cref="PermissoesDeSetorTests"/> (a permissão em si) e não repetido aqui;
-/// o que esta classe prova é o outro ramo, que só é alcançável por HTTP de verdade.
+/// O menu (<see cref="Secco.Intranet.Web.ViewComponents.NavigationViewComponent"/>) filtra
+/// setores por permissão (ADR-0021), não mais por nome de Role — a lógica que
+/// <c>SetorAcesso.Visiveis</c> continha antes de sair do código. O ramo restritivo roda sempre
+/// em Testing (que não configura SecureGate, mas não é Development — ver
+/// <c>AcessoAdministrativo.ModoAbertoDeDev</c>, ADR-0020), por isso esta classe prova os dois
+/// lados por HTTP de verdade: sem permissão o setor não aparece, com ela aparece. A permissão em
+/// si (<c>IPermissoesDeSetor.SlugsComPermissaoAsync</c>) está coberta a fundo em
+/// <see cref="PermissoesDeSetorTests"/>; o que esta classe prova é a chamada dela pelo
+/// controller/menu sob o caminho HTTP real.
 /// </summary>
 public class MenuVisibilidadeDeSetorTests(IntranetWebFactory factory) : IClassFixture<IntranetWebFactory>, IAsyncLifetime
 {
@@ -37,30 +41,42 @@ public class MenuVisibilidadeDeSetorTests(IntranetWebFactory factory) : IClassFi
 		return slug;
 	}
 
-	// Tentei, na auto-revisão final, escrever aqui um teste indo e voltando (com e sem a
-	// permissão de escrita) para PodePublicarAsync do SetorController — e descobri que não dá:
-	// PodePublicarAsync começa com "!IsConfigured(configuration) → libera", exatamente o mesmo
-	// bypass do menu acima, e IsConfigured nunca é true neste ambiente. O caminho de permissão
-	// de verdade (a parte nova desta spec) fica estruturalmente inalcançável por HTTP aqui — não
-	// é uma regressão desta migração, é a mesma limitação que já existia para
-	// ExigirVinculo/ExigirVisibilidade antes dela (por isso os testes de handler de Mural/
-	// Documentos/Publicação sempre passaram `ExigirVinculo: true` explícito, em vez de subir o
-	// host). A função por trás (`IPermissoesDeSetor.SlugsComPermissaoAsync`) está coberta a fundo
-	// em `PermissoesDeSetorTests`; o que fica sem prova direta por HTTP é só a chamada dela pelo
-	// controller sob essa condição — registrado para o revisor, não escondido atrás de um teste
-	// que passaria de qualquer jeito.
+	private HttpClient CriarCliente(params string[] roles)
+	{
+		var client = factory.CreateClient();
+		client.DefaultRequestHeaders.Add(SeccoHeaders.TenantId, factory.TenantAlfa.ToString());
+
+		if (roles.Length > 0)
+		{
+			client.DefaultRequestHeaders.Add(RolesDeTesteMiddleware.Header, string.Join(",", roles));
+		}
+
+		return client;
+	}
 
 	[Fact]
-	public async Task ModoAberto_MostraOSetorComoAgrupador_ComOsItensDaArvore()
+	public async Task SemPermissaoDeLeitura_OSetorNaoAparece()
 	{
 		var slug = $"menu-{Guid.NewGuid():N}"[..20];
 		await CriarSetorAsync(slug);
 
-		var client = factory.CreateClient();
-		client.DefaultRequestHeaders.Add(SeccoHeaders.TenantId, factory.TenantAlfa.ToString());
-		// Sem X-Test-Roles: nenhuma role — se o menu ainda filtrasse por role, não veria nada.
+		// Sem X-Test-Roles: nenhuma role — a permissão real nega por padrão (ADR-0020), e o
+		// menu some com o setor em vez de listar sem controle, mesmo sem SecureGate configurado.
+		var html = await CriarCliente().GetStringAsync("/");
 
-		var html = await client.GetStringAsync("/");
+		html.Should().NotContain($"href=\"/{slug}/avisos\"", "sem permissão de leitura o setor não deveria aparecer no menu");
+	}
+
+	[Fact]
+	public async Task ComPermissaoDeLeitura_MostraOSetorComoAgrupador_ComOsItensDaArvore()
+	{
+		var slug = $"menu-{Guid.NewGuid():N}"[..20];
+		await CriarSetorAsync(slug);
+
+		// intranet-admin: SomenteIntranetAdmin curto-circuita PermissoesDeSetor para "tudo" (é o
+		// superusuário da instalação, ADR-0008) — não precisa de um IPermissionResolver dublê só
+		// para este teste, e é a mesma convenção usada em SetorMenuRotaTests/DocumentoFluxoTests.
+		var html = await CriarCliente("intranet-admin").GetStringAsync("/");
 
 		AssertarArvore(html, slug);
 	}
@@ -75,6 +91,7 @@ public class MenuVisibilidadeDeSetorTests(IntranetWebFactory factory) : IClassFi
 			.WithWebHostBuilder(builder => builder.UseSetting("Intranet:Theme:Nome", "Horizontal"))
 			.CreateClient();
 		client.DefaultRequestHeaders.Add(SeccoHeaders.TenantId, factory.TenantAlfa.ToString());
+		client.DefaultRequestHeaders.Add(RolesDeTesteMiddleware.Header, "intranet-admin");
 
 		var html = await client.GetStringAsync("/");
 

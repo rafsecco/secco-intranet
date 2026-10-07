@@ -18,10 +18,12 @@ namespace Secco.Intranet.Tests.Integration;
 /// setor com slug sufixado por GUID — não existe setor fixo na fixture.
 /// </summary>
 /// <remarks>
-/// Sem teste de "usuário sem setor-{slug}:read recebe 404": PodeLerAsync tem o mesmo bypass de
-/// PodePublicarAsync (sem autenticação configurada, libera), e o ambiente Testing nunca liga a
-/// autenticação — o ramo restritivo não é alcançável por HTTP aqui. Mesma limitação registrada
-/// em MenuVisibilidadeDeSetorTests; a permissão em si está coberta em PermissoesDeSetorTests.
+/// PodeLerAsync e PodePublicarAsync só abrem sem a permissão de verdade em Development sem
+/// SecureGate configurado (ADR-0020) — Testing passa pelo caminho de permissão real, por isso
+/// os testes que leem uma página real de setor usam <c>intranet-admin</c> em
+/// <see cref="CriarCliente"/>. O "usuário sem setor-{slug}:read recebe 404" propriamente dito
+/// está coberto em <see cref="MenuVisibilidadeDeSetorTests"/>; a permissão em si, em
+/// PermissoesDeSetorTests.
 /// </remarks>
 public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<IntranetWebFactory>, IAsyncLifetime
 {
@@ -87,7 +89,7 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 	{
 		var slug = await CriarSetorAsync();
 
-		var html = await CriarCliente().GetStringAsync($"/{slug}/documentos");
+		var html = await CriarCliente("intranet-admin").GetStringAsync($"/{slug}/documentos");
 
 		html.Should().Contain($"action=\"/{slug}/documentos\"", "o formulário de publicação posta na rota nova");
 		// A ausência das abas é garantida pela remoção da partial (grep do Step 9): checar
@@ -99,7 +101,7 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 	{
 		var slug = await CriarSetorAsync();
 
-		(await CriarCliente().GetAsync($"/{slug}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+		(await CriarCliente("intranet-admin").GetAsync($"/{slug}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 	}
 
 	[Fact]
@@ -116,7 +118,7 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 		var slug = await CriarSetorAsync();
 		await DesativarAsync(slug, TipoDeItemMenu.Documentos);
 
-		(await CriarCliente().GetAsync($"/{slug}/documentos")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+		(await CriarCliente("intranet-admin").GetAsync($"/{slug}/documentos")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 	}
 
 	[Fact]
@@ -124,7 +126,7 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 	{
 		var slug = await CriarSetorAsync();
 
-		(await CriarCliente().GetAsync($"/{slug}/caminho-que-nao-existe")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+		(await CriarCliente("intranet-admin").GetAsync($"/{slug}/caminho-que-nao-existe")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 	}
 
 	[Theory]
@@ -154,7 +156,7 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 	{
 		var slug = await CriarSetorAsync();
 
-		var html = await CriarCliente().GetStringAsync($"/{slug}/documentos");
+		var html = await CriarCliente("intranet-admin").GetStringAsync($"/{slug}/documentos");
 
 		html.Should().Contain($"Setor {slug}", "o subtítulo mostra de que setor é a página");
 	}
@@ -164,7 +166,7 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 	{
 		var slug = await CriarSetorAsync();
 		await DesativarAsync(slug, TipoDeItemMenu.Avisos);
-		var client = CriarCliente();
+		var client = CriarCliente("intranet-admin");
 		// O token antifalsificação não é por ação: o da página de Documentos (ainda ligada) vale.
 		var token = await TokenAsync(client, $"/{slug}/documentos");
 
@@ -217,6 +219,7 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 
 		var client = factory.CreateClient(new() { AllowAutoRedirect = false });
 		client.DefaultRequestHeaders.Add(SeccoHeaders.TenantId, factory.TenantAlfa.ToString());
+		client.DefaultRequestHeaders.Add(RolesDeTesteMiddleware.Header, "intranet-admin");
 
 		(await client.GetAsync($"/{slug}/relatorios")).StatusCode.Should().Be(HttpStatusCode.NotFound, "Relatórios só agrupa");
 

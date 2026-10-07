@@ -63,6 +63,10 @@ builder.Services.AddIntranetApplication();
 builder.Services.AddIntranetInfrastructure(builder.Configuration);
 builder.Services.AddIntranetAuthentication(builder.Configuration, builder.Environment);
 
+// Secco:SecureGate:Authority ausente derruba o startup em Production, nao so deixa os
+// controllers caírem no modo aberto de Development sem ninguém notar (ADR-0020).
+builder.Services.AddHostedService<ValidacaoSecureGateHostedService>();
+
 // ADR-0021: autorização por permissão, incondicional — o ambiente Testing não configura
 // SecureGate, mas precisa da policy dinâmica rodando de verdade (mesmo padrão dos gates por nome
 // de Role de hoje, com claims falsas e autorização real). Sem SecureGate real, o próprio

@@ -52,6 +52,9 @@ public class StartupChaveMestraTests(IntranetWebFactory factory) : IClassFixture
 					// 32 bytes em base64 — o tamanho que a chave mestra exige.
 					["Intranet:Documentos:Chave:ChaveAtiva"] =
 						Convert.ToBase64String(new byte[32]),
+					// Satisfaz a guarda do ValidacaoSecureGateHostedService (StartupSecureGateTests):
+					// aqui o que se testa é só a guarda da chave mestra, isolada da outra.
+					["Secco:SecureGate:Authority"] = "https://securegate.exemplo.invalido",
 				}));
 		});
 

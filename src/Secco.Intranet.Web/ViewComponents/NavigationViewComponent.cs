@@ -5,7 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
-using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Navigation;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SharedKernel.Pagination;
@@ -44,13 +43,13 @@ public sealed class NavigationViewComponent(
 	/// <summary>Renderiza o menu.</summary>
 	public async Task<IViewComponentResult> InvokeAsync()
 	{
-		var autenticacaoAtiva = IntranetAuthenticationExtensions.IsConfigured(configuration);
-
-		// Modo aberto de DEV = Development sem SecureGate. No Testing o menu também precisa
-		// respeitar a role, senão nenhum teste distingue quem vê o quê.
+		// Modo aberto de DEV = Development sem SecureGate. No Testing (que também não configura
+		// SecureGate) e em qualquer outro ambiente o menu respeita a role de verdade, senão
+		// nenhum teste distingue quem vê o quê e Production correria o mesmo risco do
+		// ValidacaoSecureGateHostedService (ADR-0020).
 		var modoAberto = AcessoAdministrativo.ModoAbertoDeDev(environment, configuration);
 
-		var setores = await CarregarSetoresAsync(HttpContext.User, autenticacaoAtiva).ConfigureAwait(false);
+		var setores = await CarregarSetoresAsync(HttpContext.User, exigirPermissao: !modoAberto).ConfigureAwait(false);
 
 		foreach (var setor in setores.Where(setor => SlugsReservados.Contem(setor.Slug)))
 		{
@@ -100,7 +99,7 @@ public sealed class NavigationViewComponent(
 
 	private async Task<IReadOnlyList<SetorDto>> CarregarSetoresAsync(
 		System.Security.Claims.ClaimsPrincipal usuario,
-		bool autenticacaoAtiva)
+		bool exigirPermissao)
 	{
 		if (!tenantContext.IsResolved)
 		{
@@ -126,7 +125,7 @@ public sealed class NavigationViewComponent(
 
 			var ativos = resultado.Value.Items;
 
-			if (!autenticacaoAtiva)
+			if (!exigirPermissao)
 			{
 				return ativos;
 			}

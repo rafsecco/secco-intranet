@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Setores;
-using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Navigation;
 using Secco.SharedKernel.Pagination;
 
@@ -15,12 +14,14 @@ namespace Secco.Intranet.Web.Controllers;
 /// </summary>
 /// <param name="handler">Caso de uso de download.</param>
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
+/// <param name="environment">Ambiente de hospedagem — o modo aberto só vale em Development (ADR-0020).</param>
 /// <param name="searchSetores">Busca de setores, para saber o universo de slugs a checar.</param>
 /// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura (ADR-0021).</param>
 [Route("documentos")]
 public sealed class DocumentosController(
 	BaixarDocumentoHandler handler,
 	IConfiguration configuration,
+	IWebHostEnvironment environment,
 	SearchSetoresHandler searchSetores,
 	IPermissoesDeSetor permissoesDeSetor) : Controller
 {
@@ -35,7 +36,7 @@ public sealed class DocumentosController(
 		var query = new BaixarDocumentoQuery(
 			id,
 			await SlugsComLeituraAsync(cancellationToken).ConfigureAwait(false),
-			ExigirVinculo: IntranetAuthenticationExtensions.IsConfigured(configuration));
+			ExigirVinculo: !AcessoAdministrativo.ModoAbertoDeDev(environment, configuration));
 
 		var resultado = await handler.HandleAsync(query, cancellationToken).ConfigureAwait(false);
 
@@ -64,12 +65,13 @@ public sealed class DocumentosController(
 	}
 
 	/// <summary>
-	/// Setores em que o usuário tem leitura — vazio sem autenticação configurada (modo aberto de
-	/// DEV/Testing), quando o handler ignora o filtro por completo (<c>ExigirVinculo: false</c>).
+	/// Setores em que o usuário tem leitura — vazio só no modo aberto de DEV local (Development
+	/// sem autenticação configurada), quando o handler ignora o filtro por completo
+	/// (<c>ExigirVinculo: false</c>). Fora do Development a lista vem sempre da permissão real.
 	/// </summary>
 	private async Task<IReadOnlySet<string>> SlugsComLeituraAsync(CancellationToken cancellationToken)
 	{
-		if (!IntranetAuthenticationExtensions.IsConfigured(configuration))
+		if (AcessoAdministrativo.ModoAbertoDeDev(environment, configuration))
 		{
 			return new HashSet<string>();
 		}

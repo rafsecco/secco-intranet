@@ -4,7 +4,6 @@ using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Publicacoes;
-using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Conteudo;
 using Secco.Intranet.Web.Models.Mural;
 using Secco.Intranet.Web.Navigation;
@@ -27,24 +26,27 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="tenantContext">Tenant da requisição atual.</param>
 /// <param name="renderizador">Conversão do Markdown guardado em HTML.</param>
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
+/// <param name="environment">Ambiente de hospedagem — o modo aberto só vale em Development (ADR-0020).</param>
 /// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura/escrita (ADR-0021).</param>
 public sealed class MuralController(
 	IServiceProvider serviceProvider,
 	ITenantContext tenantContext,
 	IRenderizadorMarkdown renderizador,
 	IConfiguration configuration,
+	IWebHostEnvironment environment,
 	IPermissoesDeSetor permissoesDeSetor) : Controller
 {
 	private const int LimiteSetoresConsultados = 200;
 
 	/// <summary>
-	/// Setores em que o usuário tem leitura, para filtrar o que ele vê — vazio sem autenticação
-	/// configurada (modo aberto de DEV/Testing), quando o handler ignora o filtro por completo
-	/// (<c>ExigirVisibilidade: false</c>).
+	/// Setores em que o usuário tem leitura, para filtrar o que ele vê — vazio só no modo aberto
+	/// de DEV local (Development sem autenticação configurada), quando o handler ignora o filtro
+	/// por completo (<c>ExigirVisibilidade: false</c>). Fora do Development a lista vem sempre da
+	/// permissão real.
 	/// </summary>
 	private async Task<IReadOnlyList<string>> SlugsComLeituraAsync(CancellationToken cancellationToken)
 	{
-		if (!IntranetAuthenticationExtensions.IsConfigured(configuration))
+		if (AcessoAdministrativo.ModoAbertoDeDev(environment, configuration))
 		{
 			return [];
 		}
@@ -85,7 +87,7 @@ public sealed class MuralController(
 				new MuralQuery(
 					tipo,
 					await SlugsComLeituraAsync(cancellationToken).ConfigureAwait(false),
-					ExigirVisibilidade: IntranetAuthenticationExtensions.IsConfigured(configuration),
+					ExigirVisibilidade: !AcessoAdministrativo.ModoAbertoDeDev(environment, configuration),
 					page),
 				cancellationToken)
 			.ConfigureAwait(false);
@@ -127,7 +129,7 @@ public sealed class MuralController(
 				new ObterPublicacaoQuery(
 					id,
 					await SlugsComLeituraAsync(cancellationToken).ConfigureAwait(false),
-					ExigirVisibilidade: IntranetAuthenticationExtensions.IsConfigured(configuration)),
+					ExigirVisibilidade: !AcessoAdministrativo.ModoAbertoDeDev(environment, configuration)),
 				cancellationToken)
 			.ConfigureAwait(false);
 
