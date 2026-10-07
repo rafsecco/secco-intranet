@@ -83,6 +83,10 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ObterTenantAdministradoHandler>();
 		services.AddScoped<ListarTenantsAdotaveisHandler>();
 		services.AddScoped<VerificarTenantAdministradoHandler>();
+		services.AddScoped<CriarTenantHandler>();
+		services.AddScoped<AdotarTenantHandler>();
+		services.AddScoped<LigarRecursoHandler>();
+		services.AddScoped<AlterarSituacaoDoTenantHandler>();
 
 		return services;
 	}
