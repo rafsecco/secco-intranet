@@ -1,7 +1,7 @@
 # Área administrativa de tenants — subsistema 1: ciclo de vida do tenant
 
 **Data:** 2026-10-07
-**Estado:** rascunho, aguardando revisão
+**Estado:** implementado (subsistema 1)
 
 ## Problema
 
@@ -70,6 +70,7 @@ Verificado no `secco-platform`, não presumido:
 | Script de provisionamento | Exibido uma vez, na resposta do próprio POST; nunca persistido nem registrado |
 | Excluir tenant / desligar recurso | Fora: a plataforma não oferece. Lacuna registrada, sem issue (o caso de uso não pede) |
 | Rastro | Toda escrita vai à trilha do LogStream, falha-aberta como o resto da auditoria (ADR-0006) |
+| Desativação recusada pela plataforma (409, ex.: tenant de instalação) | Erro próprio `Tenants.DesativacaoRecusada`, não "indisponível" |
 
 ## Segurança
 
@@ -154,11 +155,13 @@ Web (TenantsController)
 | `ListarTenantsAsync` (todos, para o "adotar") | `CriarTenantAsync(nome, slug)` |
 | `ObterTenantAsync(tenantId)` | `ProvisionarAsync(tenantId, produto)` → aplicado ou script |
 | `ObterStatusDosBancosAsync(tenantId)` | `AtivarAsync(tenantId)` / `DesativarAsync(tenantId)` |
-| `ObterSegundoFatorAsync(usuarioId)` | |
 
 O adaptador mapeia `ApiException`, `HttpRequestException` e o timeout do `HttpClient` para erros
 de negócio, como os adaptadores de acesso já fazem; `409` e `404` têm mensagem própria. Sem
 SecureGate configurado, `GestaoDeTenantsIndisponivel` (no-op) responde "não configurado".
+
+O segundo fator é lido pela porta que já existe, `IGestaoDeAcesso.ObterUsuarioAsync`
+(`UsuarioDetalheDto.DoisFatoresAtivo`) — a área de tenants não ganha porta própria para isso.
 
 Os tenants que são Intranet saem do catálogo do produto `intranet` (`ITenantCatalog`), que a
 Intranet já consome.
@@ -184,7 +187,7 @@ Checadas antes de chamar a porta e devolvidas como `Result`:
 
 - `[SomenteIntranetAdmin]` na classe, o mesmo filtro e a mesma ordem do `AcessoController`. O
   trio de testes da ADR-0008 vale para todas as rotas.
-- **`[ExigeSegundoFator]`** na classe, depois do anterior. Consulta `ObterSegundoFatorAsync` do
+- **`[ExigeSegundoFator]`** na classe, depois do anterior. Consulta `IGestaoDeAcesso.ObterUsuarioAsync` do
   usuário logado, no tenant da Intranet, com cache de 60 s por `sub`. **Fail-closed:** SecureGate
   indisponível fecha a área. Sem 2FA, renderiza uma tela própria explicando o motivo, com link
   para o cadastro de 2FA no SecureGate. No modo aberto de DEV (sem SecureGate configurado, só em
@@ -199,12 +202,16 @@ Só parciais do contrato de tema (ADR-0004), nos dois temas oficiais, claro e es
 
 | Rota | Conteúdo |
 |---|---|
-| `GET /administracao/tenants` | Lista: sistema, nome e slug (do SecureGate), ativo, recursos ligados, origem. Ações Novo e Adotar |
-| `GET/POST /administracao/tenants/novo` | Sistema, responsável, nome e slug do tenant |
-| `GET/POST /administracao/tenants/adotar` | Tenants adotáveis, mais sistema e responsável |
-| `GET /administracao/tenants/{tenantId}` | Dados, painel dos três recursos (ligado, ligado sem responder, não ligado; motivo classificado) e ações |
-| `POST /administracao/tenants/{tenantId}/recursos/{recurso}` | Liga o recurso. Em modo script, a resposta é a tela de exibição única |
-| `POST /administracao/tenants/{tenantId}/ativar` e `…/desativar` | Desativar com confirmação por slug |
+| `GET /tenants` | Lista: sistema, nome e slug (do SecureGate), ativo, recursos ligados, origem. Ações Novo e Adotar |
+| `GET/POST /tenants/novo` | Sistema, responsável, nome e slug do tenant |
+| `GET/POST /tenants/adotar` | Tenants adotáveis, mais sistema e responsável |
+| `GET /tenants/{tenantId}` | Dados, painel dos três recursos (ligado, ligado sem responder, não ligado; motivo classificado) e ações |
+| `POST /tenants/{tenantId}/recursos/{recurso}` | Liga o recurso. Em modo script, a resposta é a tela de exibição única |
+| `POST /tenants/{tenantId}/ativar` e `…/desativar` | Desativar com confirmação por slug |
+
+> A rota é `/tenants`, e não `/administracao/tenants` como no primeiro rascunho: o setor mora na
+> raiz da URL, e uma empresa com o setor "Administração" (slug `administracao`) perderia a página
+> dele. `tenants` entrou em `SlugsReservados`.
 
 ## Auditoria
 
@@ -243,6 +250,10 @@ fez**.
 - Excluir tenant e desligar recurso (a plataforma não oferece).
 - Escolher servidor, nome de banco ou login no provisionamento.
 - Exportar ou excluir os dados de um tenant (citado como desejável na #32).
+
+## Notas de implementação
+
+- O teste de fumaça deixa um tenant desativado por execução, porque a plataforma não exclui tenant.
 
 ## Documentação a atualizar junto
 

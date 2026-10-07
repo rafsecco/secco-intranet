@@ -133,8 +133,8 @@ processos (maior risco técnico) só entra com a base já sólida.
       referência histórica da decisão de modelo (2026-09-04), não mais como bloqueio —
       [spec do subsistema 1](specs/2026-10-07-area-administrativa-tenants-design.md). Dividida em
       quatro subsistemas, cada um com spec própria; a área exige `intranet-admin` **com 2FA**:
-  - [ ] 1. Ciclo de vida do tenant: criar, adotar, ligar recursos (SecureGate, LogStream,
-        NotificationHub), status, ativar/desativar
+  - [x] 1. Ciclo de vida do tenant: criar, adotar, ligar recursos (SecureGate, LogStream,
+        NotificationHub), status, ativar/desativar — [plano](plans/2026-10-07-area-administrativa-tenants.md)
   - [ ] 2. Perfis e usuários do tenant administrado, reaproveitando `/acesso`
   - [ ] 3. Leitor de logs da Intranet e dos tenants administrados, por elevação explícita
         (ADR-0030/0031 da plataforma)
