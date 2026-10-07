@@ -31,15 +31,26 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Credencial do feed privado
-        # Vai para o NuGet.Config de usuário do runner, nunca para o nuget.config do repositório:
-        # o <clear /> de lá limpa as fontes herdadas, mas as credenciais por chave continuam
-        # valendo para a fonte "secco".
-        run: >
-          dotnet nuget add source https://nuget.pkg.github.com/rafsecco/index.json
-          --name secco
-          --username ${{ github.actor }}
-          --password ${{ secrets.GITHUB_TOKEN }}
-          --store-password-in-clear-text
+        # Só a credencial, no NuGet.Config de usuário do runner — nunca no nuget.config do
+        # repositório. A fonte "secco" já é declarada lá; redeclará-la com `dotnet nuget add
+        # source` falha por nome duplicado. Credencial casa com a fonte pela chave, e o
+        # <clear /> do repositório limpa fontes herdadas, não credenciais.
+        env:
+          FEED_USER: ${{ github.actor }}
+          FEED_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p ~/.nuget/NuGet
+          cat > ~/.nuget/NuGet/NuGet.Config <<XML
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSourceCredentials>
+              <secco>
+                <add key="Username" value="$FEED_USER" />
+                <add key="ClearTextPassword" value="$FEED_TOKEN" />
+              </secco>
+            </packageSourceCredentials>
+          </configuration>
+          XML
 
       - name: Restore
         run: dotnet restore Secco.Intranet.slnx
