@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Disparo manual: refazer a verificação sem precisar de commit novo.
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
