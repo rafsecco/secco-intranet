@@ -101,6 +101,9 @@ processos (maior risco técnico) só entra com a base já sólida.
       setor (setor = nível 0, submenus flutuantes, URL `/{setor}/{item}/…` —
       [spec](specs/2026-10-01-menu-principal-arvore-dos-setores-design.md)); falta, se um dia
       fizer sentido, os itens fixos (Mural, Diretório, Inventário, Administração) virarem nós
+- [ ] Marketplace de temas (empacotamento + documentação para terceiros) — trazido da Fase 5.
+      Os dois temas oficiais já provam o contrato; o que falta é o terceiro conseguir publicar e
+      instalar o próprio tema sem abrir este repositório
 - [x] Área administrativa de acesso, primeiro corte: perfis e usuários do próprio tenant,
       exclusiva do `intranet-admin`, com testes de autorização em toda rota —
       [spec](specs/2026-09-23-area-administrativa-acesso-design.md). Entregue: só o
@@ -169,7 +172,6 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [ ] Idioma inglês no produto (i18n): hoje toda tela, mensagem e rótulo são só em português.
       Abrir o código não obriga isso agora, mas amplia quem consegue adotar e contribuir depois
       do lançamento open source
-- [ ] Marketplace de temas (empacotamento + documentação para terceiros)
 - [ ] Automação opcional de clonagem de perfis admin/user por setor, se um caso de uso
       concreto justificar (ver ADR-0001)
 - [ ] Pesquisas de clima organizacional, outros extras
