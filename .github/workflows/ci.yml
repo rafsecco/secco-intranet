@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  # Restore dos pacotes Secco.* no feed do GitHub Packages (ADR-0011). Mesmo pacote público
+  # exige autenticação no endpoint NuGet do GitHub; o GITHUB_TOKEN basta para ler.
+  packages: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Credencial do feed privado
+        # Vai para o NuGet.Config de usuário do runner, nunca para o nuget.config do repositório:
+        # o <clear /> de lá limpa as fontes herdadas, mas as credenciais por chave continuam
+        # valendo para a fonte "secco".
+        run: >
+          dotnet nuget add source https://nuget.pkg.github.com/rafsecco/index.json
+          --name secco
+          --username ${{ github.actor }}
+          --password ${{ secrets.GITHUB_TOKEN }}
+          --store-password-in-clear-text
+
+      - name: Restore
+        run: dotnet restore Secco.Intranet.slnx
+
+      - name: Build
+        run: dotnet build Secco.Intranet.slnx --no-restore --configuration Release
+
+      - name: Test
+        # Testcontainers (ADR-0012) usa o Docker do runner ubuntu-latest. Fumaça contra o
+        # SecureGate real e testes de tela (Playwright) são opt-in e ficam de fora aqui.
+        run: >
+          dotnet test Secco.Intranet.slnx --no-build --configuration Release
+          --logger "trx;LogFileName=resultados.trx" --results-directory TestResults
+
+      - name: Resultados dos testes (só em falha)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: TestResults/
+
+  theme-assets:
+    # O CSS e os bundles compilados dos temas são versionados. Este job reconstrói a partir do
+    # SCSS e dos pacotes travados no package-lock e reprova se o resultado divergir do commit:
+    # pega o SCSS editado sem rodar `npm run build`.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        theme: [Vertical, Horizontal]
+    defaults:
+      run:
+        working-directory: src/Secco.Intranet.Themes.${{ matrix.theme }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: src/Secco.Intranet.Themes.${{ matrix.theme }}/package-lock.json
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Build
+        run: npm run build
+
+      - name: Assets compilados em dia com o fonte
+        run: |
+          if ! git diff --exit-code --stat -- wwwroot; then
+            echo "::error::Assets do tema ${{ matrix.theme }} desatualizados: rode 'npm run build' na pasta do tema e commite o resultado."
+            exit 1
+          fi
+          untracked=$(git ls-files --others --exclude-standard -- wwwroot)
+          if [ -n "$untracked" ]; then
+            echo "$untracked"
+            echo "::error::O build gerou arquivos não versionados no tema ${{ matrix.theme }}."
+            exit 1
+          fi
