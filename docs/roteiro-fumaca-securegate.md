@@ -175,3 +175,16 @@ Registro do que a API real fez diferente do que se assumia — o motivo de o rot
 Última execução completa: 2026-09-27, contra o SecureGate do monorepo na `main` (client 0.11.0).
 Parte automatizada: 10/10 (a décima garante e mescla permissão de um perfil). Parte manual: não
 repetida nesta rodada — sem mudança nas telas cobertas pelos itens 1–13.
+
+## Tenants administrados
+
+`SecureGateGestaoDeTenantsFumacaTests` usa as mesmas variáveis (`SECCO_SMOKE_SECUREGATE_URL` e o
+client de DEV, que tem `securegate:admin`). Ele cria um tenant `fumaca-<sufixo>`, provisiona o
+banco do LogStream (aplicado ou em modo script, conforme o SecureGate local tenha credencial
+privilegiada) e desativa o tenant no fim.
+
+**A plataforma não exclui tenant:** cada execução deixa um tenant desativado no SecureGate. Rode
+só contra o SecureGate local do compose. Para limpar, `docker compose down -v` no `secco-platform`.
+
+O teste `DesativarOTenantDeInstalacao_Recusado` tenta desativar o tenant de instalação e espera a
+recusa da plataforma. Não rode contra um SecureGate em que essa guarda não exista.
