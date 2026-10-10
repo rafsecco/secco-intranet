@@ -12,7 +12,7 @@ namespace Secco.Intranet.Web.Authentication;
 /// <c>ValidacaoChaveMestraHostedService</c> cobre para a chave mestra de documentos; aqui é a
 /// seção que liga a autenticação inteira. Não se aplica a <c>Testing</c>, que nunca configura
 /// SecureGate de propósito (a autorização real é exercida com claims falsas, não com este
-/// modo aberto).
+/// modo aberto). Também exige o client do login interativo, que é separado do de máquina.
 /// </summary>
 /// <param name="configuration">Configuração do host.</param>
 /// <param name="environment">Ambiente de hospedagem.</param>
@@ -27,6 +27,19 @@ internal sealed class ValidacaoSecureGateHostedService(
 				"Secco:SecureGate:Authority ausente em Production. Sem ela a Intranet sobe no " +
 				"modo aberto de DEV local — sem autenticacao nem autorizacao — para qualquer " +
 				"visitante, em Mural, Documentos e Setor.");
+		}
+
+		// Sem o client de login, a Intranet sobe e o primeiro acesso falha dentro do SecureGate,
+		// longe da causa. O Secco:SecureGate:ClientId não serve de reserva: é client credentials,
+		// e o SecureGate não dá authorization code a ele (ADR-0037 da plataforma).
+		if (environment.IsProduction()
+			&& IntranetAuthenticationExtensions.IsConfigured(configuration)
+			&& string.IsNullOrWhiteSpace(configuration[IntranetAuthenticationExtensions.LoginClientIdKey]))
+		{
+			throw new InvalidOperationException(
+				$"{IntranetAuthenticationExtensions.LoginClientIdKey} ausente em Production. O login " +
+				"interativo usa um client proprio (AuthorizationCode), separado do client de maquina " +
+				"de Secco:SecureGate.");
 		}
 
 		return Task.CompletedTask;

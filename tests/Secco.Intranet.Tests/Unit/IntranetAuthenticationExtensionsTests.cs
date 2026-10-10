@@ -33,8 +33,10 @@ public class IntranetAuthenticationExtensionsTests
 				? new Dictionary<string, string?>
 				{
 					["Secco:SecureGate:Authority"] = "https://securegate.dev.local",
-					["Secco:SecureGate:ClientId"] = "intranet",
-					["Secco:SecureGate:ClientSecret"] = "segredo",
+					["Secco:SecureGate:ClientId"] = "intranet-maquina",
+					["Secco:SecureGate:ClientSecret"] = "segredo-maquina",
+					["Intranet:Login:ClientId"] = "intranet-login",
+					["Intranet:Login:ClientSecret"] = "segredo-login",
 				}
 				: [])
 			.Build();
@@ -58,6 +60,27 @@ public class IntranetAuthenticationExtensionsTests
 		schemes.Should().Contain(OpenIdConnectDefaults.AuthenticationScheme);
 
 		provider.GetRequiredService<IOptions<AuthorizationOptions>>().Value.FallbackPolicy.Should().NotBeNull();
+	}
+
+	[Fact]
+	public async Task AddIntranetAuthentication_UsaOClientDeLogin_NaoOClientDeMaquina()
+	{
+		var configuration = BuildConfiguration(withAuthority: true);
+		var services = new ServiceCollection();
+		services.AddSingleton(configuration);
+		services.AddLogging();
+
+		services.AddIntranetAuthentication(configuration, new FakeHostEnvironment());
+
+		await using var provider = services.BuildServiceProvider();
+
+		var oidc = provider.GetRequiredService<IOptionsMonitor<OpenIdConnectOptions>>()
+			.Get(OpenIdConnectDefaults.AuthenticationScheme);
+
+		// O SecureGate dá um único grant a cada client de plataforma (ADR-0037): o de login é
+		// AuthorizationCode e o de Secco:SecureGate é ClientCredentials — não são o mesmo.
+		oidc.ClientId.Should().Be("intranet-login");
+		oidc.ClientSecret.Should().Be("segredo-login");
 	}
 
 	[Fact]

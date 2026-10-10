@@ -65,11 +65,37 @@ public class StartupSecureGateTests(IntranetWebFactory factory) : IClassFixture<
 				{
 					["Intranet:Documentos:Chave:ChaveAtiva"] = ChaveMestraValida,
 					["Secco:SecureGate:Authority"] = "https://securegate.exemplo.invalido",
+					["Intranet:Login:ClientId"] = "secco-intranet-login",
 				}));
 		});
 
 		var subir = () => producao.CreateClient();
 
-		subir.Should().NotThrow("com Authority presente, nada mais nesta guarda impede o startup");
+		subir.Should().NotThrow("com Authority e client de login presentes, nada mais nesta guarda impede o startup");
+	}
+
+	[Fact]
+	public void Startup_EmProductionSemClientDeLogin_DerrubaAAplicacao()
+	{
+		using var producao = factory.WithWebHostBuilder(builder =>
+		{
+			builder.UseEnvironment("Production");
+			builder.ConfigureAppConfiguration((_, configuration) =>
+				configuration.AddInMemoryCollection(new Dictionary<string, string?>
+				{
+					["Intranet:Documentos:Chave:ChaveAtiva"] = ChaveMestraValida,
+					["Secco:SecureGate:Authority"] = "https://securegate.exemplo.invalido",
+					["Secco:SecureGate:ClientId"] = "secco-intranet",
+				}));
+		});
+
+		var subir = () => producao.CreateClient();
+
+		var excecao = subir.Should().Throw<Exception>(
+			"sem client de login, o primeiro acesso falharia no SecureGate em vez de no deploy").Which;
+
+		Mensagens(excecao).Should().Contain(
+			mensagem => mensagem.Contains("Intranet:Login:ClientId", StringComparison.Ordinal),
+			"a falha precisa nomear a chave que falta");
 	}
 }

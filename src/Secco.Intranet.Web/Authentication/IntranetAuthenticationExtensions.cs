@@ -29,6 +29,16 @@ public static class IntranetAuthenticationExtensions
 	private static readonly string[] Scopes = ["openid", "profile", "roles"];
 
 	/// <summary>
+	/// Chave do client do login interativo. É um client separado do <c>Secco:SecureGate:ClientId</c>
+	/// (client credentials do client administrativo, do LogStream e do NotificationHub): o
+	/// SecureGate dá um único grant a cada client de plataforma (ADR-0037 da plataforma).
+	/// </summary>
+	public const string LoginClientIdKey = "Intranet:Login:ClientId";
+
+	/// <summary>Chave do secret do client do login interativo (ver <see cref="LoginClientIdKey"/>).</summary>
+	public const string LoginClientSecretKey = "Intranet:Login:ClientSecret";
+
+	/// <summary>
 	/// Indica se a autenticação está configurada: a chave <c>Secco:SecureGate:Authority</c>
 	/// precisa estar presente e não vazia. Usado tanto na composição quanto no pipeline do
 	/// <c>Program.cs</c> e no <c>ContaController</c> para decidir se a autenticação está ativa.
@@ -86,8 +96,8 @@ public static class IntranetAuthenticationExtensions
 			.AddOpenIdConnect(options =>
 			{
 				options.Authority = configuration["Secco:SecureGate:Authority"];
-				options.ClientId = configuration["Secco:SecureGate:ClientId"];
-				options.ClientSecret = configuration["Secco:SecureGate:ClientSecret"];
+				options.ClientId = configuration[LoginClientIdKey];
+				options.ClientSecret = configuration[LoginClientSecretKey];
 
 				options.ResponseType = OpenIdConnectResponseType.Code;
 				options.UsePkce = true;

@@ -37,7 +37,8 @@ caro depois.
    propagação que hoje não é distribuída. Fora de escopo deste guia; citado aqui para não
    ser descoberto em produção.
 5. **SecureGate, LogStream e NotificationHub são serviços externos.** Este guia não cobre
-   como instalá-los — só como apontar a Intranet para eles.
+   como instalá-los — só como apontar a Intranet para eles. O que a Intranet exige da
+   instalação do SecureGate está em "SecureGate: dois clients e o `migrate`", abaixo.
 
 ## Topologia
 
@@ -61,6 +62,66 @@ A postura de rede que sustenta `Secco:ReverseProxy:Habilitado` (ver abaixo): a p
 container **não pode ser alcançável diretamente** de fora — só o proxy a alcança. Num
 `docker-compose` isso é automático (a porta do serviço só é exposta ao host se você
 publicar `ports:`; não publique, deixe só o proxy publicar 443).
+
+## SecureGate: dois clients e o `migrate`
+
+Vale para o SecureGate a partir da versão que acompanha o `Secco.SecureGate.Client` 0.15.0
+(ADR-0037 e ADR-0038 da plataforma). Os detalhes completos estão na seção "7. Implantar" do
+`docs/getting-started.md` e no `CHANGELOG.md` do `secco-platform`.
+
+**1. Rode o `migrate` antes de subir o SecureGate.** Fora de Development, o SecureGate não migra
+o próprio banco nem roda o seed de referência no startup. Com migration pendente, **ele se
+recusa a subir**. No primeiro deploy dessa versão e em cada atualização dele:
+
+```bash
+dotnet Secco.SecureGate.Api.dll migrate   # mesma imagem e mesma configuração da API
+echo $?                                    # 0 = aplicado; 1 = falhou (o log diz onde)
+```
+
+**2. Declare os dois clients da Intranet em `SecureGate:PlatformClients`.** Clients sem tenant
+só nascem dessa lista, e o seed de referência (que roda no `migrate`) **remove** todo client de
+plataforma que não estiver declarado nela, inclusive os inseridos à mão no banco. Se o client
+da Intranet ficar de fora, o `migrate` o apaga, e a Intranet perde o login e a administração ao
+mesmo tempo.
+
+São **dois** clients porque o SecureGate dá um único grant a cada client de plataforma: o login
+do navegador é authorization code, e as chamadas de serviço são client credentials.
+
+| Client | Tipo | Escopos | Usado por |
+|---|---|---|---|
+| Login (ex.: `secco-intranet-login`) | `AuthorizationCode` | `profile`, `roles` | login interativo (`Intranet:Login`) |
+| Máquina (ex.: `secco-intranet`) | `ClientCredentials` | `securegate:admin`, `authorization:read`, `logstream`, `notificationhub` | client administrativo (setores, `/acesso`, tenants), permissões e revogação de sessão, LogStream e NotificationHub (`Secco:SecureGate`) |
+
+O client do navegador não carrega `securegate:admin`. `logstream` e `notificationhub` só são
+necessários se a Intranet usar esses serviços.
+
+Na configuração **do SecureGate** (não da Intranet), com os secrets por variável de ambiente
+(`SecureGate__PlatformClients__0__ClientSecret`, `SecureGate__PlatformClients__1__ClientSecret`):
+
+```json
+{
+  "SecureGate": {
+    "PlatformClients": [
+      {
+        "ClientId": "secco-intranet-login",
+        "Type": "AuthorizationCode",
+        "Scopes": ["profile", "roles"],
+        "RedirectUris": ["https://intranet.suaempresa.com/signin-oidc"],
+        "PostLogoutRedirectUris": ["https://intranet.suaempresa.com/signout-callback-oidc"]
+      },
+      {
+        "ClientId": "secco-intranet",
+        "Type": "ClientCredentials",
+        "Scopes": ["securegate:admin", "authorization:read", "logstream", "notificationhub"]
+      }
+    ]
+  }
+}
+```
+
+Quem atualiza uma instalação que já tinha um client único da Intranet precisa criar o client
+de login, declarar os dois e passar a Intranet para as chaves `Intranet__Login__*` (ver
+"Variáveis de ambiente") **antes** de rodar o `migrate` do SecureGate novo.
 
 ## Construir a imagem
 
@@ -120,7 +181,9 @@ Convenção ASP.NET Core: `__` no nome da variável vira `:` na chave de configu
 |---|---|---|
 | `ASPNETCORE_ENVIRONMENT` | Sim | `Production`. Nunca `Development` num host exposto — liga HSTS, exige HTTPS no cookie e no OIDC, desliga migration/seed automáticos. |
 | `Secco__SecureGate__Authority` | Sim | URL do SecureGate que emite os tokens. Sem ela, a aplicação sobe no "modo aberto" (sem autenticação) — nunca em produção (ADR-0020). |
-| `Secco__SecureGate__ClientId` / `Secco__SecureGate__ClientSecret` | Sim | Credenciais do client OAuth desta instalação (login interativo **e** o client administrativo que provisiona Roles de setor — é o mesmo client). |
+| `Secco__SecureGate__BaseUrl` | Sim | URL da API do SecureGate, usada pelas chamadas de serviço (client administrativo, permissões, revogação de sessão). Em geral, a mesma da `Authority`. |
+| `Secco__SecureGate__ClientId` / `Secco__SecureGate__ClientSecret` | Sim | Client de **máquina** (`ClientCredentials`): client administrativo, permissões, revogação de sessão, LogStream e NotificationHub. Não serve para o login — ver "SecureGate: dois clients e o `migrate`". |
+| `Intranet__Login__ClientId` / `Intranet__Login__ClientSecret` | Sim | Client do **login interativo** (`AuthorizationCode`), separado do de máquina. Sem o `ClientId`, a aplicação não sobe em Production. |
 | `Secco__Tenancy__Tenants__{tenantId}__ConnectionString` | Sim, uma por tenant | Connection string do banco daquele tenant. `{tenantId}` é o GUID do tenant, hífens inclusos. |
 | `Intranet__Database__Provider` | Não (padrão `SqlServer`) | `SqlServer` ou `PostgreSql`. |
 | `Secco__ReverseProxy__Habilitado` | Sim, se atrás de proxy | `true` para confiar em `X-Forwarded-For`/`X-Forwarded-Proto`. Só ligue se a porta do container for inalcançável por fora do proxy — ver "Topologia". |
@@ -148,8 +211,11 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       Secco__SecureGate__Authority: "${SECURE_GATE_AUTHORITY}"
+      Secco__SecureGate__BaseUrl: "${SECURE_GATE_AUTHORITY}"
       Secco__SecureGate__ClientId: "${SECURE_GATE_CLIENT_ID}"
       Secco__SecureGate__ClientSecret: "${SECURE_GATE_CLIENT_SECRET}"
+      Intranet__Login__ClientId: "${INTRANET_LOGIN_CLIENT_ID}"
+      Intranet__Login__ClientSecret: "${INTRANET_LOGIN_CLIENT_SECRET}"
       Secco__ReverseProxy__Habilitado: "true"
       Secco__Tenancy__Tenants__${TENANT_ID}__ConnectionString: "${TENANT_CONNECTION_STRING}"
     # Nenhuma porta publicada para o host — só o proxy alcança esta rede.
@@ -228,8 +294,11 @@ Não há mecanismo de rollback automático de migration — se precisar reverter
 - [ ] Imagem builda com o PAT do feed privado (mecanismo do secret ainda a adicionar ao
       Dockerfile, ver "Construir a imagem").
 - [ ] `ASPNETCORE_ENVIRONMENT=Production`.
-- [ ] `Secco:SecureGate:Authority/ClientId/ClientSecret` configurados contra o SecureGate
-      real (nunca o modo aberto).
+- [ ] `Secco:SecureGate:Authority/BaseUrl/ClientId/ClientSecret` configurados contra o
+      SecureGate real (nunca o modo aberto).
+- [ ] `Intranet:Login:ClientId/ClientSecret` configurados com o client de login.
+- [ ] Os dois clients da Intranet declarados em `SecureGate:PlatformClients` e o `migrate` do
+      SecureGate rodado antes de subir o SecureGate.
 - [ ] Porta do container não publicada para fora do host — só o proxy alcança.
 - [ ] `Secco:ReverseProxy:Habilitado=true` **só** com o ponto acima garantido.
 - [ ] Migrations aplicadas em cada tenant antes do primeiro start.

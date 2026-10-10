@@ -55,6 +55,7 @@ public class StartupChaveMestraTests(IntranetWebFactory factory) : IClassFixture
 					// Satisfaz a guarda do ValidacaoSecureGateHostedService (StartupSecureGateTests):
 					// aqui o que se testa é só a guarda da chave mestra, isolada da outra.
 					["Secco:SecureGate:Authority"] = "https://securegate.exemplo.invalido",
+					["Intranet:Login:ClientId"] = "secco-intranet-login",
 				}));
 		});
 
