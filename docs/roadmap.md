@@ -138,8 +138,10 @@ processos (maior risco técnico) só entra com a base já sólida.
   - [ ] 2. Perfis e usuários do tenant administrado, reaproveitando `/acesso`
   - [ ] 3. Leitor de logs da Intranet e dos tenants administrados, por elevação explícita
         (ADR-0030/0031 da plataforma)
-  - [ ] 4. ⛔ Credencial do sistema administrado (client OAuth vinculado ao tenant) —
-        [secco-platform#31](https://github.com/rafsecco/secco-platform/issues/31)
+  - [ ] 4. Credencial do sistema administrado (client OAuth vinculado ao tenant) — desbloqueado
+        por [secco-platform#31](https://github.com/rafsecco/secco-platform/issues/31)
+        (`Secco.SecureGate.Client` 0.15.0). Os papéis do client são perfis do tenant, então vem
+        depois do subsistema 2
 
 ## Fase 3 — Operacional
 
