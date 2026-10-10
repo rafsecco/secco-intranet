@@ -25,9 +25,10 @@ caro depois.
    SecureGate, senha do banco) é variável de ambiente. Se você tem Vault/Key Vault/Secrets
    Manager na sua infraestrutura, injete essas variáveis a partir de lá — a aplicação não
    fala com nenhum deles diretamente.
-3. **Migrations não são automáticas fora de Development.** Em produção, ninguém aplica
-   migration como efeito colateral do startup (evita duas réplicas competindo, e evita
-   aplicar migration destrutiva sem intenção explícita). É um passo manual, coberto abaixo.
+3. **Migrations não rodam no startup fora de Development.** Quem as aplica é o verbo
+   `migrate` do próprio binário, rodado pelo deploy antes de subir a versão nova (ver "Banco de
+   dados"). A exceção é o tenant cadastrado depois do deploy: o banco dele é migrado no primeiro
+   uso, sem reiniciar nada.
 4. **O cache de permissão do Diretório organizacional é em memória, por processo
    (`IMemoryCache`, TTL de 60s).** Com uma única réplica (o que este guia assume), isso
    não é problema. Se um dia você rodar mais de uma réplica do container atrás do mesmo
@@ -119,10 +120,6 @@ Na configuração **do SecureGate** (não da Intranet), com os secrets por vari�
 }
 ```
 
-Quem atualiza uma instalação que já tinha um client único da Intranet precisa criar o client
-de login, declarar os dois e passar a Intranet para as chaves `Intranet__Login__*` (ver
-"Variáveis de ambiente") **antes** de rodar o `migrate` do SecureGate novo.
-
 ## Construir a imagem
 
 O `Dockerfile` já existe em `src/Secco.Intranet.Web/Dockerfile` e já documenta o bloqueio
@@ -154,24 +151,25 @@ passo antes de um CI/CD real existir para este projeto.
 2. **Crie um banco e um login de aplicação por tenant**, com permissão só naquele banco
    (nunca `sa`/superusuário — mesmo princípio do `docker/init/provision-tenant-db.sql`
    usado em desenvolvimento, adapte para o seu SGBD gerenciado).
-3. **Aplique as migrations** contra a connection string real de cada tenant — não existe
-   hoje um comando que faça isso para todos os tenants do catálogo de uma vez fora de
-   Development; repita por tenant:
-
-   ```bash
-   dotnet ef database update \
-     --project src/Secco.Intranet.Migrations.SqlServer \
-     --connection "Server=...;Database=...;User Id=...;Password=...;Encrypt=true"
-   ```
-
-   (troque o `--project` para `Secco.Intranet.Migrations.Postgres` se o engine for
-   PostgreSQL). Rode de novo a cada deploy que trouxer migration nova, **antes** de subir
-   os containers com a imagem nova — nunca deixe o container antigo e o schema novo
-   coexistirem por engano, mas também não corra pra aplicar migration com o container novo
-   já de pé.
-4. **Registre a connection string de cada tenant** na configuração da aplicação (variável
+3. **Registre a connection string de cada tenant** na configuração da aplicação (variável
    de ambiente, ver tabela abaixo) — não existe UI para cadastrar tenant hoje; é
    configuração de deploy.
+4. **Rode o `migrate`** com a mesma imagem e a mesma configuração do container da aplicação.
+   Ele aplica as migrations de todos os tenants do catálogo e sai, sem subir o servidor:
+
+   ```bash
+   docker compose run --rm secco-intranet-web migrate
+   echo $?   # 0 = tudo aplicado; 1 = algum tenant falhou (o log diz qual, pelo id)
+   ```
+
+   O argumento vira `dotnet Secco.Intranet.Web.dll migrate`, pelo `ENTRYPOINT` da imagem. Um
+   tenant que falha não impede os outros. Rode de novo a cada deploy, **antes** de subir o
+   container novo; sem migration pendente, ele não muda nada.
+
+   Um tenant acrescentado ao catálogo depois do deploy não precisa do `migrate`: o banco dele
+   é migrado na primeira vez que a Intranet o abre. Se esse banco estiver fora do ar, só esse
+   tenant recebe `503` com `Retry-After`, e a próxima tentativa acontece depois de 15 segundos.
+   Criar o banco e o login (passo 2) continua sendo do DBA.
 
 ## Variáveis de ambiente
 
@@ -280,14 +278,15 @@ Nenhum dos dois exige autenticação.
 Sem orquestrador com rolling update (é o caso de um host único), o corte é direto:
 
 1. Build da imagem nova (tag por versão, não `latest` puro — facilita rollback).
-2. Se a versão trouxe migration nova, aplique contra cada tenant **antes** do passo 3 (ver
-   "Banco de dados" acima).
+2. `docker compose run --rm secco-intranet-web migrate` com a imagem nova, **antes** do passo
+   3 (ver "Banco de dados" acima). Saída diferente de `0` interrompe o deploy.
 3. `docker compose up -d secco-intranet-web` — recria só o container da aplicação; o proxy
    e o banco não são afetados.
 4. Confirme `GET /health/ready` → `200` antes de considerar o deploy concluído.
 
 Não há mecanismo de rollback automático de migration — se precisar reverter, é
-`dotnet ef database update <migration-anterior>` manual, mesma mecânica do passo 2.
+`dotnet ef database update <migration-anterior>` manual, contra a connection string de cada
+tenant (`--project src/Secco.Intranet.Migrations.SqlServer` ou `.Postgres`).
 
 ## Checklist antes de ir ao ar
 
@@ -301,6 +300,6 @@ Não há mecanismo de rollback automático de migration — se precisar reverter
       SecureGate rodado antes de subir o SecureGate.
 - [ ] Porta do container não publicada para fora do host — só o proxy alcança.
 - [ ] `Secco:ReverseProxy:Habilitado=true` **só** com o ponto acima garantido.
-- [ ] Migrations aplicadas em cada tenant antes do primeiro start.
+- [ ] `migrate` da Intranet terminado com `0` antes do primeiro start.
 - [ ] Role `intranet-admin` criada e atribuída a alguém antes do primeiro login.
 - [ ] `GET /health/ready` → `200` depois de subir.

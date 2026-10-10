@@ -10,6 +10,7 @@ using Secco.Intranet.Infrastructure.Tenants;
 using Secco.Intranet.Tests.Integration.TestAuthentication;
 using Secco.Intranet.Tests.Support;
 using Secco.SDK.AspNetCore.Authorization;
+using Secco.SDK.EntityFrameworkCore.Migrations;
 using Secco.SDK.Testing;
 
 namespace Secco.Intranet.Tests.Integration;
@@ -155,6 +156,12 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 	}
 
 	/// <inheritdoc />
-	protected override Task MigrateAsync(IServiceProvider services) =>
-		services.MigrateIntranetTenantDatabasesAsync();
+	protected override async Task MigrateAsync(IServiceProvider services)
+	{
+		// O mesmo caminho do verbo migrate, que devolve false em vez de lançar
+		if (!await services.RunSeccoMigrationsAsync())
+		{
+			throw new InvalidOperationException("Migrations dos tenants de teste falharam; ver o log.");
+		}
+	}
 }

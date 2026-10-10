@@ -10,7 +10,7 @@ using Secco.Intranet.Web.Navigation;
 using Secco.Intranet.Web.Tenancy;
 using Secco.Intranet.Web.Theming;
 using Secco.SDK.AspNetCore.Extensions;
-using Secco.SDK.EntityFrameworkCore.Seeding;
+using Secco.SDK.EntityFrameworkCore.Migrations;
 using Secco.SDK.Logging;
 
 // Raiz de composição do monolito (ADR-0002): Secco.Intranet.Web (MVC) consome a
@@ -79,6 +79,14 @@ builder.Services.AddIntranetProxyForwarding(builder.Configuration);
 
 var app = builder.Build();
 
+// Processo controlado (ADR-0005; ADR-0038 da plataforma): `dotnet Secco.Intranet.Web.dll migrate`
+// aplica as migrations de todos os tenants do catálogo e o seed de referência, e sai sem subir o
+// servidor. O deploy o executa antes de subir a versão nova.
+if (SeccoCommands.IsMigrate(args))
+{
+	return await app.Services.RunSeccoMigrationsAsync() ? 0 : 1;
+}
+
 if (!app.Environment.IsDevelopment())
 {
 	// ADR-0020: nunca expor stack trace/detalhe interno fora de Development.
@@ -125,13 +133,13 @@ app.MapControllerRoute(
 
 if (app.Environment.IsDevelopment())
 {
-	// Migrations + seed automáticos SOMENTE em Development (ADR-0005/0019) — fora daqui,
-	// aplicar migrations é processo controlado, nunca efeito colateral de startup.
-	await app.Services.MigrateIntranetTenantDatabasesAsync();
-	await app.Services.SeedSeccoDataAsync();
+	// Em DEV, o mesmo código do verbo migrate: F5 continua automático. Fora daqui, o tenant novo
+	// migra no primeiro uso, e o resto é o verbo, nunca efeito colateral de startup.
+	await app.Services.RunSeccoMigrationsAsync();
 }
 
 await app.RunAsync();
+return 0;
 
 /// <summary>Ponto de entrada exposto para os testes de integração (WebApplicationFactory).</summary>
 public partial class Program;

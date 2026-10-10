@@ -25,6 +25,7 @@ using Secco.Intranet.Infrastructure.Tenants;
 using Secco.LogStream.Client;
 using Secco.NotificationHub.Client;
 using Secco.SDK.AspNetCore.Tenancy;
+using Secco.SDK.EntityFrameworkCore.Migrations;
 using Secco.SDK.EntityFrameworkCore.Seeding;
 using Secco.SecureGate.Client.Administration;
 using Secco.SecureGate.Client.Catalog;
@@ -77,6 +78,14 @@ public static class IntranetInfrastructureExtensions
 		// Chave ausente ou malformada derruba o startup, nao o primeiro upload (ADR-0020).
 		services.AddHostedService<ValidacaoChaveMestraHostedService>();
 
+		// Processo controlado (verbo migrate) e migração do tenant novo no primeiro uso (ADR-0038
+		// da plataforma)
+		services.AddScoped<ISeccoDatabaseMigrator, IntranetTenantMigrator>();
+		services.AddSeccoTenantMigrations((serviceProvider, connectionString) =>
+			// Sem interceptor: este contexto só serve para migrar
+			new IntranetDbContext(IntranetDatabaseProviderConfigurator.CreateOptions(
+				serviceProvider.GetRequiredService<IntranetDatabaseOptions>().Provider, connectionString)));
+
 		services.AddDbContext<IntranetDbContext>((serviceProvider, options) =>
 		{
 			var connectionFactory = serviceProvider.GetRequiredService<ITenantConnectionFactory>();
@@ -86,6 +95,8 @@ public static class IntranetInfrastructureExtensions
 			var connectionString = connectionFactory.GetConnectionStringAsync().AsTask().GetAwaiter().GetResult();
 
 			IntranetDatabaseProviderConfigurator.Configure(options, databaseOptions.Provider, connectionString);
+
+			options.AddInterceptors(serviceProvider.GetRequiredService<SeccoTenantMigrationInterceptor<IntranetDbContext>>());
 		});
 
 		services.AddScoped<ISetorRepository, SetorRepository>();
@@ -171,33 +182,6 @@ public static class IntranetInfrastructureExtensions
 				: ActivatorUtilities.CreateInstance<LogStreamTrilhaDeAuditoria>(serviceProvider));
 
 		return services;
-	}
-
-	/// <summary>
-	/// Aplica as migrations pendentes no banco de <b>cada tenant</b> do catálogo.
-	/// Uso: startup em Development e processos controlados de provisionamento (ADR-0005) —
-	/// nunca no startup de produção.
-	/// </summary>
-	/// <param name="serviceProvider">Raiz de serviços da aplicação.</param>
-	/// <param name="cancellationToken">Token de cancelamento.</param>
-	public static async Task MigrateIntranetTenantDatabasesAsync(
-		this IServiceProvider serviceProvider,
-		CancellationToken cancellationToken = default)
-	{
-		ArgumentNullException.ThrowIfNull(serviceProvider);
-
-		using var scope = serviceProvider.CreateScope();
-		var catalog = scope.ServiceProvider.GetRequiredService<ITenantCatalog>();
-		var databaseOptions = scope.ServiceProvider.GetRequiredService<IntranetDatabaseOptions>();
-
-		foreach (var tenant in await catalog.ListAsync(cancellationToken).ConfigureAwait(false))
-		{
-			var options = IntranetDatabaseProviderConfigurator.CreateOptions(
-				databaseOptions.Provider, tenant.ConnectionString);
-
-			await using var context = new IntranetDbContext(options);
-			await context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
-		}
 	}
 
 	/// <summary>
