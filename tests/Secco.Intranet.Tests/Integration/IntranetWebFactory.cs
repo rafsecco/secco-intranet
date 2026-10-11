@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Diretorio;
 using Secco.Intranet.Application.Tenants;
+using Secco.Intranet.Application.Tenants.Acesso;
 using Secco.Intranet.Infrastructure;
 using Secco.Intranet.Infrastructure.Access;
 using Secco.Intranet.Infrastructure.Diretorio;
@@ -63,6 +64,9 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 	/// </summary>
 	public IGestaoDeTenants? GestaoDeTenants { get; set; }
 
+	/// <summary>Dublê da gestão de acesso de tenant administrado; nulo = "não configurado".</summary>
+	public IGestaoDeAcessoDoTenant? GestaoDeAcessoDoTenant { get; set; }
+
 	/// <summary>
 	/// Fonte de usuários do diretório que o host devolve. Nula, vale o comportamento real do ambiente
 	/// Testing (<see cref="UsuariosParaDiretorioIndisponivel"/>).
@@ -122,6 +126,7 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 		services.AddScoped<IGestaoDeAcesso>(serviceProvider =>
 			GestaoDeAcesso ?? ActivatorUtilities.CreateInstance<GestaoDeAcessoIndisponivel>(serviceProvider));
 		services.AddScoped<IGestaoDeTenants>(_ => GestaoDeTenants ?? new GestaoDeTenantsIndisponivel());
+		services.AddScoped<IGestaoDeAcessoDoTenant>(_ => GestaoDeAcessoDoTenant ?? new GestaoDeAcessoDoTenantIndisponivel());
 		services.AddScoped<IUsuariosParaDiretorio>(_ => UsuariosDoDiretorio ?? new UsuariosParaDiretorioIndisponivel());
 		// AddSingleton com fábrica materializa UMA vez e reusa para sempre nesta fábrica de
 		// testes (o host é construído uma vez por classe) — se registrássemos o valor de

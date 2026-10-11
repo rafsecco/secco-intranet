@@ -13,6 +13,7 @@ using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Application.Tenants;
+using Secco.Intranet.Application.Tenants.Acesso;
 using Secco.Intranet.Infrastructure.Access;
 using Secco.Intranet.Infrastructure.Armazenamento;
 using Secco.Intranet.Infrastructure.Auditoria;
@@ -148,6 +149,7 @@ public static class IntranetInfrastructureExtensions
 		});
 
 		services.AddScoped(CriarGestaoDeAcesso);
+		services.AddScoped(CriarGestaoDeAcessoDoTenant);
 		services.AddScoped(CriarGestaoDeTenants);
 		services.AddScoped<ITenantsProtegidos, TenantsProtegidosDoCatalogo>();
 
@@ -209,6 +211,15 @@ public static class IntranetInfrastructureExtensions
 		return credenciais.IsConfigured
 			? ActivatorUtilities.CreateInstance<SecureGateGestaoDeAcesso>(serviceProvider)
 			: ActivatorUtilities.CreateInstance<GestaoDeAcessoIndisponivel>(serviceProvider);
+	}
+
+	private static IGestaoDeAcessoDoTenant CriarGestaoDeAcessoDoTenant(IServiceProvider serviceProvider)
+	{
+		var credenciais = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();
+
+		return credenciais.IsConfigured
+			? ActivatorUtilities.CreateInstance<SecureGateGestaoDeAcessoDoTenant>(serviceProvider)
+			: new GestaoDeAcessoDoTenantIndisponivel();
 	}
 
 	/// <summary>

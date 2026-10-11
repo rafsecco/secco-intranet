@@ -1,0 +1,46 @@
+using Secco.Intranet.Application.Acesso;
+
+namespace Secco.Intranet.Application.Tenants.Acesso;
+
+/// <summary>Perfil de um tenant administrado — sem a classificação setor/produto, que é convenção da Intranet.</summary>
+/// <param name="Nome">Nome.</param>
+/// <param name="TotalDePermissoes">Quantidade de permissões.</param>
+/// <param name="Reservado">Se é reservado da plataforma.</param>
+public sealed record PerfilDoTenantDto(string Nome, int TotalDePermissoes, bool Reservado);
+
+/// <summary>Detalhe de um perfil de tenant administrado.</summary>
+/// <param name="Nome">Nome.</param>
+/// <param name="Permissoes">Permissões gravadas.</param>
+/// <param name="Reservado">Se é reservado da plataforma.</param>
+/// <param name="TotalDeMembros">Quantidade de membros.</param>
+public sealed record PerfilDoTenantDetalheDto(string Nome, IReadOnlyList<string> Permissoes, bool Reservado, int TotalDeMembros);
+
+/// <summary>Detalhe de uma pessoa do tenant administrado.</summary>
+/// <param name="Id">Id no SecureGate.</param>
+/// <param name="Email">E-mail.</param>
+/// <param name="Nome">Nome de exibição.</param>
+/// <param name="Situacao">Situação da conta.</param>
+/// <param name="BloqueadoAte">Fim do bloqueio, quando bloqueado.</param>
+/// <param name="Perfis">Perfis atribuídos.</param>
+/// <param name="LoginsExternos">Provedores de login externo vinculados.</param>
+/// <param name="DoisFatoresAtivo">Se o segundo fator está ligado.</param>
+/// <param name="TemSenha">Se já definiu senha.</param>
+/// <param name="EntraPorSenha">Se a conta entra por senha (falso: só pelo Entra).</param>
+public sealed record UsuarioDoTenantDetalheDto(
+	Guid Id,
+	string Email,
+	string? Nome,
+	SituacaoDoUsuario Situacao,
+	DateTimeOffset? BloqueadoAte,
+	IReadOnlyList<string> Perfis,
+	IReadOnlyList<string> LoginsExternos,
+	bool DoisFatoresAtivo,
+	bool TemSenha,
+	bool EntraPorSenha);
+
+/// <summary>Dados de uma pessoa a cadastrar.</summary>
+/// <param name="Email">E-mail.</param>
+/// <param name="Nome">Nome de exibição (opcional).</param>
+/// <param name="Perfis">Perfis atribuídos na criação.</param>
+/// <param name="EntraPorSenha"><c>true</c>: convite para definir senha; <c>false</c>: só pelo Entra.</param>
+public sealed record NovoUsuarioDoTenant(string Email, string? Nome, IReadOnlyList<string> Perfis, bool EntraPorSenha);

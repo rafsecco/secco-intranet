@@ -220,6 +220,57 @@ public static class IntranetErrors
 				"Intranet.Acesso.PerfilUsadoPorClient",
 				"O perfil está em uso por uma credencial de sistema deste tenant. Retire-o da credencial antes de excluir.");
 
+		/// <summary>E-mail ausente ou malformado no cadastro.</summary>
+		public static readonly Error EmailInvalido =
+			Error.Validation("Intranet.Acesso.EmailInvalido", "Informe um e-mail válido.");
+
+		/// <summary>Já existe conta com o e-mail neste tenant.</summary>
+		public static readonly Error EmailJaCadastrado =
+			Error.Conflict("Intranet.Acesso.EmailJaCadastrado", "Já existe uma pessoa com este e-mail neste sistema.");
+
+		/// <summary>A plataforma recusou o cadastro (dado inválido para ela).</summary>
+		public static readonly Error CadastroRecusado =
+			Error.Validation("Intranet.Acesso.CadastroRecusado", "O SecureGate recusou o cadastro. Confira o e-mail, o nome e os perfis.");
+
+		/// <summary>"Só pelo Entra" pedido sem federação habilitada no tenant.</summary>
+		public static readonly Error EntraSemFederacao =
+			Error.Validation(
+				"Intranet.Acesso.EntraSemFederacao",
+				"Entrar só pelo Entra ID exige a federação habilitada para este sistema. Configure-a na aba Federação.");
+
+		/// <summary>Reenvio de convite para quem já tem senha ou não entra por senha.</summary>
+		public static readonly Error ConviteNaoCabe =
+			Error.Conflict("Intranet.Acesso.ConviteNaoCabe", "Esta pessoa já definiu a senha ou não entra por senha; não há convite a reenviar.");
+
+		/// <summary>A plataforma recusou retirar o perfil (ex.: atribuição vinda de grupo do diretório).</summary>
+		public static readonly Error RetiradaRecusada =
+			Error.Conflict("Intranet.Acesso.RetiradaRecusada", "O SecureGate recusou retirar este perfil; ele pode ter vindo de um grupo do diretório.");
+
+		/// <summary>Mais permissões do que o limite por perfil.</summary>
+		public static readonly Error PermissoesDemais =
+			Error.Validation("Intranet.Acesso.PermissoesDemais", "Um perfil aceita no máximo 200 permissões.");
+
+		/// <summary>Troca de directory id já configurado sem a confirmação explícita.</summary>
+		public static readonly Error TrocaDeDiretorioNaoConfirmada =
+			Error.Validation(
+				"Intranet.Acesso.TrocaDeDiretorioNaoConfirmada",
+				"Trocar o diretório muda de qual Entra ID as pessoas entram. Marque a confirmação para continuar.");
+
+		/// <summary>Linhas de permissão fora do formato <c>recurso:acao</c>; cita até cinco.</summary>
+		/// <param name="linhas">Linhas inválidas.</param>
+		public static Error PermissoesInvalidas(IEnumerable<string> linhas)
+		{
+			ArgumentNullException.ThrowIfNull(linhas);
+
+			var lista = linhas.ToList();
+			var citadas = string.Join(", ", lista.Take(5));
+			var resto = lista.Count > 5 ? $" e mais {lista.Count - 5}" : string.Empty;
+
+			return Error.Validation(
+				"Intranet.Acesso.PermissoesInvalidas",
+				$"Fora do formato recurso:acao (minúsculas, dígitos e hífen): {citadas}{resto}. Nada foi gravado.");
+		}
+
 		/// <summary>Uma das permissões enviadas não está no formato canônico da plataforma.</summary>
 		public static readonly Error PermissaoInvalida =
 			Error.Validation("Intranet.Acesso.PermissaoInvalida", "Uma das permissões enviadas não é válida.");
