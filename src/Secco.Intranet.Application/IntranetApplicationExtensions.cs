@@ -7,6 +7,7 @@ using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Application.Tenants;
+using Secco.Intranet.Application.Tenants.Acesso;
 
 namespace Secco.Intranet.Application;
 
@@ -87,6 +88,9 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<AdotarTenantHandler>();
 		services.AddScoped<LigarRecursoHandler>();
 		services.AddScoped<AlterarSituacaoDoTenantHandler>();
+		services.AddScoped<VerificarSecureGateLigadoHandler>();
+		services.AddScoped<ObterCabecalhoDoTenantHandler>();
+		services.AddScoped<LeituraDoAcessoDoTenantHandler>();
 
 		return services;
 	}

@@ -1,6 +1,8 @@
 using AwesomeAssertions;
 using Secco.Intranet.Application;
 using Secco.Intranet.Application.Tenants;
+using Secco.Intranet.Application.Tenants.Acesso;
+using Secco.Intranet.Domain.Tenants;
 using Secco.Intranet.Tests.Support;
 using Xunit;
 
@@ -103,5 +105,36 @@ public class LeituraDeTenantsHandlersTests
 		(await handler.HandleAsync(Compras)).Should().BeTrue();
 		(await handler.HandleAsync(Erp)).Should().BeFalse();
 		(await handler.HandleAsync(Guid.Empty)).Should().BeFalse();
+	}
+
+	[Fact]
+	public async Task VerificarSecureGateLigado_SoComAMarcaDoCadastro()
+	{
+		var ligado = Guid.NewGuid();
+		var desligado = Guid.NewGuid();
+		var cadastro = new TenantsAdministradosFalso();
+		var comSecureGate = new TenantAdministrado(ligado, "Compras", "Ana", OrigemDoTenant.Criado, "admin");
+		comSecureGate.HabilitarSecureGate();
+		await cadastro.TentarAdicionarAsync(comSecureGate);
+		await cadastro.TentarAdicionarAsync(new TenantAdministrado(desligado, "RH", "Bia", OrigemDoTenant.Criado, "admin"));
+
+		var verificar = new VerificarSecureGateLigadoHandler(cadastro);
+
+		(await verificar.HandleAsync(ligado)).Should().BeTrue();
+		(await verificar.HandleAsync(desligado)).Should().BeFalse();
+		(await verificar.HandleAsync(Guid.NewGuid())).Should().BeFalse("fora do cadastro");
+	}
+
+	[Fact]
+	public async Task ObterCabecalho_JuntaCadastroEPlataforma()
+	{
+		var tenant = Guid.NewGuid();
+		var cadastro = new TenantsAdministradosFalso();
+		await cadastro.TentarAdicionarAsync(new TenantAdministrado(tenant, "Compras", "Ana", OrigemDoTenant.Criado, "admin"));
+		var gestao = new GestaoDeTenantsFalsa().ComTenant(tenant, "compras", ativo: false);
+
+		var cabecalho = await new ObterCabecalhoDoTenantHandler(cadastro, gestao).HandleAsync(tenant);
+
+		cabecalho.Value.Should().Be(new CabecalhoDoTenantDto(tenant, "Compras", "Tenant compras", false));
 	}
 }
