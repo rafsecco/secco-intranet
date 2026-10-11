@@ -92,6 +92,8 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ObterCabecalhoDoTenantHandler>();
 		services.AddScoped<LeituraDoAcessoDoTenantHandler>();
 		services.AddScoped<PerfisDoTenantHandler>();
+		services.AddScoped<UsuariosDoTenantHandler>();
+		services.AddScoped<FederacaoDoTenantHandler>();
 
 		return services;
 	}
