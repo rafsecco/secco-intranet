@@ -100,7 +100,7 @@ public sealed class ExigeSegundoFatorAttribute : Attribute, IAsyncAuthorizationF
 
 		return new ViewResult
 		{
-			ViewName = view,
+			ViewName = $"~/Views/Tenants/{view}.cshtml",
 			StatusCode = status,
 			ViewData = new ViewDataDictionary<SegundoFatorViewModel>(
 				servicos.GetRequiredService<IModelMetadataProvider>(), context.ModelState) { Model = modelo },

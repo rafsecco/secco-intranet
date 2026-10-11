@@ -97,7 +97,7 @@ public class ExigeSegundoFatorAttributeTests
 		await new ExigeSegundoFatorAttribute().OnAuthorizationAsync(contexto);
 
 		var view = contexto.Result.Should().BeOfType<ViewResult>().Subject;
-		view.ViewName.Should().Be("SegundoFatorObrigatorio");
+		view.ViewName.Should().Be("~/Views/Tenants/SegundoFatorObrigatorio.cshtml");
 		view.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
 	}
 
@@ -111,7 +111,7 @@ public class ExigeSegundoFatorAttributeTests
 		await new ExigeSegundoFatorAttribute().OnAuthorizationAsync(contexto);
 
 		var view = contexto.Result.Should().BeOfType<ViewResult>().Subject;
-		view.ViewName.Should().Be("SegundoFatorIndisponivel");
+		view.ViewName.Should().Be("~/Views/Tenants/SegundoFatorIndisponivel.cshtml");
 		view.StatusCode.Should().Be(StatusCodes.Status503ServiceUnavailable);
 	}
 

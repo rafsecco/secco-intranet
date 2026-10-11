@@ -1,0 +1,14 @@
+@model TenantsAcessoIndexViewModel
+@{
+    ViewData["Title"] = $"Acesso — {Model.Tenant.Sistema}";
+}
+<partial name="_PageHeader" model="@(new PageHeaderModel(Model.Tenant.Sistema, "Perfis e pessoas deste sistema."))" />
+
+<form method="post" action="/tenants/@Model.Tenant.TenantId/acesso/perfis" class="sc-panel" style="max-width: 40rem">
+    @Html.AntiForgeryToken()
+    <div class="mb-3">
+        <label class="form-label" for="nome">Novo perfil</label>
+        <input class="form-control" id="nome" name="nome" maxlength="64" required />
+    </div>
+    <button type="submit" class="btn btn-primary">Criar perfil</button>
+</form>

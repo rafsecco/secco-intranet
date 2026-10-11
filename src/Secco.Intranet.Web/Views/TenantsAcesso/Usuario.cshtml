@@ -1,0 +1,5 @@
+@model TenantsAcessoUsuarioViewModel
+@{
+    ViewData["Title"] = $"Acesso — {Model.Tenant.Sistema}";
+}
+<partial name="_PageHeader" model="@(new PageHeaderModel(Model.Tenant.Sistema, "Perfis e pessoas deste sistema."))" />
