@@ -91,6 +91,7 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<VerificarSecureGateLigadoHandler>();
 		services.AddScoped<ObterCabecalhoDoTenantHandler>();
 		services.AddScoped<LeituraDoAcessoDoTenantHandler>();
+		services.AddScoped<PerfisDoTenantHandler>();
 
 		return services;
 	}

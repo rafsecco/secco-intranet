@@ -119,6 +119,39 @@ public static class VerbosDeAuditoria
 
 	/// <summary>Tenant desativado.</summary>
 	public const string TenantDesativar = "tenant.desativar";
+
+	/// <summary>Perfil criado em tenant administrado.</summary>
+	public const string TenantAcessoPerfilCriar = "tenant.acesso.perfil-criar";
+
+	/// <summary>Perfil excluído de tenant administrado.</summary>
+	public const string TenantAcessoPerfilExcluir = "tenant.acesso.perfil-excluir";
+
+	/// <summary>Permissões de perfil de tenant administrado editadas.</summary>
+	public const string TenantAcessoPermissoesEditar = "tenant.acesso.perfil-permissoes-editar";
+
+	/// <summary>Perfil atribuído a pessoa de tenant administrado.</summary>
+	public const string TenantAcessoPerfilAtribuir = "tenant.acesso.perfil-atribuir";
+
+	/// <summary>Perfil retirado de pessoa de tenant administrado.</summary>
+	public const string TenantAcessoPerfilRetirar = "tenant.acesso.perfil-retirar";
+
+	/// <summary>Pessoa cadastrada em tenant administrado.</summary>
+	public const string TenantAcessoUsuarioCadastrar = "tenant.acesso.usuario-cadastrar";
+
+	/// <summary>Convite reenviado a pessoa de tenant administrado.</summary>
+	public const string TenantAcessoConviteReenviar = "tenant.acesso.convite-reenviar";
+
+	/// <summary>Pessoa de tenant administrado desativada.</summary>
+	public const string TenantAcessoUsuarioDesativar = "tenant.acesso.usuario-desativar";
+
+	/// <summary>Pessoa de tenant administrado reativada.</summary>
+	public const string TenantAcessoUsuarioReativar = "tenant.acesso.usuario-reativar";
+
+	/// <summary>Sessões de pessoa de tenant administrado encerradas.</summary>
+	public const string TenantAcessoSessoesEncerrar = "tenant.acesso.sessoes-encerrar";
+
+	/// <summary>Federação de tenant administrado definida.</summary>
+	public const string TenantAcessoFederacaoDefinir = "tenant.acesso.federacao-definir";
 }
 
 /// <summary>Tipos de recurso da trilha.</summary>
