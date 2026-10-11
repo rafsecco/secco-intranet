@@ -1,4 +1,3 @@
-using System.Net;
 using Microsoft.Extensions.Logging;
 using Secco.Intranet.Application;
 using Secco.Intranet.Application.Acesso;
@@ -240,98 +239,31 @@ public sealed class SecureGateGestaoDeAcesso(
 			null,
 			cancellationToken);
 
-	private static SituacaoDoUsuario Situacao(string? status) => status?.ToLowerInvariant() switch
-	{
-		"active" => SituacaoDoUsuario.Ativo,
-		"deactivated" => SituacaoDoUsuario.Desativado,
-		"lockedout" => SituacaoDoUsuario.Bloqueado,
-		_ => SituacaoDoUsuario.Desconhecida,
-	};
+	private static SituacaoDoUsuario Situacao(string? status) => OperacoesDeAcessoNoSecureGate.Situacao(status);
 
-	private async Task<Result<T>> LerAsync<T>(
+	private Task<Result<T>> LerAsync<T>(
 		string operacao,
 		Func<Guid, CancellationToken, Task<T>> chamada,
 		Error? naoEncontrado,
-		CancellationToken cancellationToken)
-	{
-		if (!tenantContext.IsResolved)
-		{
-			return Result.Failure<T>(IntranetErrors.Acesso.Indisponivel);
-		}
+		CancellationToken cancellationToken) =>
+		tenantContext.IsResolved
+			? OperacoesDeAcessoNoSecureGate.LerAsync(
+				logger, operacao, token => chamada(tenantContext.TenantId!.Value, token), naoEncontrado, cancellationToken)
+			: Task.FromResult(Result.Failure<T>(IntranetErrors.Acesso.Indisponivel));
 
-		try
-		{
-			return Result.Success(await chamada(tenantContext.TenantId!.Value, cancellationToken).ConfigureAwait(false));
-		}
-		catch (ApiException apiException) when (apiException.StatusCode == (int)HttpStatusCode.NotFound && naoEncontrado is not null)
-		{
-			return Result.Failure<T>(naoEncontrado);
-		}
-		catch (ApiException apiException)
-		{
-			logger.LogWarning("Falha ao {Operacao} no SecureGate (status {StatusCode}).", operacao, apiException.StatusCode);
-
-			return Result.Failure<T>(IntranetErrors.Acesso.Indisponivel);
-		}
-		catch (HttpRequestException httpRequestException)
-		{
-			logger.LogWarning(httpRequestException, "Falha de rede ao {Operacao} no SecureGate.", operacao);
-
-			return Result.Failure<T>(IntranetErrors.Acesso.Indisponivel);
-		}
-		catch (OperationCanceledException operationCanceledException) when (!cancellationToken.IsCancellationRequested)
-		{
-			// Timeout do HttpClient, não cancelamento do chamador: o SecureGate aceitou a
-			// conexão e não respondeu a tempo. Escapar como exceção viraria um 500.
-			logger.LogWarning(operationCanceledException, "Timeout ao {Operacao} no SecureGate.", operacao);
-
-			return Result.Failure<T>(IntranetErrors.Acesso.Indisponivel);
-		}
-	}
-
-	private async Task<Result> EscreverAsync(
+	private Task<Result> EscreverAsync(
 		string operacao,
 		Func<Guid, CancellationToken, Task> chamada,
 		Error? naoEncontrado,
 		Error? conflito,
-		CancellationToken cancellationToken)
-	{
-		if (!tenantContext.IsResolved)
-		{
-			return Result.Failure(IntranetErrors.Acesso.Indisponivel);
-		}
-
-		try
-		{
-			await chamada(tenantContext.TenantId!.Value, cancellationToken).ConfigureAwait(false);
-
-			return Result.Success();
-		}
-		catch (ApiException apiException) when (apiException.StatusCode == (int)HttpStatusCode.NotFound && naoEncontrado is not null)
-		{
-			return Result.Failure(naoEncontrado);
-		}
-		catch (ApiException apiException) when (apiException.StatusCode == (int)HttpStatusCode.Conflict && conflito is not null)
-		{
-			return Result.Failure(conflito);
-		}
-		catch (ApiException apiException)
-		{
-			logger.LogWarning("Falha ao {Operacao} no SecureGate (status {StatusCode}).", operacao, apiException.StatusCode);
-
-			return Result.Failure(IntranetErrors.Acesso.Indisponivel);
-		}
-		catch (HttpRequestException httpRequestException)
-		{
-			logger.LogWarning(httpRequestException, "Falha de rede ao {Operacao} no SecureGate.", operacao);
-
-			return Result.Failure(IntranetErrors.Acesso.Indisponivel);
-		}
-		catch (OperationCanceledException operationCanceledException) when (!cancellationToken.IsCancellationRequested)
-		{
-			logger.LogWarning(operationCanceledException, "Timeout ao {Operacao} no SecureGate.", operacao);
-
-			return Result.Failure(IntranetErrors.Acesso.Indisponivel);
-		}
-	}
+		CancellationToken cancellationToken) =>
+		tenantContext.IsResolved
+			? OperacoesDeAcessoNoSecureGate.EscreverAsync(
+				logger,
+				operacao,
+				token => chamada(tenantContext.TenantId!.Value, token),
+				naoEncontrado,
+				conflito is null ? null : _ => conflito,
+				cancellationToken)
+			: Task.FromResult(Result.Failure(IntranetErrors.Acesso.Indisponivel));
 }

@@ -214,6 +214,12 @@ public static class IntranetErrors
 		public static readonly Error PerfilComMembros =
 			Error.Conflict("Intranet.Acesso.PerfilComMembros", "O perfil ainda tem membros. Retire todos antes de excluir.");
 
+		/// <summary>Perfil usado por client de máquina do tenant (ADR-0037 da plataforma).</summary>
+		public static readonly Error PerfilUsadoPorClient =
+			Error.Conflict(
+				"Intranet.Acesso.PerfilUsadoPorClient",
+				"O perfil está em uso por uma credencial de sistema deste tenant. Retire-o da credencial antes de excluir.");
+
 		/// <summary>Uma das permissões enviadas não está no formato canônico da plataforma.</summary>
 		public static readonly Error PermissaoInvalida =
 			Error.Validation("Intranet.Acesso.PermissaoInvalida", "Uma das permissões enviadas não é válida.");
