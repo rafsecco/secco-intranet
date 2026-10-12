@@ -135,13 +135,21 @@ processos (maior risco técnico) só entra com a base já sólida.
       quatro subsistemas, cada um com spec própria; a área exige `intranet-admin` **com 2FA**:
   - [x] 1. Ciclo de vida do tenant: criar, adotar, ligar recursos (SecureGate, LogStream,
         NotificationHub), status, ativar/desativar — [plano](plans/2026-10-07-area-administrativa-tenants.md)
-  - [x] 2. Perfis, permissões (texto livre até a ADR-0039 ser publicada), pessoas por convite ou só pelo Entra, e federação do tenant administrado — [spec](specs/2026-10-11-area-administrativa-tenants-acesso-design.md), [plano](plans/2026-10-11-area-administrativa-tenants-acesso.md)
+  - [x] 2. Perfis, permissões (texto livre até a ADR-0039 ser publicada), pessoas por convite ou só pelo Entra, e federação do tenant administrado — [spec](specs/2026-10-11-area-administrativa-tenants-acesso-design.md), [plano](plans/2026-10-11-area-administrativa-tenants-acesso.md).
+        ⚠️ O cadastro recusa quem já tem conta em outro tenant da instalação (inclusive na
+        Intranet), porque o e-mail é único e a pessoa pertence a um tenant só — resolve com
+        [secco-platform#35](https://github.com/rafsecco/secco-platform/issues/35)
   - [ ] 3. Leitor de logs da Intranet e dos tenants administrados, por elevação explícita
         (ADR-0030/0031 da plataforma)
   - [ ] 4. Credencial do sistema administrado (client OAuth vinculado ao tenant) — desbloqueado
         por [secco-platform#31](https://github.com/rafsecco/secco-platform/issues/31)
         (`Secco.SecureGate.Client` 0.15.0). Os papéis do client são perfis do tenant, então vem
         depois do subsistema 2
+  - [ ] Avaliar a Área administrativa chamar o SecureGate em nome do operador logado (como o
+        AdminPortal, ADR-0023 da plataforma) em vez do client de máquina com `securegate:admin` —
+        recomendação de segurança registrada na
+        [secco-platform#35](https://github.com/rafsecco/secco-platform/issues/35); exige spec e
+        revisão da ADR-0008
   - [ ] Permissões dos perfis administrados por catálogo (caixas por produto) e publicação do catálogo da própria Intranet no migrate, com o escopo permissions:intranet no client de máquina — quando a ADR-0039 da plataforma for publicada ([secco-platform#33](https://github.com/rafsecco/secco-platform/issues/33))
 
 ## Fase 3 — Operacional
