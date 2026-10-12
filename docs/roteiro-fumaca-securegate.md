@@ -188,3 +188,28 @@ só contra o SecureGate local do compose. Para limpar, `docker compose down -v` 
 
 O teste `DesativarOTenantDeInstalacao_Recusado` tenta desativar o tenant de instalação e espera a
 recusa da plataforma. Não rode contra um SecureGate em que essa guarda não exista.
+
+## Acesso de tenant administrado
+
+`SecureGateGestaoDeAcessoDoTenantFumacaTests` usa as mesmas variáveis e o mesmo client de DEV. Cria
+dois tenants (`fa-<sufixo>` e `fo-<sufixo>`), exercita perfil, permissões e pessoas no primeiro, prova
+que a plataforma recusa atribuir perfil a um usuário do outro tenant e desativa os dois no fim. Como
+a plataforma não exclui tenant, deixa **dois tenants desativados** por execução; rode só contra o
+SecureGate local do compose.
+
+```bash
+export SECCO_SMOKE_SECUREGATE_URL=http://localhost:4101
+dotnet test tests/Secco.Intranet.Tests --filter "FullyQualifiedName~SecureGateGestaoDeAcessoDoTenantFumacaTests"
+```
+
+O cadastro "só pelo Entra" exige federação habilitada **e** a app registration configurada no
+SecureGate; não entra na fumaça automática e fica no roteiro manual abaixo.
+
+Roteiro manual, com a Intranet no ar contra o mesmo SecureGate (seção 2):
+
+1. **Tenant.** Em `/Tenants`, crie um tenant pela tela e ligue o SecureGate a ele.
+2. **Perfis e usuários.** Abra "Perfis e usuários" do tenant; a tela lista os perfis e as pessoas dele.
+3. **Perfil.** Crie um perfil (por exemplo `compras.aprovador`) e grave uma permissão em texto livre.
+4. **Convite.** Cadastre uma pessoa por convite e confira o e-mail no SMTP de DEV (MailHog, porta 8025).
+5. **Federação.** Habilite a federação do tenant (directory id do Entra).
+6. **Só pelo Entra.** Cadastre uma pessoa "só pelo Entra"; sem federação habilitada a tela recusa.
