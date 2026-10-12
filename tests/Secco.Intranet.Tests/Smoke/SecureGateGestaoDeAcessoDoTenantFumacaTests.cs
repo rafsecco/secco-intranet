@@ -50,8 +50,6 @@ public class SecureGateGestaoDeAcessoDoTenantFumacaTests
 		try
 		{
 			(await acesso.CriarPerfilAsync(alvo, "compras.aprovador")).IsSuccess.Should().BeTrue();
-			(await acesso.DefinirPermissoesDoPerfilAsync(alvo, "compras.aprovador", ["pedido:aprovar"])).IsSuccess.Should().BeTrue();
-			(await acesso.ObterPerfilAsync(alvo, "compras.aprovador")).Value.Permissoes.Should().Equal("pedido:aprovar");
 
 			var porSenha = await acesso.CadastrarUsuarioAsync(alvo, new NovoUsuarioDoTenant($"senha-{sufixo}@fumaca.invalid", "Senha", ["compras.aprovador"], true));
 			porSenha.IsSuccess.Should().BeTrue(porSenha.IsFailure ? porSenha.Error.Description : null);
@@ -67,6 +65,20 @@ public class SecureGateGestaoDeAcessoDoTenantFumacaTests
 
 			(await acesso.RetirarPerfilAsync(alvo, porSenha.Value, "compras.aprovador")).IsSuccess.Should().BeTrue();
 			(await acesso.DesativarUsuarioAsync(alvo, porSenha.Value)).IsSuccess.Should().BeTrue();
+
+			// Por último: um SecureGate com o catálogo de permissões (ADR-0039 da plataforma) recusa
+			// permissão que nenhum produto publicou. Aqui, a recusa tem de chegar com o motivo certo, e
+			// não como "SecureGate indisponível".
+			var definido = await acesso.DefinirPermissoesDoPerfilAsync(alvo, "compras.aprovador", ["pedido:aprovar"]);
+
+			if (definido.IsSuccess)
+			{
+				(await acesso.ObterPerfilAsync(alvo, "compras.aprovador")).Value.Permissoes.Should().Equal("pedido:aprovar");
+			}
+			else
+			{
+				definido.Error.Code.Should().Be("Intranet.Acesso.PermissoesForaDoCatalogo");
+			}
 		}
 		finally
 		{

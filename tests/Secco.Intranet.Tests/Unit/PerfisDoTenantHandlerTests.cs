@@ -117,4 +117,30 @@ public class PerfisDoTenantHandlerTests
 
 		ListaDePermissoes.Ler(texto).Error.Should().Be(IntranetErrors.Acesso.PermissoesDemais);
 	}
+
+	[Fact]
+	public async Task ExcluirOuEditar_ReservadoPelaMarcaDaPlataforma_Recusado()
+	{
+		var (_, gestao, trilha) = Criar();
+		gestao.ComPerfil("marcado-pela-plataforma", reservado: true);
+		var handler = new PerfisDoTenantHandler(gestao, trilha);
+
+		(await handler.ExcluirAsync(Tenant, "marcado-pela-plataforma")).Error.Should().Be(IntranetErrors.Acesso.PerfilReservado);
+		(await handler.DefinirPermissoesAsync(Tenant, "marcado-pela-plataforma", "a:b")).Error.Should().Be(IntranetErrors.Acesso.PerfilReservado);
+		gestao.Chamadas.Should().NotContain(c => c.StartsWith("excluirPerfil", StringComparison.Ordinal) || c.StartsWith("definirPermissoes", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public async Task Excluir_VaiParaATrilha_EFalhaDaPlataformaNao()
+	{
+		var (handler, gestao, trilha) = Criar();
+
+		(await handler.ExcluirAsync(Tenant, "vazio")).IsSuccess.Should().BeTrue();
+		trilha.Registros.Should().ContainSingle().Which.Verbo.Should().Be(VerbosDeAuditoria.TenantAcessoPerfilExcluir);
+
+		trilha.Registros.Clear();
+		gestao.FalharCom = IntranetErrors.Acesso.Indisponivel;
+		(await handler.CriarAsync(Tenant, "outro")).IsFailure.Should().BeTrue();
+		trilha.Registros.Should().BeEmpty();
+	}
 }

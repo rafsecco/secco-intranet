@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.Extensions.Logging;
 using Secco.Intranet.Application;
 using Secco.Intranet.Application.Tenants;
+using Secco.Intranet.Infrastructure.Access;
 using Secco.SecureGate.Client;
 using Secco.SharedKernel.Results;
 
@@ -86,7 +87,7 @@ public sealed class SecureGateGestaoDeTenants(ISecureGateClient client, ILogger<
 			},
 			conflito: IntranetErrors.Tenants.RecursoJaLigado,
 			cancellationToken,
-			recusado: excecao => excecao.Response?.Contains("SecureGate.TenantDatabase.ProvisioningServerRequired", StringComparison.Ordinal) == true
+			recusado: excecao => OperacoesDeAcessoNoSecureGate.TemCodigo(excecao, "SecureGate.TenantDatabase.ProvisioningServerRequired")
 				? IntranetErrors.Tenants.ProvisionamentoSemAlvo
 				: null);
 

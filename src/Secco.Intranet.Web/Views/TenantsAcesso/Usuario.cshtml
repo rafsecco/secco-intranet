@@ -71,12 +71,16 @@
             {
                 <li class="sc-list__item">
                     <div class="sc-list__text"><p class="sc-list__title">@nome</p></div>
-                    <form method="post" action="@raizDaPessoa/perfis/retirar" class="d-inline">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="perfil" value="@nome" />
-                        <input type="hidden" name="origem" value="usuario" />
-                        <button class="btn btn-sm btn-outline-danger" type="submit">Retirar</button>
-                    </form>
+                    @* Perfil reservado da plataforma: a Intranet não o atribui nem o retira. *@
+                    @if (!ClassificacaoDePerfil.EhReservado(nome))
+                    {
+                        <form method="post" action="@raizDaPessoa/perfis/retirar" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="perfil" value="@nome" />
+                            <input type="hidden" name="origem" value="usuario" />
+                            <button class="btn btn-sm btn-outline-danger" type="submit">Retirar</button>
+                        </form>
+                    }
                 </li>
             }
         </ul>

@@ -87,4 +87,27 @@ public class OperacoesDeAcessoNoSecureGateTests
 		conhecido.Error.Should().Be(IntranetErrors.Acesso.PermissoesForaDoCatalogo);
 		desconhecido.Error.Should().Be(IntranetErrors.Acesso.Indisponivel);
 	}
+
+	/// <summary>
+	/// O formato que o client gerado lança de verdade: o ProblemDetails desserializado em
+	/// <c>Result</c> e o texto da resposta vazio (o client não guarda o corpo como string).
+	/// </summary>
+	private static ApiException<ProblemDetails> ProblemaReal(int status, string codigo) =>
+		new("erro", status, null!, new Dictionary<string, IEnumerable<string>>(), new ProblemDetails { Title = codigo, Status = status }, null!);
+
+	[Theory]
+	[InlineData("SecureGate.Role.PermissionsNotInCatalog", true)]
+	[InlineData("SecureGate.Role.HasMembers", false)]
+	public void TemCodigo_LeOCodigoDoProblemDetails_ComoOClientLanca(string codigo, bool esperado) =>
+		OperacoesDeAcessoNoSecureGate.TemCodigo(ProblemaReal(400, codigo), "SecureGate.Role.PermissionsNotInCatalog").Should().Be(esperado);
+
+	[Fact]
+	public async Task Escrever_400NoFormatoRealDoClient_ViraForaDoCatalogo()
+	{
+		var escrito = await OperacoesDeAcessoNoSecureGate.EscreverAsync(
+			NullLogger.Instance, "x", _ => throw ProblemaReal(400, "SecureGate.Role.PermissionsNotInCatalog"),
+			null, null, CancellationToken.None, OperacoesDeAcessoNoSecureGate.PermissaoForaDoCatalogo);
+
+		escrito.Error.Should().Be(IntranetErrors.Acesso.PermissoesForaDoCatalogo);
+	}
 }

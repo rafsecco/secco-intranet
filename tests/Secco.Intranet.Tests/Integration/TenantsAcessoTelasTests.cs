@@ -18,24 +18,22 @@ namespace Secco.Intranet.Tests.Integration;
 public class TenantsAcessoTelasTests(IntranetWebFactory factory) : IClassFixture<IntranetWebFactory>, IAsyncLifetime
 {
 	private static readonly Guid Admin = Guid.NewGuid();
-	private static readonly Guid SemFator = Guid.NewGuid();
 	private static readonly Guid Pessoa = Guid.NewGuid();
 	private readonly Guid _ligado = Guid.NewGuid();
 	private readonly Guid _desligado = Guid.NewGuid();
-	private readonly Guid _foraDoCadastro = Guid.NewGuid();
 	private GestaoDeAcessoDoTenantFalsa _acesso = null!;
+	private GestaoDeTenantsFalsa _tenants = null!;
 
 	public async Task InitializeAsync()
 	{
 		await factory.EnsureDatabaseMigratedAsync();
 		factory.GestaoDeAcesso = new GestaoDeAcessoFalsa()
 			.ComUsuario(Admin, "admin@exemplo.com", SituacaoDoUsuario.Ativo, "intranet-admin")
-			.ComDoisFatores(Admin)
-			.ComUsuario(SemFator, "sem@exemplo.com", SituacaoDoUsuario.Ativo, "intranet-admin");
-		factory.GestaoDeTenants = new GestaoDeTenantsFalsa()
+			.ComDoisFatores(Admin);
+		_tenants = new GestaoDeTenantsFalsa()
 			.ComTenant(_ligado, $"lig-{_ligado:N}"[..20])
-			.ComTenant(_desligado, $"des-{_desligado:N}"[..20])
-			.ComTenant(_foraDoCadastro, $"for-{_foraDoCadastro:N}"[..20]);
+			.ComTenant(_desligado, $"des-{_desligado:N}"[..20]);
+		factory.GestaoDeTenants = _tenants;
 		_acesso = new GestaoDeAcessoDoTenantFalsa()
 			.ComPerfil("compras.aprovador", false, "pedido:aprovar")
 			.ComUsuario(Pessoa, "ana@compras.com", SituacaoDoUsuario.Ativo);
@@ -146,5 +144,30 @@ public class TenantsAcessoTelasTests(IntranetWebFactory factory) : IClassFixture
 		resposta.StatusCode.Should().Be(HttpStatusCode.Redirect);
 		resposta.Headers.Location!.ToString().Should().StartWith($"/tenants/{_ligado}/acesso/usuarios/");
 		_acesso.Cadastrados.Should().ContainSingle().Which.Perfis.Should().Equal("compras.aprovador");
+	}
+
+	[Fact]
+	public async Task Index_TenantDesativado_AvisaQueOSistemaNaoEstaNoAr()
+	{
+		var indice = _tenants.Tenants.FindIndex(t => t.Id == _ligado);
+		_tenants.Tenants[indice] = _tenants.Tenants[indice] with { Ativo = false };
+
+		var html = AuxiliaresDeHttp.Decodificar(await Cliente(Admin, "intranet-admin").GetStringAsync($"/tenants/{_ligado}/acesso"));
+
+		html.Should().Contain("Tenant desativado");
+	}
+
+	[Fact]
+	public async Task Usuario_PerfilReservado_NaoOfereceRetirar()
+	{
+		var comReservado = Guid.NewGuid();
+		_acesso
+			.ComPerfil("installation-operator", reservado: true)
+			.ComUsuario(comReservado, "op@compras.com", SituacaoDoUsuario.Ativo, perfis: ["installation-operator", "compras.aprovador"]);
+
+		var html = await Cliente(Admin, "intranet-admin").GetStringAsync($"/tenants/{_ligado}/acesso/usuarios/{comReservado}");
+
+		html.Should().Contain("value=\"compras.aprovador\"", "o perfil comum tem o botão Retirar");
+		html.Should().NotContain("value=\"installation-operator\"", "perfil reservado não é retirável pela Intranet");
 	}
 }

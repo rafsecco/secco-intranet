@@ -183,6 +183,10 @@ client de DEV, que tem `securegate:admin`). Ele cria um tenant `fumaca-<sufixo>`
 banco do LogStream (aplicado ou em modo script, conforme o SecureGate local tenha credencial
 privilegiada) e desativa o tenant no fim.
 
+O provisionamento exige um alvo declarado em `SecureGate:Provisioning:Targets` no SecureGate. Sem
+ele, a plataforma recusa, e o teste falha com a mensagem "O SecureGate não tem um servidor de banco
+configurado para provisionar". Isso é configuração do ambiente, não defeito da Intranet.
+
 **A plataforma não exclui tenant:** cada execução deixa um tenant desativado no SecureGate. Rode
 só contra o SecureGate local do compose. Para limpar, `docker compose down -v` no `secco-platform`.
 
@@ -204,6 +208,17 @@ dotnet test tests/Secco.Intranet.Tests --filter "FullyQualifiedName~SecureGateGe
 
 O cadastro "só pelo Entra" exige federação habilitada **e** a app registration configurada no
 SecureGate; não entra na fumaça automática e fica no roteiro manual abaixo.
+
+O isolamento entre tenants é provado antes do passo de permissões. Um SecureGate com o catálogo de
+permissões (ADR-0039 da plataforma) recusa `pedido:aprovar`, que nenhum produto publicou. Nesse
+caso, a fumaça só confere que a recusa chega como "permissões fora do catálogo", e não como
+"SecureGate indisponível". O mesmo catálogo faz falhar `GarantirPermissoes_UneComOQueJaExisteNoSecureGateReal`
+até a Intranet publicar o dela (item do roadmap).
+
+**SecureGate do compose da plataforma:** a API do container emite token com um `issuer` diferente
+da URL que a fumaça usa, e toda chamada volta 401. Pare o container da API
+(`docker stop secco-platform-securegate-api-1`), mantenha o SQL Server e o MailHog do compose, e suba
+a API pelo `dotnet run` da seção 0.
 
 Roteiro manual, com a Intranet no ar contra o mesmo SecureGate (seção 2):
 

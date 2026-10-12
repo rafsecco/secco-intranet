@@ -69,12 +69,15 @@
                         </p>
                         <span class="sc-list__sub"><partial name="_Badge" model="BadgeDaSituacao(membro.Situacao)" /></span>
                     </div>
-                    <form method="post" action="@raiz/usuarios/@membro.UsuarioId/perfis/retirar" class="d-inline">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="perfil" value="@perfil.Nome" />
-                        <input type="hidden" name="origem" value="perfil" />
-                        <button class="btn btn-sm btn-outline-danger" type="submit">Retirar</button>
-                    </form>
+                    @if (!perfil.Reservado)
+                    {
+                        <form method="post" action="@raiz/usuarios/@membro.UsuarioId/perfis/retirar" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="perfil" value="@perfil.Nome" />
+                            <input type="hidden" name="origem" value="perfil" />
+                            <button class="btn btn-sm btn-outline-danger" type="submit">Retirar</button>
+                        </form>
+                    }
                 </li>
             }
         </ul>

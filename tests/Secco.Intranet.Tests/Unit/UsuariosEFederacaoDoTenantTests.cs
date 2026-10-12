@@ -158,4 +158,70 @@ public class UsuariosEFederacaoDoTenantTests
 
 		(await federacao.DefinirAsync(Tenant, new(directoryId, true, true))).Error.Should().Be(IntranetErrors.Acesso.DirectoryIdInvalido);
 	}
+
+	[Fact]
+	public async Task Retirar_ReservadoOuVazio_Recusado_EComumVaiParaATrilha()
+	{
+		var (usuarios, _, gestao, trilha) = Criar();
+		await usuarios.AtribuirPerfilAsync(Tenant, ComSenha, "compras-leitor");
+		trilha.Registros.Clear();
+
+		(await usuarios.RetirarPerfilAsync(Tenant, ComSenha, "installation-operator")).Error.Should().Be(IntranetErrors.Acesso.PerfilReservado);
+		(await usuarios.RetirarPerfilAsync(Tenant, ComSenha, "  ")).Error.Should().Be(IntranetErrors.Acesso.PerfilRequired);
+		(await usuarios.RetirarPerfilAsync(Tenant, ComSenha, " compras-leitor ")).IsSuccess.Should().BeTrue();
+
+		gestao.Chamadas.Should().Contain($"retirar:{Tenant}:{ComSenha}:compras-leitor");
+		trilha.Registros.Should().ContainSingle().Which.Verbo.Should().Be(VerbosDeAuditoria.TenantAcessoPerfilRetirar);
+	}
+
+	[Fact]
+	public async Task ContaEsessoes_CadaAcaoRegistraOProprioVerbo()
+	{
+		var (usuarios, _, _, trilha) = Criar();
+
+		await usuarios.DesativarAsync(Tenant, ComSenha);
+		await usuarios.ReativarAsync(Tenant, ComSenha);
+		await usuarios.EncerrarSessoesAsync(Tenant, ComSenha);
+
+		trilha.Registros.Select(r => r.Verbo).Should().Equal(
+			VerbosDeAuditoria.TenantAcessoUsuarioDesativar,
+			VerbosDeAuditoria.TenantAcessoUsuarioReativar,
+			VerbosDeAuditoria.TenantAcessoSessoesEncerrar);
+	}
+
+	[Fact]
+	public async Task FalhaDaPlataforma_NaoGravaNaTrilha()
+	{
+		var (usuarios, federacao, gestao, trilha) = Criar(federacaoHabilitada: true);
+		gestao.FalharCom = IntranetErrors.Acesso.Indisponivel;
+
+		(await usuarios.DesativarAsync(Tenant, ComSenha)).IsFailure.Should().BeTrue();
+		(await usuarios.CadastrarAsync(Tenant, new("d@compras.com", null, [], true))).IsFailure.Should().BeTrue();
+		(await federacao.DefinirAsync(Tenant, new(Diretorio.ToString(), true, false))).IsFailure.Should().BeTrue();
+
+		trilha.Registros.Should().BeEmpty();
+	}
+
+	[Fact]
+	public async Task Federacao_Definida_VaiParaATrilhaComODiretorio()
+	{
+		var (_, federacao, _, trilha) = Criar();
+		var diretorio = Guid.NewGuid();
+
+		(await federacao.DefinirAsync(Tenant, new(diretorio.ToString(), true, false))).IsSuccess.Should().BeTrue();
+
+		var registro = trilha.Registros.Should().ContainSingle().Subject;
+		registro.Verbo.Should().Be(VerbosDeAuditoria.TenantAcessoFederacaoDefinir);
+		registro.Metadata.Should().Contain(diretorio.ToString());
+	}
+
+	[Fact]
+	public async Task Cadastrar_NomeLongoDemais_RecusadoComoCadastroRecusado()
+	{
+		var (usuarios, _, gestao, _) = Criar();
+
+		(await usuarios.CadastrarAsync(Tenant, new("d@compras.com", new string('x', NomeDeExibicao.MaxLength + 1), [], true)))
+			.Error.Should().Be(IntranetErrors.Acesso.CadastroRecusado);
+		gestao.Cadastrados.Should().BeEmpty();
+	}
 }

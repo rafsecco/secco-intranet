@@ -122,9 +122,20 @@ internal static class OperacoesDeAcessoNoSecureGate
 	public static Error? PermissaoForaDoCatalogo(ApiException excecao) =>
 		TemCodigo(excecao, "SecureGate.Role.PermissionsNotInCatalog") ? IntranetErrors.Acesso.PermissoesForaDoCatalogo : null;
 
-	/// <summary>Se o ProblemDetails da resposta traz o código de erro informado.</summary>
-	public static bool TemCodigo(ApiException excecao, string codigo) =>
-		excecao.Response?.Contains(codigo, StringComparison.Ordinal) == true;
+	/// <summary>
+	/// Se o ProblemDetails da resposta traz o código de erro informado. O client gerado lança
+	/// <see cref="ApiException{TResult}"/> com o ProblemDetails já desserializado e <b>sem</b> o texto da
+	/// resposta (não lê o corpo como string): o código vem do <c>Title</c>. O texto fica como reserva
+	/// para respostas sem schema.
+	/// </summary>
+	public static bool TemCodigo(ApiException excecao, string codigo)
+	{
+		ArgumentNullException.ThrowIfNull(excecao);
+
+		return (excecao is ApiException<ProblemDetails> { Result.Title: { } titulo }
+				&& string.Equals(titulo, codigo, StringComparison.Ordinal))
+			|| excecao.Response?.Contains(codigo, StringComparison.Ordinal) == true;
+	}
 
 	// Timeout do HttpClient chega como OperationCanceledException sem o token do chamador cancelado:
 	// é falha da borda, não cancelamento — escapar como exceção viraria um 500.

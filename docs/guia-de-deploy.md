@@ -40,6 +40,9 @@ caro depois.
 5. **SecureGate, LogStream e NotificationHub são serviços externos.** Este guia não cobre
    como instalá-los — só como apontar a Intranet para eles. O que a Intranet exige da
    instalação do SecureGate está em "SecureGate: dois clients e o `migrate`", abaixo.
+6. **Ligar LogStream ou NotificationHub a um tenant administrado exige um alvo de provisionamento
+   no SecureGate** (`SecureGate:Provisioning:Targets`). A Intranet não deixa escolher servidor pela
+   tela; sem um alvo declarado na plataforma, "Ligar" recusa com uma mensagem que diz isso.
 
 ## Topologia
 
