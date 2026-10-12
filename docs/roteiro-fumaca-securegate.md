@@ -207,7 +207,7 @@ SecureGate; não entra na fumaça automática e fica no roteiro manual abaixo.
 
 Roteiro manual, com a Intranet no ar contra o mesmo SecureGate (seção 2):
 
-1. **Tenant.** Em `/Tenants`, crie um tenant pela tela e ligue o SecureGate a ele.
+1. **Tenant.** Em `/tenants`, crie um tenant pela tela e ligue o SecureGate a ele.
 2. **Perfis e usuários.** Abra "Perfis e usuários" do tenant; a tela lista os perfis e as pessoas dele.
 3. **Perfil.** Crie um perfil (por exemplo `compras.aprovador`) e grave uma permissão em texto livre.
 4. **Convite.** Cadastre uma pessoa por convite e confira o e-mail no SMTP de DEV (MailHog, porta 8025).

@@ -14,7 +14,7 @@ namespace Secco.Intranet.Tests.Smoke;
 /// <summary>
 /// Acesso de tenant administrado contra um SecureGate <b>de verdade</b>. Prova, além do contrato, que
 /// a plataforma recusa atribuir perfil a um usuário de outro tenant — a Intranet confia nisso.
-/// Deixa um tenant desativado por execução.
+/// Deixa dois tenants desativados por execução.
 /// </summary>
 public class SecureGateGestaoDeAcessoDoTenantFumacaTests
 {
@@ -61,6 +61,7 @@ public class SecureGateGestaoDeAcessoDoTenantFumacaTests
 			repetido.Error.Code.Should().Be("Intranet.Acesso.EmailJaCadastrado");
 
 			var deOutroTenant = await acesso.CadastrarUsuarioAsync(outro, new NovoUsuarioDoTenant($"outro-{sufixo}@fumaca.invalid", null, [], true));
+			deOutroTenant.IsSuccess.Should().BeTrue(deOutroTenant.IsFailure ? deOutroTenant.Error.Description : null);
 			(await acesso.AtribuirPerfilAsync(alvo, deOutroTenant.Value, "compras.aprovador"))
 				.Error.Code.Should().Be("Intranet.Acesso.UsuarioNaoEncontrado", "a plataforma recusa usuário de outro tenant");
 

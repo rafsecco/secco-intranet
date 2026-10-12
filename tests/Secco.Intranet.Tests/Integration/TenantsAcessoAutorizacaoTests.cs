@@ -139,6 +139,20 @@ public class TenantsAcessoAutorizacaoTests(IntranetWebFactory factory) : IClassF
 	}
 
 	[Fact]
+	public async Task PostSemTokenAntifalsificacao_400_EmTodaRota_SemTocarAPorta()
+	{
+		var client = Cliente(Admin, "intranet-admin");
+		_acesso.Chamadas.Clear();
+
+		foreach (var rota in RotasPost(_ligado))
+		{
+			(await client.PostAsync(rota, new FormUrlEncodedContent([]))).StatusCode.Should().Be(HttpStatusCode.BadRequest, $"POST {rota}");
+		}
+
+		_acesso.Chamadas.Should().BeEmpty();
+	}
+
+	[Fact]
 	public async Task ForaDoCadastroOuSecureGateDesligado_404_EmTodaRota_SemTocarAPorta()
 	{
 		var client = Cliente(Admin, "intranet-admin");
