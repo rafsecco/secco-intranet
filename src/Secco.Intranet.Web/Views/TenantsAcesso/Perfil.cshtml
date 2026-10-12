@@ -1,5 +1,119 @@
 @model TenantsAcessoPerfilViewModel
 @{
-    ViewData["Title"] = $"Acesso — {Model.Tenant.Sistema}";
+    var tenant = Model.Tenant;
+    var tela = Model.Tela;
+    var perfil = tela.Perfil;
+    var raiz = $"/tenants/{tenant.TenantId}/acesso";
+    var raizDoPerfil = $"{raiz}/perfis/{Uri.EscapeDataString(perfil.Nome)}";
+
+    ViewData["Title"] = $"{perfil.Nome} — {tenant.Sistema}";
+
+    var cabecalho = new PageHeaderModel(
+        perfil.Nome,
+        $"Perfil de {tenant.Sistema}",
+        Acoes: new[] { new PageActionModel("Voltar", raiz, "bi-arrow-left") });
+
+    string PaginaUrl(int pagina) => $"{raizDoPerfil}?page={pagina}";
+
+    var paginacao = new PaginationModel(
+        tela.Membros.Pagina,
+        tela.Membros.TotalDePaginas,
+        tela.Membros.Pagina > 1 ? PaginaUrl(tela.Membros.Pagina - 1) : null,
+        tela.Membros.Pagina < tela.Membros.TotalDePaginas ? PaginaUrl(tela.Membros.Pagina + 1) : null);
+
+    static BadgeModel BadgeDaSituacao(SituacaoDoUsuario situacao) => situacao switch
+    {
+        SituacaoDoUsuario.Ativo => new BadgeModel("Ativo", BadgeVariante.Sucesso),
+        SituacaoDoUsuario.Desativado => new BadgeModel("Desativado", BadgeVariante.Perigo),
+        SituacaoDoUsuario.Bloqueado => new BadgeModel("Bloqueado", BadgeVariante.Aviso),
+        _ => new BadgeModel("Desconhecida", BadgeVariante.Neutro),
+    };
 }
-<partial name="_PageHeader" model="@(new PageHeaderModel(Model.Tenant.Sistema, "Perfis e pessoas deste sistema."))" />
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel">
+    <h2 class="h6">Permissões</h2>
+    @if (perfil.Reservado)
+    {
+        <p class="text-muted mb-0">Perfil reservado da plataforma — permissões não editáveis por aqui.</p>
+    }
+    else
+    {
+        <form method="post" action="@raizDoPerfil/permissoes">
+            @Html.AntiForgeryToken()
+            <label class="form-label" for="permissoes">Permissões, uma por linha</label>
+            <textarea class="form-control font-monospace" id="permissoes" name="permissoes" rows="10" spellcheck="false">@string.Join("\n", perfil.Permissoes)</textarea>
+            <div class="form-text">Formato <code>recurso:acao</code>, em minúsculas. O SecureGate ainda não publica o catálogo de cada sistema; confira os nomes com quem mantém o sistema.</div>
+            <button class="btn btn-outline-primary mt-2" type="submit">Salvar permissões</button>
+        </form>
+    }
+</div>
+
+<div class="sc-panel mt-3">
+    <h2 class="h6">Membros (@perfil.TotalDeMembros)</h2>
+
+    @if (tela.Membros.Itens.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel("bi-people", "Ninguém tem este perfil ainda"))" />
+    }
+    else
+    {
+        <ul class="sc-list">
+            @foreach (var membro in tela.Membros.Itens)
+            {
+                <li class="sc-list__item">
+                    <div class="sc-list__text">
+                        <p class="sc-list__title">
+                            <a class="text-reset text-decoration-none" href="@raiz/usuarios/@membro.UsuarioId">@(string.IsNullOrWhiteSpace(membro.Email) ? "(sem e-mail)" : membro.Email)</a>
+                        </p>
+                        <span class="sc-list__sub"><partial name="_Badge" model="BadgeDaSituacao(membro.Situacao)" /></span>
+                    </div>
+                    <form method="post" action="@raiz/usuarios/@membro.UsuarioId/perfis/retirar" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="perfil" value="@perfil.Nome" />
+                        <input type="hidden" name="origem" value="perfil" />
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Retirar</button>
+                    </form>
+                </li>
+            }
+        </ul>
+
+        <partial name="_Pagination" model="paginacao" />
+    }
+</div>
+
+@if (!perfil.Reservado)
+{
+    <div class="sc-panel mt-3">
+        @if (tela.Candidatos.Count == 0)
+        {
+            <p class="text-muted mb-0">Toda pessoa ativa já tem este perfil.</p>
+        }
+        else
+        {
+            <form method="post" action="@raizDoPerfil/membros" class="d-flex flex-wrap gap-2 align-items-end">
+                @Html.AntiForgeryToken()
+                <div class="sc-form__field mb-0">
+                    <label class="form-label" for="usuarioId">Adicionar membro</label>
+                    <select class="form-select" id="usuarioId" name="usuarioId" required>
+                        <option value="">Escolha uma pessoa</option>
+                        @foreach (var candidato in tela.Candidatos)
+                        {
+                            <option value="@candidato.Id">@(string.IsNullOrWhiteSpace(candidato.Email) ? candidato.Id.ToString() : candidato.Email)</option>
+                        }
+                    </select>
+                </div>
+                <button class="btn btn-outline-primary" type="submit">Adicionar</button>
+            </form>
+        }
+    </div>
+
+    <div class="sc-panel mt-3">
+        <form method="post" action="@raizDoPerfil/excluir" data-confirmar="Excluir o perfil &quot;@perfil.Nome&quot;? Não dá para desfazer.">
+            @Html.AntiForgeryToken()
+            <button class="btn btn-outline-danger" type="submit">Excluir perfil</button>
+            <div class="form-text">Só é possível quando o perfil não tem membros.</div>
+        </form>
+    </div>
+}

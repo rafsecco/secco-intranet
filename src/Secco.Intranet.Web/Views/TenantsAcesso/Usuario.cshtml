@@ -1,5 +1,130 @@
 @model TenantsAcessoUsuarioViewModel
 @{
-    ViewData["Title"] = $"Acesso — {Model.Tenant.Sistema}";
+    var tenant = Model.Tenant;
+    var tela = Model.Tela;
+    var usuario = tela.Usuario;
+    var raiz = $"/tenants/{tenant.TenantId}/acesso";
+    var raizDaPessoa = $"{raiz}/usuarios/{usuario.Id}";
+    var rotulo = string.IsNullOrWhiteSpace(usuario.Email) ? usuario.Id.ToString() : usuario.Email;
+
+    ViewData["Title"] = $"{rotulo} — {tenant.Sistema}";
+
+    var cabecalho = new PageHeaderModel(
+        rotulo,
+        $"Pessoa de {tenant.Sistema}",
+        Acoes: new[] { new PageActionModel("Voltar", $"{raiz}?aba=usuarios", "bi-arrow-left") });
+
+    var situacao = usuario.Situacao switch
+    {
+        SituacaoDoUsuario.Ativo => new BadgeModel("Ativo", BadgeVariante.Sucesso),
+        SituacaoDoUsuario.Desativado => new BadgeModel("Desativado", BadgeVariante.Perigo),
+        SituacaoDoUsuario.Bloqueado => new BadgeModel("Bloqueado", BadgeVariante.Aviso),
+        _ => new BadgeModel("Desconhecida", BadgeVariante.Neutro),
+    };
+
+    var modoDeEntrada = usuario.EntraPorSenha
+        ? (usuario.TemSenha ? "Senha definida" : "Senha por convite, ainda não definida")
+        : "Só pelo Entra ID";
 }
-<partial name="_PageHeader" model="@(new PageHeaderModel(Model.Tenant.Sistema, "Perfis e pessoas deste sistema."))" />
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel">
+    <dl class="row mb-0">
+        <dt class="col-sm-3">Situação</dt>
+        <dd class="col-sm-9"><partial name="_Badge" model="situacao" /></dd>
+
+        @if (usuario.BloqueadoAte is { } ate)
+        {
+            <dt class="col-sm-3">Bloqueado até</dt>
+            <dd class="col-sm-9">@ate.ToLocalTime().ToString("g")</dd>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(usuario.Nome))
+        {
+            <dt class="col-sm-3">Nome</dt>
+            <dd class="col-sm-9">@usuario.Nome</dd>
+        }
+
+        <dt class="col-sm-3">Modo de entrada</dt>
+        <dd class="col-sm-9">@modoDeEntrada</dd>
+
+        <dt class="col-sm-3">Segundo fator</dt>
+        <dd class="col-sm-9">@(usuario.DoisFatoresAtivo ? "Ligado" : "Desligado")</dd>
+
+        <dt class="col-sm-3">Logins externos</dt>
+        <dd class="col-sm-9 mb-0">@(usuario.LoginsExternos.Count == 0 ? "Nenhum" : string.Join(", ", usuario.LoginsExternos))</dd>
+    </dl>
+</div>
+
+<div class="sc-panel mt-3">
+    <h2 class="h6">Perfis</h2>
+
+    @if (usuario.Perfis.Count == 0)
+    {
+        <p class="text-muted">Nenhum perfil.</p>
+    }
+    else
+    {
+        <ul class="sc-list">
+            @foreach (var nome in usuario.Perfis)
+            {
+                <li class="sc-list__item">
+                    <div class="sc-list__text"><p class="sc-list__title">@nome</p></div>
+                    <form method="post" action="@raizDaPessoa/perfis/retirar" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="perfil" value="@nome" />
+                        <input type="hidden" name="origem" value="usuario" />
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Retirar</button>
+                    </form>
+                </li>
+            }
+        </ul>
+    }
+
+    @if (tela.PerfisAtribuiveis.Count > 0)
+    {
+        <form method="post" action="@raizDaPessoa/perfis" class="d-flex flex-wrap gap-2 align-items-end mt-2">
+            @Html.AntiForgeryToken()
+            <div class="sc-form__field mb-0">
+                <label class="form-label" for="perfil">Adicionar perfil</label>
+                <select class="form-select" id="perfil" name="perfil" required>
+                    <option value="">Escolha um perfil</option>
+                    @foreach (var nome in tela.PerfisAtribuiveis)
+                    {
+                        <option value="@nome">@nome</option>
+                    }
+                </select>
+            </div>
+            <button class="btn btn-outline-primary" type="submit">Adicionar</button>
+        </form>
+    }
+</div>
+
+<div class="sc-panel mt-3 d-flex flex-wrap gap-2">
+    @if (usuario.Situacao == SituacaoDoUsuario.Desativado)
+    {
+        <form method="post" action="@raizDaPessoa/reativar" class="d-inline">
+            @Html.AntiForgeryToken()
+            <button class="btn btn-outline-primary" type="submit">Reativar conta</button>
+        </form>
+    }
+    else
+    {
+        <form method="post" action="@raizDaPessoa/desativar" class="d-inline">
+            @Html.AntiForgeryToken()
+            <button class="btn btn-outline-danger" type="submit">Desativar conta</button>
+        </form>
+    }
+    <form method="post" action="@raizDaPessoa/sessoes/encerrar" class="d-inline">
+        @Html.AntiForgeryToken()
+        <button class="btn btn-outline-secondary" type="submit">Encerrar sessões</button>
+    </form>
+    @if (usuario.EntraPorSenha && !usuario.TemSenha)
+    {
+        <form method="post" action="@raizDaPessoa/convite" class="d-inline">
+            @Html.AntiForgeryToken()
+            <button class="btn btn-outline-primary" type="submit">Reenviar convite</button>
+        </form>
+    }
+</div>

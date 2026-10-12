@@ -1,14 +1,187 @@
 @model TenantsAcessoIndexViewModel
 @{
-    ViewData["Title"] = $"Acesso — {Model.Tenant.Sistema}";
-}
-<partial name="_PageHeader" model="@(new PageHeaderModel(Model.Tenant.Sistema, "Perfis e pessoas deste sistema."))" />
+    var tenant = Model.Tenant;
+    var raiz = $"/tenants/{tenant.TenantId}/acesso";
 
-<form method="post" action="/tenants/@Model.Tenant.TenantId/acesso/perfis" class="sc-panel" style="max-width: 40rem">
-    @Html.AntiForgeryToken()
-    <div class="mb-3">
-        <label class="form-label" for="nome">Novo perfil</label>
-        <input class="form-control" id="nome" name="nome" maxlength="64" required />
+    ViewData["Title"] = $"Acesso — {tenant.Sistema}";
+
+    var cabecalho = new PageHeaderModel(
+        tenant.Sistema,
+        $"Perfis e pessoas do tenant {tenant.Nome}.",
+        Acoes: new[]
+        {
+            new PageActionModel("Voltar ao tenant", $"/tenants/{tenant.TenantId}", "bi-arrow-left"),
+            new PageActionModel("Cadastrar pessoa", $"{raiz}/usuarios/novo", "bi-person-plus"),
+        });
+
+    var nosPerfis = Model.Aba == AbaDoAcessoDoTenant.Perfis;
+    var naFederacao = Model.Aba == AbaDoAcessoDoTenant.Federacao;
+
+    static BadgeModel BadgeDoPerfil(PerfilDoTenantDto perfil) =>
+        perfil.Reservado ? new BadgeModel("Reservado", BadgeVariante.Perigo) : new BadgeModel("Perfil", BadgeVariante.Neutro);
+
+    static BadgeModel BadgeDaSituacao(SituacaoDoUsuario situacao) => situacao switch
+    {
+        SituacaoDoUsuario.Ativo => new BadgeModel("Ativo", BadgeVariante.Sucesso),
+        SituacaoDoUsuario.Desativado => new BadgeModel("Desativado", BadgeVariante.Perigo),
+        SituacaoDoUsuario.Bloqueado => new BadgeModel("Bloqueado", BadgeVariante.Aviso),
+        _ => new BadgeModel("Desconhecida", BadgeVariante.Neutro),
+    };
+
+    static BadgeModel BadgeDaFederacao(bool habilitada) =>
+        habilitada ? new BadgeModel("Habilitada", BadgeVariante.Sucesso) : new BadgeModel("Desabilitada", BadgeVariante.Neutro);
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+@if (!tenant.Ativo)
+{
+    <p><partial name="_Badge" model="@(new BadgeModel("Tenant desativado", BadgeVariante.Aviso))" /> <span class="text-body-secondary">O sistema não está no ar; os acessos ficam preparados.</span></p>
+}
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link @(nosPerfis ? "active" : null)" href="@raiz?aba=perfis">Perfis</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(Model.Aba == AbaDoAcessoDoTenant.Usuarios ? "active" : null)" href="@raiz?aba=usuarios">Usuários</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(naFederacao ? "active" : null)" href="@raiz?aba=federacao">Federação</a>
+    </li>
+</ul>
+
+@if (nosPerfis && Model.Perfis is { } perfis)
+{
+    @if (perfis.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel("bi-shield-lock", "Nenhum perfil ainda", "Crie o primeiro perfil abaixo."))" />
+    }
+    else
+    {
+        <ul class="sc-list">
+            @foreach (var perfil in perfis)
+            {
+                <li class="sc-list__item">
+                    <span class="sc-list__icon" aria-hidden="true"><i class="bi bi-shield-lock"></i></span>
+                    <div class="sc-list__text">
+                        <p class="sc-list__title">
+                            <a class="text-reset text-decoration-none" href="@raiz/perfis/@Uri.EscapeDataString(perfil.Nome)">@perfil.Nome</a>
+                        </p>
+                        <span class="sc-list__sub">
+                            <partial name="_Badge" model="BadgeDoPerfil(perfil)" />
+                            <span class="sc-meta">@perfil.TotalDePermissoes permissões</span>
+                        </span>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+
+    <div class="sc-panel mt-3">
+        <form method="post" action="@raiz/perfis" class="d-flex flex-wrap gap-2 align-items-end">
+            @Html.AntiForgeryToken()
+            <div class="sc-form__field mb-0">
+                <label class="form-label" for="nome">Novo perfil</label>
+                <input class="form-control" id="nome" name="nome" placeholder="equipe-financeiro" maxlength="100" required />
+                <div class="form-text">Letras, dígitos, ponto, sublinhado e hífen; sem espaços.</div>
+            </div>
+            <button class="btn btn-primary" type="submit">Criar perfil</button>
+        </form>
     </div>
-    <button type="submit" class="btn btn-primary">Criar perfil</button>
-</form>
+}
+else if (Model.Usuarios is { } usuarios)
+{
+    string PaginaUrl(int pagina) =>
+        $"{raiz}?aba=usuarios&page={pagina}" + (string.IsNullOrWhiteSpace(Model.Busca) ? null : $"&busca={Uri.EscapeDataString(Model.Busca)}");
+
+    var paginacao = new PaginationModel(
+        usuarios.Page,
+        usuarios.TotalPages,
+        usuarios.HasPreviousPage ? PaginaUrl(usuarios.Page - 1) : null,
+        usuarios.HasNextPage ? PaginaUrl(usuarios.Page + 1) : null);
+
+    <form method="get" action="@raiz" class="row g-2 mb-3" role="search">
+        <input type="hidden" name="aba" value="usuarios" />
+        <div class="col-sm-auto flex-grow-1">
+            <label class="visually-hidden" for="busca">Buscar por e-mail</label>
+            <input class="form-control" type="search" id="busca" name="busca" value="@Model.Busca" placeholder="Buscar por e-mail" />
+        </div>
+        <div class="col-sm-auto">
+            <button class="btn btn-outline-secondary w-100" type="submit">Buscar</button>
+        </div>
+    </form>
+
+    @if (usuarios.Items.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateModel("bi-people", "Nenhuma pessoa encontrada", "Ajuste a busca ou cadastre uma pessoa."))" />
+    }
+    else
+    {
+        <ul class="sc-list">
+            @foreach (var usuario in usuarios.Items)
+            {
+                var rotulo = string.IsNullOrWhiteSpace(usuario.Email) ? "(sem e-mail)" : usuario.Email;
+
+                <li class="sc-list__item">
+                    <span class="sc-list__icon" aria-hidden="true"><i class="bi bi-person"></i></span>
+                    <div class="sc-list__text">
+                        <p class="sc-list__title">
+                            <a class="text-reset text-decoration-none" href="@raiz/usuarios/@usuario.Id">@(string.IsNullOrWhiteSpace(usuario.Nome) ? rotulo : $"{usuario.Nome} — {rotulo}")</a>
+                        </p>
+                        <span class="sc-list__sub">
+                            <partial name="_Badge" model="BadgeDaSituacao(usuario.Situacao)" />
+                            <span class="sc-meta">@string.Join(", ", usuario.Perfis)</span>
+                        </span>
+                    </div>
+                </li>
+            }
+        </ul>
+
+        <partial name="_Pagination" model="paginacao" />
+    }
+}
+else if (Model.Federacao is { } federacao)
+{
+    <div class="sc-panel">
+        <p class="mb-3">
+            Login federado via Microsoft Entra ID (ADR-0026 da plataforma): quem entrar já com conta
+            corporativa no diretório da empresa não precisa de senha própria no SecureGate. Exige a
+            app registration multi-tenant já configurada no host do SecureGate — isso é operacional,
+            fora deste repositório.
+            <partial name="_Badge" model="BadgeDaFederacao(federacao.Habilitada)" />
+        </p>
+
+        <form method="post" action="@raiz/federacao" class="sc-form">
+            @Html.AntiForgeryToken()
+            @if (federacao.DirectoryId is not null)
+            {
+                <p class="sc-meta">Diretório atual: <code>@federacao.DirectoryId</code></p>
+            }
+            <div class="sc-form__field">
+                <label class="form-label" for="directoryId">Directory id (tenant GUID do Entra)</label>
+                <input class="form-control" id="directoryId" name="directoryId" value="@federacao.DirectoryId" placeholder="00000000-0000-0000-0000-000000000000" required />
+                <div class="form-text">O identificador do diretório da empresa no Entra ID — não é segredo, mas precisa ser exato.</div>
+                @if (federacao.DirectoryId is not null)
+                {
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="confirmarTroca" name="confirmarTroca" value="true" />
+                        <label class="form-check-label" for="confirmarTroca">Confirmo a troca do diretório: as pessoas passam a entrar pelo Entra ID informado.</label>
+                    </div>
+                }
+            </div>
+
+            <div class="form-check mt-3">
+                <input class="form-check-input" type="checkbox" id="habilitada" name="habilitada" value="true" checked="@federacao.Habilitada" />
+                <label class="form-check-label" for="habilitada">Habilitada</label>
+            </div>
+
+            <button class="btn btn-primary mt-3" type="submit">Salvar</button>
+        </form>
+
+        @if (federacao.AtualizadoEm is { } atualizadoEm)
+        {
+            <p class="sc-meta mt-3">Última alteração: @atualizadoEm.ToLocalTime().ToString("g")</p>
+        }
+    </div>
+}

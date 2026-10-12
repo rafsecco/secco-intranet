@@ -168,10 +168,24 @@ public class TenantsAcessoAutorizacaoTests(IntranetWebFactory factory) : IClassF
 		var client = Cliente(Admin, "intranet-admin");
 		var token = await AuxiliaresDeHttp.TokenAsync(client, $"/tenants/{_ligado}/acesso");
 
-		await client.PostAsync($"/tenants/{_ligado}/acesso/perfis",
+		var resposta = await client.PostAsync($"/tenants/{_ligado}/acesso/perfis",
 			AuxiliaresDeHttp.Form(("__RequestVerificationToken", token), ("nome", "compras-leitor"), ("tenantId", _foraDoCadastro.ToString())));
 
+		resposta.StatusCode.Should().Be(HttpStatusCode.Redirect);
 		_acesso.Chamadas.Should().Contain($"criarPerfil:{_ligado}:compras-leitor")
+			.And.NotContain(c => c.Contains(_foraDoCadastro.ToString(), StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public async Task TenantNaQueryString_EIgnorado_ValeODaRota()
+	{
+		var client = Cliente(Admin, "intranet-admin");
+		var token = await AuxiliaresDeHttp.TokenAsync(client, $"/tenants/{_ligado}/acesso");
+
+		await client.PostAsync($"/tenants/{_ligado}/acesso/perfis?tenantId={_foraDoCadastro}",
+			AuxiliaresDeHttp.Form(("__RequestVerificationToken", token), ("nome", "compras-leitor")));
+
+		_acesso.Chamadas.Should().Contain(c => c.StartsWith($"criarPerfil:{_ligado}:", StringComparison.Ordinal))
 			.And.NotContain(c => c.Contains(_foraDoCadastro.ToString(), StringComparison.Ordinal));
 	}
 

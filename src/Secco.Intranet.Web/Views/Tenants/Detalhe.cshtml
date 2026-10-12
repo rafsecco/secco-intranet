@@ -29,6 +29,10 @@
                     <th scope="row">@RecursosDaPlataforma.Nome(r.Recurso)</th>
                     <td><partial name="_Badge" model="BadgeDoRecurso(r)" /> @if (r.Motivo is { } motivo) { <span class="text-body-secondary">@motivo</span> }</td>
                     <td class="text-end">
+                        @if (r.Recurso == RecursoDaPlataforma.SecureGate && r.Situacao == SituacaoDoRecurso.Ligado)
+                        {
+                            <a class="btn btn-outline-primary btn-sm" href="/tenants/@Model.TenantId/acesso">Perfis e usuários</a>
+                        }
                         @if (r.Situacao == SituacaoDoRecurso.NaoLigado)
                         {
                             <form method="post" action="/tenants/@Model.TenantId/recursos/@RecursosDaPlataforma.Rota(r.Recurso)" class="d-inline">
