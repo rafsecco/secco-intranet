@@ -4,6 +4,7 @@ using Secco.Intranet.Application;
 using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Infrastructure.Access;
 using Secco.SecureGate.Client;
+using Secco.SharedKernel.Results;
 using Xunit;
 
 namespace Secco.Intranet.Tests.Unit;
@@ -67,4 +68,23 @@ public class OperacoesDeAcessoNoSecureGateTests
 	[InlineData(null, SituacaoDoUsuario.Desconhecida)]
 	public void Situacao_MapeiaOStatusDaPlataforma(string? status, SituacaoDoUsuario esperada) =>
 		OperacoesDeAcessoNoSecureGate.Situacao(status).Should().Be(esperada);
+
+	[Fact]
+	public async Task Escrever_400ComMotivoConhecido_UsaOMapeamento_E400SemMotivo_Indisponivel()
+	{
+		static Error? Mapear(ApiException excecao) =>
+			OperacoesDeAcessoNoSecureGate.TemCodigo(excecao, "SecureGate.Role.PermissionsNotInCatalog")
+				? IntranetErrors.Acesso.PermissoesForaDoCatalogo
+				: null;
+
+		var conhecido = await OperacoesDeAcessoNoSecureGate.EscreverAsync(
+			NullLogger.Instance, "x", _ => throw Api(400, "{\"title\":\"SecureGate.Role.PermissionsNotInCatalog\"}"),
+			null, null, CancellationToken.None, Mapear);
+		var desconhecido = await OperacoesDeAcessoNoSecureGate.EscreverAsync(
+			NullLogger.Instance, "x", _ => throw Api(400, "{\"title\":\"Outro\"}"),
+			null, null, CancellationToken.None, Mapear);
+
+		conhecido.Error.Should().Be(IntranetErrors.Acesso.PermissoesForaDoCatalogo);
+		desconhecido.Error.Should().Be(IntranetErrors.Acesso.Indisponivel);
+	}
 }

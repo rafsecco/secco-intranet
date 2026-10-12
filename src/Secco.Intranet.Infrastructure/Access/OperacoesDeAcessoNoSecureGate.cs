@@ -47,7 +47,8 @@ internal static class OperacoesDeAcessoNoSecureGate
 		Func<CancellationToken, Task> chamada,
 		Error? naoEncontrado,
 		Func<ApiException, Error?>? conflito,
-		CancellationToken cancellationToken)
+		CancellationToken cancellationToken,
+		Func<ApiException, Error?>? recusado = null)
 	{
 		var escrito = await EscreverAsync<bool>(
 			logger,
@@ -60,12 +61,16 @@ internal static class OperacoesDeAcessoNoSecureGate
 			},
 			naoEncontrado,
 			conflito,
-			cancellationToken).ConfigureAwait(false);
+			cancellationToken,
+			recusado).ConfigureAwait(false);
 
 		return escrito.IsSuccess ? Result.Success() : Result.Failure(escrito.Error);
 	}
 
-	/// <summary>Executa uma escrita que devolve valor (ex.: o id criado). <paramref name="recusado"/> traduz o 400.</summary>
+	/// <summary>
+	/// Executa uma escrita que devolve valor (ex.: o id criado). <paramref name="recusado"/> traduz o
+	/// 400 (dado recusado pela plataforma, não SecureGate fora); devolvendo <c>null</c>, vale Indisponível.
+	/// </summary>
 	public static async Task<Result<T>> EscreverAsync<T>(
 		ILogger logger,
 		string operacao,
@@ -73,7 +78,7 @@ internal static class OperacoesDeAcessoNoSecureGate
 		Error? naoEncontrado,
 		Func<ApiException, Error?>? conflito,
 		CancellationToken cancellationToken,
-		Error? recusado = null)
+		Func<ApiException, Error?>? recusado = null)
 	{
 		try
 		{
@@ -88,9 +93,10 @@ internal static class OperacoesDeAcessoNoSecureGate
 		{
 			return Result.Failure<T>(erro);
 		}
-		catch (ApiException apiException) when (apiException.StatusCode == (int)HttpStatusCode.BadRequest && recusado is not null)
+		catch (ApiException apiException) when (apiException.StatusCode == (int)HttpStatusCode.BadRequest
+			&& recusado?.Invoke(apiException) is { } erroDeDado)
 		{
-			return Result.Failure<T>(recusado);
+			return Result.Failure<T>(erroDeDado);
 		}
 		catch (Exception excecao) when (EhFalhaDeBorda(excecao, cancellationToken))
 		{
@@ -108,6 +114,13 @@ internal static class OperacoesDeAcessoNoSecureGate
 		"lockedout" => SituacaoDoUsuario.Bloqueado,
 		_ => SituacaoDoUsuario.Desconhecida,
 	};
+
+	/// <summary>
+	/// Tradução do 400 de gravar permissões: permissão que nenhum produto declarou no catálogo
+	/// (ADR-0039 da plataforma). Outro 400 devolve <c>null</c> e segue como Indisponível.
+	/// </summary>
+	public static Error? PermissaoForaDoCatalogo(ApiException excecao) =>
+		TemCodigo(excecao, "SecureGate.Role.PermissionsNotInCatalog") ? IntranetErrors.Acesso.PermissoesForaDoCatalogo : null;
 
 	/// <summary>Se o ProblemDetails da resposta traz o código de erro informado.</summary>
 	public static bool TemCodigo(ApiException excecao, string codigo) =>

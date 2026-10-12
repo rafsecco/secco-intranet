@@ -246,6 +246,15 @@ public static class IntranetErrors
 		public static readonly Error RetiradaRecusada =
 			Error.Conflict("Intranet.Acesso.RetiradaRecusada", "O SecureGate recusou retirar este perfil; ele pode ter vindo de um grupo do diretório.");
 
+		/// <summary>
+		/// A plataforma recusou permissão que nenhum produto declarou no catálogo (ADR-0039 da
+		/// plataforma) — quase sempre erro de digitação, ou o sistema ainda não publicou o catálogo.
+		/// </summary>
+		public static readonly Error PermissoesForaDoCatalogo =
+			Error.Validation(
+				"Intranet.Acesso.PermissoesForaDoCatalogo",
+				"O SecureGate recusou permissões que nenhum sistema declarou no catálogo. Confira a grafia, ou se o sistema já publicou o catálogo dele.");
+
 		/// <summary>Mais permissões do que o limite por perfil.</summary>
 		public static readonly Error PermissoesDemais =
 			Error.Validation("Intranet.Acesso.PermissoesDemais", "Um perfil aceita no máximo 200 permissões.");
@@ -501,6 +510,12 @@ public static class IntranetErrors
 		/// <summary>A plataforma recusou a desativação.</summary>
 		public static readonly Error DesativacaoRecusada =
 			Error.Conflict("Intranet.Tenants.DesativacaoRecusada", "A plataforma recusou a desativação deste tenant.");
+
+		/// <summary>O SecureGate não tem alvo de provisionamento configurado (<c>SecureGate:Provisioning:Targets</c>).</summary>
+		public static readonly Error ProvisionamentoSemAlvo =
+			Error.Validation(
+				"Intranet.Tenants.ProvisionamentoSemAlvo",
+				"O SecureGate não tem um servidor de banco configurado para provisionar. Peça a quem opera a plataforma para declarar um alvo em SecureGate:Provisioning:Targets.");
 
 		/// <summary>Criado no SecureGate, mas o cadastro local falhou.</summary>
 		/// <param name="slug">Slug criado, para o admin achar o tenant em Adotar.</param>

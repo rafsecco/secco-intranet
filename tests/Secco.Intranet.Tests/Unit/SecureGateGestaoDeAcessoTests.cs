@@ -136,8 +136,18 @@ public class SecureGateGestaoDeAcessoTests
 	private static SecureGateGestaoDeAcesso Montar(ClientFalso client, Guid? tenant = null) =>
 		new(client, new TenantContextFalso(tenant ?? Tenant), NullLogger<SecureGateGestaoDeAcesso>.Instance);
 
-	private static ApiException Api(int status) =>
-		new("erro", status, string.Empty, new Dictionary<string, IEnumerable<string>>(), null!);
+	private static ApiException Api(int status, string corpo = "") =>
+		new("erro", status, corpo, new Dictionary<string, IEnumerable<string>>(), null!);
+
+	[Fact]
+	public async Task DefinirPermissoes_ForaDoCatalogo_ViraErroProprio_NaoIndisponivel()
+	{
+		var corpo = "{\"title\":\"SecureGate.Role.PermissionsNotInCatalog\",\"status\":400}";
+
+		var definido = await Montar(new ClientFalso { Falha = Api(400, corpo) }).DefinirPermissoesDoPerfilAsync("p", ["a:b"]);
+
+		definido.Error.Should().Be(IntranetErrors.Acesso.PermissoesForaDoCatalogo);
+	}
 
 	[Fact]
 	public async Task ListarPerfis_MapeiaNomeTipoEPermissoes()

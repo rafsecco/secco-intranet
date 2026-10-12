@@ -85,7 +85,10 @@ public sealed class SecureGateGestaoDeTenants(ISecureGateClient client, ILogger<
 				return new ProvisionamentoDto(resposta.Applied, resposta.Applied ? null : resposta.Script);
 			},
 			conflito: IntranetErrors.Tenants.RecursoJaLigado,
-			cancellationToken);
+			cancellationToken,
+			recusado: excecao => excecao.Response?.Contains("SecureGate.TenantDatabase.ProvisioningServerRequired", StringComparison.Ordinal) == true
+				? IntranetErrors.Tenants.ProvisionamentoSemAlvo
+				: null);
 
 	/// <inheritdoc />
 	public async Task<Result> AtivarAsync(Guid tenantId, CancellationToken cancellationToken = default) =>
@@ -121,7 +124,8 @@ public sealed class SecureGateGestaoDeTenants(ISecureGateClient client, ILogger<
 		string operacao,
 		Func<CancellationToken, Task<T>> chamada,
 		Error? conflito,
-		CancellationToken cancellationToken)
+		CancellationToken cancellationToken,
+		Func<ApiException, Error?>? recusado = null)
 	{
 		try
 		{
@@ -134,6 +138,12 @@ public sealed class SecureGateGestaoDeTenants(ISecureGateClient client, ILogger<
 		catch (ApiException apiException) when (apiException.StatusCode == (int)HttpStatusCode.Conflict && conflito is not null)
 		{
 			return Result.Failure<T>(conflito);
+		}
+		catch (ApiException apiException) when (apiException.StatusCode == (int)HttpStatusCode.BadRequest
+			&& recusado?.Invoke(apiException) is { } erroDeDado)
+		{
+			// Recusa com motivo conhecido (ex.: alvo de provisionamento ausente): não é "SecureGate fora".
+			return Result.Failure<T>(erroDeDado);
 		}
 		catch (ApiException apiException)
 		{

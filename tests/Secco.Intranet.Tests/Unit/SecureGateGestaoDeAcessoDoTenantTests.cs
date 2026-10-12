@@ -57,6 +57,10 @@ public class SecureGateGestaoDeAcessoDoTenantTests
 		public override async Task DeleteRoleAsync(Guid tenantId, string role, CancellationToken cancellationToken) =>
 			await Registrar($"DeleteRole:{tenantId}:{role}");
 
+		public override async Task SetRolePermissionsAsync(
+			Guid tenantId, string role, SetRolePermissionsRequest body, CancellationToken cancellationToken) =>
+			await Registrar($"SetRolePermissions:{tenantId}:{role}");
+
 		public override async Task ResendUserInviteAsync(Guid tenantId, Guid userId, CancellationToken cancellationToken) =>
 			await Registrar($"ResendUserInvite:{tenantId}:{userId}");
 	}
@@ -141,6 +145,16 @@ public class SecureGateGestaoDeAcessoDoTenantTests
 		client.Falha = Api(409, corpo);
 
 		(await gestao.ExcluirPerfilAsync(Alvo, "x")).Error.Code.Should().Be(codigoEsperado);
+	}
+
+	[Fact]
+	public async Task DefinirPermissoes_ForaDoCatalogo_ViraErroProprio_NaoIndisponivel()
+	{
+		var (gestao, client) = Criar();
+		client.Falha = Api(400, "{\"title\":\"SecureGate.Role.PermissionsNotInCatalog\",\"status\":400}");
+
+		(await gestao.DefinirPermissoesDoPerfilAsync(Alvo, "p", ["pedido:aprovar"]))
+			.Error.Should().Be(IntranetErrors.Acesso.PermissoesForaDoCatalogo);
 	}
 
 	[Fact]

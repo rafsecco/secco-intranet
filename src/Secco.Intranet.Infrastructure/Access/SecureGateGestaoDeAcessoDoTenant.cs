@@ -146,7 +146,8 @@ public sealed class SecureGateGestaoDeAcessoDoTenant(
 		OperacoesDeAcessoNoSecureGate.EscreverAsync(
 			logger, "definir permissoes do tenant",
 			token => client.SetRolePermissionsAsync(tenantId, nome, new SetRolePermissionsRequest { Permissions = [.. permissoes] }, token),
-			IntranetErrors.Acesso.PerfilNaoEncontrado, null, cancellationToken);
+			IntranetErrors.Acesso.PerfilNaoEncontrado, null, cancellationToken,
+			OperacoesDeAcessoNoSecureGate.PermissaoForaDoCatalogo);
 
 	/// <inheritdoc />
 	public Task<Result> AtribuirPerfilAsync(Guid tenantId, Guid usuarioId, string perfil, CancellationToken cancellationToken = default) =>
@@ -177,7 +178,7 @@ public sealed class SecureGateGestaoDeAcessoDoTenant(
 			null,
 			_ => IntranetErrors.Acesso.EmailJaCadastrado,
 			cancellationToken,
-			recusado: IntranetErrors.Acesso.CadastroRecusado);
+			recusado: _ => IntranetErrors.Acesso.CadastroRecusado);
 	}
 
 	/// <inheritdoc />

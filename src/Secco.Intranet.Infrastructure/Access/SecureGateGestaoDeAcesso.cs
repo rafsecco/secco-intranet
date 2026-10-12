@@ -200,7 +200,8 @@ public sealed class SecureGateGestaoDeAcesso(
 			(tenantId, token) => PermissoesDoPerfil.GarantirAsync(client, tenantId, nome, permissoesMinimas, token),
 			IntranetErrors.Acesso.PerfilNaoEncontrado,
 			null,
-			cancellationToken);
+			cancellationToken,
+			OperacoesDeAcessoNoSecureGate.PermissaoForaDoCatalogo);
 
 	/// <inheritdoc />
 	public Task<Result> DefinirPermissoesDoPerfilAsync(
@@ -211,7 +212,8 @@ public sealed class SecureGateGestaoDeAcesso(
 				tenantId, nome, new SetRolePermissionsRequest { Permissions = [.. permissoes] }, token),
 			IntranetErrors.Acesso.PerfilNaoEncontrado,
 			null,
-			cancellationToken);
+			cancellationToken,
+			OperacoesDeAcessoNoSecureGate.PermissaoForaDoCatalogo);
 
 	/// <inheritdoc />
 	public Task<Result<FederacaoDto>> ObterFederacaoAsync(CancellationToken cancellationToken = default) =>
@@ -256,7 +258,8 @@ public sealed class SecureGateGestaoDeAcesso(
 		Func<Guid, CancellationToken, Task> chamada,
 		Error? naoEncontrado,
 		Error? conflito,
-		CancellationToken cancellationToken) =>
+		CancellationToken cancellationToken,
+		Func<ApiException, Error?>? recusado = null) =>
 		tenantContext.IsResolved
 			? OperacoesDeAcessoNoSecureGate.EscreverAsync(
 				logger,
@@ -264,6 +267,7 @@ public sealed class SecureGateGestaoDeAcesso(
 				token => chamada(tenantContext.TenantId!.Value, token),
 				naoEncontrado,
 				conflito is null ? null : _ => conflito,
-				cancellationToken)
+				cancellationToken,
+				recusado)
 			: Task.FromResult(Result.Failure(IntranetErrors.Acesso.Indisponivel));
 }
