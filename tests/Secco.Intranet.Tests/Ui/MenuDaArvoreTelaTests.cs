@@ -5,10 +5,13 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
+using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Tests.Integration;
+using Secco.Intranet.Tests.Integration.TestAuthentication;
+using Secco.Intranet.Tests.Support;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SharedKernel.Constants;
 using Xunit;
@@ -61,6 +64,12 @@ public sealed class TelaFixture : IAsyncLifetime
 	/// <summary>Nome do setor do cenário.</summary>
 	public string NomeDoSetor => $"Setor {Slug}";
 
+	/// <summary>
+	/// Perfil de teste do visitante. Fora de Development o menu só mostra o setor a quem tem a
+	/// permissão de leitura dele (o modo aberto vale só em Development, ADR-0020).
+	/// </summary>
+	private const string PerfilDoVisitante = "ui-leitor";
+
 	private readonly System.Collections.Concurrent.ConcurrentDictionary<IPage, List<string>> _errosDeScript = new();
 
 	/// <summary>Erros de JavaScript de uma página aberta por <see cref="AbrirAsync"/>.</summary>
@@ -81,6 +90,8 @@ public sealed class TelaFixture : IAsyncLifetime
 		await ((IAsyncLifetime)_fabrica).InitializeAsync();
 		await _fabrica.EnsureDatabaseMigratedAsync();
 		await CriarCenarioAsync();
+		_fabrica.ResolvedorDePermissoes = new PermissionResolverDeTeste()
+			.ComPermissao(PerfilDoVisitante, IntranetPermissoes.Setor.Read(Slug));
 
 		foreach (var tema in new[] { "Vertical", "Horizontal" })
 		{
@@ -108,7 +119,11 @@ public sealed class TelaFixture : IAsyncLifetime
 			BaseURL = Enderecos[tema],
 			ViewportSize = new ViewportSize { Width = largura, Height = altura },
 			JavaScriptEnabled = javaScript,
-			ExtraHTTPHeaders = new Dictionary<string, string> { [SeccoHeaders.TenantId] = Tenant.ToString() },
+			ExtraHTTPHeaders = new Dictionary<string, string>
+			{
+				[SeccoHeaders.TenantId] = Tenant.ToString(),
+				[RolesDeTesteMiddleware.Header] = PerfilDoVisitante,
+			},
 		});
 
 		var pagina = await contexto.NewPageAsync();
