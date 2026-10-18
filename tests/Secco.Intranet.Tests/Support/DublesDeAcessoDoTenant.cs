@@ -23,6 +23,12 @@ public sealed class GestaoDeAcessoDoTenantFalsa : IGestaoDeAcessoDoTenant
 	/// <summary>Federação devolvida pela leitura.</summary>
 	public FederacaoDto Federacao { get; set; } = new(null, false, null);
 
+	/// <summary>
+	/// Catálogo de permissões da instalação. Como na plataforma, a permissão de um perfil que não
+	/// está em nenhum produto daqui aparece como fora do catálogo.
+	/// </summary>
+	public IReadOnlyList<ProdutoDoCatalogoDto> Catalogo { get; set; } = [];
+
 	/// <summary>Quando definido, toda chamada falha com este erro.</summary>
 	public Error? FalharCom { get; set; }
 
@@ -70,7 +76,8 @@ public sealed class GestaoDeAcessoDoTenantFalsa : IGestaoDeAcessoDoTenant
 	public Task<Result<PerfilDoTenantDetalheDto>> ObterPerfilAsync(Guid tenantId, string nome, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Registrar($"obterPerfil:{tenantId}:{nome}", () =>
 			_perfis.TryGetValue(nome, out var perfil)
-				? Result.Success(new PerfilDoTenantDetalheDto(nome, perfil.Permissoes, perfil.Reservado, Membros(nome).Count))
+				? Result.Success(new PerfilDoTenantDetalheDto(
+					nome, perfil.Permissoes, perfil.Reservado, Membros(nome).Count, ForaDoCatalogo(perfil.Permissoes)))
 				: Result.Failure<PerfilDoTenantDetalheDto>(IntranetErrors.Acesso.PerfilNaoEncontrado)));
 
 	/// <inheritdoc />
@@ -187,6 +194,17 @@ public sealed class GestaoDeAcessoDoTenantFalsa : IGestaoDeAcessoDoTenant
 		}
 
 		return Task.FromResult(registrado);
+	}
+
+	/// <inheritdoc />
+	public Task<Result<IReadOnlyList<ProdutoDoCatalogoDto>>> ListarCatalogoDePermissoesAsync(CancellationToken cancellationToken = default) =>
+		Task.FromResult(Registrar("listarCatalogo", () => Result.Success(Catalogo)));
+
+	private List<string> ForaDoCatalogo(IEnumerable<string> permissoes)
+	{
+		var conhecidas = Catalogo.SelectMany(produto => produto.Permissoes).Select(p => p.Nome).ToHashSet(StringComparer.Ordinal);
+
+		return [.. permissoes.Where(p => !conhecidas.Contains(p))];
 	}
 
 	private List<UsuarioDoTenantDetalheDto> Membros(string perfil) =>

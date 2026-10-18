@@ -27,6 +27,7 @@
     }
 
     var permissoesAtuais = perfil.Permissoes.ToHashSet(StringComparer.Ordinal);
+    var descricoes = IntranetPermissoes.Catalog.ToDictionary(p => p.Name, p => p.Description, StringComparer.Ordinal);
 
     string? PaginaUrl(int pagina) => Url.Action("Perfil", new { nome = perfil.Nome, page = pagina });
 
@@ -63,7 +64,7 @@
             {
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" name="permissoes" value="@permissao" id="perm-@permissao" checked="@permissoesAtuais.Contains(permissao)" />
-                    <label class="form-check-label" for="perm-@permissao"><span class="sc-meta">@permissao</span></label>
+                    <label class="form-check-label" for="perm-@permissao">@descricoes.GetValueOrDefault(permissao) <span class="sc-meta">@permissao</span></label>
                 </div>
             }
             <button class="btn btn-outline-primary mt-2" type="submit">Salvar permissões</button>

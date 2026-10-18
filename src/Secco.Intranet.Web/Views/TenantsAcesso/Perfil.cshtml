@@ -40,12 +40,47 @@
     }
     else
     {
+        var atuais = perfil.Permissoes.ToHashSet(StringComparer.Ordinal);
+        var indice = 0;
+
         <form method="post" action="@raizDoPerfil/permissoes">
             @Html.AntiForgeryToken()
-            <label class="form-label" for="permissoes">Permissões, uma por linha</label>
-            <textarea class="form-control font-monospace" id="permissoes" name="permissoes" rows="10" spellcheck="false">@string.Join("\n", perfil.Permissoes)</textarea>
-            <div class="form-text">Formato <code>recurso:acao</code>, em minúsculas. O SecureGate ainda não publica o catálogo de cada sistema; confira os nomes com quem mantém o sistema.</div>
-            <button class="btn btn-outline-primary mt-2" type="submit">Salvar permissões</button>
+            @if (tela.Catalogo.Count == 0)
+            {
+                <p class="text-muted">Nenhum sistema publicou permissões no catálogo do SecureGate ainda.</p>
+            }
+            @foreach (var produto in tela.Catalogo)
+            {
+                <fieldset class="mb-3">
+                    <legend class="h6 text-body-secondary">@produto.Produto</legend>
+                    @foreach (var permissao in produto.Permissoes)
+                    {
+                        var id = $"perm-{indice++}";
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="permissoes" value="@permissao.Nome" id="@id" checked="@atuais.Contains(permissao.Nome)" />
+                            <label class="form-check-label" for="@id">@permissao.Descricao <span class="sc-meta">@permissao.Nome</span></label>
+                        </div>
+                    }
+                </fieldset>
+            }
+
+            @if (perfil.PermissoesForaDoCatalogo.Count > 0)
+            {
+                <fieldset class="mb-3">
+                    <legend class="h6">Fora do catálogo <partial name="_Badge" model="@(new BadgeModel("Sem efeito", BadgeVariante.Aviso))" /></legend>
+                    <p class="form-text mt-0">Nenhum sistema declara estas permissões, então elas não concedem nada. Desmarque para retirá-las do perfil.</p>
+                    @foreach (var orfa in perfil.PermissoesForaDoCatalogo)
+                    {
+                        var id = $"perm-{indice++}";
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="permissoes" value="@orfa" id="@id" checked />
+                            <label class="form-check-label" for="@id"><span class="sc-meta">@orfa</span></label>
+                        </div>
+                    }
+                </fieldset>
+            }
+
+            <button class="btn btn-outline-primary" type="submit">Salvar permissões</button>
         </form>
     }
 </div>

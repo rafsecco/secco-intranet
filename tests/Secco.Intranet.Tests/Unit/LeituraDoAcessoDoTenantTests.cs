@@ -77,4 +77,17 @@ public class LeituraDoAcessoDoTenantTests
 
 		gestao.Chamadas.Should().OnlyContain(c => c.Contains(Tenant.ToString(), StringComparison.Ordinal));
 	}
+
+	[Fact]
+	public async Task ObterPerfil_TrazOCatalogoDaPlataforma_EAsForaDoCatalogo()
+	{
+		var gestao = Gestao();
+		gestao.Catalogo = [new ProdutoDoCatalogoDto("compras", [new PermissaoDoCatalogoDto("pedido:aprovar", "Aprovar pedidos")])];
+		gestao.ComPerfil("legado", false, "pedido:aprovar", "pedido:antigo");
+
+		var tela = await new LeituraDoAcessoDoTenantHandler(gestao).ObterPerfilAsync(Tenant, "legado", 1);
+
+		tela.Value.Catalogo.Should().BeEquivalentTo(gestao.Catalogo);
+		tela.Value.Perfil.PermissoesForaDoCatalogo.Should().Equal("pedido:antigo");
+	}
 }

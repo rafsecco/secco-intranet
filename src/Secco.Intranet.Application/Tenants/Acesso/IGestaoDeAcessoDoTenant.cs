@@ -10,6 +10,13 @@ namespace Secco.Intranet.Application.Tenants.Acesso;
 /// </summary>
 public interface IGestaoDeAcessoDoTenant
 {
+	/// <summary>
+	/// Catálogo de permissões da instalação, por produto (ADR-0039 da plataforma). Não é por tenant:
+	/// é o que os produtos publicaram, de onde a tela tira as caixas de cada perfil.
+	/// </summary>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	Task<Result<IReadOnlyList<ProdutoDoCatalogoDto>>> ListarCatalogoDePermissoesAsync(CancellationToken cancellationToken = default);
+
 	/// <summary>Lista os perfis do tenant.</summary>
 	/// <param name="tenantId">Tenant administrado.</param>
 	/// <param name="cancellationToken">Token de cancelamento.</param>

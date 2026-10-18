@@ -13,7 +13,26 @@ public sealed record PerfilDoTenantDto(string Nome, int TotalDePermissoes, bool 
 /// <param name="Permissoes">Permissões gravadas.</param>
 /// <param name="Reservado">Se é reservado da plataforma.</param>
 /// <param name="TotalDeMembros">Quantidade de membros.</param>
-public sealed record PerfilDoTenantDetalheDto(string Nome, IReadOnlyList<string> Permissoes, bool Reservado, int TotalDeMembros);
+/// <param name="PermissoesForaDoCatalogo">
+/// Gravadas no perfil, mas que nenhum produto declara no catálogo (ADR-0039 da plataforma): não
+/// concedem nada e só saem por ação do admin.
+/// </param>
+public sealed record PerfilDoTenantDetalheDto(
+	string Nome,
+	IReadOnlyList<string> Permissoes,
+	bool Reservado,
+	int TotalDeMembros,
+	IReadOnlyList<string> PermissoesForaDoCatalogo);
+
+/// <summary>Uma permissão declarada por um produto no catálogo do SecureGate.</summary>
+/// <param name="Nome">Nome canônico (<c>recurso:acao</c>).</param>
+/// <param name="Descricao">O que ela concede, como o produto descreveu.</param>
+public sealed record PermissaoDoCatalogoDto(string Nome, string Descricao);
+
+/// <summary>As permissões que um produto publicou no catálogo do SecureGate.</summary>
+/// <param name="Produto">Produto (ex.: <c>compras</c>).</param>
+/// <param name="Permissoes">Permissões do produto.</param>
+public sealed record ProdutoDoCatalogoDto(string Produto, IReadOnlyList<PermissaoDoCatalogoDto> Permissoes);
 
 /// <summary>Detalhe de uma pessoa do tenant administrado.</summary>
 /// <param name="Id">Id no SecureGate.</param>

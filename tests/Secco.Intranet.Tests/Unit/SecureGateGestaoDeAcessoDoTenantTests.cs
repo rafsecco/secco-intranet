@@ -57,6 +57,27 @@ public class SecureGateGestaoDeAcessoDoTenantTests
 		public override async Task DeleteRoleAsync(Guid tenantId, string role, CancellationToken cancellationToken) =>
 			await Registrar($"DeleteRole:{tenantId}:{role}");
 
+		public ICollection<ProductPermissionCatalogDto> Catalogo { get; set; } = [];
+
+		public RoleDetailDto? Papel { get; set; }
+
+		public override async Task<ICollection<ProductPermissionCatalogDto>> ListPermissionCatalogAsync(CancellationToken cancellationToken)
+		{
+			await Registrar("ListPermissionCatalog");
+
+			return Catalogo;
+		}
+
+		public override async Task<RoleDetailDto> GetRoleAsync(Guid tenantId, string role, CancellationToken cancellationToken)
+		{
+			await Registrar($"GetRole:{tenantId}:{role}");
+
+			return Papel!;
+		}
+
+		public override async Task AddUserRoleAsync(Guid tenantId, Guid userId, string role, CancellationToken cancellationToken) =>
+			await Registrar($"AddUserRole:{tenantId}:{userId}:{role}");
+
 		public override async Task SetRolePermissionsAsync(
 			Guid tenantId, string role, SetRolePermissionsRequest body, CancellationToken cancellationToken) =>
 			await Registrar($"SetRolePermissions:{tenantId}:{role}");
@@ -164,5 +185,50 @@ public class SecureGateGestaoDeAcessoDoTenantTests
 		client.Falha = Api(409);
 
 		(await gestao.ReenviarConviteAsync(Alvo, Guid.NewGuid())).Error.Should().Be(IntranetErrors.Acesso.ConviteNaoCabe);
+	}
+
+	[Fact]
+	public async Task ListarCatalogo_AgrupaPorProduto_ComADescricao()
+	{
+		var (gestao, client) = Criar();
+		client.Catalogo =
+		[
+			new ProductPermissionCatalogDto
+			{
+				Product = "compras",
+				Permissions = [new PermissionDefinitionDto { Name = "pedido:aprovar", Description = "Aprovar pedidos" }],
+			},
+		];
+
+		var catalogo = await gestao.ListarCatalogoDePermissoesAsync();
+
+		catalogo.Value.Should().ContainSingle().Which.Should().BeEquivalentTo(
+			new ProdutoDoCatalogoDto("compras", [new PermissaoDoCatalogoDto("pedido:aprovar", "Aprovar pedidos")]));
+	}
+
+	[Fact]
+	public async Task ObterPerfil_TrazAsPermissoesForaDoCatalogo()
+	{
+		var (gestao, client) = Criar();
+		client.Papel = new RoleDetailDto
+		{
+			Name = "aprovador", Permissions = ["pedido:aprovar", "pedido:antigo"], UnknownPermissions = ["pedido:antigo"],
+		};
+
+		var perfil = await gestao.ObterPerfilAsync(Alvo, "aprovador");
+
+		perfil.Value.PermissoesForaDoCatalogo.Should().Equal("pedido:antigo");
+	}
+
+	[Fact]
+	public async Task AtribuirPerfil_PessoaQueNaoEMembro_ViraErroProprio()
+	{
+		var (gestao, client) = Criar();
+		client.Falha = new ApiException<ProblemDetails>(
+			"erro", 409, null!, new Dictionary<string, IEnumerable<string>>(),
+			new ProblemDetails { Title = "SecureGate.Member.NotMember", Status = 409 }, null!);
+
+		(await gestao.AtribuirPerfilAsync(Alvo, Guid.NewGuid(), "aprovador"))
+			.Error.Should().Be(IntranetErrors.Acesso.PessoaNaoEMembro);
 	}
 }

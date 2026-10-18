@@ -8,6 +8,7 @@ using Secco.Intranet.Tests.Integration.TestAuthentication;
 using Secco.Intranet.Tests.Support;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SharedKernel.Constants;
+using Secco.Intranet.Application.Tenants.Acesso;
 using Xunit;
 
 namespace Secco.Intranet.Tests.Integration;
@@ -34,7 +35,10 @@ public class TenantsAcessoTelasTests(IntranetWebFactory factory) : IClassFixture
 			.ComTenant(_ligado, $"lig-{_ligado:N}"[..20])
 			.ComTenant(_desligado, $"des-{_desligado:N}"[..20]);
 		factory.GestaoDeTenants = _tenants;
-		_acesso = new GestaoDeAcessoDoTenantFalsa()
+		_acesso = new GestaoDeAcessoDoTenantFalsa
+		{
+			Catalogo = [new ProdutoDoCatalogoDto("compras", [new PermissaoDoCatalogoDto("pedido:aprovar", "Aprovar pedidos")])],
+		}
 			.ComPerfil("compras.aprovador", false, "pedido:aprovar")
 			.ComUsuario(Pessoa, "ana@compras.com", SituacaoDoUsuario.Ativo);
 		factory.GestaoDeAcessoDoTenant = _acesso;
@@ -77,12 +81,14 @@ public class TenantsAcessoTelasTests(IntranetWebFactory factory) : IClassFixture
 	}
 
 	[Fact]
-	public async Task Perfil_PermissoesEmTextoUmaPorLinha()
+	public async Task Perfil_PermissoesEmCaixasDoCatalogo_AgrupadasPorProduto()
 	{
 		var html = AuxiliaresDeHttp.Decodificar(
 			await Cliente(Admin, "intranet-admin").GetStringAsync($"/tenants/{_ligado}/acesso/perfis/compras.aprovador"));
 
-		html.Should().Contain("<textarea").And.Contain("pedido:aprovar");
+		html.Should().Contain("type=\"checkbox\" name=\"permissoes\" value=\"pedido:aprovar\"")
+			.And.Contain("Aprovar pedidos").And.Contain("compras")
+			.And.NotContain("<textarea");
 	}
 
 	[Fact]
@@ -169,5 +175,16 @@ public class TenantsAcessoTelasTests(IntranetWebFactory factory) : IClassFixture
 
 		html.Should().Contain("value=\"compras.aprovador\"", "o perfil comum tem o botão Retirar");
 		html.Should().NotContain("value=\"installation-operator\"", "perfil reservado não é retirável pela Intranet");
+	}
+
+	[Fact]
+	public async Task Perfil_PermissaoForaDoCatalogo_AparecaAParteParaSerRetirada()
+	{
+		_acesso.ComPerfil("legado", false, "pedido:aprovar", "pedido:antigo");
+
+		var html = AuxiliaresDeHttp.Decodificar(
+			await Cliente(Admin, "intranet-admin").GetStringAsync($"/tenants/{_ligado}/acesso/perfis/legado"));
+
+		html.Should().Contain("Fora do catálogo").And.Contain("value=\"pedido:antigo\"");
 	}
 }

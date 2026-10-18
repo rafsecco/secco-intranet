@@ -255,6 +255,15 @@ public static class IntranetErrors
 				"Intranet.Acesso.PermissoesForaDoCatalogo",
 				"O SecureGate recusou permissões que nenhum sistema declarou no catálogo. Confira a grafia, ou se o sistema já publicou o catálogo dele.");
 
+		/// <summary>
+		/// A pessoa não é membro do tenant em que se tentou atribuir ou retirar perfil (ADR-0040 da
+		/// plataforma): perfis são por vínculo, e o vínculo vem antes.
+		/// </summary>
+		public static readonly Error PessoaNaoEMembro =
+			Error.Conflict(
+				"Intranet.Acesso.PessoaNaoEMembro",
+				"Esta pessoa não é membro deste sistema. Inclua-a como membro antes de dar ou tirar perfis.");
+
 		/// <summary>Mais permissões do que o limite por perfil.</summary>
 		public static readonly Error PermissoesDemais =
 			Error.Validation("Intranet.Acesso.PermissoesDemais", "Um perfil aceita no máximo 200 permissões.");

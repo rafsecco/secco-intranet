@@ -8,7 +8,12 @@ namespace Secco.Intranet.Application.Tenants.Acesso;
 /// <param name="Perfil">Detalhe.</param>
 /// <param name="Membros">Página de membros.</param>
 /// <param name="Candidatos">Pessoas ativas que ainda não têm o perfil.</param>
-public sealed record PerfilDoTenantTelaDto(PerfilDoTenantDetalheDto Perfil, PaginaDeMembros Membros, IReadOnlyList<UsuarioDto> Candidatos);
+/// <param name="Catalogo">Catálogo de permissões da instalação, por produto — as caixas da tela.</param>
+public sealed record PerfilDoTenantTelaDto(
+	PerfilDoTenantDetalheDto Perfil,
+	PaginaDeMembros Membros,
+	IReadOnlyList<UsuarioDto> Candidatos,
+	IReadOnlyList<ProdutoDoCatalogoDto> Catalogo);
 
 /// <summary>Tela de uma pessoa do tenant administrado.</summary>
 /// <param name="Usuario">Detalhe.</param>
@@ -68,7 +73,14 @@ public sealed class LeituraDoAcessoDoTenantHandler(IGestaoDeAcessoDoTenant gesta
 				.OrderBy(u => u.Email, StringComparer.OrdinalIgnoreCase),
 		];
 
-		return Result.Success(new PerfilDoTenantTelaDto(perfil.Value, membros.Value, candidatos));
+		var catalogo = await gestao.ListarCatalogoDePermissoesAsync(cancellationToken).ConfigureAwait(false);
+
+		if (catalogo.IsFailure)
+		{
+			return Result.Failure<PerfilDoTenantTelaDto>(catalogo.Error);
+		}
+
+		return Result.Success(new PerfilDoTenantTelaDto(perfil.Value, membros.Value, candidatos, catalogo.Value));
 	}
 
 	/// <summary>Pessoas com busca por e-mail e paginação em memória (a plataforma devolve o tenant inteiro).</summary>

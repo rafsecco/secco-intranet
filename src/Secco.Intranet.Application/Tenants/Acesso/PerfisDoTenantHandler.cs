@@ -72,10 +72,11 @@ public sealed class PerfisDoTenantHandler(IGestaoDeAcessoDoTenant gestao, ITrilh
 		return excluido;
 	}
 
-	/// <summary>Substitui a lista de permissões pelo texto (uma por linha).</summary>
-	public async Task<Result> DefinirPermissoesAsync(Guid tenantId, string? nome, string? texto, CancellationToken cancellationToken = default)
+	/// <summary>Substitui a lista de permissões do perfil pelas marcadas.</summary>
+	public async Task<Result> DefinirPermissoesAsync(
+		Guid tenantId, string? nome, IReadOnlyCollection<string>? permissoes, CancellationToken cancellationToken = default)
 	{
-		var lista = ListaDePermissoes.Ler(texto);
+		var lista = ListaDePermissoes.Ler(permissoes);
 
 		if (lista.IsFailure)
 		{

@@ -80,7 +80,7 @@ public class PerfisDoTenantHandlerTests
 	{
 		var (handler, gestao, _) = Criar();
 
-		var definido = await handler.DefinirPermissoesAsync(Tenant, "compras-aprovador", "pedido:aprovar\npedido:aprovra mais\nPEDIDO:LER");
+		var definido = await handler.DefinirPermissoesAsync(Tenant, "compras-aprovador", ["pedido:aprovar", "pedido:aprovra mais", "PEDIDO:LER"]);
 
 		definido.Error.Code.Should().Be("Intranet.Acesso.PermissoesInvalidas");
 		definido.Error.Description.Should().Contain("pedido:aprovra mais").And.Contain("PEDIDO:LER");
@@ -92,7 +92,7 @@ public class PerfisDoTenantHandlerTests
 	{
 		var (handler, gestao, trilha) = Criar();
 
-		var definido = await handler.DefinirPermissoesAsync(Tenant, "compras-aprovador", "pedido:aprovar\r\n\r\n  pedido:ler  \npedido:aprovar\n");
+		var definido = await handler.DefinirPermissoesAsync(Tenant, "compras-aprovador", ["pedido:aprovar", "", "  pedido:ler  ", "pedido:aprovar"]);
 
 		definido.IsSuccess.Should().BeTrue();
 		gestao.PermissoesDe("compras-aprovador").Should().Equal("pedido:aprovar", "pedido:ler");
@@ -106,16 +106,16 @@ public class PerfisDoTenantHandlerTests
 	{
 		var (handler, gestao, _) = Criar();
 
-		(await handler.DefinirPermissoesAsync(Tenant, "compras-aprovador", "  \n\t\n")).IsSuccess.Should().BeTrue();
+		(await handler.DefinirPermissoesAsync(Tenant, "compras-aprovador", ["  ", "\t"])).IsSuccess.Should().BeTrue();
 		gestao.PermissoesDe("compras-aprovador").Should().BeEmpty();
 	}
 
 	[Fact]
 	public void Permissoes_AcimaDoLimite_Recusa()
 	{
-		var texto = string.Join('\n', Enumerable.Range(1, ListaDePermissoes.Maximo + 1).Select(i => $"recurso-{i}:ler"));
+		var permissoes = Enumerable.Range(1, ListaDePermissoes.Maximo + 1).Select(i => $"recurso-{i}:ler").ToList();
 
-		ListaDePermissoes.Ler(texto).Error.Should().Be(IntranetErrors.Acesso.PermissoesDemais);
+		ListaDePermissoes.Ler(permissoes).Error.Should().Be(IntranetErrors.Acesso.PermissoesDemais);
 	}
 
 	[Fact]
@@ -126,7 +126,7 @@ public class PerfisDoTenantHandlerTests
 		var handler = new PerfisDoTenantHandler(gestao, trilha);
 
 		(await handler.ExcluirAsync(Tenant, "marcado-pela-plataforma")).Error.Should().Be(IntranetErrors.Acesso.PerfilReservado);
-		(await handler.DefinirPermissoesAsync(Tenant, "marcado-pela-plataforma", "a:b")).Error.Should().Be(IntranetErrors.Acesso.PerfilReservado);
+		(await handler.DefinirPermissoesAsync(Tenant, "marcado-pela-plataforma", ["a:b"])).Error.Should().Be(IntranetErrors.Acesso.PerfilReservado);
 		gestao.Chamadas.Should().NotContain(c => c.StartsWith("excluirPerfil", StringComparison.Ordinal) || c.StartsWith("definirPermissoes", StringComparison.Ordinal));
 	}
 

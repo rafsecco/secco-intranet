@@ -100,7 +100,7 @@ public sealed class TenantsAcessoController(
 	[HttpPost("perfis/{nome}/permissoes")]
 	[ValidateAntiForgeryToken]
 	public async Task<IActionResult> EditarPermissoes(
-		[FromRoute] Guid tenantId, [FromRoute] string nome, string? permissoes, CancellationToken cancellationToken = default) =>
+		[FromRoute] Guid tenantId, [FromRoute] string nome, string[]? permissoes, CancellationToken cancellationToken = default) =>
 		Concluir(await perfis.DefinirPermissoesAsync(tenantId, nome, permissoes, cancellationToken),
 			"Permissões salvas.", Url.Action(nameof(Perfil), new { tenantId, nome })!);
 

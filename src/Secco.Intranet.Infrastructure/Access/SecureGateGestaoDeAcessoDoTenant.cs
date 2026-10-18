@@ -20,6 +20,32 @@ public sealed class SecureGateGestaoDeAcessoDoTenant(
 {
 	private const int TamanhoDaPaginaDeMembros = 100;
 	private const string PerfilUsadoPorClients = "SecureGate.Role.UsedByClients";
+	private const string NaoEMembro = "SecureGate.Member.NotMember";
+
+	/// <inheritdoc />
+	public Task<Result<IReadOnlyList<ProdutoDoCatalogoDto>>> ListarCatalogoDePermissoesAsync(CancellationToken cancellationToken = default) =>
+		OperacoesDeAcessoNoSecureGate.LerAsync<IReadOnlyList<ProdutoDoCatalogoDto>>(
+			logger,
+			"listar catalogo de permissoes",
+			async token =>
+			{
+				var produtos = await client.ListPermissionCatalogAsync(token).ConfigureAwait(false);
+
+				return
+				[
+					.. produtos
+						.OrderBy(produto => produto.Product, StringComparer.Ordinal)
+						.Select(produto => new ProdutoDoCatalogoDto(
+							produto.Product,
+							[.. (produto.Permissions ?? []).Select(p => new PermissaoDoCatalogoDto(p.Name, p.Description))])),
+				];
+			},
+			null,
+			cancellationToken);
+
+	// Atribuir ou retirar perfil de quem não é membro do tenant: 409 com motivo próprio (ADR-0040).
+	private static Error? NaoEMembroOu(ApiException excecao, Error? outroConflito) =>
+		OperacoesDeAcessoNoSecureGate.TemCodigo(excecao, NaoEMembro) ? IntranetErrors.Acesso.PessoaNaoEMembro : outroConflito;
 
 	/// <inheritdoc />
 	public Task<Result<IReadOnlyList<PerfilDoTenantDto>>> ListarPerfisAsync(Guid tenantId, CancellationToken cancellationToken = default) =>
@@ -44,7 +70,8 @@ public sealed class SecureGateGestaoDeAcessoDoTenant(
 			{
 				var papel = await client.GetRoleAsync(tenantId, nome, token).ConfigureAwait(false);
 
-				return new PerfilDoTenantDetalheDto(papel.Name, [.. papel.Permissions ?? []], papel.IsReserved, papel.MemberCount);
+				return new PerfilDoTenantDetalheDto(
+					papel.Name, [.. papel.Permissions ?? []], papel.IsReserved, papel.MemberCount, [.. papel.UnknownPermissions ?? []]);
 			},
 			IntranetErrors.Acesso.PerfilNaoEncontrado,
 			cancellationToken);
@@ -154,14 +181,16 @@ public sealed class SecureGateGestaoDeAcessoDoTenant(
 		OperacoesDeAcessoNoSecureGate.EscreverAsync(
 			logger, "atribuir perfil no tenant",
 			token => client.AddUserRoleAsync(tenantId, usuarioId, perfil, token),
-			IntranetErrors.Acesso.UsuarioNaoEncontrado, null, cancellationToken);
+			IntranetErrors.Acesso.UsuarioNaoEncontrado, excecao => NaoEMembroOu(excecao, null), cancellationToken);
 
 	/// <inheritdoc />
 	public Task<Result> RetirarPerfilAsync(Guid tenantId, Guid usuarioId, string perfil, CancellationToken cancellationToken = default) =>
 		OperacoesDeAcessoNoSecureGate.EscreverAsync(
 			logger, "retirar perfil no tenant",
 			token => client.RemoveUserRoleAsync(tenantId, usuarioId, perfil, token),
-			IntranetErrors.Acesso.UsuarioNaoEncontrado, _ => IntranetErrors.Acesso.RetiradaRecusada, cancellationToken);
+			IntranetErrors.Acesso.UsuarioNaoEncontrado,
+			excecao => NaoEMembroOu(excecao, IntranetErrors.Acesso.RetiradaRecusada),
+			cancellationToken);
 
 	/// <inheritdoc />
 	public Task<Result<Guid>> CadastrarUsuarioAsync(Guid tenantId, NovoUsuarioDoTenant novo, CancellationToken cancellationToken = default)

@@ -11,6 +11,10 @@ public sealed class GestaoDeAcessoDoTenantIndisponivel : IGestaoDeAcessoDoTenant
 	private static readonly Error Erro = IntranetErrors.Acesso.NaoConfigurado;
 
 	/// <inheritdoc />
+	public Task<Result<IReadOnlyList<ProdutoDoCatalogoDto>>> ListarCatalogoDePermissoesAsync(CancellationToken cancellationToken = default) =>
+		Task.FromResult(Result.Failure<IReadOnlyList<ProdutoDoCatalogoDto>>(Erro));
+
+	/// <inheritdoc />
 	public Task<Result<IReadOnlyList<PerfilDoTenantDto>>> ListarPerfisAsync(Guid tenantId, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Result.Failure<IReadOnlyList<PerfilDoTenantDto>>(Erro));
 
