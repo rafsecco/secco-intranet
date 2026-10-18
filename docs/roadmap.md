@@ -146,13 +146,15 @@ processos (maior risco técnico) só entra com a base já sólida.
         por [secco-platform#31](https://github.com/rafsecco/secco-platform/issues/31)
         (`Secco.SecureGate.Client` 0.15.0). Os papéis do client são perfis do tenant, então vem
         depois do subsistema 2
-  - [ ] Adotar a ADR-0040 da plataforma
-        ([secco-platform#35](https://github.com/rafsecco/secco-platform/issues/35)): no subsistema
-        2, incluir como membro quem já tem conta, e suspender/remover vínculo no lugar das ações de
-        conta para quem é de outro tenant; client de login do tenant da Intranet (criado pela API)
-        no lugar do client de plataforma de `Intranet:Login`; Área administrativa chamando o
-        SecureGate em nome do operador logado, em vez do client de máquina com `securegate:admin`.
-        Exige spec e revisão da ADR-0008. Vem antes do subsistema 4
+  - [x] Adotar a ADR-0040 da plataforma
+        ([secco-platform#35](https://github.com/rafsecco/secco-platform/issues/35)) — decisões na
+        [ADR-0009](adr/secco-intranet-adrs.md): o subsistema 2 inclui como membro quem já tem conta
+        na instalação, mostra o vínculo (dono, membro, suspenso) e troca as ações de conta por
+        suspender/reativar/remover vínculo para quem é de outro tenant. O login segue no client de
+        plataforma (a Intranet é o tenant dono dos funcionários)
+  - [ ] ⛔ Área administrativa on-behalf-of o `intranet-admin`, em vez do client de máquina com
+        `securegate:admin` — falta a autoridade de admin de tenant na plataforma:
+        [secco-platform#37](https://github.com/rafsecco/secco-platform/issues/37)
   - [x] Adotar o catálogo de permissões (ADR-0039,
         [secco-platform#33](https://github.com/rafsecco/secco-platform/issues/33)): catálogo
         estático da Intranet publicado no `migrate` (escopo `permissions:intranet`), e caixas por

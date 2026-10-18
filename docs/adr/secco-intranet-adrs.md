@@ -5,7 +5,7 @@
 > Para mudar uma decisão, cria-se uma nova ADR que **substitui** a anterior — ADRs nunca são editadas retroativamente nem apagadas.
 > Decisões da plataforma (multi-tenancy, `Result<T>`, nomenclatura de banco...) estão em `secco-platform/docs/adr/secco-platform-adrs.md` — este documento cobre apenas decisões específicas deste produto.
 
-**Última atualização:** 2026-09-02 (ADR-0006 e ADR-0007 adicionadas)
+**Última atualização:** 2026-10-17 (ADR-0009 adicionada)
 
 ---
 
@@ -424,3 +424,60 @@ administrativo já configurado em `IntranetInfrastructureExtensions.cs`, e tudo 
 `intranet-admin`. Fica reconhecido, sem resolver agora, que atribuir uma Role a um **grupo**
 do AD/EntraID depende de federação AD/Entra no SecureGate — capacidade que ainda não existe
 e já está registrada na Fase 4 do roadmap; segue no mesmo trilho, sem mudança.
+
+---
+
+## ADR-0009: Adoção da pessoa em vários tenants (ADR-0040 da plataforma)
+
+**Status:** Aceita
+**Data:** 2026-10-17
+
+### Contexto
+A ADR-0040 da plataforma ([secco-platform#35](https://github.com/rafsecco/secco-platform/issues/35),
+`Secco.SecureGate.Client` 0.17.0) trocou "uma pessoa, um tenant" por **uma conta por pessoa,
+membro de vários tenants**. O tenant do login passa a vir da aplicação: um client interativo
+vinculado a tenant emite sempre para ele, e um client sem vínculo (de plataforma) emite para o
+**tenant dono** da conta. Operações sobre a pessoa (convite, senha, segundo fator, ativar e
+desativar, encerrar sessões) só valem pelo tenant dono. Pelos demais, valem só as operações do
+**vínculo**: incluir, suspender, reativar, remover e dar ou tirar perfil.
+
+A issue recomendou dois clients interativos na Intranet: o do tenant dela, para os funcionários, e
+um de plataforma, para a área administrativa chamar o SecureGate on-behalf-of a pessoa. A leitura
+da ADR-0040 mostrou que a segunda parte não serve a este produto. O token de pessoa só sai com
+`securegate:admin` para **operador de instalação** (tenant de plataforma, conta dele). Quem cria e
+administra os sistemas da empresa é o `intranet-admin` (ADR-0008, confirmado pelo dono do produto
+em 2026-10-17), uma pessoa do tenant da Intranet. Para ela, a plataforma não emite token com poder
+administrativo nenhum.
+
+### Decisão
+1. **A área administrativa continua com o client de máquina com `securegate:admin`.** Chamar em nome
+   do `intranet-admin` não é possível hoje. Restringir a área ao operador de instalação mudaria quem
+   administra, e o dono do produto decidiu o contrário. A autoridade que falta (admin de tenant,
+   on-behalf-of, hierarquia da ADR-0030) foi pedida na
+   [secco-platform#37](https://github.com/rafsecco/secco-platform/issues/37). As mitigações seguem as
+   do subsistema 1 da Área de tenants: `intranet-admin` com segundo fator, cadastro local como lista
+   de permissão e trilha com o ator humano.
+2. **O login continua com o client de plataforma de `Intranet:Login`** (sem vínculo, emite para o
+   tenant dono). A Intranet é o **tenant dono** dos funcionários: as pessoas nascem nela e são
+   incluídas como membros nos tenants dos outros sistemas. Uma pessoa de outro tenant dono que tente
+   entrar na Intranet recebe um token de outro tenant, que a tenancy da Intranet recusa por não estar
+   no catálogo dela (fail-closed). Trocar pelo client vinculado ao tenant exigiria decidir o tenant
+   antes do login, numa instalação em que a mesma Intranet serve vários tenants (um banco por tenant,
+   ADR-0005). Não há caso de uso que pague essa mudança hoje.
+3. **O subsistema 2 da Área de tenants passa a trabalhar com vínculos.**
+   - **Adicionar pessoa:** se o e-mail ainda não existe na instalação, cadastra como hoje (convite ou
+     só pelo Entra), e a pessoa fica com o tenant administrado como dono. Se já existe, **inclui como
+     membro** e atribui os perfis escolhidos; a credencial dela não muda.
+   - **Na lista e no detalhe**, cada pessoa mostra o vínculo: dono, membro ou suspenso.
+   - **Para o dono**, as ações de conta seguem como estão. **Para membro ou suspenso**, elas dão lugar a
+     **suspender, reativar e remover o vínculo**. Remover apaga os perfis da pessoa naquele tenant.
+4. **O `/acesso` da própria Intranet não muda.** Lá todos são donos, pelo item 2.
+
+### Consequências
+- Funcionário da Intranet entra no "Sistema de compras" pelo SSO da plataforma, desde que o Compras
+  tenha o próprio client interativo vinculado ao tenant dele (subsistema 4 da Área de tenants).
+- Suspender ou remover um vínculo derruba os tokens da pessoa em todos os sistemas até o próximo
+  login silencioso (ADR-0040, `SecurityStamp`). A tela avisa.
+- O raio de dano do client de máquina não diminui. Quando a #37 for entregue, esta ADR é revista.
+- Pessoa cujo tenant dono não é o da Intranet não entra na Intranet. Se isso virar caso de uso, a
+  saída é o client vinculado a tenant do item 2, com a decisão de tenant antes do login.
