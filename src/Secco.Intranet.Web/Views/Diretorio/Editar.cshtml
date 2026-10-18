@@ -9,9 +9,13 @@
         $"Editar {pessoa.Nome}",
         pessoa.Email,
         Acoes: new[] { new PageActionModel("Voltar", Url.Action("Pessoa", new { id = pessoa.UsuarioId })!, "bi-arrow-left") });
+
+    var foto = new EnviarFotoViewModel(Url.Action("EnviarFoto", new { id = pessoa.UsuarioId })!, Url.Action("RemoverFoto", new { id = pessoa.UsuarioId })!, pessoa.TemFoto);
 }
 
 <partial name="_PageHeader" model="cabecalho" />
+
+<partial name="_EnviarFoto" model="foto" />
 
 <form method="post" asp-action="Editar" asp-route-id="@pessoa.UsuarioId" class="sc-panel">
     <div asp-validation-summary="All" class="text-danger mb-3"></div>
@@ -69,3 +73,9 @@
 
     <button class="btn btn-primary" type="submit">Salvar</button>
 </form>
+
+@section Scripts {
+    <link rel="stylesheet" href="~/_content/Secco.Intranet.Themes.Vertical/vendor/css/cropper.min.css" asp-append-version="true" />
+    <script src="~/_content/Secco.Intranet.Themes.Vertical/vendor/js/cropper.min.js" asp-append-version="true"></script>
+    <script src="~/_content/Secco.Intranet.Themes.Vertical/js/recorte-foto.js" asp-append-version="true"></script>
+}

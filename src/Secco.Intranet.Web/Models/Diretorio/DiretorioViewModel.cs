@@ -33,3 +33,9 @@ public sealed record MeuPerfilViewModel(PessoaDto Pessoa, EditarContatoForm Form
 /// <param name="Dados">Pessoa, setores e possíveis gestores.</param>
 /// <param name="Form">Formulário completo.</param>
 public sealed record EditarPessoaViewModel(PessoaParaEdicaoDto Dados, EditarPessoaForm Form);
+
+/// <summary>Modelo do formulário de envio da foto, reaproveitado no perfil próprio e na edição pelo admin.</summary>
+/// <param name="AcaoEnviar">URL que recebe o envio (com recorte).</param>
+/// <param name="AcaoRemover">URL que remove a foto.</param>
+/// <param name="TemFoto">Se já há foto; só então o botão de remover aparece.</param>
+public sealed record EnviarFotoViewModel(string AcaoEnviar, string AcaoRemover, bool TemFoto);

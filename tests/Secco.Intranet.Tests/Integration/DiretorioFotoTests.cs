@@ -263,4 +263,53 @@ public class DiretorioFotoTests(IntranetWebFactory factory) : IClassFixture<Intr
 		html.Should().Contain(tema == "Horizontal" ? "sc-topnav" : "sc-sidebar", "garante que o tema trocou de fato");
 		html.Should().Contain($"<img class=\"sc-avatar sc-avatar--lg\" src=\"/diretorio/{eu}/foto\"");
 	}
+
+	[Fact]
+	public async Task Perfil_MostraOFormularioDeFoto_ComOsCamposDeRecorte()
+	{
+		var eu = Guid.NewGuid();
+		var client = CriarCliente(new UsuariosParaDiretorioFalso().Com(eu, "eu@x.com"), eu, "diretorio-user");
+
+		var html = await client.GetStringAsync("/diretorio/perfil");
+
+		html.Should().Contain("enctype=\"multipart/form-data\"");
+		html.Should().Contain("action=\"/diretorio/perfil/foto\"");
+		html.Should().Contain("name=\"foto\"").And.Contain("accept=\"image/jpeg,image/png,image/webp\"");
+		foreach (var campo in new[] { "x", "y", "largura", "altura" })
+		{
+			html.Should().Contain($"name=\"{campo}\"");
+		}
+
+		html.Should().Contain("recorte-foto.js").And.Contain("cropper.min.js").And.Contain("cropper.min.css");
+		Decodificar(html).Should().Contain("JPEG, PNG ou WebP, até 10 MB");
+	}
+
+	[Fact]
+	public async Task Editar_AdminVeOFormularioDeFotoDaPessoa()
+	{
+		var admin = Guid.NewGuid();
+		var alvo = Guid.NewGuid();
+		var usuarios = new UsuariosParaDiretorioFalso().Com(admin, "admin@x.com").Com(alvo, "alvo@x.com");
+		var client = CriarCliente(usuarios, admin, "diretorio-admin");
+
+		var html = await client.GetStringAsync($"/diretorio/{alvo}/editar");
+
+		html.Should().Contain($"action=\"/diretorio/{alvo}/foto\"");
+		html.Should().Contain("name=\"foto\"").And.Contain("recorte-foto.js");
+		html.Should().NotContain($"/diretorio/{alvo}/foto/remover", "ainda não há foto");
+	}
+
+	[Fact]
+	public async Task Perfil_SemFoto_NaoOfereceRemover_EComFotoOferece()
+	{
+		var eu = Guid.NewGuid();
+		var client = CriarCliente(new UsuariosParaDiretorioFalso().Com(eu, "eu@x.com"), eu, "diretorio-user");
+
+		(await client.GetStringAsync("/diretorio/perfil")).Should().NotContain("/diretorio/perfil/foto/remover");
+
+		await EnviarPropriaAsync(client);
+		var html = await client.GetStringAsync("/diretorio/perfil");
+
+		html.Should().Contain("action=\"/diretorio/perfil/foto/remover\"").And.Contain("data-confirmar");
+	}
 }

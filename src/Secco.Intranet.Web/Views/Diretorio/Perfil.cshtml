@@ -7,9 +7,13 @@
         "Meu perfil",
         "Seu contato no diretório. Cargo, setor e gestor são mantidos pelo administrador do diretório.",
         Acoes: new[] { new PageActionModel("Ver como os outros veem", Url.Action("Pessoa", new { id = Model.Pessoa.UsuarioId })!, "bi-eye") });
+
+    var foto = new EnviarFotoViewModel(Url.Action("EnviarFotoPropria")!, Url.Action("RemoverFotoPropria")!, Model.Pessoa.TemFoto);
 }
 
 <partial name="_PageHeader" model="cabecalho" />
+
+<partial name="_EnviarFoto" model="foto" />
 
 <form method="post" asp-action="Perfil" class="sc-panel">
     <div asp-validation-summary="All" class="text-danger mb-3"></div>
@@ -41,3 +45,9 @@
 
     <button class="btn btn-primary" type="submit">Salvar</button>
 </form>
+
+@section Scripts {
+    <link rel="stylesheet" href="~/_content/Secco.Intranet.Themes.Vertical/vendor/css/cropper.min.css" asp-append-version="true" />
+    <script src="~/_content/Secco.Intranet.Themes.Vertical/vendor/js/cropper.min.js" asp-append-version="true"></script>
+    <script src="~/_content/Secco.Intranet.Themes.Vertical/js/recorte-foto.js" asp-append-version="true"></script>
+}

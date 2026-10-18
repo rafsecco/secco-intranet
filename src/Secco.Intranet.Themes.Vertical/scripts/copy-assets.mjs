@@ -46,3 +46,9 @@ console.log('vendor/css/toastui-editor.css e toastui-editor-dark.css');
 await mkdir(to('js', 'i18n'), { recursive: true });
 await copyFile(from('@toast-ui/editor/dist/i18n/pt-br.js'), to('js', 'i18n', 'pt-br.js'));
 console.log('vendor/js/i18n/pt-br.js');
+
+// Cropper.js (MIT) recorta a foto do colaborador antes do envio. Script e folha de estilo
+// proprios do Cropper; o comportamento da tela fica em wwwroot/js/recorte-foto.js.
+await copyFile(from('cropperjs/dist/cropper.min.js'), to('js', 'cropper.min.js'));
+await copyFile(from('cropperjs/dist/cropper.min.css'), to('css', 'cropper.min.css'));
+console.log('vendor/js/cropper.min.js e vendor/css/cropper.min.css');
