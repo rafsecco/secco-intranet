@@ -159,9 +159,9 @@ processos (maior risco técnico) só entra com a base já sólida.
         [secco-platform#33](https://github.com/rafsecco/secco-platform/issues/33)): catálogo
         estático da Intranet publicado no `migrate` (escopo `permissions:intranet`), e caixas por
         produto, com as fora do catálogo à parte, no lugar do texto livre da Área de tenants
-  - [ ] ⛔ Criar setor contra um SecureGate com o catálogo: as permissões por setor
-        (`setor-{slug}:read`/`write`) não cabem num catálogo de nomes fixos —
-        [secco-platform#36](https://github.com/rafsecco/secco-platform/issues/36)
+  - [x] Criar setor contra um SecureGate com o catálogo: as permissões por setor saem das
+        famílias `setor-{id}:read`/`write` publicadas no catálogo (ADR-0043 da plataforma,
+        [secco-platform#36](https://github.com/rafsecco/secco-platform/issues/36))
 
 ## Fase 3 — Operacional
 
