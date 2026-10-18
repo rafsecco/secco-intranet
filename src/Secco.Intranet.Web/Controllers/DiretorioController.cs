@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Secco.Intranet.Application.Diretorio;
+using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Models.Acesso;
 using Secco.Intranet.Web.Models.Diretorio;
@@ -24,6 +25,8 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="editarDadosFuncionais">Edição de cargo, setor e gestor.</param>
 /// <param name="montarOrganograma">Organograma por gestor.</param>
 /// <param name="importar">Importação CSV.</param>
+/// <param name="fotoDoColaborador">Envio, remoção e consulta da foto.</param>
+/// <param name="arquivos">Armazenamento cifrado, de onde a foto sai.</param>
 /// <param name="authorizationService">Serviço de autorização do framework (ADR-0021).</param>
 [Route("diretorio")]
 [ExigeNivelNoDiretorio(NivelDeAcessoAoDiretorio.Usuario)]
@@ -35,9 +38,14 @@ public sealed class DiretorioController(
 	EditarDadosFuncionaisHandler editarDadosFuncionais,
 	MontarOrganogramaHandler montarOrganograma,
 	ImportarDiretorioHandler importar,
+	FotoDoColaboradorHandler fotoDoColaborador,
+	IArquivoStore arquivos,
 	IAuthorizationService authorizationService) : Controller
 {
 	private const long LimiteDeBytesDoArquivo = 2 * 1024 * 1024;
+
+	// 10 MB da foto mais folga para o restante do multipart (campos de recorte e token).
+	private const long LimiteDaRequisicaoDaFoto = 10 * 1024 * 1024 + 64 * 1024;
 
 	/// <summary>Grade de pessoas com busca e filtro por setor.</summary>
 	/// <param name="busca">Trecho de nome, cargo, setor ou e-mail.</param>
@@ -223,6 +231,147 @@ public sealed class DiretorioController(
 		var atual = await obterPessoa.HandleAsync(id.Value, cancellationToken);
 
 		return atual.IsFailure ? Falha(atual.Error) : View(new MeuPerfilViewModel(atual.Value.Pessoa, form));
+	}
+
+	/// <summary>
+	/// Troca a foto de quem está logado. O id vem <b>sempre</b> do claim <c>sub</c>; esta rota não
+	/// recebe id algum, então um id forjado no formulário não tem onde entrar.
+	/// </summary>
+	/// <param name="foto">Imagem enviada.</param>
+	/// <param name="x">Esquerda do recorte, em pixels da imagem original.</param>
+	/// <param name="y">Topo do recorte.</param>
+	/// <param name="largura">Largura do recorte.</param>
+	/// <param name="altura">Altura do recorte.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost("perfil/foto")]
+	[ValidateAntiForgeryToken]
+	[RequestSizeLimit(LimiteDaRequisicaoDaFoto)]
+	public async Task<IActionResult> EnviarFotoPropria(IFormFile? foto, int? x, int? y, int? largura, int? altura, CancellationToken cancellationToken = default)
+	{
+		var id = AcessoAoDiretorio.UsuarioId(User);
+
+		if (id is null)
+		{
+			return View("SemUsuario");
+		}
+
+		await DefinirFotoAsync(id.Value, foto, x, y, largura, altura, cancellationToken);
+
+		return RedirectToAction(nameof(Perfil));
+	}
+
+	/// <summary>Tira a foto de quem está logado (volta às iniciais).</summary>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost("perfil/foto/remover")]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> RemoverFotoPropria(CancellationToken cancellationToken = default)
+	{
+		var id = AcessoAoDiretorio.UsuarioId(User);
+
+		if (id is null)
+		{
+			return View("SemUsuario");
+		}
+
+		await RemoverFotoAsync(id.Value, cancellationToken);
+
+		return RedirectToAction(nameof(Perfil));
+	}
+
+	/// <summary>Troca a foto de outra pessoa (admin do diretório).</summary>
+	/// <param name="id">Pessoa dona da foto.</param>
+	/// <param name="foto">Imagem enviada.</param>
+	/// <param name="x">Esquerda do recorte, em pixels da imagem original.</param>
+	/// <param name="y">Topo do recorte.</param>
+	/// <param name="largura">Largura do recorte.</param>
+	/// <param name="altura">Altura do recorte.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost("{id:guid}/foto")]
+	[ExigeNivelNoDiretorio(NivelDeAcessoAoDiretorio.Administrador)]
+	[ValidateAntiForgeryToken]
+	[RequestSizeLimit(LimiteDaRequisicaoDaFoto)]
+	public async Task<IActionResult> EnviarFoto(Guid id, IFormFile? foto, int? x, int? y, int? largura, int? altura, CancellationToken cancellationToken = default)
+	{
+		await DefinirFotoAsync(id, foto, x, y, largura, altura, cancellationToken);
+
+		return RedirectToAction(nameof(Editar), new { id });
+	}
+
+	/// <summary>Tira a foto de outra pessoa (admin do diretório).</summary>
+	/// <param name="id">Pessoa dona da foto.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost("{id:guid}/foto/remover")]
+	[ExigeNivelNoDiretorio(NivelDeAcessoAoDiretorio.Administrador)]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> RemoverFoto(Guid id, CancellationToken cancellationToken = default)
+	{
+		await RemoverFotoAsync(id, cancellationToken);
+
+		return RedirectToAction(nameof(Editar), new { id });
+	}
+
+	/// <summary>
+	/// Entrega a foto decifrada a qualquer pessoa com acesso ao Diretório (o filtro da classe).
+	/// <c>no-cache</c> + <c>ETag</c>: o navegador sempre revalida e leva 304 enquanto a foto não muda;
+	/// <c>private</c> impede cache compartilhado de um conteúdo autenticado.
+	/// </summary>
+	/// <param name="id">Pessoa dona da foto.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpGet("{id:guid}/foto")]
+	public async Task<IActionResult> Foto(Guid id, CancellationToken cancellationToken = default)
+	{
+		var resultado = await fotoDoColaborador.ObterAsync(id, cancellationToken);
+
+		if (resultado.IsFailure)
+		{
+			return resultado.Error.Type == ErrorType.NotFound ? NotFound() : StatusCode(StatusCodes.Status503ServiceUnavailable);
+		}
+
+		var foto = resultado.Value;
+
+		Response.Headers.ETag = foto.ETag;
+		Response.Headers.CacheControl = "private, no-cache";
+		Response.Headers.XContentTypeOptions = "nosniff";
+
+		if (Request.Headers.IfNoneMatch.Any(valor => ETagConfere(valor, foto.ETag)))
+		{
+			return StatusCode(StatusCodes.Status304NotModified);
+		}
+
+		Response.ContentType = foto.ContentType;
+		await arquivos.EscreverEmAsync(foto.CaminhoRelativo, foto.ChaveEmbrulhada, Response.Body, cancellationToken);
+
+		return new EmptyResult();
+	}
+
+	// If-None-Match pode trazer uma lista de validadores, fracos (W/) ou "*".
+	private static bool ETagConfere(string? cabecalho, string etag) =>
+		cabecalho is not null
+		&& cabecalho.Split(',').Select(parte => parte.Trim()).Any(parte => parte == "*" || (parte.StartsWith("W/", StringComparison.Ordinal) ? parte[2..] : parte) == etag);
+
+	private async Task DefinirFotoAsync(Guid usuarioId, IFormFile? foto, int? x, int? y, int? largura, int? altura, CancellationToken cancellationToken)
+	{
+		if (foto is null || foto.Length == 0)
+		{
+			TempData[FeedbackViewComponent.ChaveDaMensagem] = "Escolha uma foto.";
+
+			return;
+		}
+
+		// Coordenadas incompletas: sem recorte, vale o quadrado central.
+		var recorte = x is { } e && y is { } t && largura is { } l && altura is { } a ? new RecorteDaFoto(e, t, l, a) : null;
+
+		await using var upload = foto.OpenReadStream();
+		var resultado = await fotoDoColaborador.DefinirAsync(usuarioId, upload, recorte, cancellationToken);
+
+		TempData[FeedbackViewComponent.ChaveDaMensagem] = resultado.IsSuccess ? "Foto atualizada." : resultado.Error.Description;
+	}
+
+	private async Task RemoverFotoAsync(Guid usuarioId, CancellationToken cancellationToken)
+	{
+		var resultado = await fotoDoColaborador.RemoverAsync(usuarioId, cancellationToken);
+
+		TempData[FeedbackViewComponent.ChaveDaMensagem] = resultado.IsSuccess ? "Foto removida." : resultado.Error.Description;
 	}
 
 	/// <summary>Edição completa de uma pessoa pelo admin do diretório.</summary>

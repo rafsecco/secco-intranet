@@ -74,6 +74,12 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 	public IUsuariosParaDiretorio? UsuariosDoDiretorio { get; set; }
 
 	/// <summary>
+	/// Processador de imagem que o host devolve. Nulo, vale um <see cref="ProcessadorDeImagemFalso"/> novo
+	/// (bytes fixos, sem decodificar nada): os testes de rota não dependem da biblioteca de imagem.
+	/// </summary>
+	public IProcessadorDeImagem? ProcessadorDeImagem { get; set; }
+
+	/// <summary>
 	/// Resolvedor de permissão que o host devolve. Nulo, vale <see cref="ResolvedorPadrao"/> — as
 	/// permissões que <c>diretorio-user</c>/<c>diretorio-admin</c> sempre têm na vida real
 	/// (garantidas por <c>CriarPerfilHandler</c>/<c>ReconciliarPermissoesHandler</c>, Task 6/8),
@@ -128,6 +134,7 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 		services.AddScoped<IGestaoDeTenants>(_ => GestaoDeTenants ?? new GestaoDeTenantsIndisponivel());
 		services.AddScoped<IGestaoDeAcessoDoTenant>(_ => GestaoDeAcessoDoTenant ?? new GestaoDeAcessoDoTenantIndisponivel());
 		services.AddScoped<IUsuariosParaDiretorio>(_ => UsuariosDoDiretorio ?? new UsuariosParaDiretorioIndisponivel());
+		services.AddScoped<IProcessadorDeImagem>(_ => ProcessadorDeImagem ?? new ProcessadorDeImagemFalso());
 		// AddSingleton com fábrica materializa UMA vez e reusa para sempre nesta fábrica de
 		// testes (o host é construído uma vez por classe) — se registrássemos o valor de
 		// ResolvedorDePermissoes direto, a primeira resolução (de qualquer teste da classe)
