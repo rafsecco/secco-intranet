@@ -165,12 +165,12 @@ processos (maior risco técnico) só entra com a base já sólida.
 
 ## Fase 3 — Operacional
 
-- [ ] Foto do colaborador no Diretório — upload, recorte e redução pela SDK de imagem,
-      desbloqueada pelo `Secco.SDK.Imaging` 0.1.0
-      ([secco-platform#29](https://github.com/rafsecco/secco-platform/issues/29), ADR-0042). A
-      etapa 6 da [spec do Diretório](specs/2026-09-24-diretorio-organizacional-design.md) já
-      descreve a funcionalidade; falta o plano. Com a SDK, a mitigação provisória do upload cru
-      deixa de ser necessária
+- [x] Foto do colaborador no Diretório — upload, recorte e redução pela SDK de imagem
+      (`Secco.SDK.Imaging` 0.1.0, [secco-platform#29](https://github.com/rafsecco/secco-platform/issues/29),
+      ADR-0042). Variante única de 256 px em WebP, guardada cifrada na pasta lógica
+      `diretorio/fotos`; recorte com Cropper.js no tema Vertical. Etapa 6 da
+      [spec do Diretório](specs/2026-09-24-diretorio-organizacional-design.md); plano em
+      [plans/2026-10-18-foto-do-colaborador.md](plans/2026-10-18-foto-do-colaborador.md)
 - [ ] Recurso de aviso de vencimento (`ItemVencimento` + `AvisoAntecedencia`, múltiplos
       avisos escalonados) — ex: renovação de certificado
 - [ ] RH self-service (férias, holerites) — pode reaproveitar o motor de processos da

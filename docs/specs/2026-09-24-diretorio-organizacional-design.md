@@ -192,6 +192,8 @@ JavaScript e funciona nos dois temas).
 
 ## Foto (última etapa, depende de secco-platform#29)
 
+**Implementada** (plano [2026-10-18-foto-do-colaborador](../plans/2026-10-18-foto-do-colaborador.md)) com o `Secco.SDK.Imaging` 0.1.0 (ADR-0042 da plataforma, secco-platform#29): variante única `foto`, lado máximo de 256 px, WebP, sem metadados, orientação EXIF aplicada. Guardada cifrada pelo mesmo `IArquivoStore`, na pasta lógica `diretorio/fotos`; o upload original é descartado. Rotas: `POST /diretorio/perfil/foto` e `/diretorio/perfil/foto/remover` (a própria), `POST /diretorio/{id}/foto` e `/diretorio/{id}/foto/remover` (admin do diretório) e `GET /diretorio/{id}/foto` (autenticados, `ETag`/304, `Cache-Control: private`, `nosniff`). Recorte com Cropper.js 1.6.2 (MIT) embutido no tema Vertical; sem JavaScript, usa-se o quadrado central. O partial `_Avatar` (foto ou iniciais) existe nos dois temas. O texto abaixo é o desenho original.
+
 O avatar por iniciais continua como padrão. Com a SDK de imagem entregue:
 
 - **Portas:** `IProcessadorDeImagem` na Application. O adaptador nasce da SDK; até lá existe um
@@ -259,7 +261,7 @@ cópia do cadastro. Leitura não é auditada.
    telas de leitura também são restritas, e a matriz negativa nasce com elas.
 4. **Organograma** — a árvore e as regras de gestor e ciclo.
 5. **Importação CSV.**
-6. **Foto** — bloqueada pela #29; as etapas 1–5 entregam sem ela (**entregues em 2026-09-26**). A
+6. **Foto** — **entregue em 2026-10-18** com a SDK de imagem (#29); as etapas 1–5 entregaram sem ela (**entregues em 2026-09-26**). A
    #29 saiu do MVP da plataforma (2026-09-27); a foto terá plano próprio quando a SDK existir **ou**
    quando o dono do produto decidir avançar sem ela — nesse caso o plano nasce com a mitigação
    mínima descrita na linha "Foto" acima como requisito, não como nota de rodapé.
