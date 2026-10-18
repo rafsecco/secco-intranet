@@ -99,6 +99,12 @@ public static class VerbosDeAuditoria
 	/// <summary>Dados funcionais (cargo, setor, gestor) alterados.</summary>
 	public const string DiretorioDadosFuncionaisEditar = "diretorio.dados-funcionais-editar";
 
+	/// <summary>Foto do colaborador definida ou trocada.</summary>
+	public const string DiretorioFotoDefinir = "diretorio.foto-definir";
+
+	/// <summary>Foto do colaborador removida.</summary>
+	public const string DiretorioFotoRemover = "diretorio.foto-remover";
+
 	/// <summary>Importação CSV aplicada.</summary>
 	public const string DiretorioImportar = "diretorio.importar";
 

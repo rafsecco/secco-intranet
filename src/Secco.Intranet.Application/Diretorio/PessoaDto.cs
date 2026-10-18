@@ -19,6 +19,7 @@ namespace Secco.Intranet.Application.Diretorio;
 /// O <c>displayName</c> cru, nulo quando não definido — para pré-preencher formulário. Para
 /// mostrar, use <see cref="Nome"/>, que cai no e-mail.
 /// </param>
+/// <param name="TemFoto">Se a pessoa tem foto; sem ela, a tela mostra as iniciais.</param>
 public sealed record PessoaDto(
 	Guid UsuarioId,
 	string Email,
@@ -34,4 +35,5 @@ public sealed record PessoaDto(
 	string? GestorNome,
 	bool GestorInativo,
 	bool TemPerfil,
-	string? NomeDeExibicao = null);
+	string? NomeDeExibicao = null,
+	bool TemFoto = false);

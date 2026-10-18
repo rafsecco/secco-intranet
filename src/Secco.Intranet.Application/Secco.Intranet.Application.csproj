@@ -6,6 +6,7 @@
        corpo em Markdown, e transformar texto é regra do caso de uso, não da borda. -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Markdig" />
   </ItemGroup>
 

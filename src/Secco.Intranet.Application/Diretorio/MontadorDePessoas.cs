@@ -75,7 +75,8 @@ public static class MontadorDePessoas
 					gestorNome,
 					gestorInativo,
 					perfil is not null,
-					NomeDeExibicao.Normalizar(usuario.Nome));
+					NomeDeExibicao.Normalizar(usuario.Nome),
+					perfil?.TemFoto ?? false);
 			}),
 		];
 	}

@@ -363,6 +363,10 @@ public static class IntranetErrors
 		public static readonly Error FotoRecorteInvalido =
 			Error.Validation("Intranet.Diretorio.FotoRecorteInvalido", "O recorte saiu dos limites da foto. Escolha de novo.");
 
+		/// <summary>Pessoa sem foto cadastrada.</summary>
+		public static readonly Error FotoNaoEncontrada =
+			Error.NotFound("Intranet.Diretorio.FotoNaoEncontrada", "Esta pessoa não tem foto.");
+
 		/// <summary>Nome acima do limite.</summary>
 		public static Error NomeTooLong(int limite) =>
 			Error.Validation("Intranet.Diretorio.NomeTooLong", $"O nome excede o limite de {limite} caracteres.");

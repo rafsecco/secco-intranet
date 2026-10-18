@@ -79,6 +79,7 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ObterPessoaParaEdicaoHandler>();
 		services.AddScoped<MontarOrganogramaHandler>();
 		services.AddScoped<ImportarDiretorioHandler>();
+		services.AddScoped<FotoDoColaboradorHandler>();
 
 		services.AddScoped<ListarTenantsAdministradosHandler>();
 		services.AddScoped<ObterTenantAdministradoHandler>();
