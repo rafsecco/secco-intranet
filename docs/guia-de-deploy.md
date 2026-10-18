@@ -94,9 +94,11 @@ do navegador é authorization code, e as chamadas de serviço são client creden
 | Client | Tipo | Escopos | Usado por |
 |---|---|---|---|
 | Login (ex.: `secco-intranet-login`) | `AuthorizationCode` | `profile`, `roles` | login interativo (`Intranet:Login`) |
-| Máquina (ex.: `secco-intranet`) | `ClientCredentials` | `securegate:admin`, `authorization:read`, `logstream`, `notificationhub` | client administrativo (setores, `/acesso`, tenants), permissões e revogação de sessão, LogStream e NotificationHub (`Secco:SecureGate`) |
+| Máquina (ex.: `secco-intranet`) | `ClientCredentials` | `securegate:admin`, `authorization:read`, `permissions:intranet`, `logstream`, `notificationhub` | client administrativo (setores, `/acesso`, tenants), permissões e revogação de sessão, publicação do catálogo de permissões no `migrate`, LogStream e NotificationHub (`Secco:SecureGate`) |
 
-O client do navegador não carrega `securegate:admin`. `logstream` e `notificationhub` só são
+O client do navegador não carrega `securegate:admin`. Sem `permissions:intranet`, o `migrate` da
+Intranet falha com `403` ao publicar o catálogo de permissões (ADR-0039 da plataforma), e o SecureGate
+passa a recusar as permissões novas dela. `logstream` e `notificationhub` só são
 necessários se a Intranet usar esses serviços.
 
 Na configuração **do SecureGate** (não da Intranet), com os secrets por variável de ambiente
@@ -116,7 +118,7 @@ Na configuração **do SecureGate** (não da Intranet), com os secrets por vari�
       {
         "ClientId": "secco-intranet",
         "Type": "ClientCredentials",
-        "Scopes": ["securegate:admin", "authorization:read", "logstream", "notificationhub"]
+        "Scopes": ["securegate:admin", "authorization:read", "permissions:intranet", "logstream", "notificationhub"]
       }
     ]
   }

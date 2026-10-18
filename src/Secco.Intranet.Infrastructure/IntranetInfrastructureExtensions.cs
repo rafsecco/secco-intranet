@@ -30,6 +30,7 @@ using Secco.SDK.EntityFrameworkCore.Migrations;
 using Secco.SDK.EntityFrameworkCore.Seeding;
 using Secco.SecureGate.Client.Administration;
 using Secco.SecureGate.Client.Catalog;
+using Secco.SecureGate.Client.Permissions;
 
 namespace Secco.Intranet.Infrastructure;
 
@@ -120,6 +121,16 @@ public static class IntranetInfrastructureExtensions
 		// SecureGateClientCredentialsOptions que o client usa — evita ler IConfiguration
 		// diretamente aqui, seguindo o padrão de bind lazy já usado nesta classe.
 		services.AddSecureGateAdminClient();
+
+		// Catálogo de permissões da Intranet, publicado pelo seed de referência que o migrate roda
+		// (ADR-0039 da plataforma). Sem a seção Secco:SecureGate o publicador só registra o pulo; com
+		// ela, falha visível — sem catálogo, as permissões novas da Intranet seriam recusadas.
+		services.AddSecureGatePermissionCatalogPublisher();
+		services.AddSeccoReferenceSeeder(
+			(serviceProvider, cancellationToken) => serviceProvider
+				.GetRequiredService<ISecureGatePermissionCatalogPublisher>()
+				.PublishAsync(IntranetPermissoes.Produto, IntranetPermissoes.Catalog, cancellationToken),
+			order: int.MaxValue);
 		services.AddScoped<ISetorAccessProvisioner>(serviceProvider =>
 		{
 			var secureGateOptions = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();

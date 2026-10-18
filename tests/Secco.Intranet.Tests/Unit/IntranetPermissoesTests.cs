@@ -1,3 +1,4 @@
+using System.Reflection;
 using AwesomeAssertions;
 using Secco.Intranet.Application.Acesso;
 using Secco.SharedKernel.Authorization;
@@ -62,5 +63,31 @@ public class IntranetPermissoesTests
 		IntranetPermissoes.Catalogo.Should().Contain(IntranetPermissoes.Diretorio.Manage);
 		IntranetPermissoes.Catalogo.Should().Contain(IntranetPermissoes.Inventario.Read);
 		IntranetPermissoes.Catalogo.Should().Contain(IntranetPermissoes.Setor.ReadGlobal);
+	}
+
+	/// <summary>
+	/// O catálogo publicado no SecureGate (ADR-0039 da plataforma) precisa conter toda permissão fixa
+	/// do produto: uma constante esquecida fora dele é recusada pelo SecureGate ao ser atribuída.
+	/// </summary>
+	[Fact]
+	public void Catalog_ContemTodaConstanteDePermissao_ComDescricao()
+	{
+		var constantes = typeof(IntranetPermissoes)
+			.GetNestedTypes(BindingFlags.Public | BindingFlags.Static)
+			.SelectMany(tipo => tipo.GetFields(BindingFlags.Public | BindingFlags.Static))
+			.Where(campo => campo is { IsLiteral: true, IsInitOnly: false } && campo.FieldType == typeof(string))
+			.Select(campo => (string)campo.GetRawConstantValue()!)
+			.ToList();
+
+		constantes.Should().NotBeEmpty();
+		IntranetPermissoes.Catalog.Select(p => p.Name).Should().BeEquivalentTo(constantes);
+		IntranetPermissoes.Catalog.Should().OnlyContain(p => SeccoPermissions.IsValid(p.Name) && !string.IsNullOrWhiteSpace(p.Description));
+		IntranetPermissoes.Catalog.Select(p => p.Name).Should().OnlyHaveUniqueItems();
+	}
+
+	[Fact]
+	public void Catalogo_DaTelaEOMesmoDoCatalogPublicado()
+	{
+		IntranetPermissoes.Catalogo.Should().Equal(IntranetPermissoes.Catalog.Select(p => p.Name));
 	}
 }

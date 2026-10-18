@@ -42,16 +42,23 @@ public static class IntranetPermissoes
 		public const string Read = "inventario:read";
 	}
 
+	/// <summary>Nome do produto no catálogo de permissões do SecureGate (escopo <c>permissions:intranet</c>).</summary>
+	public const string Produto = "intranet";
+
 	/// <summary>
-	/// Permissões fixas oferecidas pela tela de edição de perfil. Não inclui
-	/// <see cref="Setor.Read(string)"/>/<see cref="Setor.Write(string)"/> — essas são geradas por
-	/// setor existente, não uma lista fixa.
+	/// Catálogo publicado no SecureGate pelo <c>migrate</c> (ADR-0039 da plataforma): toda permissão
+	/// fixa do produto, com a descrição que quem administra perfis vê. Não inclui
+	/// <see cref="Setor.Read(string)"/>/<see cref="Setor.Write(string)"/>, que são geradas por setor e
+	/// não cabem num catálogo de nomes fixos (secco-platform#36).
 	/// </summary>
-	public static readonly IReadOnlyList<string> Catalogo =
+	public static IReadOnlyList<SeccoPermissionDefinition> Catalog { get; } =
 	[
-		Setor.ReadGlobal,
-		Diretorio.Read,
-		Diretorio.Manage,
-		Inventario.Read,
+		new(Setor.ReadGlobal, "Ler todos os setores, inclusive os criados depois"),
+		new(Diretorio.Read, "Ver o diretório e editar o próprio contato"),
+		new(Diretorio.Manage, "Administrar o diretório: dados funcionais de terceiros e importação"),
+		new(Inventario.Read, "Consultar o inventário"),
 	];
+
+	/// <summary>Nomes do <see cref="Catalog"/>, na mesma ordem — as caixas da tela de edição de perfil.</summary>
+	public static readonly IReadOnlyList<string> Catalogo = [.. Catalog.Select(permissao => permissao.Name)];
 }
