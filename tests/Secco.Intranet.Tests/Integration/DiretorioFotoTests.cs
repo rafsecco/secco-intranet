@@ -26,6 +26,7 @@ public class DiretorioFotoTests(IntranetWebFactory factory) : IClassFixture<Intr
 		factory.UsuariosDoDiretorio = null;
 		factory.GestaoDeAcesso = null;
 		factory.ProcessadorDeImagem = null;
+		factory.ArquivoStore = null;
 
 		return Task.CompletedTask;
 	}
@@ -120,6 +121,40 @@ public class DiretorioFotoTests(IntranetWebFactory factory) : IClassFixture<Intr
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK, "volta para a edição");
 		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be($"/diretorio/{alvo}/editar");
 		(await client.GetAsync($"/diretorio/{alvo}/foto")).StatusCode.Should().Be(HttpStatusCode.OK);
+	}
+
+	[Fact]
+	public async Task EnviarDeOutro_IdQueNaoEPessoa_404_SemGravar()
+	{
+		var admin = Guid.NewGuid();
+		var inexistente = Guid.NewGuid();
+		var store = new ArquivoStoreFalso();
+		factory.ArquivoStore = store;
+		var client = CriarCliente(new UsuariosParaDiretorioFalso().Com(admin, "admin@x.com"), admin, "diretorio-admin");
+		var token = await TokenAsync(client, "/diretorio/perfil");
+
+		var envio = await client.PostAsync($"/diretorio/{inexistente}/foto", Envio(token));
+		var remocao = await client.PostAsync($"/diretorio/{inexistente}/foto/remover", Form(("__RequestVerificationToken", token)));
+
+		envio.StatusCode.Should().Be(HttpStatusCode.NotFound);
+		remocao.StatusCode.Should().Be(HttpStatusCode.NotFound);
+		store.Gravados.Should().BeEmpty();
+		store.Removidos.Should().BeEmpty();
+		(await client.GetAsync($"/diretorio/{inexistente}/foto")).StatusCode.Should().Be(HttpStatusCode.NotFound, "nenhum perfil foi criado");
+	}
+
+	[Fact]
+	public async Task Entregar_ArquivoSumiuDoDisco_404()
+	{
+		var eu = Guid.NewGuid();
+		factory.ArquivoStore = new ArquivoStoreFalso { FalhaAoEscrever = new FileNotFoundException("sumiu") };
+		var client = CriarCliente(new UsuariosParaDiretorioFalso().Com(eu, "eu@x.com"), eu, "diretorio-user");
+		await EnviarPropriaAsync(client);
+
+		var resposta = await client.GetAsync($"/diretorio/{eu}/foto");
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.NotFound);
+		resposta.Headers.ETag.Should().BeNull("a resposta nem chegou a começar");
 	}
 
 	[Fact]

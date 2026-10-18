@@ -2,10 +2,12 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Diretorio;
+using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Tenants;
 using Secco.Intranet.Application.Tenants.Acesso;
 using Secco.Intranet.Infrastructure;
 using Secco.Intranet.Infrastructure.Access;
+using Secco.Intranet.Infrastructure.Armazenamento;
 using Secco.Intranet.Infrastructure.Diretorio;
 using Secco.Intranet.Infrastructure.Tenants;
 using Secco.Intranet.Tests.Integration.TestAuthentication;
@@ -80,6 +82,12 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 	public IProcessadorDeImagem? ProcessadorDeImagem { get; set; }
 
 	/// <summary>
+	/// Armazenamento de arquivos que o host devolve. Nulo, vale o armazenamento real (sistema de arquivos
+	/// sob a raiz temporária da fábrica).
+	/// </summary>
+	public IArquivoStore? ArquivoStore { get; set; }
+
+	/// <summary>
 	/// Resolvedor de permissão que o host devolve. Nulo, vale <see cref="ResolvedorPadrao"/> — as
 	/// permissões que <c>diretorio-user</c>/<c>diretorio-admin</c> sempre têm na vida real
 	/// (garantidas por <c>CriarPerfilHandler</c>/<c>ReconciliarPermissoesHandler</c>, Task 6/8),
@@ -135,6 +143,8 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 		services.AddScoped<IGestaoDeAcessoDoTenant>(_ => GestaoDeAcessoDoTenant ?? new GestaoDeAcessoDoTenantIndisponivel());
 		services.AddScoped<IUsuariosParaDiretorio>(_ => UsuariosDoDiretorio ?? new UsuariosParaDiretorioIndisponivel());
 		services.AddScoped<IProcessadorDeImagem>(_ => ProcessadorDeImagem ?? new ProcessadorDeImagemFalso());
+		services.AddScoped<IArquivoStore>(serviceProvider =>
+			ArquivoStore ?? ActivatorUtilities.CreateInstance<SistemaArquivosArquivoStore>(serviceProvider));
 		// AddSingleton com fábrica materializa UMA vez e reusa para sempre nesta fábrica de
 		// testes (o host é construído uma vez por classe) — se registrássemos o valor de
 		// ResolvedorDePermissoes direto, a primeira resolução (de qualquer teste da classe)

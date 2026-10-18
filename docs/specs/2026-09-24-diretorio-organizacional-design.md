@@ -39,7 +39,7 @@ e enxergar o organograma, com o RH (ou quem o `intranet-admin` delegar) mantendo
 | Setor de uma pessoa | **Lotação explícita** (campo escolhido pelo admin entre os setores), independente das Roles. Acesso não é lotação |
 | Organograma | Árvore por gestor ("reporta a"), definido pelo admin, com regra contra ciclo |
 | Carga inicial | Edição pessoa a pessoa **e** importação CSV pelo admin |
-| Foto | Entra neste corte, mas como **última etapa**, ligada à SDK de imagem da plataforma (#29) por uma porta. Sem SDK, avatar por iniciais. A plataforma replanejou a #29 para fora do MVP (2026-09-27, na fila depois de #27/#28); se a etapa de foto avançar aqui antes da SDK existir, vale como mitigação **mínima e obrigatória**, não opcional: limite de tamanho, conferir a assinatura do arquivo (magic bytes) em vez de extensão/`Content-Type`, aceitar só JPEG/PNG (nunca SVG), guardar fora do webroot com nome gerado pelo servidor, servir com `Content-Type` fixo e `X-Content-Type-Options: nosniff`, e documentar no código que o EXIF **não** é removido nesta versão |
+| Foto | Entra neste corte, mas como **última etapa**, ligada à SDK de imagem da plataforma (#29) por uma porta. Sem SDK, avatar por iniciais. A plataforma replanejou a #29 para fora do MVP (2026-09-27, na fila depois de #27/#28); (histórico, não se aplica mais: a foto saiu com a SDK) se a etapa de foto avançar aqui antes da SDK existir, valia como mitigação **mínima e obrigatória**, não opcional: limite de tamanho, conferir a assinatura do arquivo (magic bytes) em vez de extensão/`Content-Type`, aceitar só JPEG/PNG (nunca SVG), guardar fora do webroot com nome gerado pelo servidor, servir com `Content-Type` fixo e `X-Content-Type-Options: nosniff`, e documentar no código que o EXIF **não** é removido nesta versão |
 | Demonstração | Sai. No lugar, um seeder e um adaptador de DEV para o modo sem SecureGate |
 
 ## Dados
@@ -190,9 +190,9 @@ JavaScript e funciona nos dois temas).
   linhas limitados antes de processar; nome de campo desconhecido no cabeçalho é erro, não ignorado
   em silêncio.
 
-## Foto (última etapa, depende de secco-platform#29)
+## Foto (última etapa)
 
-**Implementada** (plano [2026-10-18-foto-do-colaborador](../plans/2026-10-18-foto-do-colaborador.md)) com o `Secco.SDK.Imaging` 0.1.0 (ADR-0042 da plataforma, secco-platform#29): variante única `foto`, lado máximo de 256 px, WebP, sem metadados, orientação EXIF aplicada. Guardada cifrada pelo mesmo `IArquivoStore`, na pasta lógica `diretorio/fotos`; o upload original é descartado. Rotas: `POST /diretorio/perfil/foto` e `/diretorio/perfil/foto/remover` (a própria), `POST /diretorio/{id}/foto` e `/diretorio/{id}/foto/remover` (admin do diretório) e `GET /diretorio/{id}/foto` (autenticados, `ETag`/304, `Cache-Control: private`, `nosniff`). Recorte com Cropper.js 1.6.2 (MIT) embutido no tema Vertical; sem JavaScript, usa-se o quadrado central. O partial `_Avatar` (foto ou iniciais) existe nos dois temas. O texto abaixo é o desenho original.
+**Implementada** (plano [2026-10-18-foto-do-colaborador](../plans/2026-10-18-foto-do-colaborador.md)) com o `Secco.SDK.Imaging` 0.1.0 (ADR-0042 da plataforma, secco-platform#29): variante única `foto`, lado máximo de 256 px, WebP, sem metadados, orientação EXIF aplicada. Guardada cifrada pelo mesmo `IArquivoStore`, na pasta lógica `diretorio/fotos`; o upload original é descartado. Rotas: `POST /diretorio/perfil/foto` e `/diretorio/perfil/foto/remover` (a própria), `POST /diretorio/{id}/foto` e `/diretorio/{id}/foto/remover` (admin do diretório) e `GET /diretorio/{id}/foto` (autenticados, `ETag`/304, `Cache-Control: private, no-cache`, `nosniff`). Recorte com Cropper.js 1.6.2 (MIT) embutido no tema Vertical; sem JavaScript, usa-se o quadrado central. O partial `_Avatar` (foto ou iniciais) existe nos dois temas. O texto abaixo é o desenho original.
 
 O avatar por iniciais continua como padrão. Com a SDK de imagem entregue:
 
@@ -204,7 +204,7 @@ O avatar por iniciais continua como padrão. Com a SDK de imagem entregue:
 - **Reenvio substitui:** grava o novo arquivo, troca a referência no perfil e só então remove o
   antigo. Se a remoção falhar, fica um arquivo órfão e um aviso no log — nunca uma referência
   quebrada.
-- **Entrega:** `/diretorio/{id}/foto`, **só para autenticados**, com `Cache-Control: private` e
+- **Entrega:** `/diretorio/{id}/foto`, **só para autenticados**, com `Cache-Control: private, no-cache` e
   `ETag` por versão da foto.
 - **Recorte e redução:** a tela de recorte (arrastar e dar zoom) é do produto, com uma biblioteca de
   licença MIT embutida no próprio projeto, sem CDN. O servidor recebe **só as coordenadas** e
@@ -261,10 +261,7 @@ cópia do cadastro. Leitura não é auditada.
    telas de leitura também são restritas, e a matriz negativa nasce com elas.
 4. **Organograma** — a árvore e as regras de gestor e ciclo.
 5. **Importação CSV.**
-6. **Foto** — **entregue em 2026-10-18** com a SDK de imagem (#29); as etapas 1–5 entregaram sem ela (**entregues em 2026-09-26**). A
-   #29 saiu do MVP da plataforma (2026-09-27); a foto terá plano próprio quando a SDK existir **ou**
-   quando o dono do produto decidir avançar sem ela — nesse caso o plano nasce com a mitigação
-   mínima descrita na linha "Foto" acima como requisito, não como nota de rodapé.
+6. **Foto** — **entregue em 2026-10-18** com a SDK de imagem (#29); as etapas 1–5 entregaram sem ela (**entregues em 2026-09-26**).
 
 ## Fora de escopo
 

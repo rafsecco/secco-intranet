@@ -28,6 +28,7 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="fotoDoColaborador">Envio, remoção e consulta da foto.</param>
 /// <param name="arquivos">Armazenamento cifrado, de onde a foto sai.</param>
 /// <param name="authorizationService">Serviço de autorização do framework (ADR-0021).</param>
+/// <param name="logger">Log.</param>
 [Route("diretorio")]
 [ExigeNivelNoDiretorio(NivelDeAcessoAoDiretorio.Usuario)]
 public sealed class DiretorioController(
@@ -40,7 +41,8 @@ public sealed class DiretorioController(
 	ImportarDiretorioHandler importar,
 	FotoDoColaboradorHandler fotoDoColaborador,
 	IArquivoStore arquivos,
-	IAuthorizationService authorizationService) : Controller
+	IAuthorizationService authorizationService,
+	ILogger<DiretorioController> logger) : Controller
 {
 	private const long LimiteDeBytesDoArquivo = 2 * 1024 * 1024;
 
@@ -292,6 +294,13 @@ public sealed class DiretorioController(
 	[RequestSizeLimit(LimiteDaRequisicaoDaFoto)]
 	public async Task<IActionResult> EnviarFoto(Guid id, IFormFile? foto, int? x, int? y, int? largura, int? altura, CancellationToken cancellationToken = default)
 	{
+		var existe = await obterPessoaParaEdicao.HandleAsync(id, cancellationToken);
+
+		if (existe.IsFailure)
+		{
+			return Falha(existe.Error);
+		}
+
 		await DefinirFotoAsync(id, foto, x, y, largura, altura, cancellationToken);
 
 		return RedirectToAction(nameof(Editar), new { id });
@@ -305,6 +314,13 @@ public sealed class DiretorioController(
 	[ValidateAntiForgeryToken]
 	public async Task<IActionResult> RemoverFoto(Guid id, CancellationToken cancellationToken = default)
 	{
+		var existe = await obterPessoaParaEdicao.HandleAsync(id, cancellationToken);
+
+		if (existe.IsFailure)
+		{
+			return Falha(existe.Error);
+		}
+
 		await RemoverFotoAsync(id, cancellationToken);
 
 		return RedirectToAction(nameof(Editar), new { id });
@@ -338,8 +354,27 @@ public sealed class DiretorioController(
 			return StatusCode(StatusCodes.Status304NotModified);
 		}
 
+		// Decifra antes de escrever o primeiro byte: arquivo ausente ou corrompido vira 404, não 500 com
+		// cabeçalhos pela metade. A foto tem no máximo 256x256 em WebP (poucos KB), então cabe em memória.
+		using var conteudo = new MemoryStream();
+
+		try
+		{
+			await arquivos.EscreverEmAsync(foto.CaminhoRelativo, foto.ChaveEmbrulhada, conteudo, cancellationToken);
+		}
+		catch (Exception falha) when (falha is not OperationCanceledException)
+		{
+			// Só o tipo da exceção: a mensagem de falhas de I/O costuma trazer o caminho absoluto.
+			logger.LogWarning("Não foi possível ler a foto de {UsuarioId} do armazenamento ({TipoDaFalha}).", id, falha.GetType().Name);
+
+			Response.Headers.Remove("ETag");
+
+			return NotFound();
+		}
+
 		Response.ContentType = foto.ContentType;
-		await arquivos.EscreverEmAsync(foto.CaminhoRelativo, foto.ChaveEmbrulhada, Response.Body, cancellationToken);
+		conteudo.Position = 0;
+		await conteudo.CopyToAsync(Response.Body, cancellationToken);
 
 		return new EmptyResult();
 	}

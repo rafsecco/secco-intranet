@@ -23,6 +23,9 @@ public sealed class ArquivoStoreFalso : IArquivoStore
 	/// <summary>Quando verdadeiro, <see cref="RemoverAsync"/> lança.</summary>
 	public bool FalharAoRemover { get; set; }
 
+	/// <summary>Quando informada, <see cref="EscreverEmAsync"/> a lança em vez de <see cref="NotSupportedException"/>.</summary>
+	public Exception? FalhaAoEscrever { get; set; }
+
 	/// <inheritdoc />
 	public Task<ArquivoGravado> GravarAsync(Stream conteudo, CancellationToken cancellationToken = default) =>
 		GravarAsync(conteudo, "documentos", cancellationToken);
@@ -39,7 +42,7 @@ public sealed class ArquivoStoreFalso : IArquivoStore
 
 	/// <inheritdoc />
 	public Task EscreverEmAsync(string caminhoRelativo, string chaveEmbrulhada, Stream destino, CancellationToken cancellationToken = default) =>
-		throw new NotSupportedException();
+		throw FalhaAoEscrever ?? new NotSupportedException();
 
 	/// <inheritdoc />
 	public Task RemoverAsync(string caminhoRelativo, CancellationToken cancellationToken = default)

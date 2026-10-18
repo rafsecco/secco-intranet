@@ -218,8 +218,8 @@ Convenção ASP.NET Core: `__` no nome da variável vira `:` na chave de configu
 | `Intranet__Auditoria__LogStreamUrl` | Não | URL do `Secco.LogStream`. Vazia = trilha de auditoria não é gravada (modo silencioso, não é erro). |
 | `Intranet__Notificacao__HubUrl` | Não | URL do `Secco.NotificationHub`. Vazia = sino/e-mail de notificação não são enviados. |
 | `Intranet__Notificacao__UrlBase` | Recomendada se `HubUrl` estiver definida | URL pública da Intranet (ex.: `https://intranet.suaempresa.com`, sem barra final) — sem ela, o link da notificação por e-mail fica relativo e não abre fora do navegador já logado. |
-| `Intranet__Imaging__MaxInputBytes` | Não (padrão 10 MB, `10485760`) | Tamanho máximo do arquivo de imagem aceito no envio da foto do colaborador (seção `Intranet:Imaging`, `Secco.SDK.Imaging`). |
-| `Intranet__Imaging__MaxPixels` | Não (padrão 50 milhões) | Máximo de pixels da imagem de entrada; acima disso o envio é recusado. |
+| `Intranet__Imaging__MaxInputBytes` | Não (padrão 10 MB, `10485760`) | Tamanho máximo do arquivo de imagem aceito no envio da foto do colaborador (seção `Intranet:Imaging`, `Secco.SDK.Imaging`). O envio também é barrado em ~10 MB na própria rota (limite de requisição) e no texto da tela, então subir este valor acima disso não tem efeito. |
+| `Intranet__Imaging__MaxPixels` | Não (padrão 50 milhões) | Máximo de pixels da imagem de entrada; acima disso o envio é recusado. Cada decodificação pode usar ~4 bytes por pixel (50 milhões ≈ 200 MB), multiplicado por `MaxConcurrentOperations`: em host com pouca memória, baixe este valor (ex.: 25 milhões) ou o de `MaxConcurrentOperations`. |
 | `Intranet__Imaging__MaxConcurrentOperations` | Não (padrão = número de processadores) | Quantas imagens são processadas ao mesmo tempo. |
 | `Secco__LogStream__*` | Não | Seção do sink de log geral (`ILogger` → LogStream), separada da auditoria acima. Vazia = log só local (stdout do container). Ver `Secco.SDK.Logging` para as chaves da seção. |
 
