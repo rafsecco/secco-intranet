@@ -153,12 +153,13 @@ processos (maior risco técnico) só entra com a base já sólida.
         no lugar do client de plataforma de `Intranet:Login`; Área administrativa chamando o
         SecureGate em nome do operador logado, em vez do client de máquina com `securegate:admin`.
         Exige spec e revisão da ADR-0008. Vem antes do subsistema 4
-  - [ ] **Urgente:** adotar o catálogo de permissões (ADR-0039,
-        [secco-platform#33](https://github.com/rafsecco/secco-platform/issues/33), publicado no
-        `Secco.SecureGate.Client` 0.16.0) — publicar o catálogo da Intranet no `migrate`, escopo
-        `permissions:intranet` no client de máquina, e caixas por produto no lugar do texto livre
-        das permissões (no `/acesso` e na Área de tenants). Até publicar, o SecureGate novo recusa
-        as permissões **novas** da Intranet
+  - [x] Adotar o catálogo de permissões (ADR-0039,
+        [secco-platform#33](https://github.com/rafsecco/secco-platform/issues/33)): catálogo
+        estático da Intranet publicado no `migrate` (escopo `permissions:intranet`), e caixas por
+        produto, com as fora do catálogo à parte, no lugar do texto livre da Área de tenants
+  - [ ] ⛔ Criar setor contra um SecureGate com o catálogo: as permissões por setor
+        (`setor-{slug}:read`/`write`) não cabem num catálogo de nomes fixos —
+        [secco-platform#36](https://github.com/rafsecco/secco-platform/issues/36)
 
 ## Fase 3 — Operacional
 

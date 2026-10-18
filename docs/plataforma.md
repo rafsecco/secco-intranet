@@ -17,6 +17,7 @@ Duas regras sustentam esta lista:
 
 | Demanda | O que trava aqui | Issue |
 |---|---|---|
+| Catálogo de permissões com famílias parametrizadas (permissão por instância de recurso) | Criar setor grava `setor-{slug}:read`/`write`, geradas por setor; o catálogo da ADR-0039 só aceita nomes exatos publicados no `migrate`. Contra um SecureGate com o catálogo, **criar setor falha** (as Roles nascem, a gravação das permissões é recusada e o setor não é persistido), e "Reconciliar permissões" também. O catálogo estático da Intranet já é publicado; o paliativo de republicar o catálogo a cada setor foi recusado (corrida entre tenants, varredura de todos os bancos) | [#36](https://github.com/rafsecco/secco-platform/issues/36) |
 | Reconciliação automática do mapeamento grupo→perfil (login federado + job periódico) | O CRUD do mapeamento e o rastreio de origem (`Manual`/`Directory`) já foram entregues (ver Atendidas) — falta só a parte que aplica isso sozinha: hoje o admin tem que atribuir/retirar o perfil à mão mesmo depois de mapear o grupo. Sem data na plataforma | [#28](https://github.com/rafsecco/secco-platform/issues/28) |
 
 ## Atendidas
