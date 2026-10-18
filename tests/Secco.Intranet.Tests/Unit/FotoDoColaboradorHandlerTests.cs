@@ -20,7 +20,12 @@ public class FotoDoColaboradorHandlerTests
 	private readonly TrilhaDeAcessoFalsa _trilha = new();
 	private readonly LoggerCapturador<FotoDoColaboradorHandler> _logger = new();
 
-	private FotoDoColaboradorHandler Handler() => new(_perfis, _imagens, _arquivos, _trilha, _logger);
+	private FotoDoColaboradorHandler Handler()
+	{
+		_arquivos.ContadorDeSalvamentos = () => _perfis.Salvou;
+
+		return new(_perfis, _imagens, _arquivos, _trilha, _logger);
+	}
 
 	private static MemoryStream Upload() => new([9, 9]);
 
@@ -54,6 +59,7 @@ public class FotoDoColaboradorHandlerTests
 
 		resultado.IsSuccess.Should().BeTrue();
 		_arquivos.Removidos.Should().Equal("diretorio/fotos/antiga.bin");
+		_arquivos.SalvamentosNasRemocoes.Should().ContainSingle().Which.Should().BePositive();
 		perfil.FotoCaminhoRelativo.Should().Be(_arquivos.Gravados[0].Caminho);
 	}
 
@@ -70,6 +76,7 @@ public class FotoDoColaboradorHandlerTests
 		resultado.IsSuccess.Should().BeTrue();
 		_logger.Entradas.Should().ContainSingle(entrada => entrada.Nivel == LogLevel.Warning)
 			.Which.Mensagem.Should().NotContain("antiga.bin");
+		_logger.Entradas.Should().OnlyContain(entrada => entrada.Excecao == null);
 	}
 
 	[Fact]

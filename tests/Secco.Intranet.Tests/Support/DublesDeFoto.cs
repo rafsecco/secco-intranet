@@ -14,6 +14,12 @@ public sealed class ArquivoStoreFalso : IArquivoStore
 	/// <summary>Caminhos removidos, na ordem.</summary>
 	public List<string> Removidos { get; } = [];
 
+	/// <summary>Quando informado, lido a cada remoção para saber quantos salvamentos já tinham ocorrido.</summary>
+	public Func<int>? ContadorDeSalvamentos { get; set; }
+
+	/// <summary>Salvamentos já feitos no instante de cada remoção.</summary>
+	public List<int> SalvamentosNasRemocoes { get; } = [];
+
 	/// <summary>Quando verdadeiro, <see cref="RemoverAsync"/> lança.</summary>
 	public bool FalharAoRemover { get; set; }
 
@@ -38,9 +44,11 @@ public sealed class ArquivoStoreFalso : IArquivoStore
 	/// <inheritdoc />
 	public Task RemoverAsync(string caminhoRelativo, CancellationToken cancellationToken = default)
 	{
+		SalvamentosNasRemocoes.Add(ContadorDeSalvamentos?.Invoke() ?? 0);
+
 		if (FalharAoRemover)
 		{
-			throw new IOException("falha simulada");
+			throw new IOException($"Arquivo {caminhoRelativo} inacessível.");
 		}
 
 		Removidos.Add(caminhoRelativo);
@@ -73,8 +81,8 @@ public sealed class ProcessadorDeImagemFalso : IProcessadorDeImagem
 /// <typeparam name="T">Categoria.</typeparam>
 public sealed class LoggerCapturador<T> : ILogger<T>
 {
-	/// <summary>Nível e texto de cada entrada.</summary>
-	public List<(LogLevel Nivel, string Mensagem)> Entradas { get; } = [];
+	/// <summary>Nível, texto e exceção de cada entrada.</summary>
+	public List<(LogLevel Nivel, string Mensagem, Exception? Excecao)> Entradas { get; } = [];
 
 	/// <inheritdoc />
 	public IDisposable? BeginScope<TState>(TState state)
@@ -85,5 +93,5 @@ public sealed class LoggerCapturador<T> : ILogger<T>
 
 	/// <inheritdoc />
 	public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
-		Entradas.Add((logLevel, formatter(state, exception)));
+		Entradas.Add((logLevel, formatter(state, exception), exception));
 }

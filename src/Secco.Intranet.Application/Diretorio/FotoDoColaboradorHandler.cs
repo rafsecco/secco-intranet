@@ -144,7 +144,8 @@ public sealed class FotoDoColaboradorHandler(
 		catch (Exception falha) when (falha is not OperationCanceledException)
 		{
 			// O perfil já aponta para outra foto (ou nenhuma): sobra só um arquivo órfão. Sem o caminho no log.
-			logger.LogWarning(falha, "Não foi possível apagar uma foto antiga do Diretório; o arquivo ficou órfão.");
+			// Só o tipo da exceção: a mensagem de falhas de I/O costuma trazer o caminho absoluto.
+			logger.LogWarning("Não foi possível apagar uma foto antiga do Diretório ({TipoDaFalha}); o arquivo ficou órfão.", falha.GetType().Name);
 		}
 	}
 }
