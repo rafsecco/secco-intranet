@@ -20,7 +20,9 @@ internal sealed class ProcessadorDeImagemDaSdk(ISeccoImageProcessor imagens) : I
 	{
 		// A SDK lança ArgumentException para pedido mal montado; coordenada de formulário
 		// não pode virar 500.
-		if (recorte is { X: < 0 } or { Y: < 0 } or { Largura: <= 0 } or { Altura: <= 0 })
+		if (recorte is { X: < 0 } or { Y: < 0 } or { Largura: <= 0 } or { Altura: <= 0 }
+			|| (recorte is not null
+				&& ((long)recorte.X + recorte.Largura > int.MaxValue || (long)recorte.Y + recorte.Altura > int.MaxValue)))
 		{
 			return Result.Failure<FotoProcessada>(IntranetErrors.Diretorio.FotoRecorteInvalido);
 		}

@@ -61,6 +61,10 @@ public class ProcessadorDeImagemDaSdkTests
 	[InlineData(0, -1, 100, 100)]
 	[InlineData(0, 0, 0, 100)]
 	[InlineData(0, 0, 100, -5)]
+	[InlineData(int.MaxValue, 0, 100, 100)]
+	[InlineData(0, 0, int.MaxValue, 100)]
+	[InlineData(700, 0, int.MaxValue, 100)]
+	[InlineData(0, int.MaxValue, 100, 100)]
 	public async Task Processar_RecorteNegativo_FotoRecorteInvalido_SemExcecao(int x, int y, int largura, int altura)
 	{
 		var resultado = await CriarProcessador()
