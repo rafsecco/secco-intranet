@@ -77,6 +77,15 @@ public sealed class PerfilColaborador : BaseEntity
 	/// <summary>Id, no SecureGate, do gestor a quem a pessoa reporta. Sem FK. Só o admin edita.</summary>
 	public Guid? GestorUsuarioId { get; private set; }
 
+	/// <summary>Caminho relativo, no armazenamento, da foto cifrada. Nulo se não há foto.</summary>
+	public string? FotoCaminhoRelativo { get; private set; }
+
+	/// <summary>Chave de dados da foto, embrulhada. Nula se não há foto.</summary>
+	public string? FotoChaveEmbrulhada { get; private set; }
+
+	/// <summary>Indica se o colaborador tem foto.</summary>
+	public bool TemFoto => FotoCaminhoRelativo is not null;
+
 	/// <summary>Momento da criação.</summary>
 	public DateTimeOffset CreatedAt { get; private set; }
 
@@ -141,6 +150,42 @@ public sealed class PerfilColaborador : BaseEntity
 		}
 
 		return alterados;
+	}
+
+	/// <summary>
+	/// Define (ou substitui) a foto. Devolve o caminho da foto anterior, ou nulo se não havia,
+	/// para o chamador removê-la do armazenamento.
+	/// </summary>
+	/// <exception cref="ArgumentException">Caminho ou chave vazios.</exception>
+	public string? DefinirFoto(string caminhoRelativo, string chaveEmbrulhada)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(caminhoRelativo);
+		ArgumentException.ThrowIfNullOrWhiteSpace(chaveEmbrulhada);
+
+		var anterior = FotoCaminhoRelativo;
+
+		FotoCaminhoRelativo = caminhoRelativo;
+		FotoChaveEmbrulhada = chaveEmbrulhada;
+		UpdatedAt = DateTimeOffset.UtcNow;
+
+		return anterior;
+	}
+
+	/// <summary>Remove a foto. Devolve o caminho anterior, ou nulo se não havia foto.</summary>
+	public string? RemoverFoto()
+	{
+		var anterior = FotoCaminhoRelativo;
+
+		if (anterior is null)
+		{
+			return null;
+		}
+
+		FotoCaminhoRelativo = null;
+		FotoChaveEmbrulhada = null;
+		UpdatedAt = DateTimeOffset.UtcNow;
+
+		return anterior;
 	}
 
 	private static void Atribuir(string? atual, string? novo, Action<string?> definir, string campo, List<string> alterados)

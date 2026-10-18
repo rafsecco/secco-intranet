@@ -17,7 +17,7 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -37,6 +37,16 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_created_at");
+
+                    b.Property<string>("FotoCaminhoRelativo")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("ds_foto_caminho_relativo");
+
+                    b.Property<string>("FotoChaveEmbrulhada")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("ds_foto_chave_embrulhada");
 
                     b.Property<Guid?>("GestorUsuarioId")
                         .HasColumnType("uuid")

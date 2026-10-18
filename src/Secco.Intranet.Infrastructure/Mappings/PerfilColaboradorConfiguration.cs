@@ -26,6 +26,8 @@ internal sealed class PerfilColaboradorConfiguration : IEntityTypeConfiguration<
 		builder.Property(perfil => perfil.Cargo).HasMaxLength(PerfilColaborador.CargoMaxLength);
 		builder.Property(perfil => perfil.Ramal).HasMaxLength(PerfilColaborador.RamalMaxLength);
 		builder.Property(perfil => perfil.Sobre).HasMaxLength(PerfilColaborador.SobreMaxLength);
+		builder.Property(perfil => perfil.FotoCaminhoRelativo).HasMaxLength(256);
+		builder.Property(perfil => perfil.FotoChaveEmbrulhada).HasMaxLength(256);
 
 		// Um perfil por usuário — é o que sustenta o "upsert" sob demanda.
 		builder.HasIndex(perfil => perfil.UsuarioId).IsUnique();

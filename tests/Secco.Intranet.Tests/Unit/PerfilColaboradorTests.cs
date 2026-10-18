@@ -149,4 +149,68 @@ public class PerfilColaboradorTests
 
 		editar.Should().Throw<DomainInvariantException>();
 	}
+
+	[Fact]
+	public void DefinirFoto_PrimeiraVez_DevolveNull_ETemFoto()
+	{
+		var perfil = new PerfilColaborador(Ana);
+
+		var anterior = perfil.DefinirFoto("fotos/ana.bin", "chave1");
+
+		anterior.Should().BeNull();
+		perfil.TemFoto.Should().BeTrue();
+		perfil.FotoCaminhoRelativo.Should().Be("fotos/ana.bin");
+		perfil.FotoChaveEmbrulhada.Should().Be("chave1");
+	}
+
+	[Fact]
+	public void DefinirFoto_Reenvio_DevolveOCaminhoAnterior()
+	{
+		var perfil = new PerfilColaborador(Ana);
+		perfil.DefinirFoto("fotos/velha.bin", "chave1");
+
+		var anterior = perfil.DefinirFoto("fotos/nova.bin", "chave2");
+
+		anterior.Should().Be("fotos/velha.bin");
+		perfil.FotoCaminhoRelativo.Should().Be("fotos/nova.bin");
+		perfil.FotoChaveEmbrulhada.Should().Be("chave2");
+	}
+
+	[Fact]
+	public void RemoverFoto_SemFoto_DevolveNull_ENaoQuebra()
+	{
+		var perfil = new PerfilColaborador(Ana);
+
+		var anterior = perfil.RemoverFoto();
+
+		anterior.Should().BeNull();
+		perfil.TemFoto.Should().BeFalse();
+	}
+
+	[Fact]
+	public void RemoverFoto_ComFoto_LimpaOsCamposEDevolveOCaminho()
+	{
+		var perfil = new PerfilColaborador(Ana);
+		perfil.DefinirFoto("fotos/ana.bin", "chave1");
+
+		var anterior = perfil.RemoverFoto();
+
+		anterior.Should().Be("fotos/ana.bin");
+		perfil.TemFoto.Should().BeFalse();
+		perfil.FotoChaveEmbrulhada.Should().BeNull();
+	}
+
+	[Theory]
+	[InlineData("", "chave")]
+	[InlineData("  ", "chave")]
+	[InlineData("caminho", "")]
+	[InlineData("caminho", null)]
+	public void DefinirFoto_CaminhoOuChaveVazios_LancaArgumentException(string caminho, string? chave)
+	{
+		var perfil = new PerfilColaborador(Ana);
+
+		var definir = () => perfil.DefinirFoto(caminho, chave!);
+
+		definir.Should().Throw<ArgumentException>();
+	}
 }

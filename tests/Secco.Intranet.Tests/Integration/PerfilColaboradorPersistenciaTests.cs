@@ -108,4 +108,31 @@ public class PerfilColaboradorPersistenciaTests(IntranetWebFactory factory) : IC
 
 		todos.Should().Contain(perfil => perfil.UsuarioId == usuario);
 	}
+
+	[Fact]
+	public async Task Foto_GravaERelêOCaminhoEAChave()
+	{
+		var usuario = Guid.NewGuid();
+
+		using (var escopo = NovoEscopo())
+		{
+			await escopo.ServiceProvider.GetRequiredService<IPerfilColaboradorRepository>()
+				.TentarAdicionarAsync(new PerfilColaborador(usuario));
+		}
+
+		using (var escopo = NovoEscopo())
+		{
+			var repositorio = escopo.ServiceProvider.GetRequiredService<IPerfilColaboradorRepository>();
+			var perfil = await repositorio.GetParaEdicaoAsync(usuario);
+			perfil!.DefinirFoto("fotos/ana.bin", "chave-embrulhada");
+			await repositorio.SaveChangesAsync();
+		}
+
+		using var leitura = NovoEscopo();
+		var lido = await leitura.ServiceProvider.GetRequiredService<IPerfilColaboradorRepository>().GetByUsuarioIdAsync(usuario);
+
+		lido!.TemFoto.Should().BeTrue();
+		lido.FotoCaminhoRelativo.Should().Be("fotos/ana.bin");
+		lido.FotoChaveEmbrulhada.Should().Be("chave-embrulhada");
+	}
 }

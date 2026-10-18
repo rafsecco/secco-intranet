@@ -17,7 +17,7 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -37,6 +37,16 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_created_at");
+
+                    b.Property<string>("FotoCaminhoRelativo")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("ds_foto_caminho_relativo");
+
+                    b.Property<string>("FotoChaveEmbrulhada")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("ds_foto_chave_embrulhada");
 
                     b.Property<Guid?>("GestorUsuarioId")
                         .HasColumnType("uniqueidentifier")
