@@ -35,6 +35,12 @@ public class BaixarDocumentoHandlerTests
 		public Task<ArquivoGravado> GravarAsync(Stream conteudo, CancellationToken cancellationToken = default) =>
 			Task.FromResult(new ArquivoGravado("t/ab/arquivo", "secco-enc:v1:x", 10));
 
+		public Task<ArquivoGravado> GravarAsync(
+			Stream conteudo,
+			string pastaLogica,
+			CancellationToken cancellationToken = default) =>
+			Task.FromResult(new ArquivoGravado("t/pasta/ab/arquivo", "secco-enc:v1:x", 10));
+
 		public Task EscreverEmAsync(
 			string caminhoRelativo,
 			string chaveEmbrulhada,

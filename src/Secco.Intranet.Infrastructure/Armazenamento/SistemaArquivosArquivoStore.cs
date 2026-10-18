@@ -24,7 +24,28 @@ internal sealed class SistemaArquivosArquivoStore(
 	EnvelopeCipher cipher,
 	ITenantContext tenantContext) : IArquivoStore
 {
-	public async Task<ArquivoGravado> GravarAsync(Stream conteudo, CancellationToken cancellationToken = default)
+	public Task<ArquivoGravado> GravarAsync(Stream conteudo, CancellationToken cancellationToken = default) =>
+		GravarEmAsync(conteudo, pastaLogica: null, cancellationToken);
+
+	public Task<ArquivoGravado> GravarAsync(
+		Stream conteudo,
+		string pastaLogica,
+		CancellationToken cancellationToken = default)
+	{
+		// A pasta nunca vem do usuário: só entra o que a porta declara, e isso também fecha a
+		// porta a "../" na composição do caminho.
+		if (!PastasDeArquivo.Contem(pastaLogica))
+		{
+			throw new ArgumentException($"Pasta lógica desconhecida: '{pastaLogica}'.", nameof(pastaLogica));
+		}
+
+		return GravarEmAsync(conteudo, pastaLogica, cancellationToken);
+	}
+
+	private async Task<ArquivoGravado> GravarEmAsync(
+		Stream conteudo,
+		string? pastaLogica,
+		CancellationToken cancellationToken)
 	{
 		ArgumentNullException.ThrowIfNull(conteudo);
 
@@ -33,7 +54,9 @@ internal sealed class SistemaArquivosArquivoStore(
 
 		// Duas casas hexadecimais de subpasta: evita um diretório único com dezenas de
 		// milhares de entradas, que degrada listagem e backup em qualquer sistema de arquivos.
-		var caminhoRelativo = string.Join('/', tenantId, identificador[..2], identificador);
+		var caminhoRelativo = pastaLogica is null
+			? string.Join('/', tenantId, identificador[..2], identificador)
+			: string.Join('/', tenantId, pastaLogica, identificador[..2], identificador);
 		var caminhoCompleto = CaminhoCompleto(caminhoRelativo);
 
 		Directory.CreateDirectory(Path.GetDirectoryName(caminhoCompleto)!);
