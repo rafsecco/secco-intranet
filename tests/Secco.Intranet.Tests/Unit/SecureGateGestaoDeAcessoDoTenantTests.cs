@@ -208,14 +208,20 @@ public class SecureGateGestaoDeAcessoDoTenantTests
 			new ProductPermissionCatalogDto
 			{
 				Product = "compras",
-				Permissions = [new PermissionDefinitionDto { Name = "pedido:aprovar", Description = "Aprovar pedidos" }],
+				Permissions =
+				[
+					new PermissionDefinitionDto { Name = "pedido:aprovar", Description = "Aprovar pedidos" },
+					new PermissionDefinitionDto { Name = "filial-{id}:read", Description = "Ler uma filial", IsFamily = true },
+				],
 			},
 		];
 
 		var catalogo = await gestao.ListarCatalogoDePermissoesAsync();
 
 		catalogo.Value.Should().ContainSingle().Which.Should().BeEquivalentTo(
-			new ProdutoDoCatalogoDto("compras", [new PermissaoDoCatalogoDto("pedido:aprovar", "Aprovar pedidos")]));
+			new ProdutoDoCatalogoDto(
+				"compras",
+				[new PermissaoDoCatalogoDto("pedido:aprovar", "Aprovar pedidos"), new PermissaoDoCatalogoDto("filial-{id}:read", "Ler uma filial", Familia: true)]));
 	}
 
 	[Fact]

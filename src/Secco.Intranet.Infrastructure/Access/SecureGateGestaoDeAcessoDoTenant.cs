@@ -37,7 +37,7 @@ public sealed class SecureGateGestaoDeAcessoDoTenant(
 						.OrderBy(produto => produto.Product, StringComparer.Ordinal)
 						.Select(produto => new ProdutoDoCatalogoDto(
 							produto.Product,
-							[.. (produto.Permissions ?? []).Select(p => new PermissaoDoCatalogoDto(p.Name, p.Description))])),
+							[.. (produto.Permissions ?? []).Select(p => new PermissaoDoCatalogoDto(p.Name, p.Description, p.IsFamily))])),
 				];
 			},
 			null,

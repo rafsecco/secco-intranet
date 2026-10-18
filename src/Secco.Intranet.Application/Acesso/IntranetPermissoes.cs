@@ -13,13 +13,22 @@ public static class IntranetPermissoes
 	/// <summary>Permissões de setor — a por-slug é dinâmica, a global cobre "todos, inclusive futuros".</summary>
 	public static class Setor
 	{
+		/// <summary>
+		/// Família publicada no catálogo (ADR-0043 da plataforma): o SecureGate aceita
+		/// <c>setor-{slug}:read</c> de qualquer setor porque casa com ela.
+		/// </summary>
+		public const string FamiliaRead = "setor-{id}:read";
+
+		/// <summary>Família da escrita por setor (ver <see cref="FamiliaRead"/>).</summary>
+		public const string FamiliaWrite = "setor-{id}:write";
+
 		/// <summary>Permissão de leitura de um setor específico.</summary>
 		/// <param name="slug">Slug do setor, já normalizado (minúsculo).</param>
-		public static string Read(string slug) => SeccoPermissions.Create($"setor-{slug}", "read");
+		public static string Read(string slug) => SeccoPermissions.FromFamily(FamiliaRead, slug);
 
 		/// <summary>Permissão de escrita de um setor específico.</summary>
 		/// <param name="slug">Slug do setor, já normalizado (minúsculo).</param>
-		public static string Write(string slug) => SeccoPermissions.Create($"setor-{slug}", "write");
+		public static string Write(string slug) => SeccoPermissions.FromFamily(FamiliaWrite, slug);
 
 		/// <summary>Leitura de todo setor do tenant, inclusive os criados depois da atribuição.</summary>
 		public const string ReadGlobal = "setores:read";
@@ -47,9 +56,9 @@ public static class IntranetPermissoes
 
 	/// <summary>
 	/// Catálogo publicado no SecureGate pelo <c>migrate</c> (ADR-0039 da plataforma): toda permissão
-	/// fixa do produto, com a descrição que quem administra perfis vê. Não inclui
-	/// <see cref="Setor.Read(string)"/>/<see cref="Setor.Write(string)"/>, que são geradas por setor e
-	/// não cabem num catálogo de nomes fixos (secco-platform#36).
+	/// do produto, com a descrição que quem administra perfis vê. As permissões por setor entram como
+	/// <b>famílias</b> (<see cref="Setor.FamiliaRead"/>/<see cref="Setor.FamiliaWrite"/>, ADR-0043 da
+	/// plataforma), porque os setores são criados a qualquer momento em cada tenant.
 	/// </summary>
 	public static IReadOnlyList<SeccoPermissionDefinition> Catalog { get; } =
 	[
@@ -57,8 +66,14 @@ public static class IntranetPermissoes
 		new(Diretorio.Read, "Ver o diretório e editar o próprio contato"),
 		new(Diretorio.Manage, "Administrar o diretório: dados funcionais de terceiros e importação"),
 		new(Inventario.Read, "Consultar o inventário"),
+		new(Setor.FamiliaRead, "Ler um setor específico"),
+		new(Setor.FamiliaWrite, "Alterar um setor específico: publicações, documentos e menu"),
 	];
 
-	/// <summary>Nomes do <see cref="Catalog"/>, na mesma ordem — as caixas da tela de edição de perfil.</summary>
-	public static readonly IReadOnlyList<string> Catalogo = [.. Catalog.Select(permissao => permissao.Name)];
+	/// <summary>
+	/// Nomes fixos do <see cref="Catalog"/>, na mesma ordem — as caixas da tela de edição de perfil.
+	/// Família não entra: ela não é permissão atribuível, as instâncias são geradas por setor.
+	/// </summary>
+	public static readonly IReadOnlyList<string> Catalogo =
+		[.. Catalog.Select(permissao => permissao.Name).Where(nome => !SeccoPermissions.IsValidFamily(nome))];
 }

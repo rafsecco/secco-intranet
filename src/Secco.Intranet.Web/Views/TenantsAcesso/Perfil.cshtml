@@ -53,13 +53,20 @@
             {
                 <fieldset class="mb-3">
                     <legend class="h6 text-body-secondary">@produto.Produto</legend>
-                    @foreach (var permissao in produto.Permissoes)
+                    @foreach (var permissao in produto.Permissoes.Where(p => !p.Familia))
                     {
                         var id = $"perm-{indice++}";
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="permissoes" value="@permissao.Nome" id="@id" checked="@atuais.Contains(permissao.Nome)" />
                             <label class="form-check-label" for="@id">@permissao.Descricao <span class="sc-meta">@permissao.Nome</span></label>
                         </div>
+                    }
+                    @foreach (var familia in produto.Permissoes.Where(p => p.Familia))
+                    {
+                        <p class="form-text mb-1">
+                            @familia.Descricao <span class="sc-meta">@familia.Nome</span> —
+                            uma por item do próprio sistema, concedida por ele mesmo.
+                        </p>
                     }
                 </fieldset>
             }

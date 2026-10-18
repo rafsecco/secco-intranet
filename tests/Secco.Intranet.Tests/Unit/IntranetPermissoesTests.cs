@@ -81,13 +81,32 @@ public class IntranetPermissoesTests
 
 		constantes.Should().NotBeEmpty();
 		IntranetPermissoes.Catalog.Select(p => p.Name).Should().BeEquivalentTo(constantes);
-		IntranetPermissoes.Catalog.Should().OnlyContain(p => SeccoPermissions.IsValid(p.Name) && !string.IsNullOrWhiteSpace(p.Description));
+		IntranetPermissoes.Catalog.Should().OnlyContain(p =>
+			(SeccoPermissions.IsValid(p.Name) || SeccoPermissions.IsValidFamily(p.Name)) && !string.IsNullOrWhiteSpace(p.Description));
 		IntranetPermissoes.Catalog.Select(p => p.Name).Should().OnlyHaveUniqueItems();
 	}
 
 	[Fact]
 	public void Catalogo_DaTelaEOMesmoDoCatalogPublicado()
 	{
-		IntranetPermissoes.Catalogo.Should().Equal(IntranetPermissoes.Catalog.Select(p => p.Name));
+		IntranetPermissoes.Catalogo.Should().Equal(
+			IntranetPermissoes.Catalog.Select(p => p.Name).Where(nome => !SeccoPermissions.IsValidFamily(nome)),
+			"família não é permissão atribuível: as caixas da tela são só os nomes fixos");
+	}
+
+	/// <summary>
+	/// As permissões por setor nascem da família publicada no catálogo (ADR-0043 da plataforma): o
+	/// SecureGate aceita a instância porque ela casa com a família.
+	/// </summary>
+	[Theory]
+	[InlineData("ti")]
+	[InlineData("recursos-humanos")]
+	public void Setor_ReadEWrite_CasamComAsFamiliasDoCatalogo(string slug)
+	{
+		IntranetPermissoes.Catalog.Select(p => p.Name).Should()
+			.Contain(IntranetPermissoes.Setor.FamiliaRead).And.Contain(IntranetPermissoes.Setor.FamiliaWrite);
+
+		SeccoPermissions.MatchesFamily(IntranetPermissoes.Setor.FamiliaRead, IntranetPermissoes.Setor.Read(slug)).Should().BeTrue();
+		SeccoPermissions.MatchesFamily(IntranetPermissoes.Setor.FamiliaWrite, IntranetPermissoes.Setor.Write(slug)).Should().BeTrue();
 	}
 }

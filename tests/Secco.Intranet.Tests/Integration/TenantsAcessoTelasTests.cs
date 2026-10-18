@@ -227,4 +227,21 @@ public class TenantsAcessoTelasTests(IntranetWebFactory factory) : IClassFixture
 		resposta.Headers.Location!.ToString().Should().Be($"/tenants/{_ligado}/acesso/usuarios/{daIntranet}");
 		_acesso.VinculoDe(daIntranet).Should().Be(VinculoNoTenant.Membro);
 	}
+
+	[Fact]
+	public async Task Perfil_FamiliaDoCatalogo_AparecaComoInformacao_SemCaixa()
+	{
+		_acesso.Catalogo =
+		[
+			new ProdutoDoCatalogoDto(
+				"compras",
+				[new PermissaoDoCatalogoDto("pedido:aprovar", "Aprovar pedidos"), new PermissaoDoCatalogoDto("filial-{id}:read", "Ler uma filial", Familia: true)]),
+		];
+
+		var html = AuxiliaresDeHttp.Decodificar(
+			await Cliente(Admin, "intranet-admin").GetStringAsync($"/tenants/{_ligado}/acesso/perfis/compras.aprovador"));
+
+		html.Should().Contain("filial-{id}:read").And.Contain("Ler uma filial");
+		html.Should().NotContain("value=\"filial-{id}:read\"", "família não é permissão atribuível: as instâncias são do próprio sistema");
+	}
 }

@@ -27,7 +27,11 @@ public sealed record PerfilDoTenantDetalheDto(
 /// <summary>Uma permissão declarada por um produto no catálogo do SecureGate.</summary>
 /// <param name="Nome">Nome canônico (<c>recurso:acao</c>).</param>
 /// <param name="Descricao">O que ela concede, como o produto descreveu.</param>
-public sealed record PermissaoDoCatalogoDto(string Nome, string Descricao);
+/// <param name="Familia">
+/// <c>true</c> quando é uma família (<c>prefixo-{param}:acao</c>, ADR-0043 da plataforma): não se
+/// atribui pela tela, porque as instâncias são do próprio sistema.
+/// </param>
+public sealed record PermissaoDoCatalogoDto(string Nome, string Descricao, bool Familia = false);
 
 /// <summary>As permissões que um produto publicou no catálogo do SecureGate.</summary>
 /// <param name="Produto">Produto (ex.: <c>compras</c>).</param>
