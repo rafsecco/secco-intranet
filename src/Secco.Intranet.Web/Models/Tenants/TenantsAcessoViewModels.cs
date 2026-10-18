@@ -26,7 +26,7 @@ public enum AbaDoAcessoDoTenant
 /// <param name="Federacao">Federação, na aba Federação.</param>
 public sealed record TenantsAcessoIndexViewModel(
 	CabecalhoDoTenantDto Tenant, AbaDoAcessoDoTenant Aba,
-	IReadOnlyList<PerfilDoTenantDto>? Perfis, PagedResult<UsuarioDto>? Usuarios, string? Busca, FederacaoDto? Federacao);
+	IReadOnlyList<PerfilDoTenantDto>? Perfis, PagedResult<UsuarioDoTenantDto>? Usuarios, string? Busca, FederacaoDto? Federacao);
 
 /// <summary>Tela de um perfil do tenant.</summary>
 /// <param name="Tenant">Cabeçalho do tenant.</param>

@@ -94,6 +94,9 @@ public class TenantsAcessoAutorizacaoTests(IntranetWebFactory factory) : IClassF
 		$"/tenants/{tenant}/acesso/usuarios/{Pessoa}/reativar",
 		$"/tenants/{tenant}/acesso/usuarios/{Pessoa}/sessoes/encerrar",
 		$"/tenants/{tenant}/acesso/usuarios/{Pessoa}/convite",
+		$"/tenants/{tenant}/acesso/usuarios/{Pessoa}/vinculo/suspender",
+		$"/tenants/{tenant}/acesso/usuarios/{Pessoa}/vinculo/reativar",
+		$"/tenants/{tenant}/acesso/usuarios/{Pessoa}/vinculo/remover",
 		$"/tenants/{tenant}/acesso/federacao",
 	];
 

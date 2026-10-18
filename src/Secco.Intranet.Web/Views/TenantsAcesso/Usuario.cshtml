@@ -25,6 +25,15 @@
     var modoDeEntrada = usuario.EntraPorSenha
         ? (usuario.TemSenha ? "Senha definida" : "Senha por convite, ainda não definida")
         : "Só pelo Entra ID";
+
+    static BadgeModel BadgeDoVinculo(VinculoNoTenant vinculo) => vinculo switch
+    {
+        VinculoNoTenant.Membro => new BadgeModel("Membro", BadgeVariante.Neutro),
+        VinculoNoTenant.Suspenso => new BadgeModel("Suspenso", BadgeVariante.Aviso),
+        _ => new BadgeModel("Dono", BadgeVariante.Sucesso),
+    };
+
+    var dono = usuario.Vinculo == VinculoNoTenant.Dono;
 }
 
 <partial name="_PageHeader" model="cabecalho" />
@@ -33,6 +42,15 @@
     <dl class="row mb-0">
         <dt class="col-sm-3">Situação</dt>
         <dd class="col-sm-9"><partial name="_Badge" model="situacao" /></dd>
+
+        <dt class="col-sm-3">Vínculo</dt>
+        <dd class="col-sm-9">
+            <partial name="_Badge" model="BadgeDoVinculo(usuario.Vinculo)" />
+            @if (!dono)
+            {
+                <span class="text-body-secondary ms-2">A conta pertence a outro sistema; aqui ficam só o vínculo e os perfis.</span>
+            }
+        </dd>
 
         @if (usuario.BloqueadoAte is { } ate)
         {
@@ -106,29 +124,55 @@
 </div>
 
 <div class="sc-panel mt-3 d-flex flex-wrap gap-2">
-    @if (usuario.Situacao == SituacaoDoUsuario.Desativado)
+    @if (dono)
     {
-        <form method="post" action="@raizDaPessoa/reativar" class="d-inline">
+        @if (usuario.Situacao == SituacaoDoUsuario.Desativado)
+        {
+            <form method="post" action="@raizDaPessoa/reativar" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-outline-primary" type="submit">Reativar conta</button>
+            </form>
+        }
+        else
+        {
+            <form method="post" action="@raizDaPessoa/desativar" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-outline-danger" type="submit">Desativar conta</button>
+            </form>
+        }
+        <form method="post" action="@raizDaPessoa/sessoes/encerrar" class="d-inline">
             @Html.AntiForgeryToken()
-            <button class="btn btn-outline-primary" type="submit">Reativar conta</button>
+            <button class="btn btn-outline-secondary" type="submit">Encerrar sessões</button>
         </form>
+        @if (usuario.EntraPorSenha && !usuario.TemSenha)
+        {
+            <form method="post" action="@raizDaPessoa/convite" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-outline-primary" type="submit">Reenviar convite</button>
+            </form>
+        }
     }
     else
     {
-        <form method="post" action="@raizDaPessoa/desativar" class="d-inline">
+        @if (usuario.Vinculo == VinculoNoTenant.Suspenso)
+        {
+            <form method="post" action="@raizDaPessoa/vinculo/reativar" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-outline-primary" type="submit">Reativar vínculo</button>
+            </form>
+        }
+        else
+        {
+            <form method="post" action="@raizDaPessoa/vinculo/suspender" class="d-inline"
+                  data-confirmar="Suspender o vínculo? A pessoa deixa de entrar neste sistema, e as sessões dela caem em todos os sistemas até o próximo login.">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-outline-danger" type="submit">Suspender vínculo</button>
+            </form>
+        }
+        <form method="post" action="@raizDaPessoa/vinculo/remover" class="d-inline"
+              data-confirmar="Remover o vínculo? A pessoa sai deste sistema e os perfis dela aqui são apagados.">
             @Html.AntiForgeryToken()
-            <button class="btn btn-outline-danger" type="submit">Desativar conta</button>
-        </form>
-    }
-    <form method="post" action="@raizDaPessoa/sessoes/encerrar" class="d-inline">
-        @Html.AntiForgeryToken()
-        <button class="btn btn-outline-secondary" type="submit">Encerrar sessões</button>
-    </form>
-    @if (usuario.EntraPorSenha && !usuario.TemSenha)
-    {
-        <form method="post" action="@raizDaPessoa/convite" class="d-inline">
-            @Html.AntiForgeryToken()
-            <button class="btn btn-outline-primary" type="submit">Reenviar convite</button>
+            <button class="btn btn-outline-danger" type="submit">Remover vínculo</button>
         </form>
     }
 </div>

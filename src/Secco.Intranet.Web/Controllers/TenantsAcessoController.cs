@@ -133,11 +133,13 @@ public sealed class TenantsAcessoController(
 
 		if (criado.IsSuccess)
 		{
-			TempData[FeedbackViewComponent.ChaveDaMensagem] = modelo.EntraPorSenha
-				? "Pessoa cadastrada. O SecureGate enviou o convite para ela definir a senha."
-				: "Pessoa cadastrada. Ela entra pelo Entra ID da empresa.";
+			TempData[FeedbackViewComponent.ChaveDaMensagem] = criado.Value.IncluidaComoMembro
+				? "Esta pessoa já tinha conta: foi incluída como membro e entra com a senha que já usa."
+				: modelo.EntraPorSenha
+					? "Pessoa cadastrada. O SecureGate enviou o convite para ela definir a senha."
+					: "Pessoa cadastrada. Ela entra pelo Entra ID da empresa.";
 
-			return Redirect(Url.Action(nameof(Usuario), new { tenantId, usuarioId = criado.Value })!);
+			return Redirect(Url.Action(nameof(Usuario), new { tenantId, usuarioId = criado.Value.Id })!);
 		}
 
 		modelo.Erro = criado.Error.Description;
@@ -205,6 +207,35 @@ public sealed class TenantsAcessoController(
 	[ValidateAntiForgeryToken]
 	public async Task<IActionResult> ReenviarConvite([FromRoute] Guid tenantId, [FromRoute] Guid usuarioId, CancellationToken cancellationToken = default) =>
 		Concluir(await usuarios.ReenviarConviteAsync(tenantId, usuarioId, cancellationToken), "Convite reenviado.", Url.Action(nameof(Usuario), new { tenantId, usuarioId })!);
+
+	/// <summary>Suspende o vínculo de um membro.</summary>
+	[HttpPost("usuarios/{usuarioId:guid}/vinculo/suspender")]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> SuspenderVinculo([FromRoute] Guid tenantId, [FromRoute] Guid usuarioId, CancellationToken cancellationToken = default) =>
+		Concluir(await usuarios.SuspenderVinculoAsync(tenantId, usuarioId, cancellationToken),
+			"Vínculo suspenso. A pessoa não entra mais neste sistema até ser reativada.", Url.Action(nameof(Usuario), new { tenantId, usuarioId })!);
+
+	/// <summary>Reativa o vínculo de um membro.</summary>
+	[HttpPost("usuarios/{usuarioId:guid}/vinculo/reativar")]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> ReativarVinculo([FromRoute] Guid tenantId, [FromRoute] Guid usuarioId, CancellationToken cancellationToken = default) =>
+		Concluir(await usuarios.ReativarVinculoAsync(tenantId, usuarioId, cancellationToken),
+			"Vínculo reativado.", Url.Action(nameof(Usuario), new { tenantId, usuarioId })!);
+
+	/// <summary>Remove o vínculo de um membro e os perfis dele neste tenant.</summary>
+	[HttpPost("usuarios/{usuarioId:guid}/vinculo/remover")]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> RemoverVinculo([FromRoute] Guid tenantId, [FromRoute] Guid usuarioId, CancellationToken cancellationToken = default)
+	{
+		var removido = await usuarios.RemoverVinculoAsync(tenantId, usuarioId, cancellationToken);
+
+		return Concluir(
+			removido,
+			"Vínculo removido. A pessoa saiu deste sistema e os perfis dela aqui foram apagados.",
+			removido.IsSuccess
+				? Url.Action(nameof(Index), new { tenantId, aba = "usuarios" })!
+				: Url.Action(nameof(Usuario), new { tenantId, usuarioId })!);
+	}
 
 	/// <summary>Define a federação.</summary>
 	[HttpPost("federacao")]

@@ -45,6 +45,7 @@ public sealed record ProdutoDoCatalogoDto(string Produto, IReadOnlyList<Permissa
 /// <param name="DoisFatoresAtivo">Se o segundo fator está ligado.</param>
 /// <param name="TemSenha">Se já definiu senha.</param>
 /// <param name="EntraPorSenha">Se a conta entra por senha (falso: só pelo Entra).</param>
+/// <param name="Vinculo">Relação da pessoa com este tenant (ADR-0040 da plataforma).</param>
 public sealed record UsuarioDoTenantDetalheDto(
 	Guid Id,
 	string Email,
@@ -55,7 +56,42 @@ public sealed record UsuarioDoTenantDetalheDto(
 	IReadOnlyList<string> LoginsExternos,
 	bool DoisFatoresAtivo,
 	bool TemSenha,
-	bool EntraPorSenha);
+	bool EntraPorSenha,
+	VinculoNoTenant Vinculo);
+
+/// <summary>
+/// Relação de uma pessoa com um tenant (ADR-0040 da plataforma): uma conta por pessoa, membro de
+/// vários tenants. A conta é governada pelo tenant <b>dono</b>; nos demais, só o vínculo.
+/// </summary>
+public enum VinculoNoTenant
+{
+	/// <summary>A conta é deste tenant: convite, senha, ativar e desativar são daqui.</summary>
+	Dono,
+
+	/// <summary>Membro com conta em outro tenant: aqui, só o vínculo e os perfis.</summary>
+	Membro,
+
+	/// <summary>Membro com o vínculo suspenso: não entra neste sistema até ser reativado.</summary>
+	Suspenso,
+}
+
+/// <summary>Linha da lista de pessoas de um tenant administrado.</summary>
+/// <param name="Id">Id no SecureGate.</param>
+/// <param name="Email">E-mail.</param>
+/// <param name="Situacao">Situação da conta.</param>
+/// <param name="Perfis">Perfis neste tenant.</param>
+/// <param name="Nome">Nome de exibição.</param>
+/// <param name="Vinculo">Relação com este tenant.</param>
+public sealed record UsuarioDoTenantDto(
+	Guid Id, string Email, SituacaoDoUsuario Situacao, IReadOnlyList<string> Perfis, string? Nome, VinculoNoTenant Vinculo);
+
+/// <summary>Resultado de adicionar uma pessoa a um tenant administrado.</summary>
+/// <param name="Id">Id da pessoa no SecureGate.</param>
+/// <param name="IncluidaComoMembro">
+/// <c>true</c> quando o e-mail já tinha conta na instalação e a pessoa entrou como membro, mantendo
+/// a credencial que tem; <c>false</c> quando a conta foi criada aqui.
+/// </param>
+public sealed record CadastroNoTenantDto(Guid Id, bool IncluidaComoMembro);
 
 /// <summary>Dados de uma pessoa a cadastrar.</summary>
 /// <param name="Email">E-mail.</param>

@@ -152,6 +152,18 @@ public static class VerbosDeAuditoria
 
 	/// <summary>Federação de tenant administrado definida.</summary>
 	public const string TenantAcessoFederacaoDefinir = "tenant.acesso.federacao-definir";
+
+	/// <summary>Pessoa com conta em outro tenant incluída como membro de um tenant administrado.</summary>
+	public const string TenantAcessoVinculoIncluir = "tenant.acesso.vinculo-incluir";
+
+	/// <summary>Vínculo de uma pessoa com um tenant administrado suspenso.</summary>
+	public const string TenantAcessoVinculoSuspender = "tenant.acesso.vinculo-suspender";
+
+	/// <summary>Vínculo de uma pessoa com um tenant administrado reativado.</summary>
+	public const string TenantAcessoVinculoReativar = "tenant.acesso.vinculo-reativar";
+
+	/// <summary>Vínculo de uma pessoa com um tenant administrado removido (os perfis dela ali somem).</summary>
+	public const string TenantAcessoVinculoRemover = "tenant.acesso.vinculo-remover";
 }
 
 /// <summary>Tipos de recurso da trilha.</summary>

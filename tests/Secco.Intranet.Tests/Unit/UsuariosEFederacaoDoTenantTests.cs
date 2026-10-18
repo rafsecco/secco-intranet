@@ -92,7 +92,7 @@ public class UsuariosEFederacaoDoTenantTests
 		cadastrado.Perfis.Should().Equal("compras-leitor", "compras-aprovador");
 		var registro = trilha.Registros.Should().ContainSingle().Subject;
 		registro.Verbo.Should().Be(VerbosDeAuditoria.TenantAcessoUsuarioCadastrar);
-		registro.Metadata.Should().NotContain("Dani@Compras.com").And.Contain(id.Value.ToString());
+		registro.Metadata.Should().NotContain("Dani@Compras.com").And.Contain(id.Value.Id.ToString());
 	}
 
 	[Fact]
@@ -223,5 +223,78 @@ public class UsuariosEFederacaoDoTenantTests
 		(await usuarios.CadastrarAsync(Tenant, new("d@compras.com", new string('x', NomeDeExibicao.MaxLength + 1), [], true)))
 			.Error.Should().Be(IntranetErrors.Acesso.CadastroRecusado);
 		gestao.Cadastrados.Should().BeEmpty();
+	}
+
+	[Fact]
+	public async Task Cadastrar_EmailComContaNaInstalacao_IncluiComoMembro_ComOsPerfis()
+	{
+		var (usuarios, _, gestao, trilha) = Criar();
+		var daIntranet = Guid.NewGuid();
+		gestao.ContasDaInstalacao["eva@intranet.com"] = daIntranet;
+
+		var cadastro = await usuarios.CadastrarAsync(Tenant, new("eva@intranet.com", null, ["compras-leitor"], true));
+
+		cadastro.Value.Should().Be(new CadastroNoTenantDto(daIntranet, IncluidaComoMembro: true));
+		gestao.Cadastrados.Should().BeEmpty("a credencial da pessoa não muda: ela já tem conta");
+		gestao.VinculoDe(daIntranet).Should().Be(VinculoNoTenant.Membro);
+		gestao.Chamadas.Should().Contain($"atribuir:{Tenant}:{daIntranet}:compras-leitor");
+		trilha.Registros.Select(r => r.Verbo).Should().Contain(VerbosDeAuditoria.TenantAcessoVinculoIncluir);
+		trilha.Registros.Should().OnlyContain(r => !r.Metadata!.Contains("eva@intranet.com"));
+	}
+
+	[Fact]
+	public async Task Cadastrar_QuemJaEMembro_Recusa()
+	{
+		var (usuarios, _, _, _) = Criar();
+
+		(await usuarios.CadastrarAsync(Tenant, new("ana@compras.com", null, [], true))).Error.Should().Be(IntranetErrors.Acesso.JaEMembro);
+	}
+
+	[Fact]
+	public async Task AcoesDeConta_EmPessoaDeOutroSistema_RecusadasSemChamarAPlataforma()
+	{
+		var (usuarios, _, gestao, _) = Criar();
+		var membro = Guid.NewGuid();
+		gestao.ComMembro(membro, "eva@intranet.com");
+
+		(await usuarios.DesativarAsync(Tenant, membro)).Error.Should().Be(IntranetErrors.Acesso.ContaDeOutroSistema);
+		(await usuarios.ReativarAsync(Tenant, membro)).Error.Should().Be(IntranetErrors.Acesso.ContaDeOutroSistema);
+		(await usuarios.EncerrarSessoesAsync(Tenant, membro)).Error.Should().Be(IntranetErrors.Acesso.ContaDeOutroSistema);
+		(await usuarios.ReenviarConviteAsync(Tenant, membro)).Error.Should().Be(IntranetErrors.Acesso.ContaDeOutroSistema);
+
+		gestao.Chamadas.Should().NotContain(c => c.StartsWith("desativar", StringComparison.Ordinal)
+			|| c.StartsWith("reativar:", StringComparison.Ordinal)
+			|| c.StartsWith("encerrarSessoes", StringComparison.Ordinal)
+			|| c.StartsWith("reenviarConvite", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public async Task Vinculo_SuspenderReativarRemover_ComTrilha()
+	{
+		var (usuarios, _, gestao, trilha) = Criar();
+		var membro = Guid.NewGuid();
+		gestao.ComMembro(membro, "eva@intranet.com");
+
+		(await usuarios.SuspenderVinculoAsync(Tenant, membro)).IsSuccess.Should().BeTrue();
+		gestao.VinculoDe(membro).Should().Be(VinculoNoTenant.Suspenso);
+		(await usuarios.ReativarVinculoAsync(Tenant, membro)).IsSuccess.Should().BeTrue();
+		gestao.VinculoDe(membro).Should().Be(VinculoNoTenant.Membro);
+		(await usuarios.RemoverVinculoAsync(Tenant, membro)).IsSuccess.Should().BeTrue();
+		gestao.EstaNoTenant(membro).Should().BeFalse();
+
+		trilha.Registros.Select(r => r.Verbo).Should().Equal(
+			VerbosDeAuditoria.TenantAcessoVinculoSuspender,
+			VerbosDeAuditoria.TenantAcessoVinculoReativar,
+			VerbosDeAuditoria.TenantAcessoVinculoRemover);
+	}
+
+	[Fact]
+	public async Task Vinculo_DoDono_NaoSeSuspendeNemRemove()
+	{
+		var (usuarios, _, gestao, _) = Criar();
+
+		(await usuarios.SuspenderVinculoAsync(Tenant, ComSenha)).Error.Should().Be(IntranetErrors.Acesso.VinculoDoDono);
+		(await usuarios.RemoverVinculoAsync(Tenant, ComSenha)).Error.Should().Be(IntranetErrors.Acesso.VinculoDoDono);
+		gestao.Chamadas.Should().NotContain(c => c.Contains("Vinculo", StringComparison.Ordinal));
 	}
 }

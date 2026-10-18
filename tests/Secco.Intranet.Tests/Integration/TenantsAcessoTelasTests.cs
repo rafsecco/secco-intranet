@@ -187,4 +187,44 @@ public class TenantsAcessoTelasTests(IntranetWebFactory factory) : IClassFixture
 
 		html.Should().Contain("Fora do catálogo").And.Contain("value=\"pedido:antigo\"");
 	}
+
+	[Fact]
+	public async Task Usuario_Membro_OfereceAcoesDeVinculo_NaoDeConta()
+	{
+		var membro = Guid.NewGuid();
+		_acesso.ComMembro(membro, "eva@intranet.com");
+
+		var html = AuxiliaresDeHttp.Decodificar(
+			await Cliente(Admin, "intranet-admin").GetStringAsync($"/tenants/{_ligado}/acesso/usuarios/{membro}"));
+
+		html.Should().Contain("Membro").And.Contain("Suspender vínculo").And.Contain("Remover vínculo");
+		html.Should().NotContain("Desativar conta").And.NotContain("Encerrar sessões");
+	}
+
+	[Fact]
+	public async Task Lista_MostraOVinculoDeCadaPessoa()
+	{
+		_acesso.ComMembro(Guid.NewGuid(), "eva@intranet.com", suspenso: true);
+
+		var html = AuxiliaresDeHttp.Decodificar(
+			await Cliente(Admin, "intranet-admin").GetStringAsync($"/tenants/{_ligado}/acesso?aba=usuarios"));
+
+		html.Should().Contain("Suspenso").And.Contain("Dono");
+	}
+
+	[Fact]
+	public async Task Novo_EmailComContaNaInstalacao_IncluiComoMembro()
+	{
+		var daIntranet = Guid.NewGuid();
+		_acesso.ContasDaInstalacao["eva@intranet.com"] = daIntranet;
+		var client = Cliente(Admin, "intranet-admin");
+		var token = await AuxiliaresDeHttp.TokenAsync(client, $"/tenants/{_ligado}/acesso/usuarios/novo");
+
+		var resposta = await client.PostAsync($"/tenants/{_ligado}/acesso/usuarios/novo",
+			AuxiliaresDeHttp.Form(("__RequestVerificationToken", token), ("Email", "eva@intranet.com"), ("EntraPorSenha", "true")));
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.Redirect);
+		resposta.Headers.Location!.ToString().Should().Be($"/tenants/{_ligado}/acesso/usuarios/{daIntranet}");
+		_acesso.VinculoDe(daIntranet).Should().Be(VinculoNoTenant.Membro);
+	}
 }

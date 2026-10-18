@@ -27,8 +27,8 @@ public sealed class GestaoDeAcessoDoTenantIndisponivel : IGestaoDeAcessoDoTenant
 		Task.FromResult(Result.Failure<PaginaDeMembros>(Erro));
 
 	/// <inheritdoc />
-	public Task<Result<IReadOnlyList<UsuarioDto>>> ListarUsuariosAsync(Guid tenantId, CancellationToken cancellationToken = default) =>
-		Task.FromResult(Result.Failure<IReadOnlyList<UsuarioDto>>(Erro));
+	public Task<Result<IReadOnlyList<UsuarioDoTenantDto>>> ListarUsuariosAsync(Guid tenantId, CancellationToken cancellationToken = default) =>
+		Task.FromResult(Result.Failure<IReadOnlyList<UsuarioDoTenantDto>>(Erro));
 
 	/// <inheritdoc />
 	public Task<Result<UsuarioDoTenantDetalheDto>> ObterUsuarioAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
@@ -80,5 +80,21 @@ public sealed class GestaoDeAcessoDoTenantIndisponivel : IGestaoDeAcessoDoTenant
 
 	/// <inheritdoc />
 	public Task<Result> DefinirFederacaoAsync(Guid tenantId, Guid directoryId, bool habilitada, CancellationToken cancellationToken = default) =>
+		Task.FromResult(Result.Failure(Erro));
+
+	/// <inheritdoc />
+	public Task<Result<Guid>> IncluirMembroAsync(Guid tenantId, string email, CancellationToken cancellationToken = default) =>
+		Task.FromResult(Result.Failure<Guid>(Erro));
+
+	/// <inheritdoc />
+	public Task<Result> SuspenderVinculoAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
+		Task.FromResult(Result.Failure(Erro));
+
+	/// <inheritdoc />
+	public Task<Result> ReativarVinculoAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
+		Task.FromResult(Result.Failure(Erro));
+
+	/// <inheritdoc />
+	public Task<Result> RemoverVinculoAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Result.Failure(Erro));
 }

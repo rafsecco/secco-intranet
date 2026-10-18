@@ -30,6 +30,13 @@
 
     static BadgeModel BadgeDaFederacao(bool habilitada) =>
         habilitada ? new BadgeModel("Habilitada", BadgeVariante.Sucesso) : new BadgeModel("Desabilitada", BadgeVariante.Neutro);
+
+    static BadgeModel BadgeDoVinculo(VinculoNoTenant vinculo) => vinculo switch
+    {
+        VinculoNoTenant.Membro => new BadgeModel("Membro", BadgeVariante.Neutro),
+        VinculoNoTenant.Suspenso => new BadgeModel("Suspenso", BadgeVariante.Aviso),
+        _ => new BadgeModel("Dono", BadgeVariante.Sucesso),
+    };
 }
 
 <partial name="_PageHeader" model="cabecalho" />
@@ -131,6 +138,7 @@ else if (Model.Usuarios is { } usuarios)
                         </p>
                         <span class="sc-list__sub">
                             <partial name="_Badge" model="BadgeDaSituacao(usuario.Situacao)" />
+                            <partial name="_Badge" model="BadgeDoVinculo(usuario.Vinculo)" />
                             <span class="sc-meta">@string.Join(", ", usuario.Perfis)</span>
                         </span>
                     </div>

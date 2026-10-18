@@ -43,6 +43,51 @@ public sealed class SecureGateGestaoDeAcessoDoTenant(
 			null,
 			cancellationToken);
 
+	/// <inheritdoc />
+	public Task<Result<Guid>> IncluirMembroAsync(Guid tenantId, string email, CancellationToken cancellationToken = default) =>
+		OperacoesDeAcessoNoSecureGate.EscreverAsync(
+			logger,
+			"incluir membro no tenant",
+			async token => (await client.AddTenantMemberAsync(tenantId, new AddTenantMemberRequest { Email = email }, token)
+				.ConfigureAwait(false)).UserId,
+			IntranetErrors.Acesso.UsuarioNaoEncontrado,
+			excecao => OperacoesDeAcessoNoSecureGate.TemCodigo(excecao, "SecureGate.Member.AlreadyMember") ? IntranetErrors.Acesso.JaEMembro : null,
+			cancellationToken,
+			recusado: _ => IntranetErrors.Acesso.EmailInvalido);
+
+	/// <inheritdoc />
+	public Task<Result> SuspenderVinculoAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
+		OperacoesDeAcessoNoSecureGate.EscreverAsync(
+			logger, "suspender vinculo no tenant",
+			token => client.SuspendTenantMemberAsync(tenantId, usuarioId, token),
+			IntranetErrors.Acesso.UsuarioNaoEncontrado, VinculoDoDonoOu, cancellationToken);
+
+	/// <inheritdoc />
+	public Task<Result> ReativarVinculoAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
+		OperacoesDeAcessoNoSecureGate.EscreverAsync(
+			logger, "reativar vinculo no tenant",
+			token => client.SetTenantMemberAsync(tenantId, usuarioId, token),
+			IntranetErrors.Acesso.UsuarioNaoEncontrado, VinculoDoDonoOu, cancellationToken);
+
+	/// <inheritdoc />
+	public Task<Result> RemoverVinculoAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
+		OperacoesDeAcessoNoSecureGate.EscreverAsync(
+			logger, "remover vinculo no tenant",
+			token => client.RemoveTenantMemberAsync(tenantId, usuarioId, token),
+			IntranetErrors.Acesso.UsuarioNaoEncontrado, VinculoDoDonoOu, cancellationToken);
+
+	// Vínculo da pessoa com o tenant dono dela não se suspende nem se remove (ADR-0040).
+	private static Error? VinculoDoDonoOu(ApiException excecao) =>
+		OperacoesDeAcessoNoSecureGate.TemCodigo(excecao, "SecureGate.Member.OwnerMembership") ? IntranetErrors.Acesso.VinculoDoDono : null;
+
+	// "Owner" | "Member" | "Suspended" (ADR-0040). Sem o campo (SecureGate anterior), a pessoa é dona.
+	private static VinculoNoTenant Vinculo(string? membership) => membership switch
+	{
+		"Member" => VinculoNoTenant.Membro,
+		"Suspended" => VinculoNoTenant.Suspenso,
+		_ => VinculoNoTenant.Dono,
+	};
+
 	// Atribuir ou retirar perfil de quem não é membro do tenant: 409 com motivo próprio (ADR-0040).
 	private static Error? NaoEMembroOu(ApiException excecao, Error? outroConflito) =>
 		OperacoesDeAcessoNoSecureGate.TemCodigo(excecao, NaoEMembro) ? IntranetErrors.Acesso.PessoaNaoEMembro : outroConflito;
@@ -93,15 +138,19 @@ public sealed class SecureGateGestaoDeAcessoDoTenant(
 			cancellationToken);
 
 	/// <inheritdoc />
-	public Task<Result<IReadOnlyList<UsuarioDto>>> ListarUsuariosAsync(Guid tenantId, CancellationToken cancellationToken = default) =>
-		OperacoesDeAcessoNoSecureGate.LerAsync<IReadOnlyList<UsuarioDto>>(
+	public Task<Result<IReadOnlyList<UsuarioDoTenantDto>>> ListarUsuariosAsync(Guid tenantId, CancellationToken cancellationToken = default) =>
+		OperacoesDeAcessoNoSecureGate.LerAsync<IReadOnlyList<UsuarioDoTenantDto>>(
 			logger,
 			"listar usuarios do tenant",
 			async token =>
 			{
 				var usuarios = await client.ListUsersAsync(tenantId, token).ConfigureAwait(false);
 
-				return [.. usuarios.Select(u => new UsuarioDto(u.Id, u.Email, OperacoesDeAcessoNoSecureGate.Situacao(u.Status), [.. u.Roles ?? []], u.DisplayName))];
+				return
+				[
+					.. usuarios.Select(u => new UsuarioDoTenantDto(
+						u.Id, u.Email, OperacoesDeAcessoNoSecureGate.Situacao(u.Status), [.. u.Roles ?? []], u.DisplayName, Vinculo(u.Membership))),
+				];
 			},
 			null,
 			cancellationToken);
@@ -125,7 +174,8 @@ public sealed class SecureGateGestaoDeAcessoDoTenant(
 					[.. u.ExternalLogins ?? []],
 					u.TwoFactorEnabled,
 					u.HasPassword,
-					u.LocalLoginEnabled);
+					u.LocalLoginEnabled,
+					Vinculo(u.Membership));
 			},
 			IntranetErrors.Acesso.UsuarioNaoEncontrado,
 			cancellationToken);

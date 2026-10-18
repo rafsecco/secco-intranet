@@ -44,10 +44,33 @@ public sealed class GestaoDeAcessoDoTenantFalsa : IGestaoDeAcessoDoTenant
 	public GestaoDeAcessoDoTenantFalsa ComUsuario(
 		Guid id, string email, SituacaoDoUsuario situacao, bool temSenha = false, bool entraPorSenha = true, params string[] perfis)
 	{
-		_usuarios[id] = new UsuarioDoTenantDetalheDto(id, email, null, situacao, null, [.. perfis], [], false, temSenha, entraPorSenha);
+		_usuarios[id] = new UsuarioDoTenantDetalheDto(
+			id, email, null, situacao, null, [.. perfis], [], false, temSenha, entraPorSenha, VinculoNoTenant.Dono);
 
 		return this;
 	}
+
+	/// <summary>
+	/// Contas de outros tenants da instalação, por e-mail (ADR-0040 da plataforma): o e-mail é único
+	/// na instalação, então cadastrar uma delas falha, e incluí-la como membro funciona.
+	/// </summary>
+	public Dictionary<string, Guid> ContasDaInstalacao { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+	/// <summary>Acrescenta uma pessoa que é membro (dona de outro tenant), ativa ou suspensa.</summary>
+	public GestaoDeAcessoDoTenantFalsa ComMembro(Guid id, string email, bool suspenso = false, params string[] perfis)
+	{
+		_usuarios[id] = new UsuarioDoTenantDetalheDto(
+			id, email, null, SituacaoDoUsuario.Ativo, null, [.. perfis], [], false, true, true,
+			suspenso ? VinculoNoTenant.Suspenso : VinculoNoTenant.Membro);
+
+		return this;
+	}
+
+	/// <summary>Vínculo atual de uma pessoa.</summary>
+	public VinculoNoTenant VinculoDe(Guid usuarioId) => _usuarios[usuarioId].Vinculo;
+
+	/// <summary>Se a pessoa ainda está no tenant (remover o vínculo a tira).</summary>
+	public bool EstaNoTenant(Guid usuarioId) => _usuarios.ContainsKey(usuarioId);
 
 	/// <summary>Permissões gravadas de um perfil.</summary>
 	public IReadOnlyList<string> PermissoesDe(string perfil) => _perfis[perfil].Permissoes;
@@ -91,10 +114,10 @@ public sealed class GestaoDeAcessoDoTenantFalsa : IGestaoDeAcessoDoTenant
 		}));
 
 	/// <inheritdoc />
-	public Task<Result<IReadOnlyList<UsuarioDto>>> ListarUsuariosAsync(Guid tenantId, CancellationToken cancellationToken = default) =>
-		Task.FromResult(Registrar<IReadOnlyList<UsuarioDto>>($"listarUsuarios:{tenantId}", () =>
-			Result.Success<IReadOnlyList<UsuarioDto>>(
-				[.. _usuarios.Values.Select(u => new UsuarioDto(u.Id, u.Email, u.Situacao, u.Perfis, u.Nome))])));
+	public Task<Result<IReadOnlyList<UsuarioDoTenantDto>>> ListarUsuariosAsync(Guid tenantId, CancellationToken cancellationToken = default) =>
+		Task.FromResult(Registrar<IReadOnlyList<UsuarioDoTenantDto>>($"listarUsuarios:{tenantId}", () =>
+			Result.Success<IReadOnlyList<UsuarioDoTenantDto>>(
+				[.. _usuarios.Values.Select(u => new UsuarioDoTenantDto(u.Id, u.Email, u.Situacao, u.Perfis, u.Nome, u.Vinculo))])));
 
 	/// <inheritdoc />
 	public Task<Result<UsuarioDoTenantDetalheDto>> ObterUsuarioAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
@@ -159,10 +182,15 @@ public sealed class GestaoDeAcessoDoTenantFalsa : IGestaoDeAcessoDoTenant
 	public Task<Result<Guid>> CadastrarUsuarioAsync(Guid tenantId, NovoUsuarioDoTenant novo, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Registrar($"cadastrar:{tenantId}", () =>
 		{
+			if (ContasDaInstalacao.ContainsKey(novo.Email) || _usuarios.Values.Any(u => string.Equals(u.Email, novo.Email, StringComparison.OrdinalIgnoreCase)))
+			{
+				return Result.Failure<Guid>(IntranetErrors.Acesso.EmailJaCadastrado);
+			}
+
 			Cadastrados.Add(novo);
 			var id = Guid.NewGuid();
 			_usuarios[id] = new UsuarioDoTenantDetalheDto(
-				id, novo.Email, novo.Nome, SituacaoDoUsuario.Ativo, null, novo.Perfis, [], false, false, novo.EntraPorSenha);
+				id, novo.Email, novo.Nome, SituacaoDoUsuario.Ativo, null, novo.Perfis, [], false, false, novo.EntraPorSenha, VinculoNoTenant.Dono);
 
 			return Result.Success(id);
 		}));
@@ -199,6 +227,58 @@ public sealed class GestaoDeAcessoDoTenantFalsa : IGestaoDeAcessoDoTenant
 	/// <inheritdoc />
 	public Task<Result<IReadOnlyList<ProdutoDoCatalogoDto>>> ListarCatalogoDePermissoesAsync(CancellationToken cancellationToken = default) =>
 		Task.FromResult(Registrar("listarCatalogo", () => Result.Success(Catalogo)));
+
+	/// <inheritdoc />
+	public Task<Result<Guid>> IncluirMembroAsync(Guid tenantId, string email, CancellationToken cancellationToken = default) =>
+		Task.FromResult(Registrar($"incluirMembro:{tenantId}:{email}", () =>
+		{
+			if (_usuarios.Values.Any(u => string.Equals(u.Email, email, StringComparison.OrdinalIgnoreCase)))
+			{
+				return Result.Failure<Guid>(IntranetErrors.Acesso.JaEMembro);
+			}
+
+			if (!ContasDaInstalacao.TryGetValue(email, out var id))
+			{
+				return Result.Failure<Guid>(IntranetErrors.Acesso.UsuarioNaoEncontrado);
+			}
+
+			ComMembro(id, email);
+
+			return Result.Success(id);
+		}));
+
+	/// <inheritdoc />
+	public Task<Result> SuspenderVinculoAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
+		Task.FromResult(MudarVinculo($"suspenderVinculo:{tenantId}:{usuarioId}", usuarioId, VinculoNoTenant.Suspenso));
+
+	/// <inheritdoc />
+	public Task<Result> ReativarVinculoAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
+		Task.FromResult(MudarVinculo($"reativarVinculo:{tenantId}:{usuarioId}", usuarioId, VinculoNoTenant.Membro));
+
+	/// <inheritdoc />
+	public Task<Result> RemoverVinculoAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default)
+	{
+		var registrado = Registrar($"removerVinculo:{tenantId}:{usuarioId}");
+
+		if (registrado.IsSuccess)
+		{
+			_usuarios.Remove(usuarioId);
+		}
+
+		return Task.FromResult(registrado);
+	}
+
+	private Result MudarVinculo(string chamada, Guid usuarioId, VinculoNoTenant vinculo)
+	{
+		var registrado = Registrar(chamada);
+
+		if (registrado.IsSuccess && _usuarios.TryGetValue(usuarioId, out var usuario))
+		{
+			_usuarios[usuarioId] = usuario with { Vinculo = vinculo };
+		}
+
+		return registrado;
+	}
 
 	private List<string> ForaDoCatalogo(IEnumerable<string> permissoes)
 	{

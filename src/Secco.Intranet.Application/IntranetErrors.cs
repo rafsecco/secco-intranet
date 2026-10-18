@@ -264,6 +264,22 @@ public static class IntranetErrors
 				"Intranet.Acesso.PessoaNaoEMembro",
 				"Esta pessoa não é membro deste sistema. Inclua-a como membro antes de dar ou tirar perfis.");
 
+		/// <summary>A pessoa já é membro do tenant (ADR-0040 da plataforma).</summary>
+		public static readonly Error JaEMembro =
+			Error.Conflict("Intranet.Acesso.JaEMembro", "Esta pessoa já faz parte deste sistema.");
+
+		/// <summary>O vínculo com o tenant dono da conta não se suspende nem se remove.</summary>
+		public static readonly Error VinculoDoDono =
+			Error.Conflict(
+				"Intranet.Acesso.VinculoDoDono",
+				"A conta desta pessoa pertence a este sistema: o vínculo não se suspende nem se remove. Para tirar o acesso, desative a conta.");
+
+		/// <summary>Operação sobre a conta pedida por um tenant que não é o dono dela.</summary>
+		public static readonly Error ContaDeOutroSistema =
+			Error.Conflict(
+				"Intranet.Acesso.ContaDeOutroSistema",
+				"A conta desta pessoa pertence a outro sistema. Aqui só dá para suspender, reativar ou remover o vínculo dela.");
+
 		/// <summary>Mais permissões do que o limite por perfil.</summary>
 		public static readonly Error PermissoesDemais =
 			Error.Validation("Intranet.Acesso.PermissoesDemais", "Um perfil aceita no máximo 200 permissões.");

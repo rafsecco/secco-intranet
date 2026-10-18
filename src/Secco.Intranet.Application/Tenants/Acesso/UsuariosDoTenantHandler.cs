@@ -22,8 +22,12 @@ public sealed record CadastrarUsuarioDoTenantCommand(string? Email, string? Nome
 /// <param name="trilha">Trilha da Intranet.</param>
 public sealed class UsuariosDoTenantHandler(IGestaoDeAcessoDoTenant gestao, ITrilhaDeAuditoria trilha)
 {
-	/// <summary>Cadastra a pessoa; devolve o id criado.</summary>
-	public async Task<Result<Guid>> CadastrarAsync(Guid tenantId, CadastrarUsuarioDoTenantCommand command, CancellationToken cancellationToken = default)
+	/// <summary>
+	/// Adiciona a pessoa ao tenant. Se o e-mail ainda não tem conta na instalação, cria a conta aqui
+	/// (convite ou só pelo Entra). Se já tem, inclui como <b>membro</b> e atribui os perfis: a conta e a
+	/// credencial continuam com o tenant dono (ADR-0040 da plataforma).
+	/// </summary>
+	public async Task<Result<CadastroNoTenantDto>> CadastrarAsync(Guid tenantId, CadastrarUsuarioDoTenantCommand command, CancellationToken cancellationToken = default)
 	{
 		ArgumentNullException.ThrowIfNull(command);
 
@@ -31,14 +35,14 @@ public sealed class UsuariosDoTenantHandler(IGestaoDeAcessoDoTenant gestao, ITri
 
 		if (!EmailValido(email))
 		{
-			return Result.Failure<Guid>(IntranetErrors.Acesso.EmailInvalido);
+			return Result.Failure<CadastroNoTenantDto>(IntranetErrors.Acesso.EmailInvalido);
 		}
 
 		var nome = NomeDeExibicao.Normalizar(command.Nome);
 
 		if (nome is { Length: > NomeDeExibicao.MaxLength })
 		{
-			return Result.Failure<Guid>(IntranetErrors.Acesso.CadastroRecusado);
+			return Result.Failure<CadastroNoTenantDto>(IntranetErrors.Acesso.CadastroRecusado);
 		}
 
 		IReadOnlyList<string> perfis = [.. (command.Perfis ?? []).Select(p => p.Trim()).Where(p => p.Length > 0).Distinct(StringComparer.Ordinal)];
@@ -47,7 +51,7 @@ public sealed class UsuariosDoTenantHandler(IGestaoDeAcessoDoTenant gestao, ITri
 
 		if (perfisValidos.IsFailure)
 		{
-			return Result.Failure<Guid>(perfisValidos.Error);
+			return Result.Failure<CadastroNoTenantDto>(perfisValidos.Error);
 		}
 
 		if (!command.EntraPorSenha)
@@ -56,12 +60,12 @@ public sealed class UsuariosDoTenantHandler(IGestaoDeAcessoDoTenant gestao, ITri
 
 			if (federacao.IsFailure)
 			{
-				return Result.Failure<Guid>(federacao.Error);
+				return Result.Failure<CadastroNoTenantDto>(federacao.Error);
 			}
 
 			if (!federacao.Value.Habilitada)
 			{
-				return Result.Failure<Guid>(IntranetErrors.Acesso.EntraSemFederacao);
+				return Result.Failure<CadastroNoTenantDto>(IntranetErrors.Acesso.EntraSemFederacao);
 			}
 		}
 
@@ -73,10 +77,29 @@ public sealed class UsuariosDoTenantHandler(IGestaoDeAcessoDoTenant gestao, ITri
 		{
 			await AuditoriaDoAcessoDoTenant.CadastroAsync(trilha, tenantId, criado.Value, command.EntraPorSenha, perfis, cancellationToken)
 				.ConfigureAwait(false);
+
+			return Result.Success(new CadastroNoTenantDto(criado.Value, IncluidaComoMembro: false));
 		}
 
-		return criado;
+		if (criado.Error != IntranetErrors.Acesso.EmailJaCadastrado)
+		{
+			return Result.Failure<CadastroNoTenantDto>(criado.Error);
+		}
+
+		return await IncluirComoMembroAsync(tenantId, email, perfis, cancellationToken).ConfigureAwait(false);
 	}
+
+	/// <summary>Suspende o vínculo de um membro; o do tenant dono não se suspende.</summary>
+	public Task<Result> SuspenderVinculoAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
+		NoVinculoAsync(tenantId, usuarioId, gestao.SuspenderVinculoAsync, VerbosDeAuditoria.TenantAcessoVinculoSuspender, cancellationToken);
+
+	/// <summary>Reativa o vínculo de um membro.</summary>
+	public Task<Result> ReativarVinculoAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
+		NoVinculoAsync(tenantId, usuarioId, gestao.ReativarVinculoAsync, VerbosDeAuditoria.TenantAcessoVinculoReativar, cancellationToken);
+
+	/// <summary>Remove o vínculo de um membro e os perfis dele neste tenant.</summary>
+	public Task<Result> RemoverVinculoAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
+		NoVinculoAsync(tenantId, usuarioId, gestao.RemoverVinculoAsync, VerbosDeAuditoria.TenantAcessoVinculoRemover, cancellationToken);
 
 	/// <summary>Atribui um perfil não reservado.</summary>
 	public async Task<Result> AtribuirPerfilAsync(Guid tenantId, Guid usuarioId, string? perfil, CancellationToken cancellationToken = default)
@@ -126,6 +149,11 @@ public sealed class UsuariosDoTenantHandler(IGestaoDeAcessoDoTenant gestao, ITri
 			return Result.Failure(usuario.Error);
 		}
 
+		if (usuario.Value.Vinculo != VinculoNoTenant.Dono)
+		{
+			return Result.Failure(IntranetErrors.Acesso.ContaDeOutroSistema);
+		}
+
 		if (usuario.Value.TemSenha || !usuario.Value.EntraPorSenha)
 		{
 			return Result.Failure(IntranetErrors.Acesso.ConviteNaoCabe);
@@ -137,23 +165,93 @@ public sealed class UsuariosDoTenantHandler(IGestaoDeAcessoDoTenant gestao, ITri
 			.ConfigureAwait(false);
 	}
 
-	/// <summary>Desativa a conta.</summary>
-	public async Task<Result> DesativarAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
-		await RegistrarSeOkAsync(
-			await gestao.DesativarUsuarioAsync(tenantId, usuarioId, cancellationToken).ConfigureAwait(false),
-			VerbosDeAuditoria.TenantAcessoUsuarioDesativar, tenantId, usuarioId, null, cancellationToken).ConfigureAwait(false);
+	/// <summary>Desativa a conta — só pelo tenant dono dela.</summary>
+	public Task<Result> DesativarAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
+		NaContaAsync(tenantId, usuarioId, gestao.DesativarUsuarioAsync, VerbosDeAuditoria.TenantAcessoUsuarioDesativar, cancellationToken);
 
-	/// <summary>Reativa a conta.</summary>
-	public async Task<Result> ReativarAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
-		await RegistrarSeOkAsync(
-			await gestao.ReativarUsuarioAsync(tenantId, usuarioId, cancellationToken).ConfigureAwait(false),
-			VerbosDeAuditoria.TenantAcessoUsuarioReativar, tenantId, usuarioId, null, cancellationToken).ConfigureAwait(false);
+	/// <summary>Reativa a conta — só pelo tenant dono dela.</summary>
+	public Task<Result> ReativarAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
+		NaContaAsync(tenantId, usuarioId, gestao.ReativarUsuarioAsync, VerbosDeAuditoria.TenantAcessoUsuarioReativar, cancellationToken);
 
-	/// <summary>Encerra as sessões.</summary>
-	public async Task<Result> EncerrarSessoesAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
-		await RegistrarSeOkAsync(
-			await gestao.EncerrarSessoesAsync(tenantId, usuarioId, cancellationToken).ConfigureAwait(false),
-			VerbosDeAuditoria.TenantAcessoSessoesEncerrar, tenantId, usuarioId, null, cancellationToken).ConfigureAwait(false);
+	/// <summary>Encerra as sessões — só pelo tenant dono da conta.</summary>
+	public Task<Result> EncerrarSessoesAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default) =>
+		NaContaAsync(tenantId, usuarioId, gestao.EncerrarSessoesAsync, VerbosDeAuditoria.TenantAcessoSessoesEncerrar, cancellationToken);
+
+	// Operação sobre a conta: pelos tenants que não são o dono, a plataforma responde 404 (ADR-0040).
+	// Conferir antes dá a mensagem certa em vez de "usuário não encontrado".
+	private async Task<Result> NaContaAsync(
+		Guid tenantId, Guid usuarioId, Func<Guid, Guid, CancellationToken, Task<Result>> operacao, string verbo,
+		CancellationToken cancellationToken)
+	{
+		var usuario = await gestao.ObterUsuarioAsync(tenantId, usuarioId, cancellationToken).ConfigureAwait(false);
+
+		if (usuario.IsFailure)
+		{
+			return Result.Failure(usuario.Error);
+		}
+
+		if (usuario.Value.Vinculo != VinculoNoTenant.Dono)
+		{
+			return Result.Failure(IntranetErrors.Acesso.ContaDeOutroSistema);
+		}
+
+		var feito = await operacao(tenantId, usuarioId, cancellationToken).ConfigureAwait(false);
+
+		return await RegistrarSeOkAsync(feito, verbo, tenantId, usuarioId, null, cancellationToken).ConfigureAwait(false);
+	}
+
+	// Operação sobre o vínculo: o do tenant dono não se suspende nem se remove.
+	private async Task<Result> NoVinculoAsync(
+		Guid tenantId, Guid usuarioId, Func<Guid, Guid, CancellationToken, Task<Result>> operacao, string verbo,
+		CancellationToken cancellationToken)
+	{
+		var usuario = await gestao.ObterUsuarioAsync(tenantId, usuarioId, cancellationToken).ConfigureAwait(false);
+
+		if (usuario.IsFailure)
+		{
+			return Result.Failure(usuario.Error);
+		}
+
+		if (usuario.Value.Vinculo == VinculoNoTenant.Dono)
+		{
+			return Result.Failure(IntranetErrors.Acesso.VinculoDoDono);
+		}
+
+		var feito = await operacao(tenantId, usuarioId, cancellationToken).ConfigureAwait(false);
+
+		return await RegistrarSeOkAsync(feito, verbo, tenantId, usuarioId, null, cancellationToken).ConfigureAwait(false);
+	}
+
+	private async Task<Result<CadastroNoTenantDto>> IncluirComoMembroAsync(
+		Guid tenantId, string email, IReadOnlyList<string> perfis, CancellationToken cancellationToken)
+	{
+		var incluido = await gestao.IncluirMembroAsync(tenantId, email, cancellationToken).ConfigureAwait(false);
+
+		if (incluido.IsFailure)
+		{
+			return Result.Failure<CadastroNoTenantDto>(incluido.Error);
+		}
+
+		await AuditoriaDoAcessoDoTenant
+			.UsuarioAsync(trilha, VerbosDeAuditoria.TenantAcessoVinculoIncluir, tenantId, incluido.Value, null, cancellationToken)
+			.ConfigureAwait(false);
+
+		foreach (var perfil in perfis)
+		{
+			var atribuido = await gestao.AtribuirPerfilAsync(tenantId, incluido.Value, perfil, cancellationToken).ConfigureAwait(false);
+
+			if (atribuido.IsFailure)
+			{
+				return Result.Failure<CadastroNoTenantDto>(atribuido.Error);
+			}
+
+			await AuditoriaDoAcessoDoTenant
+				.UsuarioAsync(trilha, VerbosDeAuditoria.TenantAcessoPerfilAtribuir, tenantId, incluido.Value, perfil, cancellationToken)
+				.ConfigureAwait(false);
+		}
+
+		return Result.Success(new CadastroNoTenantDto(incluido.Value, IncluidaComoMembro: true));
+	}
 
 	private static bool EmailValido(string email) =>
 		email.Length is > 0 and <= 256

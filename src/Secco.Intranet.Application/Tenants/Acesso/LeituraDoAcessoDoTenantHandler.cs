@@ -7,12 +7,12 @@ namespace Secco.Intranet.Application.Tenants.Acesso;
 /// <summary>Tela de um perfil do tenant administrado.</summary>
 /// <param name="Perfil">Detalhe.</param>
 /// <param name="Membros">Página de membros.</param>
-/// <param name="Candidatos">Pessoas ativas que ainda não têm o perfil.</param>
+/// <param name="Candidatos">Pessoas ativas, com vínculo ativo, que ainda não têm o perfil.</param>
 /// <param name="Catalogo">Catálogo de permissões da instalação, por produto — as caixas da tela.</param>
 public sealed record PerfilDoTenantTelaDto(
 	PerfilDoTenantDetalheDto Perfil,
 	PaginaDeMembros Membros,
-	IReadOnlyList<UsuarioDto> Candidatos,
+	IReadOnlyList<UsuarioDoTenantDto> Candidatos,
 	IReadOnlyList<ProdutoDoCatalogoDto> Catalogo);
 
 /// <summary>Tela de uma pessoa do tenant administrado.</summary>
@@ -66,10 +66,12 @@ public sealed class LeituraDoAcessoDoTenantHandler(IGestaoDeAcessoDoTenant gesta
 			return Result.Failure<PerfilDoTenantTelaDto>(usuarios.Error);
 		}
 
-		IReadOnlyList<UsuarioDto> candidatos =
+		IReadOnlyList<UsuarioDoTenantDto> candidatos =
 		[
 			.. usuarios.Value
-				.Where(u => u.Situacao == SituacaoDoUsuario.Ativo && !u.Perfis.Contains(perfil.Value.Nome, StringComparer.Ordinal))
+				.Where(u => u.Situacao == SituacaoDoUsuario.Ativo
+					&& u.Vinculo != VinculoNoTenant.Suspenso
+					&& !u.Perfis.Contains(perfil.Value.Nome, StringComparer.Ordinal))
 				.OrderBy(u => u.Email, StringComparer.OrdinalIgnoreCase),
 		];
 
@@ -84,14 +86,14 @@ public sealed class LeituraDoAcessoDoTenantHandler(IGestaoDeAcessoDoTenant gesta
 	}
 
 	/// <summary>Pessoas com busca por e-mail e paginação em memória (a plataforma devolve o tenant inteiro).</summary>
-	public async Task<Result<PagedResult<UsuarioDto>>> ListarUsuariosAsync(
+	public async Task<Result<PagedResult<UsuarioDoTenantDto>>> ListarUsuariosAsync(
 		Guid tenantId, string? busca, int pagina, CancellationToken cancellationToken = default)
 	{
 		var lidos = await gestao.ListarUsuariosAsync(tenantId, cancellationToken).ConfigureAwait(false);
 
 		if (lidos.IsFailure)
 		{
-			return Result.Failure<PagedResult<UsuarioDto>>(lidos.Error);
+			return Result.Failure<PagedResult<UsuarioDoTenantDto>>(lidos.Error);
 		}
 
 		var termo = busca?.Trim();
@@ -101,7 +103,7 @@ public sealed class LeituraDoAcessoDoTenantHandler(IGestaoDeAcessoDoTenant gesta
 			.ToList();
 
 		var pedido = new PageRequest(Math.Max(1, pagina), TamanhoDaPagina);
-		IReadOnlyList<UsuarioDto> itens = [.. filtrados.Skip(pedido.Skip).Take(pedido.Size)];
+		IReadOnlyList<UsuarioDoTenantDto> itens = [.. filtrados.Skip(pedido.Skip).Take(pedido.Size)];
 
 		return PagedResult.Create(itens, pedido, filtrados.Count);
 	}

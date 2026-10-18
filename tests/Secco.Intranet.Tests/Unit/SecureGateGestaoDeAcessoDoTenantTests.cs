@@ -49,7 +49,7 @@ public class SecureGateGestaoDeAcessoDoTenantTests
 
 			return new UserDetailDto
 			{
-				Id = userId, Email = "ana@compras.com", Status = "Active", HasPassword = false, LocalLoginEnabled = true,
+				Id = userId, Email = "ana@compras.com", Status = "Active", HasPassword = false, LocalLoginEnabled = true, Membership = Vinculo,
 				DisplayName = "Ana", Roles = ["compras-aprovador"],
 			};
 		}
@@ -58,6 +58,18 @@ public class SecureGateGestaoDeAcessoDoTenantTests
 			await Registrar($"DeleteRole:{tenantId}:{role}");
 
 		public ICollection<ProductPermissionCatalogDto> Catalogo { get; set; } = [];
+
+		public string? Vinculo { get; set; } = "Owner";
+
+		public override async Task<TenantMemberDto> AddTenantMemberAsync(Guid tenantId, AddTenantMemberRequest body, CancellationToken cancellationToken)
+		{
+			await Registrar($"AddTenantMember:{tenantId}:{body.Email}");
+
+			return new TenantMemberDto { UserId = Guid.Parse("22222222-2222-2222-2222-222222222222"), Email = body.Email };
+		}
+
+		public override async Task SuspendTenantMemberAsync(Guid tenantId, Guid userId, CancellationToken cancellationToken) =>
+			await Registrar($"SuspendTenantMember:{tenantId}:{userId}");
 
 		public RoleDetailDto? Papel { get; set; }
 
@@ -230,5 +242,50 @@ public class SecureGateGestaoDeAcessoDoTenantTests
 
 		(await gestao.AtribuirPerfilAsync(Alvo, Guid.NewGuid(), "aprovador"))
 			.Error.Should().Be(IntranetErrors.Acesso.PessoaNaoEMembro);
+	}
+
+	private static ApiException<ProblemDetails> Problema(int status, string codigo) =>
+		new("erro", status, null!, new Dictionary<string, IEnumerable<string>>(), new ProblemDetails { Title = codigo, Status = status }, null!);
+
+	[Theory]
+	[InlineData("Owner", VinculoNoTenant.Dono)]
+	[InlineData("Member", VinculoNoTenant.Membro)]
+	[InlineData("Suspended", VinculoNoTenant.Suspenso)]
+	[InlineData(null, VinculoNoTenant.Dono)]
+	public async Task ObterUsuario_TraduzOVinculo(string? membership, VinculoNoTenant esperado)
+	{
+		var (gestao, client) = Criar();
+		client.Vinculo = membership;
+
+		(await gestao.ObterUsuarioAsync(Alvo, Guid.NewGuid())).Value.Vinculo.Should().Be(esperado);
+	}
+
+	[Fact]
+	public async Task IncluirMembro_UsaOTenantRecebido_EDevolveOId()
+	{
+		var (gestao, client) = Criar();
+
+		var incluido = await gestao.IncluirMembroAsync(Alvo, "eva@intranet.com");
+
+		incluido.Value.Should().Be(Guid.Parse("22222222-2222-2222-2222-222222222222"));
+		client.Chamadas.Should().Equal($"AddTenantMember:{Alvo}:eva@intranet.com");
+	}
+
+	[Fact]
+	public async Task IncluirMembro_JaMembro_ViraErroProprio()
+	{
+		var (gestao, client) = Criar();
+		client.Falha = Problema(409, "SecureGate.Member.AlreadyMember");
+
+		(await gestao.IncluirMembroAsync(Alvo, "eva@intranet.com")).Error.Should().Be(IntranetErrors.Acesso.JaEMembro);
+	}
+
+	[Fact]
+	public async Task SuspenderVinculo_DoDono_ViraErroProprio()
+	{
+		var (gestao, client) = Criar();
+		client.Falha = Problema(409, "SecureGate.Member.OwnerMembership");
+
+		(await gestao.SuspenderVinculoAsync(Alvo, Guid.NewGuid())).Error.Should().Be(IntranetErrors.Acesso.VinculoDoDono);
 	}
 }

@@ -38,7 +38,7 @@ public interface IGestaoDeAcessoDoTenant
 	/// <summary>Lista as pessoas do tenant.</summary>
 	/// <param name="tenantId">Tenant administrado.</param>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
-	Task<Result<IReadOnlyList<UsuarioDto>>> ListarUsuariosAsync(Guid tenantId, CancellationToken cancellationToken = default);
+	Task<Result<IReadOnlyList<UsuarioDoTenantDto>>> ListarUsuariosAsync(Guid tenantId, CancellationToken cancellationToken = default);
 
 	/// <summary>Obtém o detalhe de uma pessoa do tenant.</summary>
 	/// <param name="tenantId">Tenant administrado.</param>
@@ -120,4 +120,31 @@ public interface IGestaoDeAcessoDoTenant
 	/// <param name="habilitada">Se a federação fica habilitada.</param>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
 	Task<Result> DefinirFederacaoAsync(Guid tenantId, Guid directoryId, bool habilitada, CancellationToken cancellationToken = default);
+
+	/// <summary>
+	/// Inclui como membro do tenant a pessoa que já tem conta na instalação, localizada pelo e-mail
+	/// (ADR-0040 da plataforma). Devolve o id dela.
+	/// </summary>
+	/// <param name="tenantId">Tenant.</param>
+	/// <param name="email">E-mail da conta existente.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	Task<Result<Guid>> IncluirMembroAsync(Guid tenantId, string email, CancellationToken cancellationToken = default);
+
+	/// <summary>Suspende o vínculo: a pessoa deixa de entrar neste sistema e as sessões dela caem.</summary>
+	/// <param name="tenantId">Tenant.</param>
+	/// <param name="usuarioId">Pessoa.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	Task<Result> SuspenderVinculoAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default);
+
+	/// <summary>Reativa um vínculo suspenso (idempotente).</summary>
+	/// <param name="tenantId">Tenant.</param>
+	/// <param name="usuarioId">Pessoa.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	Task<Result> ReativarVinculoAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default);
+
+	/// <summary>Remove o vínculo e os perfis da pessoa neste tenant.</summary>
+	/// <param name="tenantId">Tenant.</param>
+	/// <param name="usuarioId">Pessoa.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	Task<Result> RemoverVinculoAsync(Guid tenantId, Guid usuarioId, CancellationToken cancellationToken = default);
 }
