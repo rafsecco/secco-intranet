@@ -137,29 +137,37 @@ processos (maior risco técnico) só entra com a base já sólida.
         NotificationHub), status, ativar/desativar — [plano](plans/2026-10-07-area-administrativa-tenants.md)
   - [x] 2. Perfis, permissões (texto livre até a ADR-0039 ser publicada), pessoas por convite ou só pelo Entra, e federação do tenant administrado — [spec](specs/2026-10-11-area-administrativa-tenants-acesso-design.md), [plano](plans/2026-10-11-area-administrativa-tenants-acesso.md).
         ⚠️ O cadastro recusa quem já tem conta em outro tenant da instalação (inclusive na
-        Intranet), porque o e-mail é único e a pessoa pertence a um tenant só — resolve com
-        [secco-platform#35](https://github.com/rafsecco/secco-platform/issues/35)
+        Intranet). A plataforma resolveu na
+        [secco-platform#35](https://github.com/rafsecco/secco-platform/issues/35) (ADR-0040,
+        `Secco.SecureGate.Client` 0.17.0): falta adotar — ver o item da ADR-0040 abaixo
   - [ ] 3. Leitor de logs da Intranet e dos tenants administrados, por elevação explícita
         (ADR-0030/0031 da plataforma)
   - [ ] 4. Credencial do sistema administrado (client OAuth vinculado ao tenant) — desbloqueado
         por [secco-platform#31](https://github.com/rafsecco/secco-platform/issues/31)
         (`Secco.SecureGate.Client` 0.15.0). Os papéis do client são perfis do tenant, então vem
         depois do subsistema 2
-  - [ ] Avaliar a Área administrativa chamar o SecureGate em nome do operador logado (como o
-        AdminPortal, ADR-0023 da plataforma) em vez do client de máquina com `securegate:admin` —
-        recomendação de segurança registrada na
-        [secco-platform#35](https://github.com/rafsecco/secco-platform/issues/35); exige spec e
-        revisão da ADR-0008
-  - [ ] Permissões dos perfis administrados por catálogo (caixas por produto) e publicação do catálogo da própria Intranet no migrate, com o escopo permissions:intranet no client de máquina — quando a ADR-0039 da plataforma for publicada ([secco-platform#33](https://github.com/rafsecco/secco-platform/issues/33))
+  - [ ] Adotar a ADR-0040 da plataforma
+        ([secco-platform#35](https://github.com/rafsecco/secco-platform/issues/35)): no subsistema
+        2, incluir como membro quem já tem conta, e suspender/remover vínculo no lugar das ações de
+        conta para quem é de outro tenant; client de login do tenant da Intranet (criado pela API)
+        no lugar do client de plataforma de `Intranet:Login`; Área administrativa chamando o
+        SecureGate em nome do operador logado, em vez do client de máquina com `securegate:admin`.
+        Exige spec e revisão da ADR-0008. Vem antes do subsistema 4
+  - [ ] **Urgente:** adotar o catálogo de permissões (ADR-0039,
+        [secco-platform#33](https://github.com/rafsecco/secco-platform/issues/33), publicado no
+        `Secco.SecureGate.Client` 0.16.0) — publicar o catálogo da Intranet no `migrate`, escopo
+        `permissions:intranet` no client de máquina, e caixas por produto no lugar do texto livre
+        das permissões (no `/acesso` e na Área de tenants). Até publicar, o SecureGate novo recusa
+        as permissões **novas** da Intranet
 
 ## Fase 3 — Operacional
 
-- [ ] Foto do colaborador no Diretório — upload, recorte e redução pela SDK de imagem; bloqueado
-      por [secco-platform#29](https://github.com/rafsecco/secco-platform/issues/29). Até lá, avatar
-      por iniciais. Se a etapa avançar antes da SDK existir, a mitigação mínima registrada na
-      [spec do Diretório](specs/2026-09-24-diretorio-organizacional-design.md) (assinatura de
-      arquivo, nunca SVG, nome gerado pelo servidor, `nosniff`, EXIF não removido documentado) é
-      obrigatória
+- [ ] Foto do colaborador no Diretório — upload, recorte e redução pela SDK de imagem,
+      desbloqueada pelo `Secco.SDK.Imaging` 0.1.0
+      ([secco-platform#29](https://github.com/rafsecco/secco-platform/issues/29), ADR-0042). A
+      etapa 6 da [spec do Diretório](specs/2026-09-24-diretorio-organizacional-design.md) já
+      descreve a funcionalidade; falta o plano. Com a SDK, a mitigação provisória do upload cru
+      deixa de ser necessária
 - [ ] Recurso de aviso de vencimento (`ItemVencimento` + `AvisoAntecedencia`, múltiplos
       avisos escalonados) — ex: renovação de certificado
 - [ ] RH self-service (férias, holerites) — pode reaproveitar o motor de processos da

@@ -123,6 +123,29 @@ Na configuração **do SecureGate** (não da Intranet), com os secrets por vari�
 }
 ```
 
+**3. Dê ao SecureGate duas credenciais de banco.** Desde o isolamento de tenant com Row-Level
+Security (ADR-0041 da plataforma), o `migrate` usa uma credencial **dona** do banco
+(`SecureGate__Database__MigrationConnectionString`), e a API usa outra **sem posse**, só com leitura
+e escrita (`SecureGate__Database__ConnectionString`). Fora de Development, o SecureGate **recusa
+subir** se a credencial de runtime for dona do banco. Em SQL Server, ao atualizar:
+
+```sql
+CREATE LOGIN secco_securegate_migrator WITH PASSWORD = N'<senha>';
+USE secco_securegate;
+CREATE USER secco_securegate_migrator FOR LOGIN secco_securegate_migrator;
+ALTER ROLE db_owner ADD MEMBER secco_securegate_migrator;
+ALTER ROLE db_owner DROP MEMBER secco_securegate_app;      -- a credencial de runtime atual
+ALTER ROLE db_datareader ADD MEMBER secco_securegate_app;
+ALTER ROLE db_datawriter ADD MEMBER secco_securegate_app;
+```
+
+Em PostgreSQL, o papel do `migrate` é dono das tabelas, e o de runtime tem `SELECT, INSERT,
+UPDATE, DELETE` nas tabelas e `USAGE` nas sequences, sem `BYPASSRLS` e sem ser superusuário. Com o
+RLS ligado, uma ferramenta SQL não enxerga nada sem contexto de sessão, nem com `sa`: antes de
+consultar, rode `EXEC sp_set_session_context N'secco_mode', N'platform'` (SQL Server) ou
+`SELECT set_config('secco.mode', 'platform', false)` (PostgreSQL). Detalhes na seção 7 do
+`docs/getting-started.md` da plataforma.
+
 ## Construir a imagem
 
 O `Dockerfile` já existe em `src/Secco.Intranet.Web/Dockerfile` e já documenta o bloqueio
@@ -301,6 +324,7 @@ tenant (`--project src/Secco.Intranet.Migrations.SqlServer` ou `.Postgres`).
 - [ ] `Intranet:Login:ClientId/ClientSecret` configurados com o client de login.
 - [ ] Os dois clients da Intranet declarados em `SecureGate:PlatformClients` e o `migrate` do
       SecureGate rodado antes de subir o SecureGate.
+- [ ] SecureGate com duas credenciais de banco: a de migração (dona) e a de runtime (sem posse).
 - [ ] Porta do container não publicada para fora do host — só o proxy alcança.
 - [ ] `Secco:ReverseProxy:Habilitado=true` **só** com o ponto acima garantido.
 - [ ] `migrate` da Intranet terminado com `0` antes do primeiro start.
