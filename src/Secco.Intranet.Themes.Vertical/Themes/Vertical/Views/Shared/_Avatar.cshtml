@@ -1,0 +1,12 @@
+@model AvatarModel
+@{
+    var classe = Model.Tamanho == AvatarTamanho.Grande ? "sc-avatar sc-avatar--lg" : "sc-avatar";
+}
+@if (Model.FotoUrl is null)
+{
+    <span class="@classe" aria-hidden="true">@Model.Iniciais</span>
+}
+else
+{
+    <img class="@classe" src="@Model.FotoUrl" alt="" loading="lazy" aria-hidden="true">
+}

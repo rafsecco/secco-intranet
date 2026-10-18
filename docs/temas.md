@@ -30,6 +30,7 @@ Secco.Intranet.Themes.<Nome>/
 │       ├── _PageHeader.cshtml
 │       ├── _Card.cshtml
 │       ├── _Badge.cshtml
+│       ├── _Avatar.cshtml
 │       ├── _EmptyState.cshtml
 │       ├── _Pagination.cshtml
 │       └── Components/
@@ -52,6 +53,7 @@ Cada arquivo acima recebe um modelo de `Secco.Intranet.Web.Theming.Contracts`:
 | `_PageHeader.cshtml` | `PageHeaderModel` | Título, linha de apoio e ações da página |
 | `_Card.cshtml` | `CardModel` | Card de conteúdo das listagens |
 | `_Badge.cshtml` | `BadgeModel` | Etiqueta curta de classificação |
+| `_Avatar.cshtml` | `AvatarModel` | Foto da pessoa, ou as iniciais quando não há foto |
 | `_EmptyState.cshtml` | `EmptyStateModel` | Tela vazia, com a ação que a resolve |
 | `_Pagination.cshtml` | `PaginationModel` | Navegação entre páginas |
 | `Components/Navigation/Default.cshtml` | `NavigationModel` | Menu já resolvido para o usuário |

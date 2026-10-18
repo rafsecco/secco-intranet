@@ -7,7 +7,7 @@
 @if (Model.Equipe.Count == 0)
 {
     <div class="d-flex gap-2 align-items-center py-1 ps-3">
-        <span class="sc-avatar" aria-hidden="true">@Iniciais.De(pessoa.Nome)</span>
+        <partial name="_Avatar" model="@(new AvatarModel(Iniciais.De(pessoa.Nome), pessoa.TemFoto ? $"/diretorio/{pessoa.UsuarioId}/foto" : null))" />
         <a class="text-reset text-decoration-none" asp-action="Pessoa" asp-route-id="@pessoa.UsuarioId">@pessoa.Nome</a>
         @if (!string.IsNullOrWhiteSpace(pessoa.Cargo))
         {
@@ -19,7 +19,7 @@ else
 {
     <details open class="ms-0 ps-0">
         <summary class="py-1">
-            <span class="sc-avatar" aria-hidden="true">@Iniciais.De(pessoa.Nome)</span>
+            <partial name="_Avatar" model="@(new AvatarModel(Iniciais.De(pessoa.Nome), pessoa.TemFoto ? $"/diretorio/{pessoa.UsuarioId}/foto" : null))" />
             <a class="text-reset text-decoration-none" asp-action="Pessoa" asp-route-id="@pessoa.UsuarioId">@pessoa.Nome</a>
             @if (!string.IsNullOrWhiteSpace(pessoa.Cargo))
             {

@@ -7,6 +7,7 @@ using Secco.Intranet.Tests.Support;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SharedKernel.Constants;
 using Secco.SharedKernel.Results;
+using Microsoft.AspNetCore.Hosting;
 using Xunit;
 using static Secco.Intranet.Tests.Support.AuxiliaresDeHttp;
 
@@ -215,5 +216,51 @@ public class DiretorioFotoTests(IntranetWebFactory factory) : IClassFixture<Intr
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
 		Decodificar(await resposta.Content.ReadAsStringAsync()).Should().Contain("Foto removida");
 		(await client.GetAsync($"/diretorio/{eu}/foto")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+	}
+
+	[Fact]
+	public async Task Diretorio_PessoaComFoto_MostraImgDaRota()
+	{
+		var eu = Guid.NewGuid();
+		var client = CriarCliente(new UsuariosParaDiretorioFalso().Com(eu, "eu@x.com"), eu, "diretorio-user");
+		await EnviarPropriaAsync(client);
+
+		var html = await client.GetStringAsync("/diretorio");
+
+		html.Should().Contain($"<img class=\"sc-avatar sc-avatar--lg\" src=\"/diretorio/{eu}/foto\"");
+	}
+
+	[Fact]
+	public async Task Diretorio_PessoaSemFoto_MostraIniciais_SemBuscarARota()
+	{
+		var eu = Guid.NewGuid();
+		var client = CriarCliente(new UsuariosParaDiretorioFalso().Com(eu, "eu@x.com"), eu, "diretorio-user");
+
+		var html = await client.GetStringAsync("/diretorio");
+
+		html.Should().Contain("<span class=\"sc-avatar sc-avatar--lg\"");
+		html.Should().NotContain($"/diretorio/{eu}/foto");
+	}
+
+	[Theory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Diretorio_NosDoisTemas_MostraImgDaFoto(string tema)
+	{
+		var eu = Guid.NewGuid();
+		factory.UsuariosDoDiretorio = new UsuariosParaDiretorioFalso().Com(eu, "eu@x.com");
+		factory.GestaoDeAcesso = new GestaoDeAcessoFalsa();
+		var client = factory
+			.WithWebHostBuilder(builder => builder.UseSetting("Intranet:Theme:Nome", tema))
+			.CreateClient();
+		client.DefaultRequestHeaders.Add(SeccoHeaders.TenantId, factory.TenantAlfa.ToString());
+		client.DefaultRequestHeaders.Add(RolesDeTesteMiddleware.Header, "diretorio-user");
+		client.DefaultRequestHeaders.Add(RolesDeTesteMiddleware.HeaderUsuario, eu.ToString());
+		await EnviarPropriaAsync(client);
+
+		var html = await client.GetStringAsync("/diretorio");
+
+		html.Should().Contain(tema == "Horizontal" ? "sc-topnav" : "sc-sidebar", "garante que o tema trocou de fato");
+		html.Should().Contain($"<img class=\"sc-avatar sc-avatar--lg\" src=\"/diretorio/{eu}/foto\"");
 	}
 }

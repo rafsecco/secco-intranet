@@ -62,7 +62,7 @@ else
             <div class="col-12 col-md-6 col-xl-4">
                 <article class="sc-card h-100" style="--sc-setor-hue:@SetorHue.From(pessoa.SetorSlug ?? pessoa.Nome)">
                     <div class="d-flex gap-3">
-                        <span class="sc-avatar sc-avatar--lg flex-shrink-0" aria-hidden="true">@Iniciais.De(pessoa.Nome)</span>
+                        <partial name="_Avatar" model="@(new AvatarModel(Iniciais.De(pessoa.Nome), pessoa.TemFoto ? $"/diretorio/{pessoa.UsuarioId}/foto" : null, AvatarTamanho.Grande))" />
                         <div class="min-w-0">
                             <h3 class="sc-card__title">
                                 <a class="text-reset text-decoration-none" asp-action="Pessoa" asp-route-id="@pessoa.UsuarioId">@pessoa.Nome</a>

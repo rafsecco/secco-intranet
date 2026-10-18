@@ -38,7 +38,7 @@ else
             @foreach (var pessoa in Model.Organograma.SemPosicao)
             {
                 <li class="sc-list__item">
-                    <span class="sc-avatar" aria-hidden="true">@Iniciais.De(pessoa.Nome)</span>
+                    <partial name="_Avatar" model="@(new AvatarModel(Iniciais.De(pessoa.Nome), pessoa.TemFoto ? $"/diretorio/{pessoa.UsuarioId}/foto" : null))" />
                     <div class="sc-list__text">
                         <p class="sc-list__title">
                             <a class="text-reset text-decoration-none" asp-action="Pessoa" asp-route-id="@pessoa.UsuarioId">@pessoa.Nome</a>
