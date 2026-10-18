@@ -18,6 +18,7 @@
          0.2.0 e chama um metodo que a 0.3.0 renomeou; o dispatcher engole a falha por design,
          entao o sintoma e log que simplesmente nao chega. -->
     <PackageVersion Include="Secco.SDK.Logging" Version="0.2.0" />
+    <PackageVersion Include="Secco.SDK.Imaging" Version="0.1.0" />
     <PackageVersion Include="Secco.SecureGate.Client" Version="0.18.0" />
     <!-- 0.5.0: SearchNotifications (relatorio de entrega numa chamada) e ScheduledFor
          (entrega na entrada no ar, segurando e-mail E item do sino). -->

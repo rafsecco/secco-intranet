@@ -347,6 +347,22 @@ public static class IntranetErrors
 		public static readonly Error PessoaNaoEncontrada =
 			Error.NotFound("Intranet.Diretorio.PessoaNaoEncontrada", "Pessoa não encontrada.");
 
+		/// <summary>Foto acima do limite de tamanho.</summary>
+		public static readonly Error FotoGrandeDemais =
+			Error.Validation("Intranet.Diretorio.FotoGrandeDemais", "A foto passa de 10 MB.");
+
+		/// <summary>Foto em formato que o processamento não aceita.</summary>
+		public static readonly Error FotoFormatoNaoSuportado =
+			Error.Validation("Intranet.Diretorio.FotoFormatoNaoSuportado", "Envie a foto em JPEG, PNG ou WebP.");
+
+		/// <summary>Arquivo que não é uma imagem legível.</summary>
+		public static readonly Error FotoInvalida =
+			Error.Validation("Intranet.Diretorio.FotoInvalida", "Não foi possível ler esta imagem.");
+
+		/// <summary>Recorte fora dos limites da foto.</summary>
+		public static readonly Error FotoRecorteInvalido =
+			Error.Validation("Intranet.Diretorio.FotoRecorteInvalido", "O recorte saiu dos limites da foto. Escolha de novo.");
+
 		/// <summary>Nome acima do limite.</summary>
 		public static Error NomeTooLong(int limite) =>
 			Error.Validation("Intranet.Diretorio.NomeTooLong", $"O nome excede o limite de {limite} caracteres.");

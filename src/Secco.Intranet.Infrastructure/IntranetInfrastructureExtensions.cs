@@ -28,6 +28,7 @@ using Secco.NotificationHub.Client;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SDK.EntityFrameworkCore.Migrations;
 using Secco.SDK.EntityFrameworkCore.Seeding;
+using Secco.SDK.Imaging;
 using Secco.SecureGate.Client.Administration;
 using Secco.SecureGate.Client.Catalog;
 using Secco.SecureGate.Client.Permissions;
@@ -76,6 +77,10 @@ public static class IntranetInfrastructureExtensions
 
 		// Ja o armazenamento depende: o caminho sai do tenant da requisicao (ADR-0005).
 		services.AddScoped<IArquivoStore, SistemaArquivosArquivoStore>();
+
+		// Foto do colaborador: validacao, recorte e reducao pela SDK (ADR-0042 da plataforma).
+		services.AddSeccoImaging("Intranet:Imaging");
+		services.AddSingleton<IProcessadorDeImagem, ProcessadorDeImagemDaSdk>();
 
 		// Chave ausente ou malformada derruba o startup, nao o primeiro upload (ADR-0020).
 		services.AddHostedService<ValidacaoChaveMestraHostedService>();

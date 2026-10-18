@@ -14,6 +14,7 @@
     <PackageReference Include="Secco.SecureGate.Client" />
     <PackageReference Include="Secco.NotificationHub.Client" />
     <PackageReference Include="Secco.LogStream.Client" />
+    <PackageReference Include="Secco.SDK.Imaging" />
   </ItemGroup>
 
   <ItemGroup>
