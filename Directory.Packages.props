@@ -8,18 +8,18 @@
   </PropertyGroup>
 
   <ItemGroup Label="Secco Platform (feed privado — versões conforme tags MinVer do monorepo)">
-    <PackageVersion Include="Secco.SharedKernel" Version="0.7.0" />
+    <PackageVersion Include="Secco.SharedKernel" Version="0.7.1" />
     <!-- 0.5.0 acrescenta SeccoAmbientContext (espelho AsyncLocal de tenant e correlação),
          que é o que permite um sink de log singleton enxergar o tenant da requisição. -->
-    <PackageVersion Include="Secco.SDK.AspNetCore" Version="0.9.3" />
+    <PackageVersion Include="Secco.SDK.AspNetCore" Version="0.9.4" />
     <PackageVersion Include="Secco.SDK.EntityFrameworkCore" Version="0.6.0" />
-    <PackageVersion Include="Secco.SDK.ClientCredentials" Version="0.1.14" />
+    <PackageVersion Include="Secco.SDK.ClientCredentials" Version="0.1.15" />
     <!-- Sink ILogger -> LogStream. NUNCA a 0.1.0: ela foi empacotada contra o LogStream.Client
          0.2.0 e chama um metodo que a 0.3.0 renomeou; o dispatcher engole a falha por design,
          entao o sintoma e log que simplesmente nao chega. -->
     <PackageVersion Include="Secco.SDK.Logging" Version="0.2.0" />
     <PackageVersion Include="Secco.SDK.Imaging" Version="0.1.0" />
-    <PackageVersion Include="Secco.SecureGate.Client" Version="0.18.0" />
+    <PackageVersion Include="Secco.SecureGate.Client" Version="0.19.0" />
     <!-- 0.5.0: SearchNotifications (relatorio de entrega numa chamada) e ScheduledFor
          (entrega na entrada no ar, segurando e-mail E item do sino). -->
     <PackageVersion Include="Secco.NotificationHub.Client" Version="0.6.0" />
@@ -36,7 +36,7 @@
     <!-- Relying party OIDC (ADR-0023): o handler não vem implícito no FrameworkReference. -->
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.13" />
     <!-- Markdown do mural. O pipeline desabilita HTML bruto, entao nao ha sanitizador a manter. -->
-    <PackageVersion Include="Markdig" Version="1.4.0" />
+    <PackageVersion Include="Markdig" Version="1.4.1" />
   </ItemGroup>
 
   <ItemGroup Label="EF Core / Migrations">
@@ -50,9 +50,9 @@
   </ItemGroup>
 
   <ItemGroup Label="Testes">
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
     <!-- Fork do FluentAssertions (Apache 2.0 — o original 8+ exige licença comercial);
          a partir da linha 9.x o namespace passou a ser AwesomeAssertions -->
     <PackageVersion Include="AwesomeAssertions" Version="9.6.0" />
