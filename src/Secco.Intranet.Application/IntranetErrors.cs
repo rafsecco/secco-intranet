@@ -569,4 +569,105 @@ public static class IntranetErrors
 				"Intranet.Tenants.RegistroLocalFalhou",
 				$"O tenant '{slug}' foi criado no SecureGate, mas não foi registrado nesta Intranet. Use Adotar para registrá-lo.");
 	}
+
+	/// <summary>Erros das credenciais OAuth de um tenant administrado.</summary>
+	public static class Credenciais
+	{
+		/// <summary>SecureGate não configurado neste ambiente.</summary>
+		public static readonly Error NaoConfigurado =
+			Error.Unavailable(
+				"Intranet.Credenciais.NaoConfigurado",
+				"O SecureGate não está configurado neste ambiente, então as credenciais não estão disponíveis.");
+
+		/// <summary>Credencial inexistente no tenant.</summary>
+		public static readonly Error NaoEncontrada =
+			Error.NotFound("Intranet.Credenciais.NaoEncontrada", "Credencial não encontrada.");
+
+		/// <summary>Nome fora do limite ou com caractere de controle.</summary>
+		public static readonly Error NomeInvalido =
+			Error.Validation(
+				"Intranet.Credenciais.NomeInvalido",
+				"O nome da credencial precisa ter de 1 a 100 caracteres, sem caracteres de controle.");
+
+		/// <summary>Nenhum escopo escolhido.</summary>
+		public static readonly Error SemEscopo =
+			Error.Validation("Intranet.Credenciais.SemEscopo", "Escolha ao menos um recurso para a credencial alcançar.");
+
+		/// <summary>Escopo de recurso que o tenant não tem ligado.</summary>
+		public static readonly Error EscopoNaoLigado =
+			Error.Validation(
+				"Intranet.Credenciais.EscopoNaoLigado",
+				"Um dos recursos escolhidos não está ligado neste tenant. Ligue o recurso na página do tenant antes de dar acesso a ele.");
+
+		/// <summary>Perfil inexistente, reservado ou inválido.</summary>
+		public static readonly Error PerfilRecusado =
+			Error.Validation(
+				"Intranet.Credenciais.PerfilRecusado",
+				"Um dos perfis informados não é aceito: use perfis do próprio tenant, que não sejam reservados da plataforma.");
+
+		/// <summary>Perfis pedidos sem o SecureGate ligado.</summary>
+		public static readonly Error PerfisSemSecureGate =
+			Error.Validation(
+				"Intranet.Credenciais.PerfisSemSecureGate",
+				"Perfis só se atribuem com o SecureGate ligado neste tenant.");
+
+		/// <summary>Login pedido sem o SecureGate ligado.</summary>
+		public static readonly Error LoginSemSecureGate =
+			Error.Validation(
+				"Intranet.Credenciais.LoginSemSecureGate",
+				"Uma credencial de login exige o SecureGate ligado neste tenant.");
+
+		/// <summary>Login sem endereço de retorno.</summary>
+		public static readonly Error LoginSemEndereco =
+			Error.Validation(
+				"Intranet.Credenciais.LoginSemEndereco",
+				"Uma credencial de login precisa de ao menos um endereço de retorno.");
+
+		/// <summary>Login com perfis.</summary>
+		public static readonly Error LoginComPerfis =
+			Error.Validation(
+				"Intranet.Credenciais.LoginComPerfis",
+				"Uma credencial de login não assume perfis: quem define o acesso é a pessoa que entra.");
+
+		/// <summary>Máquina com endereços de retorno.</summary>
+		public static readonly Error MaquinaComEndereco =
+			Error.Validation(
+				"Intranet.Credenciais.MaquinaComEndereco",
+				"Uma credencial de máquina não usa endereços de retorno.");
+
+		/// <summary>Endereço de retorno fora das regras.</summary>
+		public static readonly Error EnderecoRecusado =
+			Error.Validation(
+				"Intranet.Credenciais.EnderecoRecusado",
+				"Um dos endereços não é válido: use um endereço completo https, sem usuário nem #, com até 2000 caracteres.");
+
+		/// <summary>Mais perfis ou endereços do que o limite.</summary>
+		public static readonly Error LimiteExcedido =
+			Error.Validation(
+				"Intranet.Credenciais.LimiteExcedido",
+				"Passou do limite: até 20 perfis e até 10 endereços de retorno e de logout.");
+
+		/// <summary>Client id digitado na confirmação não confere.</summary>
+		public static readonly Error ConfirmacaoNaoConfere =
+			Error.Validation(
+				"Intranet.Credenciais.ConfirmacaoNaoConfere",
+				"Para revogar, digite exatamente o client id da credencial.");
+
+		/// <summary>Nome já usado por outra credencial.</summary>
+		public static readonly Error NomeEmUso =
+			Error.Conflict("Intranet.Credenciais.NomeEmUso", "Já existe uma credencial com esse nome neste tenant.");
+
+		/// <summary>Emissão para tenant desativado.</summary>
+		public static readonly Error TenantDesativado =
+			Error.Conflict(
+				"Intranet.Credenciais.TenantDesativado",
+				"O tenant está desativado: a plataforma não emite credencial para ele.");
+
+		/// <summary>A plataforma recusou o pedido; o detalhe, quando há, é a frase dela.</summary>
+		/// <param name="detalhe">Motivo informado pela plataforma, se houver.</param>
+		public static Error Recusada(string? detalhe) =>
+			Error.Validation(
+				"Intranet.Credenciais.Recusada",
+				string.IsNullOrWhiteSpace(detalhe) ? "O SecureGate recusou o pedido. Confira os dados da credencial." : detalhe);
+	}
 }

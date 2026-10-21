@@ -170,6 +170,18 @@ public static class VerbosDeAuditoria
 
 	/// <summary>Vínculo de uma pessoa com um tenant administrado removido (os perfis dela ali somem).</summary>
 	public const string TenantAcessoVinculoRemover = "tenant.acesso.vinculo-remover";
+
+	/// <summary>Credencial OAuth emitida para um tenant administrado (o secret nunca entra na trilha).</summary>
+	public const string TenantCredencialEmitir = "tenant.credencial.emitir";
+
+	/// <summary>Credencial de tenant administrado alterada.</summary>
+	public const string TenantCredencialAlterar = "tenant.credencial.alterar";
+
+	/// <summary>Secret de credencial de tenant administrado rotacionado.</summary>
+	public const string TenantCredencialRotacionar = "tenant.credencial.rotacionar";
+
+	/// <summary>Credencial de tenant administrado revogada.</summary>
+	public const string TenantCredencialRevogar = "tenant.credencial.revogar";
 }
 
 /// <summary>Tipos de recurso da trilha.</summary>
