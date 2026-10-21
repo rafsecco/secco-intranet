@@ -59,7 +59,7 @@ public class CredenciaisDoTenantHandlerTests
 		var resultado = await c.Handler.EmitirAsync(Tenant, tipo, formulario);
 
 		resultado.IsFailure.Should().BeTrue();
-		resultado.Error.Should().Be(esperado);
+		resultado.Error.Code.Should().Be(esperado.Code);
 		SemEscrita(c);
 		c.Trilha.Registros.Should().BeEmpty();
 	}
@@ -81,11 +81,11 @@ public class CredenciaisDoTenantHandlerTests
 
 	[Fact]
 	public async Task Emitir_EscopoDeRecursoDesligado_Recusa() =>
-		await Recusa(Criar(), TipoDeCredencial.Maquina, Maquina(escopos: ["notificationhub"]), IntranetErrors.Credenciais.EscopoNaoLigado);
+		await Recusa(Criar(), TipoDeCredencial.Maquina, Maquina(escopos: ["notificationhub"]), IntranetErrors.Credenciais.EscopoNaoLigado("NotificationHub"));
 
 	[Fact]
 	public async Task Emitir_EscopoForaDaLista_Recusa() =>
-		await Recusa(Criar(), TipoDeCredencial.Maquina, Maquina(escopos: ["securegate:admin"]), IntranetErrors.Credenciais.EscopoNaoLigado);
+		await Recusa(Criar(), TipoDeCredencial.Maquina, Maquina(escopos: ["securegate:admin"]), IntranetErrors.Credenciais.EscopoNaoLigado("securegate:admin"));
 
 	[Fact]
 	public async Task Emitir_MaquinaSemEscopo_Recusa() =>
@@ -180,7 +180,8 @@ public class CredenciaisDoTenantHandlerTests
 
 		var resultado = await c.Handler.AlterarAsync(Tenant, ClientIdDeMaquina, Maquina(escopos: ["notificationhub"]));
 
-		resultado.Error.Should().Be(IntranetErrors.Credenciais.EscopoNaoLigado);
+		resultado.Error.Code.Should().Be("Intranet.Credenciais.EscopoNaoLigado");
+		resultado.Error.Description.Should().Contain("NotificationHub");
 		SemEscrita(c);
 	}
 

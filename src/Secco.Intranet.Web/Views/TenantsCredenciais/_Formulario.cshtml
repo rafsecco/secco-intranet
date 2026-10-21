@@ -6,10 +6,18 @@
 
     // Perfis oferecidos: os do tenant e, na alteração, os que a credencial já tem, para nenhum sumir calado.
     var perfis = opcoes.PerfisDisponiveis
-        .Select(p => (p.Nome, Descricao: $"{p.TotalDePermissoes} permissões"))
+        .Select(p => (p.Nome, Descricao: p.TotalDePermissoes == 1 ? "1 permissão" : $"{p.TotalDePermissoes} permissões"))
         .Concat(Model.PerfisAtuais
             .Where(a => !opcoes.PerfisDisponiveis.Any(p => string.Equals(p.Nome, a, StringComparison.Ordinal)))
             .Select(a => (Nome: a, Descricao: "não está mais disponível")))
+        .ToList();
+
+    // Escopos de produto que a credencial já tem mas cujo recurso foi desligado depois: aparecem marcados,
+    // para o POST chegar ao handler, que recusa dizendo qual recurso ligar; desmarcar remove de propósito.
+    // Os escopos OIDC padrão (openid, roles...) não são de produto e não viram caixa.
+    var produtos = RecursosDaPlataforma.Todos.Select(RecursosDaPlataforma.Produto).OfType<string>().ToList();
+    var escoposDesligados = Model.EscoposAtuais
+        .Where(a => produtos.Contains(a, StringComparer.Ordinal) && !opcoes.EscoposDisponiveis.Contains(a, StringComparer.Ordinal))
         .ToList();
 
     static string NomeDoEscopo(string escopo) =>
@@ -40,6 +48,13 @@
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" name="Escopos" value="@escopo" id="escopo-@escopo" checked="@campos.Escopos.Contains(escopo)" />
                 <label class="form-check-label" for="escopo-@escopo">@NomeDoEscopo(escopo)</label>
+            </div>
+        }
+        @foreach (var escopo in escoposDesligados)
+        {
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="Escopos" value="@escopo" id="escopo-@escopo" checked="checked" />
+                <label class="form-check-label" for="escopo-@escopo">@NomeDoEscopo(escopo) <span class="sc-meta">— recurso desligado: ligue-o na página do tenant ou desmarque para remover</span></label>
             </div>
         }
     </fieldset>

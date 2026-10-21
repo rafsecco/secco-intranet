@@ -594,10 +594,10 @@ public static class IntranetErrors
 			Error.Validation("Intranet.Credenciais.SemEscopo", "Escolha ao menos um recurso para a credencial alcançar.");
 
 		/// <summary>Escopo de recurso que o tenant não tem ligado.</summary>
-		public static readonly Error EscopoNaoLigado =
+		public static Error EscopoNaoLigado(string recurso) =>
 			Error.Validation(
 				"Intranet.Credenciais.EscopoNaoLigado",
-				"Um dos recursos escolhidos não está ligado neste tenant. Ligue o recurso na página do tenant antes de dar acesso a ele.");
+				$"O recurso {recurso} não está ligado neste tenant. Ligue-o na página do tenant ou desmarque-o.");
 
 		/// <summary>Perfil inexistente, reservado ou inválido.</summary>
 		public static readonly Error PerfilRecusado =

@@ -68,6 +68,7 @@ public sealed record TenantsCredenciaisSecretViewModel(CabecalhoDoTenantDto Tena
 /// <param name="Botao">Texto do botão de envio.</param>
 /// <param name="TipoNoCorpo">Se o tipo vai num campo oculto (emissão).</param>
 /// <param name="PerfisAtuais">Perfis já atribuídos, para não sumirem da tela se deixaram de ser oferecidos.</param>
+/// <param name="EscoposAtuais">Escopos já concedidos, para os de recurso desligado não sumirem da tela em silêncio.</param>
 public sealed record FormularioDaCredencialViewModel(
 	OpcoesDaCredencial Opcoes, TipoDeCredencial Tipo, EnvioDaCredencial Campos, string Acao, string Botao, bool TipoNoCorpo,
-	IReadOnlyList<string> PerfisAtuais);
+	IReadOnlyList<string> PerfisAtuais, IReadOnlyList<string> EscoposAtuais);

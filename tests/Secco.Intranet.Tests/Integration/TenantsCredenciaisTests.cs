@@ -30,6 +30,7 @@ public class TenantsCredenciaisTests(IntranetWebFactory factory) : IClassFixture
 {
 	private const string ClientIdDeMaquina = "cli_aaaaaaaaaaaaaaaa";
 	private const string ClientIdDeLogin = "cli_bbbbbbbbbbbbbbbb";
+	private const string ClientIdComRecursoDesligado = "cli_cccccccccccccccc";
 	private const string SecretDaEmissao = "secret-de-teste-1";
 	private const string SecretDaRotacao = "secret-de-teste-rotacionado";
 
@@ -61,7 +62,9 @@ public class TenantsCredenciaisTests(IntranetWebFactory factory) : IClassFixture
 				ClientIdDeMaquina, "Robô de compras", TipoDeCredencial.Maquina, ["logstream"], ["compras.aprovador"], [], [], DateTimeOffset.UnixEpoch))
 			.ComCredencial(new CredencialDto(
 				ClientIdDeLogin, "Portal de compras", TipoDeCredencial.Login, ["logstream"], [], ["https://portal.exemplo.com/signin"],
-				["https://portal.exemplo.com/signout"], DateTimeOffset.UnixEpoch));
+				["https://portal.exemplo.com/signout"], DateTimeOffset.UnixEpoch))
+			.ComCredencial(new CredencialDto(
+				ClientIdComRecursoDesligado, "Robô de avisos", TipoDeCredencial.Maquina, ["logstream", "notificationhub"], [], [], [], DateTimeOffset.UnixEpoch));
 		factory.GestaoDeCredenciaisDoTenant = _credenciais;
 
 		using var escopo = factory.Services.CreateScope();
@@ -330,7 +333,7 @@ public class TenantsCredenciaisTests(IntranetWebFactory factory) : IClassFixture
 	{
 		var html = Texto(await Cliente(Admin, "intranet-admin").GetStringAsync($"/tenants/{_ligado}/credenciais/nova"));
 
-		html.Should().Contain("name=\"Perfis\" value=\"compras.aprovador\"").And.Contain("1 permissões")
+		html.Should().Contain("name=\"Perfis\" value=\"compras.aprovador\"").And.Contain("1 permissão").And.NotContain("1 permissões")
 			.And.NotContain("name=\"RedirectUris\"");
 	}
 
@@ -418,6 +421,31 @@ public class TenantsCredenciaisTests(IntranetWebFactory factory) : IClassFixture
 		_credenciais.DadosAlterados.Should().NotBeNull();
 		_credenciais.DadosAlterados!.Nome.Should().Be("Robô renomeado");
 		_credenciais.DadosAlterados.Perfis.Should().Equal("compras.leitor");
+	}
+
+	[Fact]
+	public async Task Detalhe_EscopoDeRecursoDesligado_AparecePreMarcadoComOAviso()
+	{
+		var html = Texto(await Cliente(Admin, "intranet-admin").GetStringAsync($"/tenants/{_ligado}/credenciais/{ClientIdComRecursoDesligado}"));
+
+		html.Should().Contain("name=\"Escopos\" value=\"logstream\" id=\"escopo-logstream\" checked")
+			.And.Contain("name=\"Escopos\" value=\"notificationhub\" id=\"escopo-notificationhub\" checked")
+			.And.Contain("recurso desligado: ligue-o na página do tenant ou desmarque para remover");
+	}
+
+	[Fact]
+	public async Task Alterar_ComEscopoDeRecursoDesligadoMarcado_RecusaCitandoORecurso_SemChamarAPorta()
+	{
+		var client = Cliente(Admin, "intranet-admin");
+		var token = await AuxiliaresDeHttp.TokenAsync(client, $"/tenants/{_ligado}/credenciais/{ClientIdComRecursoDesligado}");
+
+		var resposta = await client.PostAsync($"/tenants/{_ligado}/credenciais/{ClientIdComRecursoDesligado}",
+			AuxiliaresDeHttp.Form(
+				("__RequestVerificationToken", token), ("Nome", "Robô de avisos"), ("Escopos", "logstream"), ("Escopos", "notificationhub")));
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.Redirect);
+		_credenciais.Chamadas.Should().NotContain(c => c.StartsWith("Alterar", StringComparison.Ordinal));
+		Texto(await client.GetStringAsync(resposta.Headers.Location!.ToString())).Should().Contain("O recurso NotificationHub não está ligado neste tenant");
 	}
 
 	[Fact]

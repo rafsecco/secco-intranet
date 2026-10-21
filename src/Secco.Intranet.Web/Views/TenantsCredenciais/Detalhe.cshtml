@@ -13,7 +13,8 @@
         Acoes: new[] { new PageActionModel("Voltar", $"/tenants/{tenant.TenantId}/credenciais", "bi-arrow-left") });
 
     var formulario = new FormularioDaCredencialViewModel(
-        Model.Opcoes, credencial.Tipo, Model.Campos, raiz, "Salvar alterações", TipoNoCorpo: false, PerfisAtuais: credencial.Perfis);
+        Model.Opcoes, credencial.Tipo, Model.Campos, raiz, "Salvar alterações", TipoNoCorpo: false, PerfisAtuais: credencial.Perfis,
+        EscoposAtuais: credencial.Escopos);
 
     static string NomeDoEscopo(string escopo) =>
         RecursosDaPlataforma.TentarLer(escopo, out var recurso) ? RecursosDaPlataforma.Nome(recurso) : escopo;

@@ -171,9 +171,12 @@ public sealed class CredenciaisDoTenantHandler(
 
 		var escopos = Distintos(f.Escopos);
 
-		if (escopos.Any(e => !contexto.EscoposDisponiveis.Contains(e, StringComparer.Ordinal)))
+		var recusado = escopos.FirstOrDefault(e => !contexto.EscoposDisponiveis.Contains(e, StringComparer.Ordinal));
+
+		if (recusado is not null)
 		{
-			return IntranetErrors.Credenciais.EscopoNaoLigado;
+			return IntranetErrors.Credenciais.EscopoNaoLigado(
+				RecursosDaPlataforma.TentarLer(recusado, out var recurso) ? RecursosDaPlataforma.Nome(recurso) : recusado);
 		}
 
 		if (tipo == TipoDeCredencial.Maquina && escopos.Count == 0)

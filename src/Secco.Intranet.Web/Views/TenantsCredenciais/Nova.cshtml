@@ -14,7 +14,7 @@
         Acoes: new[] { new PageActionModel("Voltar", $"/tenants/{tenant.TenantId}/credenciais", "bi-arrow-left") });
 
     var formulario = new FormularioDaCredencialViewModel(
-        Model.Opcoes, Model.Tipo, Model.Campos, $"/tenants/{tenant.TenantId}/credenciais/nova", "Emitir", TipoNoCorpo: true, PerfisAtuais: []);
+        Model.Opcoes, Model.Tipo, Model.Campos, $"/tenants/{tenant.TenantId}/credenciais/nova", "Emitir", TipoNoCorpo: true, PerfisAtuais: [], EscoposAtuais: []);
 }
 
 <partial name="_PageHeader" model="cabecalho" />
