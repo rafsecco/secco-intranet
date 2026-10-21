@@ -291,6 +291,14 @@ Isto é um ponto de partida deliberadamente enxuto — não um arquivo entregue 
 repositório, porque o proxy, o certificado e o banco variam demais entre instalações para
 travar num exemplo versionado.
 
+## Credenciais dos sistemas administrados
+
+A Área administrativa emite as credenciais OAuth (clients de máquina e de login) dos sistemas de cada tenant
+administrado. O secret aparece **uma única vez**, na resposta de quem emitiu ou rotacionou: copie-o direto para o
+cofre do sistema, porque a Intranet não o guarda em lugar nenhum e não há como lê-lo depois. **Rotacionar derruba o
+sistema** até ele receber o novo secret — o antigo deixa de valer na hora. Não há configuração nova na Intranet; ela
+usa o client de máquina com `securegate:admin` que já existe.
+
 ## Primeiro `intranet-admin`
 
 Já documentado no [`README.md`](../README.md#primeiro-intranet-admin) — crie a Role

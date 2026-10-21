@@ -1,7 +1,7 @@
 # Área administrativa de tenants — subsistema 4: credenciais do sistema administrado
 
 **Data:** 2026-10-18
-**Estado:** proposta
+**Estado:** implementado
 
 ## Problema
 

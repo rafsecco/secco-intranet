@@ -142,10 +142,10 @@ processos (maior risco técnico) só entra com a base já sólida.
         `Secco.SecureGate.Client` 0.17.0): falta adotar — ver o item da ADR-0040 abaixo
   - [ ] 3. Leitor de logs da Intranet e dos tenants administrados, por elevação explícita
         (ADR-0030/0031 da plataforma)
-  - [ ] 4. Credencial do sistema administrado (client OAuth vinculado ao tenant) — desbloqueado
-        por [secco-platform#31](https://github.com/rafsecco/secco-platform/issues/31)
-        (`Secco.SecureGate.Client` 0.15.0). Os papéis do client são perfis do tenant, então vem
-        depois do subsistema 2
+  - [x] 4. Credencial do sistema administrado: emitir, alterar, rotacionar e revogar clients de máquina e de login
+        do tenant ([spec](specs/2026-10-18-area-administrativa-tenants-credenciais-design.md)).
+        Usa o client de máquina com `securegate:admin`: pela ADR-0044, clients de tenant são só do operador
+        ([secco-platform#39](https://github.com/rafsecco/secco-platform/issues/39))
   - [x] Adotar a ADR-0040 da plataforma
         ([secco-platform#35](https://github.com/rafsecco/secco-platform/issues/35)) — decisões na
         [ADR-0009](adr/secco-intranet-adrs.md): o subsistema 2 inclui como membro quem já tem conta
