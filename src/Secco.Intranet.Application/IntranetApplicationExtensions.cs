@@ -8,6 +8,7 @@ using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Application.Tenants;
 using Secco.Intranet.Application.Tenants.Acesso;
+using Secco.Intranet.Application.Tenants.Credenciais;
 
 namespace Secco.Intranet.Application;
 
@@ -95,6 +96,8 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<PerfisDoTenantHandler>();
 		services.AddScoped<UsuariosDoTenantHandler>();
 		services.AddScoped<FederacaoDoTenantHandler>();
+		services.AddScoped<LeituraDeCredenciaisHandler>();
+		services.AddScoped<CredenciaisDoTenantHandler>();
 
 		return services;
 	}
