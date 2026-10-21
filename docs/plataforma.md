@@ -17,6 +17,9 @@ Duas regras sustentam esta lista:
 
 | Demanda | O que trava aqui | Issue |
 |---|---|---|
+| Troca do token da pessoa com reautenticação recente no `Secco.SDK.RelyingParty` (operador designado e elevação) | A parte do modo centralizador que pede o token de operador (ADR-0049) e o leitor de logs por elevação (ADR-0031) esperam a SDK, em vez de a Intranet implementar a troca | [#44](https://github.com/rafsecco/secco-platform/issues/44) |
+| Segundo fator da autoridade de admin de tenant configurável (tenant dono × outros tenants) | Pela decisão do produto, o segundo fator é opcional e configurável. A ADR-0044 o exige sempre, e a migração para o token da pessoa o tornaria obrigatório para todo `intranet-admin`. O operador designado segue obrigatório | [#45](https://github.com/rafsecco/secco-platform/issues/45) |
+| Operador designado e admin de tenant por perfil (`intranet-admin`), com a atribuição travada no nível de operador | Admin é quem tem o perfil `intranet-admin`. Sem isso, cada admin novo exige concessão por conta (e designação por conta no modo centralizador), e o que um admin cria os outros não administram | [#46](https://github.com/rafsecco/secco-platform/issues/46) |
 | Reconciliação automática do mapeamento grupo→perfil (login federado + job periódico) | O CRUD do mapeamento e o rastreio de origem (`Manual`/`Directory`) já foram entregues (ver Atendidas) — falta só a parte que aplica isso sozinha: hoje o admin tem que atribuir/retirar o perfil à mão mesmo depois de mapear o grupo. Sem data na plataforma | [#28](https://github.com/rafsecco/secco-platform/issues/28) |
 
 ## Atendidas

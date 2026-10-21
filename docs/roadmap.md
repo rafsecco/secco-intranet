@@ -159,7 +159,11 @@ processos (maior risco técnico) só entra com a base já sólida.
   - [ ] Modo centralizador opcional e aposentar o client de máquina com `securegate:admin` —
         desbloqueado pela designação de operador da ADR-0049
         ([secco-platform#43](https://github.com/rafsecco/secco-platform/issues/43)): as operações de
-        operador por troca curta do token, com reautenticação. Exige spec, junto com o item acima
+        operador por troca curta do token, com reautenticação. Exige spec, junto com o item acima.
+        ⛔ A spec espera a troca na SDK
+        ([secco-platform#44](https://github.com/rafsecco/secco-platform/issues/44)), o segundo
+        fator configurável ([#45](https://github.com/rafsecco/secco-platform/issues/45)) e a
+        designação por perfil ([#46](https://github.com/rafsecco/secco-platform/issues/46))
   - [x] Adotar o catálogo de permissões (ADR-0039,
         [secco-platform#33](https://github.com/rafsecco/secco-platform/issues/33)): catálogo
         estático da Intranet publicado no `migrate` (escopo `permissions:intranet`), e caixas por
