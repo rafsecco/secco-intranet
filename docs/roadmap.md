@@ -152,16 +152,15 @@ processos (maior risco técnico) só entra com a base já sólida.
         na instalação, mostra o vínculo (dono, membro, suspenso) e troca as ações de conta por
         suspender/reativar/remover vínculo para quem é de outro tenant. O login segue no client de
         plataforma (a Intranet é o tenant dono dos funcionários)
-  - [ ] ⛔ Área administrativa on-behalf-of o `intranet-admin`, em vez do client de máquina com
-        `securegate:admin`. A autoridade de admin de tenant chegou
-        ([secco-platform#37](https://github.com/rafsecco/secco-platform/issues/37), ADR-0044,
-        `Secco.SecureGate.Client` 0.19.0); falta a custódia do token da pessoa
-        ([secco-platform#38](https://github.com/rafsecco/secco-platform/issues/38))
-  - [ ] ⛔ Aposentar o client de máquina com `securegate:admin` — depende do item acima e de
-        criar/ativar/provisionar tenant e federação pelo admin de tenant
-        ([secco-platform#39](https://github.com/rafsecco/secco-platform/issues/39)) e da leitura de
-        pessoas do próprio tenant por client de produto
-        ([secco-platform#40](https://github.com/rafsecco/secco-platform/issues/40))
+  - [ ] Área administrativa on-behalf-of o `intranet-admin`, em vez do client de máquina com
+        `securegate:admin` — desbloqueado: custódia do token (`Secco.SDK.RelyingParty`, #38),
+        ciclo de vida do tenant (#39), diretório por `directory:read` (#40), leitura do catálogo
+        (#41) e clients de máquina (#42), ADR-0044 a 0048 da plataforma. Exige spec
+  - [ ] ⛔ Modo centralizador opcional e aposentar o client de máquina com `securegate:admin` — as
+        operações que ficaram com o operador (federação, reativar tenant, provisionamento em modo
+        script, connection string manual e clients de login) dependem do operador da instalação por
+        concessão ao `intranet-admin`
+        ([secco-platform#43](https://github.com/rafsecco/secco-platform/issues/43))
   - [x] Adotar o catálogo de permissões (ADR-0039,
         [secco-platform#33](https://github.com/rafsecco/secco-platform/issues/33)): catálogo
         estático da Intranet publicado no `migrate` (escopo `permissions:intranet`), e caixas por

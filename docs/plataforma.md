@@ -17,6 +17,7 @@ Duas regras sustentam esta lista:
 
 | Demanda | O que trava aqui | Issue |
 |---|---|---|
+| Operador da instalação por concessão a conta de outro tenant (Intranet como centralizador) | No modo centralizador, quem administra a instalação é o `intranet-admin`, mas a ADR-0040 só reconhece operador pelo tenant do login, e a conta dele é do tenant da Intranet. Federação, reativar tenant, provisionamento em modo script, connection string manual e clients de login seguem no client de máquina com `securegate:admin` até lá. A issue lista quatro pontos de segurança a resolver: proteção da conta, escopo de operador com tenant no token, quem concede e revoga, e sessão sequestrada | [#43](https://github.com/rafsecco/secco-platform/issues/43) |
 | Reconciliação automática do mapeamento grupo→perfil (login federado + job periódico) | O CRUD do mapeamento e o rastreio de origem (`Manual`/`Directory`) já foram entregues (ver Atendidas) — falta só a parte que aplica isso sozinha: hoje o admin tem que atribuir/retirar o perfil à mão mesmo depois de mapear o grupo. Sem data na plataforma | [#28](https://github.com/rafsecco/secco-platform/issues/28) |
 
 ## Atendidas
