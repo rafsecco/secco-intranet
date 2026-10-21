@@ -13,6 +13,7 @@ public class RegrasDeCredencialTests
 	[InlineData("cli_ABCDEFGHIJKLMNOP", false)]
 	[InlineData("cli_abcdefghijklmno1", false)] // 1 não é base32
 	[InlineData("cli_abcdefghijklmnop\n", false)]
+	[InlineData("cli_abcdefghijklmnop/../x", false)]
 	[InlineData("cli_abc", false)]
 	[InlineData("secco-intranet", false)]
 	[InlineData("../cli_abcdefghijklmnop", false)]

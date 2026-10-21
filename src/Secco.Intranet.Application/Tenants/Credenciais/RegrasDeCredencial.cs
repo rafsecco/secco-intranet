@@ -89,6 +89,6 @@ public static partial class RegrasDeCredencial
 		return recursos.Any(r => r.Recurso == RecursoDaPlataforma.SecureGate && r.Situacao != SituacaoDoRecurso.NaoLigado);
 	}
 
-	[GeneratedRegex("^cli_[a-z2-7]{16}z", RegexOptions.CultureInvariant)]
+	[GeneratedRegex(@"^cli_[a-z2-7]{16}\z", RegexOptions.CultureInvariant)]
 	private static partial Regex ClientIdRegex();
 }
