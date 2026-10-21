@@ -156,11 +156,10 @@ processos (maior risco técnico) só entra com a base já sólida.
         `securegate:admin` — desbloqueado: custódia do token (`Secco.SDK.RelyingParty`, #38),
         ciclo de vida do tenant (#39), diretório por `directory:read` (#40), leitura do catálogo
         (#41) e clients de máquina (#42), ADR-0044 a 0048 da plataforma. Exige spec
-  - [ ] ⛔ Modo centralizador opcional e aposentar o client de máquina com `securegate:admin` — as
-        operações que ficaram com o operador (federação, reativar tenant, provisionamento em modo
-        script, connection string manual e clients de login) dependem do operador da instalação por
-        concessão ao `intranet-admin`
-        ([secco-platform#43](https://github.com/rafsecco/secco-platform/issues/43))
+  - [ ] Modo centralizador opcional e aposentar o client de máquina com `securegate:admin` —
+        desbloqueado pela designação de operador da ADR-0049
+        ([secco-platform#43](https://github.com/rafsecco/secco-platform/issues/43)): as operações de
+        operador por troca curta do token, com reautenticação. Exige spec, junto com o item acima
   - [x] Adotar o catálogo de permissões (ADR-0039,
         [secco-platform#33](https://github.com/rafsecco/secco-platform/issues/33)): catálogo
         estático da Intranet publicado no `migrate` (escopo `permissions:intranet`), e caixas por
