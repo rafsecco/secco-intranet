@@ -5,6 +5,7 @@ using Secco.Intranet.Application.Diretorio;
 using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Tenants;
 using Secco.Intranet.Application.Tenants.Acesso;
+using Secco.Intranet.Application.Tenants.Credenciais;
 using Secco.Intranet.Infrastructure;
 using Secco.Intranet.Infrastructure.Access;
 using Secco.Intranet.Infrastructure.Armazenamento;
@@ -68,6 +69,9 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 
 	/// <summary>Dublê da gestão de acesso de tenant administrado; nulo = "não configurado".</summary>
 	public IGestaoDeAcessoDoTenant? GestaoDeAcessoDoTenant { get; set; }
+
+	/// <summary>Dublê das credenciais de tenant administrado; nulo = "não configurado".</summary>
+	public IGestaoDeCredenciaisDoTenant? GestaoDeCredenciaisDoTenant { get; set; }
 
 	/// <summary>
 	/// Fonte de usuários do diretório que o host devolve. Nula, vale o comportamento real do ambiente
@@ -141,6 +145,8 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 			GestaoDeAcesso ?? ActivatorUtilities.CreateInstance<GestaoDeAcessoIndisponivel>(serviceProvider));
 		services.AddScoped<IGestaoDeTenants>(_ => GestaoDeTenants ?? new GestaoDeTenantsIndisponivel());
 		services.AddScoped<IGestaoDeAcessoDoTenant>(_ => GestaoDeAcessoDoTenant ?? new GestaoDeAcessoDoTenantIndisponivel());
+		services.AddScoped<IGestaoDeCredenciaisDoTenant>(_ => GestaoDeCredenciaisDoTenant ?? new GestaoDeCredenciaisDoTenantIndisponivel());
+		services.AddSingleton(new CredenciaisOptions { PermitirEnderecoHttp = false });
 		services.AddScoped<IUsuariosParaDiretorio>(_ => UsuariosDoDiretorio ?? new UsuariosParaDiretorioIndisponivel());
 		services.AddScoped<IProcessadorDeImagem>(_ => ProcessadorDeImagem ?? new ProcessadorDeImagemFalso());
 		services.AddScoped<IArquivoStore>(serviceProvider =>

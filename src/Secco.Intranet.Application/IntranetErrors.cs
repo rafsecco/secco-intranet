@@ -647,11 +647,11 @@ public static class IntranetErrors
 				"Intranet.Credenciais.LimiteExcedido",
 				"Passou do limite: até 20 perfis e até 10 endereços de retorno e de logout.");
 
-		/// <summary>Client id digitado na confirmação não confere.</summary>
+		/// <summary>Nome digitado na confirmação não confere com o da credencial.</summary>
 		public static readonly Error ConfirmacaoNaoConfere =
 			Error.Validation(
 				"Intranet.Credenciais.ConfirmacaoNaoConfere",
-				"Para revogar, digite exatamente o client id da credencial.");
+				"Para revogar, digite exatamente o nome da credencial.");
 
 		/// <summary>Nome já usado por outra credencial.</summary>
 		public static readonly Error NomeEmUso =

@@ -1,0 +1,83 @@
+@model FormularioDaCredencialViewModel
+@{
+    var opcoes = Model.Opcoes;
+    var campos = Model.Campos;
+    var login = Model.Tipo == TipoDeCredencial.Login;
+
+    // Perfis oferecidos: os do tenant e, na alteração, os que a credencial já tem, para nenhum sumir calado.
+    var perfis = opcoes.PerfisDisponiveis
+        .Select(p => (p.Nome, Descricao: $"{p.TotalDePermissoes} permissões"))
+        .Concat(Model.PerfisAtuais
+            .Where(a => !opcoes.PerfisDisponiveis.Any(p => string.Equals(p.Nome, a, StringComparison.Ordinal)))
+            .Select(a => (Nome: a, Descricao: "não está mais disponível")))
+        .ToList();
+
+    static string NomeDoEscopo(string escopo) =>
+        RecursosDaPlataforma.TentarLer(escopo, out var recurso) ? RecursosDaPlataforma.Nome(recurso) : escopo;
+}
+
+<form method="post" action="@Model.Acao" class="sc-panel sc-form" style="max-width: 40rem">
+    @Html.AntiForgeryToken()
+    @if (Model.TipoNoCorpo)
+    {
+        <input type="hidden" name="tipo" value="@(login ? "login" : "maquina")" />
+    }
+
+    <div class="sc-form__field">
+        <label class="form-label" for="Nome">Nome</label>
+        <input class="form-control" id="Nome" name="Nome" value="@campos.Nome" maxlength="100" required />
+        <div class="form-text">Como a credencial aparece na lista. Também é o que se digita para revogá-la.</div>
+    </div>
+
+    <fieldset class="sc-form__field">
+        <legend class="form-label">Recursos que a credencial alcança</legend>
+        @if (opcoes.EscoposDisponiveis.Count == 0)
+        {
+            <p class="text-body-secondary mb-0">Nenhum recurso com banco está ligado neste tenant. Ligue o LogStream ou o NotificationHub na página do tenant.</p>
+        }
+        @foreach (var escopo in opcoes.EscoposDisponiveis)
+        {
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="Escopos" value="@escopo" id="escopo-@escopo" checked="@campos.Escopos.Contains(escopo)" />
+                <label class="form-check-label" for="escopo-@escopo">@NomeDoEscopo(escopo)</label>
+            </div>
+        }
+    </fieldset>
+
+    @if (login)
+    {
+        <div class="sc-form__field">
+            <label class="form-label" for="RedirectUris">Endereços de retorno do login</label>
+            <textarea class="form-control" id="RedirectUris" name="RedirectUris" rows="3" placeholder="https://sistema.exemplo.com/signin-oidc">@campos.RedirectUris</textarea>
+            <div class="form-text">Um por linha, até 10. Só https, sem usuário e sem #.</div>
+        </div>
+        <div class="sc-form__field">
+            <label class="form-label" for="RedirectUrisDeLogout">Endereços de retorno do logout</label>
+            <textarea class="form-control" id="RedirectUrisDeLogout" name="RedirectUrisDeLogout" rows="3" placeholder="https://sistema.exemplo.com/signout-callback-oidc">@campos.RedirectUrisDeLogout</textarea>
+            <div class="form-text">Um por linha, até 10. Opcional.</div>
+        </div>
+    }
+    else
+    {
+        <fieldset class="sc-form__field">
+            <legend class="form-label">Perfis que a credencial assume</legend>
+            @if (!opcoes.SecureGateLigado)
+            {
+                <p class="text-body-secondary mb-0">Ligue o SecureGate do tenant para dar perfis.</p>
+            }
+            else if (perfis.Count == 0)
+            {
+                <p class="text-body-secondary mb-0">O tenant ainda não tem perfis que possam ser dados a uma credencial.</p>
+            }
+            @foreach (var perfil in perfis)
+            {
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="Perfis" value="@perfil.Nome" id="perfil-@perfil.Nome" checked="@campos.Perfis.Contains(perfil.Nome)" />
+                    <label class="form-check-label" for="perfil-@perfil.Nome">@perfil.Nome <span class="sc-meta">— @perfil.Descricao</span></label>
+                </div>
+            }
+        </fieldset>
+    }
+
+    <button class="btn btn-primary" type="submit">@Model.Botao</button>
+</form>
