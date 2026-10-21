@@ -123,7 +123,10 @@ processos (maior risco técnico) só entra com a base já sólida.
       desenvolvimento novo da plataforma — usa `Secco.SDK.AspNetCore` 0.8.3 e
       `Secco.SecureGate.Client` 0.11.0, já publicados. Fora deste corte: o `ItemMenu` em si
       (entidade, CRUD) e grupos do AD/Entra como origem de perfil
-- [ ] Área administrativa — cobre a gestão do próprio tenant (usuários, roles, setores) **e**
+- [ ] Área administrativa — **revista em 2026-10-21 pela [ADR-0010](adr/secco-intranet-adrs.md)**:
+      a Intranet administra só o próprio tenant; outros tenants são do operador, pelo
+      `Secco.AdminPortal` (ADR-0051 da plataforma). Texto original, mantido como histórico: cobre a
+      gestão do próprio tenant (usuários, roles, setores) **e**
       a criação/administração de outros tenants, representando outros sistemas que a empresa
       desenvolve sobre SecureGate/LogStream/NotificationHub — decisão registrada na ADR-0008.
       Não depende de capacidade nova da plataforma: a API de tenants (`POST /api/v1/tenants`,
@@ -140,8 +143,8 @@ processos (maior risco técnico) só entra com a base já sólida.
         Intranet). A plataforma resolveu na
         [secco-platform#35](https://github.com/rafsecco/secco-platform/issues/35) (ADR-0040,
         `Secco.SecureGate.Client` 0.17.0): falta adotar — ver o item da ADR-0040 abaixo
-  - [ ] 3. Leitor de logs da Intranet e dos tenants administrados, por elevação explícita
-        (ADR-0030/0031 da plataforma)
+  - ~~3. Leitor de logs da Intranet e dos tenants administrados, por elevação explícita
+        (ADR-0030/0031 da plataforma)~~ — descartado pela ADR-0010
   - [x] 4. Credencial do sistema administrado: emitir, alterar, rotacionar e revogar clients de máquina e de login
         do tenant ([spec](specs/2026-10-18-area-administrativa-tenants-credenciais-design.md)).
         Usa o client de máquina com `securegate:admin`: pela ADR-0044, clients de tenant são só do operador
@@ -152,18 +155,13 @@ processos (maior risco técnico) só entra com a base já sólida.
         na instalação, mostra o vínculo (dono, membro, suspenso) e troca as ações de conta por
         suspender/reativar/remover vínculo para quem é de outro tenant. O login segue no client de
         plataforma (a Intranet é o tenant dono dos funcionários)
-  - [ ] Área administrativa on-behalf-of o `intranet-admin`, em vez do client de máquina com
-        `securegate:admin` — desbloqueado: custódia do token (`Secco.SDK.RelyingParty`, #38),
-        ciclo de vida do tenant (#39), diretório por `directory:read` (#40), leitura do catálogo
-        (#41) e clients de máquina (#42), ADR-0044 a 0048 da plataforma. Exige spec
-  - [ ] Modo centralizador opcional e aposentar o client de máquina com `securegate:admin` —
-        desbloqueado pela designação de operador da ADR-0049
-        ([secco-platform#43](https://github.com/rafsecco/secco-platform/issues/43)): as operações de
-        operador por troca curta do token, com reautenticação. Exige spec, junto com o item acima.
-        ⛔ A spec espera a troca na SDK
-        ([secco-platform#44](https://github.com/rafsecco/secco-platform/issues/44)), o segundo
-        fator configurável ([#45](https://github.com/rafsecco/secco-platform/issues/45)) e a
-        designação por perfil ([#46](https://github.com/rafsecco/secco-platform/issues/46))
+  - ~~Área administrativa on-behalf-of o `intranet-admin` e modo centralizador opcional~~ —
+        descartados pela ADR-0010, junto com as issues
+        [secco-platform#45](https://github.com/rafsecco/secco-platform/issues/45) e
+        [#46](https://github.com/rafsecco/secco-platform/issues/46). A administração do próprio
+        tenant segue no client de máquina com `securegate:admin` (risco registrado na ADR-0010)
+  - [ ] Decidir se o código já entregue dos subsistemas 1, 2 e 4 (administração de outros
+        tenants) sai da Intranet ou fica até o AdminPortal cobrir as mesmas telas
   - [x] Adotar o catálogo de permissões (ADR-0039,
         [secco-platform#33](https://github.com/rafsecco/secco-platform/issues/33)): catálogo
         estático da Intranet publicado no `migrate` (escopo `permissions:intranet`), e caixas por

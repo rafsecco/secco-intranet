@@ -319,7 +319,7 @@ deve existir.
 
 ## ADR-0008: Intranet é tenant do SecureGate e administra outros tenants
 
-**Status:** Aceita
+**Status:** Substituída em parte pela ADR-0010 (itens 2 e 3 da Decisão e o Escopo esperado)
 **Data:** 2026-09-12
 
 ### Contexto
@@ -481,3 +481,41 @@ administrativo nenhum.
 - O raio de dano do client de máquina não diminui. Quando a #37 for entregue, esta ADR é revista.
 - Pessoa cujo tenant dono não é o da Intranet não entra na Intranet. Se isso virar caso de uso, a
   saída é o client vinculado a tenant do item 2, com a decisão de tenant antes do login.
+
+---
+
+## ADR-0010: A Intranet administra só o próprio tenant
+
+**Status:** Aceita
+**Data:** 2026-10-21
+
+### Contexto
+A ADR-0008 deu à Intranet a capacidade de criar e administrar **outros** tenants da instalação,
+representando os outros sistemas da empresa. Cada passo dessa trilha exigiu capacidade nova da
+plataforma (ADR-0044, 0047, 0048, 0049 e 0050 de lá, e as issues
+[secco-platform#45](https://github.com/rafsecco/secco-platform/issues/45) e
+[#46](https://github.com/rafsecco/secco-platform/issues/46) ainda pediam mais), e do lado de cá
+ainda faltavam o leitor de logs por elevação, a área on-behalf-of e o modo centralizador. O dono
+do produto avaliou que o custo não se paga. A plataforma registrou a decisão na ADR-0051 dela.
+
+### Decisão
+1. A Intranet administra **só o próprio tenant**: perfis, pessoas, setores, permissões e os
+   vínculos de quem é de outro tenant e entra na Intranet (ADR-0009).
+2. Criar, ativar/desativar e administrar **outros** tenants (banco, federação, credenciais,
+   pessoas) é do operador da instalação, pelo `Secco.AdminPortal`.
+3. A Intranet continua tenant do SecureGate (item 1 e item 4 da ADR-0008 seguem valendo), e o
+   SecureGate continua compartilhado com os outros sistemas da empresa: é o que dá SSO e
+   desligamento de pessoa num lugar só.
+4. Se outro sistema precisar de LogStream ou NotificationHub, pode subir a própria instância da
+   mesma imagem. Nunca copiar código de produto da plataforma para cá.
+5. A Área administrativa continua exclusiva do `intranet-admin` (item 5 da ADR-0008).
+
+### Consequências
+- Saem do roadmap: o leitor de logs dos tenants administrados por elevação, a área on-behalf-of e
+  o modo centralizador.
+- Os subsistemas 1, 2 e 4 da Área de tenants já estão entregues. Remover esse código é decisão
+  separada, registrada no roadmap; até lá ele continua funcionando.
+- **Risco que fica:** a administração do próprio tenant segue no client de máquina com
+  `securegate:admin`, que alcança a instalação inteira. A saída prevista (on-behalf-of da pessoa,
+  ADR-0044 da plataforma) foi congelada junto com o resto da trilha. Reavaliar se a Intranet for
+  exposta fora da rede corporativa (item de identidade e exposição de rede da Fase 4).
