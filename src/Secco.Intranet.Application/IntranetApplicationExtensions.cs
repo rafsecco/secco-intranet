@@ -6,9 +6,6 @@ using Secco.Intranet.Application.Inventario;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Setores;
-using Secco.Intranet.Application.Tenants;
-using Secco.Intranet.Application.Tenants.Acesso;
-using Secco.Intranet.Application.Tenants.Credenciais;
 
 namespace Secco.Intranet.Application;
 
@@ -82,22 +79,6 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ImportarDiretorioHandler>();
 		services.AddScoped<FotoDoColaboradorHandler>();
 
-		services.AddScoped<ListarTenantsAdministradosHandler>();
-		services.AddScoped<ObterTenantAdministradoHandler>();
-		services.AddScoped<ListarTenantsAdotaveisHandler>();
-		services.AddScoped<VerificarTenantAdministradoHandler>();
-		services.AddScoped<CriarTenantHandler>();
-		services.AddScoped<AdotarTenantHandler>();
-		services.AddScoped<LigarRecursoHandler>();
-		services.AddScoped<AlterarSituacaoDoTenantHandler>();
-		services.AddScoped<VerificarSecureGateLigadoHandler>();
-		services.AddScoped<ObterCabecalhoDoTenantHandler>();
-		services.AddScoped<LeituraDoAcessoDoTenantHandler>();
-		services.AddScoped<PerfisDoTenantHandler>();
-		services.AddScoped<UsuariosDoTenantHandler>();
-		services.AddScoped<FederacaoDoTenantHandler>();
-		services.AddScoped<LeituraDeCredenciaisHandler>();
-		services.AddScoped<CredenciaisDoTenantHandler>();
 
 		return services;
 	}

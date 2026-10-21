@@ -3,14 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Diretorio;
 using Secco.Intranet.Application.Documentos;
-using Secco.Intranet.Application.Tenants;
-using Secco.Intranet.Application.Tenants.Acesso;
-using Secco.Intranet.Application.Tenants.Credenciais;
 using Secco.Intranet.Infrastructure;
 using Secco.Intranet.Infrastructure.Access;
 using Secco.Intranet.Infrastructure.Armazenamento;
 using Secco.Intranet.Infrastructure.Diretorio;
-using Secco.Intranet.Infrastructure.Tenants;
 using Secco.Intranet.Tests.Integration.TestAuthentication;
 using Secco.Intranet.Tests.Support;
 using Secco.SDK.AspNetCore.Authorization;
@@ -60,18 +56,6 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 	/// atribuem um dublê aqui; a fábrica é por classe de teste, e os testes de uma classe rodam em série.
 	/// </summary>
 	public IGestaoDeAcesso? GestaoDeAcesso { get; set; }
-
-	/// <summary>
-	/// Dublê da API de tenants. Testes que precisam de tenants atribuem aqui; sem dublê, vale o
-	/// no-op "não configurado" — o mesmo que o ambiente Testing teria.
-	/// </summary>
-	public IGestaoDeTenants? GestaoDeTenants { get; set; }
-
-	/// <summary>Dublê da gestão de acesso de tenant administrado; nulo = "não configurado".</summary>
-	public IGestaoDeAcessoDoTenant? GestaoDeAcessoDoTenant { get; set; }
-
-	/// <summary>Dublê das credenciais de tenant administrado; nulo = "não configurado".</summary>
-	public IGestaoDeCredenciaisDoTenant? GestaoDeCredenciaisDoTenant { get; set; }
 
 	/// <summary>
 	/// Fonte de usuários do diretório que o host devolve. Nula, vale o comportamento real do ambiente
@@ -143,10 +127,6 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 		services.AddSingleton<IStartupFilter, RolesDeTesteStartupFilter>();
 		services.AddScoped<IGestaoDeAcesso>(serviceProvider =>
 			GestaoDeAcesso ?? ActivatorUtilities.CreateInstance<GestaoDeAcessoIndisponivel>(serviceProvider));
-		services.AddScoped<IGestaoDeTenants>(_ => GestaoDeTenants ?? new GestaoDeTenantsIndisponivel());
-		services.AddScoped<IGestaoDeAcessoDoTenant>(_ => GestaoDeAcessoDoTenant ?? new GestaoDeAcessoDoTenantIndisponivel());
-		services.AddScoped<IGestaoDeCredenciaisDoTenant>(_ => GestaoDeCredenciaisDoTenant ?? new GestaoDeCredenciaisDoTenantIndisponivel());
-		services.AddSingleton(new CredenciaisOptions { PermitirEnderecoHttp = false });
 		services.AddScoped<IUsuariosParaDiretorio>(_ => UsuariosDoDiretorio ?? new UsuariosParaDiretorioIndisponivel());
 		services.AddScoped<IProcessadorDeImagem>(_ => ProcessadorDeImagem ?? new ProcessadorDeImagemFalso());
 		services.AddScoped<IArquivoStore>(serviceProvider =>

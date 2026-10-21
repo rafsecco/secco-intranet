@@ -40,9 +40,6 @@ caro depois.
 5. **SecureGate, LogStream e NotificationHub são serviços externos.** Este guia não cobre
    como instalá-los — só como apontar a Intranet para eles. O que a Intranet exige da
    instalação do SecureGate está em "SecureGate: dois clients e o `migrate`", abaixo.
-6. **Ligar LogStream ou NotificationHub a um tenant administrado exige um alvo de provisionamento
-   no SecureGate** (`SecureGate:Provisioning:Targets`). A Intranet não deixa escolher servidor pela
-   tela; sem um alvo declarado na plataforma, "Ligar" recusa com uma mensagem que diz isso.
 
 ## Topologia
 
@@ -94,7 +91,7 @@ do navegador é authorization code, e as chamadas de serviço são client creden
 | Client | Tipo | Escopos | Usado por |
 |---|---|---|---|
 | Login (ex.: `secco-intranet-login`) | `AuthorizationCode` | `profile`, `roles` | login interativo (`Intranet:Login`) |
-| Máquina (ex.: `secco-intranet`) | `ClientCredentials` | `securegate:admin`, `authorization:read`, `permissions:intranet`, `logstream`, `notificationhub` | client administrativo (setores, `/acesso`, tenants), permissões e revogação de sessão, publicação do catálogo de permissões no `migrate`, LogStream e NotificationHub (`Secco:SecureGate`) |
+| Máquina (ex.: `secco-intranet`) | `ClientCredentials` | `securegate:admin`, `authorization:read`, `permissions:intranet`, `logstream`, `notificationhub` | client administrativo (setores, `/acesso`), permissões e revogação de sessão, publicação do catálogo de permissões no `migrate`, LogStream e NotificationHub (`Secco:SecureGate`) |
 
 O client do navegador não carrega `securegate:admin`. Sem `permissions:intranet`, o `migrate` da
 Intranet falha com `403` ao publicar o catálogo de permissões (ADR-0039 da plataforma), e o SecureGate
@@ -290,14 +287,6 @@ intranet.suaempresa.com {
 Isto é um ponto de partida deliberadamente enxuto — não um arquivo entregue neste
 repositório, porque o proxy, o certificado e o banco variam demais entre instalações para
 travar num exemplo versionado.
-
-## Credenciais dos sistemas administrados
-
-A Área administrativa emite as credenciais OAuth (clients de máquina e de login) dos sistemas de cada tenant
-administrado. O secret aparece **uma única vez**, na resposta de quem emitiu ou rotacionou: copie-o direto para o
-cofre do sistema, porque a Intranet não o guarda em lugar nenhum e não há como lê-lo depois. **Rotacionar derruba o
-sistema** até ele receber o novo secret — o antigo deixa de valer na hora. Não há configuração nova na Intranet; ela
-usa o client de máquina com `securegate:admin` que já existe.
 
 ## Primeiro `intranet-admin`
 

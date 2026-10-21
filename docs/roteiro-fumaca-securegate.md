@@ -176,55 +176,5 @@ Registro do que a API real fez diferente do que se assumia — o motivo de o rot
 Parte automatizada: 10/10 (a décima garante e mescla permissão de um perfil). Parte manual: não
 repetida nesta rodada — sem mudança nas telas cobertas pelos itens 1–13.
 
-## Tenants administrados
-
-`SecureGateGestaoDeTenantsFumacaTests` usa as mesmas variáveis (`SECCO_SMOKE_SECUREGATE_URL` e o
-client de DEV, que tem `securegate:admin`). Ele cria um tenant `fumaca-<sufixo>`, provisiona o
-banco do LogStream (aplicado ou em modo script, conforme o SecureGate local tenha credencial
-privilegiada) e desativa o tenant no fim.
-
-O provisionamento exige um alvo declarado em `SecureGate:Provisioning:Targets` no SecureGate. Sem
-ele, a plataforma recusa, e o teste falha com a mensagem "O SecureGate não tem um servidor de banco
-configurado para provisionar". Isso é configuração do ambiente, não defeito da Intranet.
-
-**A plataforma não exclui tenant:** cada execução deixa um tenant desativado no SecureGate. Rode
-só contra o SecureGate local do compose. Para limpar, `docker compose down -v` no `secco-platform`.
-
-O teste `DesativarOTenantDeInstalacao_Recusado` tenta desativar o tenant de instalação e espera a
-recusa da plataforma. Não rode contra um SecureGate em que essa guarda não exista.
-
-## Acesso de tenant administrado
-
-`SecureGateGestaoDeAcessoDoTenantFumacaTests` usa as mesmas variáveis e o mesmo client de DEV. Cria
-dois tenants (`fa-<sufixo>` e `fo-<sufixo>`), exercita perfil, permissões e pessoas no primeiro, prova
-que a plataforma recusa atribuir perfil a um usuário do outro tenant e desativa os dois no fim. Como
-a plataforma não exclui tenant, deixa **dois tenants desativados** por execução; rode só contra o
-SecureGate local do compose.
-
-```bash
-export SECCO_SMOKE_SECUREGATE_URL=http://localhost:4101
-dotnet test tests/Secco.Intranet.Tests --filter "FullyQualifiedName~SecureGateGestaoDeAcessoDoTenantFumacaTests"
-```
-
-O cadastro "só pelo Entra" exige federação habilitada **e** a app registration configurada no
-SecureGate; não entra na fumaça automática e fica no roteiro manual abaixo.
-
-O isolamento entre tenants é provado antes do passo de permissões. Um SecureGate com o catálogo de
-permissões (ADR-0039 da plataforma) recusa `pedido:aprovar`, que nenhum produto publicou. Nesse
-caso, a fumaça só confere que a recusa chega como "permissões fora do catálogo", e não como
-"SecureGate indisponível". O mesmo catálogo faz falhar `GarantirPermissoes_UneComOQueJaExisteNoSecureGateReal`
-até a Intranet publicar o dela (item do roadmap).
-
-**SecureGate do compose da plataforma:** a API do container emite token com um `issuer` diferente
-da URL que a fumaça usa, e toda chamada volta 401. Pare o container da API
-(`docker stop secco-platform-securegate-api-1`), mantenha o SQL Server e o MailHog do compose, e suba
-a API pelo `dotnet run` da seção 0.
-
-Roteiro manual, com a Intranet no ar contra o mesmo SecureGate (seção 2):
-
-1. **Tenant.** Em `/tenants`, crie um tenant pela tela e ligue o SecureGate a ele.
-2. **Perfis e usuários.** Abra "Perfis e usuários" do tenant; a tela lista os perfis e as pessoas dele.
-3. **Perfil.** Crie um perfil (por exemplo `compras.aprovador`) e grave uma permissão em texto livre.
-4. **Convite.** Cadastre uma pessoa por convite e confira o e-mail no SMTP de DEV (MailHog, porta 8025).
-5. **Federação.** Habilite a federação do tenant (directory id do Entra).
-6. **Só pelo Entra.** Cadastre uma pessoa "só pelo Entra"; sem federação habilitada a tela recusa.
+As fumaças de tenants administrados e de acesso de tenant administrado saíram junto com a
+área de tenants (ADR-0010, 2026-10-21).

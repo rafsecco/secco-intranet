@@ -108,80 +108,30 @@ public static class VerbosDeAuditoria
 	/// <summary>Importação CSV aplicada.</summary>
 	public const string DiretorioImportar = "diretorio.importar";
 
-	/// <summary>Criação de tenant administrado.</summary>
-	public const string TenantCriar = "tenant.criar";
 
-	/// <summary>Adoção de tenant existente.</summary>
-	public const string TenantAdotar = "tenant.adotar";
 
-	/// <summary>Recurso ligado para um tenant.</summary>
-	public const string TenantRecursoLigar = "tenant.recurso.ligar";
 
-	/// <summary>Script de provisionamento gerado (o script em si nunca entra na trilha).</summary>
-	public const string TenantRecursoScriptGerado = "tenant.recurso.script-gerado";
 
-	/// <summary>Tenant ativado.</summary>
-	public const string TenantAtivar = "tenant.ativar";
 
-	/// <summary>Tenant desativado.</summary>
-	public const string TenantDesativar = "tenant.desativar";
 
-	/// <summary>Perfil criado em tenant administrado.</summary>
-	public const string TenantAcessoPerfilCriar = "tenant.acesso.perfil-criar";
 
-	/// <summary>Perfil excluído de tenant administrado.</summary>
-	public const string TenantAcessoPerfilExcluir = "tenant.acesso.perfil-excluir";
 
-	/// <summary>Permissões de perfil de tenant administrado editadas.</summary>
-	public const string TenantAcessoPermissoesEditar = "tenant.acesso.perfil-permissoes-editar";
 
-	/// <summary>Perfil atribuído a pessoa de tenant administrado.</summary>
-	public const string TenantAcessoPerfilAtribuir = "tenant.acesso.perfil-atribuir";
 
-	/// <summary>Perfil retirado de pessoa de tenant administrado.</summary>
-	public const string TenantAcessoPerfilRetirar = "tenant.acesso.perfil-retirar";
 
-	/// <summary>Pessoa cadastrada em tenant administrado.</summary>
-	public const string TenantAcessoUsuarioCadastrar = "tenant.acesso.usuario-cadastrar";
 
-	/// <summary>Convite reenviado a pessoa de tenant administrado.</summary>
-	public const string TenantAcessoConviteReenviar = "tenant.acesso.convite-reenviar";
 
-	/// <summary>Pessoa de tenant administrado desativada.</summary>
-	public const string TenantAcessoUsuarioDesativar = "tenant.acesso.usuario-desativar";
 
-	/// <summary>Pessoa de tenant administrado reativada.</summary>
-	public const string TenantAcessoUsuarioReativar = "tenant.acesso.usuario-reativar";
 
-	/// <summary>Sessões de pessoa de tenant administrado encerradas.</summary>
-	public const string TenantAcessoSessoesEncerrar = "tenant.acesso.sessoes-encerrar";
 
-	/// <summary>Federação de tenant administrado definida.</summary>
-	public const string TenantAcessoFederacaoDefinir = "tenant.acesso.federacao-definir";
 
-	/// <summary>Pessoa com conta em outro tenant incluída como membro de um tenant administrado.</summary>
-	public const string TenantAcessoVinculoIncluir = "tenant.acesso.vinculo-incluir";
 
-	/// <summary>Vínculo de uma pessoa com um tenant administrado suspenso.</summary>
-	public const string TenantAcessoVinculoSuspender = "tenant.acesso.vinculo-suspender";
 
-	/// <summary>Vínculo de uma pessoa com um tenant administrado reativado.</summary>
-	public const string TenantAcessoVinculoReativar = "tenant.acesso.vinculo-reativar";
 
-	/// <summary>Vínculo de uma pessoa com um tenant administrado removido (os perfis dela ali somem).</summary>
-	public const string TenantAcessoVinculoRemover = "tenant.acesso.vinculo-remover";
 
-	/// <summary>Credencial OAuth emitida para um tenant administrado (o secret nunca entra na trilha).</summary>
-	public const string TenantCredencialEmitir = "tenant.credencial.emitir";
 
-	/// <summary>Credencial de tenant administrado alterada.</summary>
-	public const string TenantCredencialAlterar = "tenant.credencial.alterar";
 
-	/// <summary>Secret de credencial de tenant administrado rotacionado.</summary>
-	public const string TenantCredencialRotacionar = "tenant.credencial.rotacionar";
 
-	/// <summary>Credencial de tenant administrado revogada.</summary>
-	public const string TenantCredencialRevogar = "tenant.credencial.revogar";
 }
 
 /// <summary>Tipos de recurso da trilha.</summary>

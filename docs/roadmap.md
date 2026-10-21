@@ -160,8 +160,11 @@ processos (maior risco técnico) só entra com a base já sólida.
         [secco-platform#45](https://github.com/rafsecco/secco-platform/issues/45) e
         [#46](https://github.com/rafsecco/secco-platform/issues/46). A administração do próprio
         tenant segue no client de máquina com `securegate:admin` (risco registrado na ADR-0010)
-  - [ ] Decidir se o código já entregue dos subsistemas 1, 2 e 4 (administração de outros
-        tenants) sai da Intranet ou fica até o AdminPortal cobrir as mesmas telas
+  - [x] Remover o código já entregue dos subsistemas 1, 2 e 4 (administração de outros tenants),
+        2026-10-21: telas, handlers, adapters, testes e a tabela `tb_tenants_administrados`
+        (migration `RemoverTenantsAdministrados` nos dois engines). Os tenants e clients criados
+        continuam no SecureGate; o operador os administra pelo AdminPortal. Specs e planos dos
+        subsistemas ficam em `docs/` como histórico
   - [x] Adotar o catálogo de permissões (ADR-0039,
         [secco-platform#33](https://github.com/rafsecco/secco-platform/issues/33)): catálogo
         estático da Intranet publicado no `migrate` (escopo `permissions:intranet`), e caixas por

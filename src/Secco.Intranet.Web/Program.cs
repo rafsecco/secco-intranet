@@ -1,6 +1,5 @@
 ﻿using Secco.Intranet.Application;
 using Secco.Intranet.Application.Auditoria;
-using Secco.Intranet.Application.Tenants.Credenciais;
 using Secco.Intranet.Infrastructure;
 using Secco.Intranet.Web;
 using Secco.Intranet.Web.Auditoria;
@@ -63,9 +62,6 @@ builder.Services.AddLogStream(opcoes =>
 builder.Services.AddIntranetApplication();
 builder.Services.AddIntranetInfrastructure(builder.Configuration);
 builder.Services.AddIntranetAuthentication(builder.Configuration, builder.Environment);
-
-// http:// nos endereços de retorno das credenciais de tenant só em Development (localhost sem TLS).
-builder.Services.AddSingleton(new CredenciaisOptions { PermitirEnderecoHttp = builder.Environment.IsDevelopment() });
 
 // Secco:SecureGate:Authority ausente derruba o startup em Production, nao so deixa os
 // controllers caírem no modo aberto de Development sem ninguém notar (ADR-0020).

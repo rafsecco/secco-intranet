@@ -64,7 +64,6 @@ public static class IntranetNavigation
 		{
 			administracao.Add(new NavigationItemModel("Setores", "bi-sliders", "/setores", Corresponde(caminho, "/setores")));
 			administracao.Add(new NavigationItemModel("Acesso", "bi-shield-lock", "/acesso", Corresponde(caminho, "/acesso")));
-			administracao.Add(new NavigationItemModel("Tenants", "bi-diagram-3", "/tenants", Corresponde(caminho, "/tenants")));
 		}
 
 		if (request.MostrarInventario)

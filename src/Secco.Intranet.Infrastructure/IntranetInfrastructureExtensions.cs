@@ -12,9 +12,6 @@ using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Application.Setores;
-using Secco.Intranet.Application.Tenants;
-using Secco.Intranet.Application.Tenants.Acesso;
-using Secco.Intranet.Application.Tenants.Credenciais;
 using Secco.Intranet.Infrastructure.Access;
 using Secco.Intranet.Infrastructure.Armazenamento;
 using Secco.Intranet.Infrastructure.Auditoria;
@@ -23,7 +20,6 @@ using Secco.Intranet.Infrastructure.Diretorio;
 using Secco.Intranet.Infrastructure.Notificacao;
 using Secco.Intranet.Infrastructure.Repositories;
 using Secco.Intranet.Infrastructure.Seeding;
-using Secco.Intranet.Infrastructure.Tenants;
 using Secco.LogStream.Client;
 using Secco.NotificationHub.Client;
 using Secco.SDK.AspNetCore.Tenancy;
@@ -113,7 +109,6 @@ public static class IntranetInfrastructureExtensions
 		services.AddScoped<IPublicacaoRepository, PublicacaoRepository>();
 		services.AddScoped<IItemInventarioRepository, ItemInventarioRepository>();
 		services.AddScoped<IPerfilColaboradorRepository, PerfilColaboradorRepository>();
-		services.AddScoped<ITenantsAdministrados, TenantsAdministradosRepository>();
 
 		// Guarda dupla da ADR-0019 (Development + flag) e aplicada pelo SeedSeccoDataAsync.
 		services.AddScoped<IDevelopmentDataSeeder, SetoresDesenvolvimentoSeeder>();
@@ -166,10 +161,6 @@ public static class IntranetInfrastructureExtensions
 		});
 
 		services.AddScoped(CriarGestaoDeAcesso);
-		services.AddScoped(CriarGestaoDeAcessoDoTenant);
-		services.AddScoped(CriarGestaoDeCredenciaisDoTenant);
-		services.AddScoped(CriarGestaoDeTenants);
-		services.AddScoped<ITenantsProtegidos, TenantsProtegidosDoCatalogo>();
 
 		services.AddMemoryCache();
 		services.AddScoped<IDevelopmentDataSeeder, DiretorioDesenvolvimentoSeeder>();
@@ -229,37 +220,6 @@ public static class IntranetInfrastructureExtensions
 		return credenciais.IsConfigured
 			? ActivatorUtilities.CreateInstance<SecureGateGestaoDeAcesso>(serviceProvider)
 			: ActivatorUtilities.CreateInstance<GestaoDeAcessoIndisponivel>(serviceProvider);
-	}
-
-	private static IGestaoDeAcessoDoTenant CriarGestaoDeAcessoDoTenant(IServiceProvider serviceProvider)
-	{
-		var credenciais = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();
-
-		return credenciais.IsConfigured
-			? ActivatorUtilities.CreateInstance<SecureGateGestaoDeAcessoDoTenant>(serviceProvider)
-			: new GestaoDeAcessoDoTenantIndisponivel();
-	}
-
-	private static IGestaoDeCredenciaisDoTenant CriarGestaoDeCredenciaisDoTenant(IServiceProvider serviceProvider)
-	{
-		var credenciais = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();
-
-		return credenciais.IsConfigured
-			? ActivatorUtilities.CreateInstance<SecureGateGestaoDeCredenciaisDoTenant>(serviceProvider)
-			: new GestaoDeCredenciaisDoTenantIndisponivel();
-	}
-
-	/// <summary>
-	/// Escolhe o adapter da gestão de tenants pela mesma configuração do client administrativo:
-	/// com <c>Secco:SecureGate</c> presente, o real; sem ela, o que responde "não configurado".
-	/// </summary>
-	private static IGestaoDeTenants CriarGestaoDeTenants(IServiceProvider serviceProvider)
-	{
-		var credenciais = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();
-
-		return credenciais.IsConfigured
-			? ActivatorUtilities.CreateInstance<SecureGateGestaoDeTenants>(serviceProvider)
-			: new GestaoDeTenantsIndisponivel();
 	}
 
 	private static TOptions BindSection<TOptions>(IServiceProvider serviceProvider, string sectionKey, TOptions options)
