@@ -17,6 +17,7 @@ Duas regras sustentam esta lista:
 
 | Demanda | O que trava aqui | Issue |
 |---|---|---|
+| Trilha de `securegate:tenant-manage` (ADR-0052) sem depender do LogStream | A trilha de cada escrita do client de gestão grava no LogStream do tenant da Intranet, fail-closed. Sem LogStream, a gestão de acesso e a criação de setores recebem `503`, e o LogStream, opcional no produto, vira dependência dura | [#48](https://github.com/rafsecco/secco-platform/issues/48) |
 | Reconciliação automática do mapeamento grupo→perfil (login federado + job periódico) | O CRUD do mapeamento e o rastreio de origem (`Manual`/`Directory`) já foram entregues (ver Atendidas) — falta só a parte que aplica isso sozinha: hoje o admin tem que atribuir/retirar o perfil à mão mesmo depois de mapear o grupo. Sem data na plataforma | [#28](https://github.com/rafsecco/secco-platform/issues/28) |
 
 ## Descartadas

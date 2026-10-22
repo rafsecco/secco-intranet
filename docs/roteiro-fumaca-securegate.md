@@ -54,6 +54,19 @@ dotnet test tests/Secco.Intranet.Tests --filter SecureGateGestaoDeAcessoFumacaTe
 Opcionais (os valores de DEV são o padrão): `SECCO_SMOKE_SECUREGATE_TENANT`,
 `SECCO_SMOKE_SECUREGATE_CLIENT_ID`, `SECCO_SMOKE_SECUREGATE_CLIENT_SECRET`.
 
+**Dois clients, como em produção (ADR-0052 da plataforma).** O client acima (`secco-dev-console`,
+`securegate:admin`) é só o **operador**: cria as pessoas do cenário, cria e revoga o client de gestão
+e limpa no fim. A fumaça cria, a cada execução, um client de produto no tenant com
+`securegate:tenant-manage` e `directory:read`, e é por ele que o adaptador da Intranet roda. Assim,
+uma rota fora do escopo do client de gestão falha aqui, e não só em produção, como aconteceu com a
+[secco-platform#47](https://github.com/rafsecco/secco-platform/issues/47).
+
+**Trilha obrigatória nas escritas.** Toda escrita com `securegate:tenant-manage` exige a auditoria do
+SecureGate (`SecureGate:Audit`, com a identidade `installation-auditor`). Ela grava no LogStream do
+tenant de DEV, que precisa do banco do LogStream provisionado. Sem isso, as escritas recebem
+`403`/`503`. Até a [secco-platform#48](https://github.com/rafsecco/secco-platform/issues/48) tirar
+essa dependência, suba também o LogStream e configure a auditoria. Sem eles, só as leituras passam.
+
 O que cobrem, com o client gerado real e client credentials reais:
 
 | Cenário | O que prova |

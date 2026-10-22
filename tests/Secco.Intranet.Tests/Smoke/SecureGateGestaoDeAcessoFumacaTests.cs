@@ -37,12 +37,21 @@ public sealed class FumacaFactAttribute : FactAttribute
 	}
 }
 
-/// <summary>Conexão real com o SecureGate, montada pela mesma composição que a Intranet usa.</summary>
+/// <summary>
+/// Conexão real com o SecureGate. O adaptador sob teste usa a mesma composição que a Intranet
+/// usa em produção: um client de produto do tenant com <c>securegate:tenant-manage</c>
+/// (ADR-0052 da plataforma), que a própria fumaça cria e revoga. O client de operador
+/// (<c>securegate:admin</c>) fica só para o que a Intranet não faz: criar esse client, criar
+/// pessoas e limpar no fim — se o adaptador o usasse, uma rota fora do escopo da Intranet
+/// passaria aqui e quebraria em produção (secco-platform#47).
+/// </summary>
 public sealed class FumacaFixture : IAsyncLifetime
 {
 	private readonly List<string> _perfisCriados = [];
 	private readonly List<Guid> _usuariosCriados = [];
 	private ServiceProvider? _provider;
+	private ServiceProvider? _providerDaGestao;
+	private string? _clientDeGestao;
 
 	/// <summary>Tenant contra o qual a fumaça roda.</summary>
 	public Guid Tenant { get; private set; }
@@ -50,20 +59,23 @@ public sealed class FumacaFixture : IAsyncLifetime
 	/// <summary>Sufixo único desta execução, para não colidir com dados de execuções anteriores.</summary>
 	public string Sufixo { get; } = Guid.NewGuid().ToString("N")[..8];
 
-	/// <summary>O client gerado, autenticado por client credentials.</summary>
+	/// <summary>
+	/// Client de operador (<c>securegate:admin</c>), só para preparar e limpar o cenário — nunca
+	/// para exercitar o código da Intranet.
+	/// </summary>
 	public ISecureGateClient Client { get; private set; } = null!;
 
-	/// <summary>O adaptador sob teste.</summary>
+	/// <summary>O adaptador sob teste, com o client de gestão do tenant.</summary>
 	public SecureGateGestaoDeAcesso Gestao { get; private set; } = null!;
 
 	/// <inheritdoc />
-	public Task InitializeAsync()
+	public async Task InitializeAsync()
 	{
 		var url = Environment.GetEnvironmentVariable(FumacaFactAttribute.VariavelDaUrl);
 
 		if (string.IsNullOrWhiteSpace(url))
 		{
-			return Task.CompletedTask;
+			return;
 		}
 
 		Tenant = Guid.Parse(Environment.GetEnvironmentVariable("SECCO_SMOKE_SECUREGATE_TENANT") ?? "018f0000-0000-7000-8000-000000000001");
@@ -83,9 +95,29 @@ public sealed class FumacaFixture : IAsyncLifetime
 			.BuildServiceProvider();
 
 		Client = _provider.GetRequiredService<ISecureGateClient>();
-		Gestao = new SecureGateGestaoDeAcesso(Client, new TenantFixo(Tenant), NullLogger<SecureGateGestaoDeAcesso>.Instance);
 
-		return Task.CompletedTask;
+		// O que o operador faz no deploy (guia de deploy): o client de gestão do tenant da Intranet
+		var gestao = await Client.CreateProductClientAsync(Tenant, new ProductClientRequest
+		{
+			Name = $"fumaca-gestao-{Sufixo}",
+			Scopes = ["securegate:tenant-manage", "directory:read"],
+			Roles = [],
+		});
+		_clientDeGestao = gestao.ClientId;
+
+		_providerDaGestao = new ServiceCollection()
+			.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+			{
+				["Secco:SecureGate:BaseUrl"] = url,
+				["Secco:SecureGate:TenantManagement:ClientId"] = gestao.ClientId,
+				["Secco:SecureGate:TenantManagement:ClientSecret"] = gestao.ClientSecret,
+			}).Build())
+			.AddLogging()
+			.AddSecureGateTenantManagementClient()
+			.BuildServiceProvider();
+
+		Gestao = new SecureGateGestaoDeAcesso(
+			_providerDaGestao.GetRequiredService<ISecureGateClient>(), new TenantFixo(Tenant), NullLogger<SecureGateGestaoDeAcesso>.Instance);
 	}
 
 	/// <summary>Cria um perfil de nome único e o registra para limpeza.</summary>
@@ -132,6 +164,16 @@ public sealed class FumacaFixture : IAsyncLifetime
 		foreach (var perfil in _perfisCriados)
 		{
 			await Tentar(() => Client.DeleteRoleAsync(Tenant, perfil, CancellationToken.None));
+		}
+
+		if (_clientDeGestao is not null)
+		{
+			await Tentar(() => Client.DeleteProductClientAsync(Tenant, _clientDeGestao, CancellationToken.None));
+		}
+
+		if (_providerDaGestao is not null)
+		{
+			await _providerDaGestao.DisposeAsync();
 		}
 
 		await _provider.DisposeAsync();
@@ -322,11 +364,11 @@ public class SecureGateGestaoDeAcessoFumacaTests(FumacaFixture f) : IClassFixtur
 			.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
 			{
 				["Secco:SecureGate:BaseUrl"] = "http://127.0.0.1:1",
-				["Secco:SecureGate:ClientId"] = "x",
-				["Secco:SecureGate:ClientSecret"] = "y",
+				["Secco:SecureGate:TenantManagement:ClientId"] = "x",
+				["Secco:SecureGate:TenantManagement:ClientSecret"] = "y",
 			}).Build())
 			.AddLogging()
-			.AddSecureGateAdminClient()
+			.AddSecureGateTenantManagementClient()
 			.BuildServiceProvider();
 
 		var gestao = new SecureGateGestaoDeAcesso(
