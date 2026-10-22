@@ -11,6 +11,7 @@ using Secco.Intranet.Tests.Support;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SecureGate.Client;
 using Secco.SecureGate.Client.Administration;
+using Secco.SecureGate.Client.Permissions;
 using Xunit;
 
 namespace Secco.Intranet.Tests.Smoke;
@@ -92,9 +93,16 @@ public sealed class FumacaFixture : IAsyncLifetime
 			.AddSingleton<IConfiguration>(configuracao)
 			.AddLogging()
 			.AddSecureGateAdminClient()
+			.AddSecureGatePermissionCatalogPublisher()
 			.BuildServiceProvider();
 
 		Client = _provider.GetRequiredService<ISecureGateClient>();
+
+		// O que o migrate da Intranet faz antes de subir (ADR-0039): sem o catálogo publicado, o
+		// SecureGate recusa as permissões da Intranet. Exige permissions:intranet no client de operador
+		// e o produto declarado em SecureGate:PermissionCatalog:Products (roteiro, seção 0).
+		await _provider.GetRequiredService<ISecureGatePermissionCatalogPublisher>()
+			.PublishAsync(IntranetPermissoes.Produto, IntranetPermissoes.Catalog);
 
 		// O que o operador faz no deploy (guia de deploy): o client de gestão do tenant da Intranet
 		var gestao = await Client.CreateProductClientAsync(Tenant, new ProductClientRequest

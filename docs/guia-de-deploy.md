@@ -129,10 +129,18 @@ Na configuração **do SecureGate** (não da Intranet), com os secrets por vari�
         "Type": "ClientCredentials",
         "Scopes": ["authorization:read", "permissions:intranet", "logstream", "notificationhub"]
       }
-    ]
+    ],
+    "PermissionCatalog": {
+      "Products": ["intranet"]
+    }
   }
 }
 ```
+
+O `PermissionCatalog:Products` registra o escopo `permissions:intranet`, que não é de nenhum produto
+da plataforma ([secco-platform#49](https://github.com/rafsecco/secco-platform/issues/49)). Sem ele, o
+SecureGate recusa subir com o client acima ("escopo não registrado"). Depois de acrescentá-lo, rode o
+`migrate` do SecureGate antes de subir, porque é o seed de referência que registra o escopo.
 
 **3. Dê ao SecureGate duas credenciais de banco.** Desde o isolamento de tenant com Row-Level
 Security (ADR-0041 da plataforma), o `migrate` usa uma credencial **dona** do banco

@@ -34,6 +34,10 @@ export Secco__Authentication__Authority=http://localhost:4101
 export Secco__Authentication__RequireHttpsMetadata=false
 export Secco__Authentication__DevelopmentSigningKey=" "
 export Secco__Authentication__Issuer=" "
+# A fumaça publica o catálogo da Intranet antes dos cenários, como o migrate dela faz (ADR-0039):
+# registra o produto e dá permissions:intranet ao client de DEV (secco-platform#49)
+export SecureGate__PermissionCatalog__Products__0=intranet
+export SecureGate__PlatformClients__0__Scopes__8=permissions:intranet
 dotnet run --project src/SecureGate/Secco.SecureGate.Api --no-launch-profile --urls http://localhost:4101
 ```
 
@@ -182,13 +186,10 @@ Registro do que a API real fez diferente do que se assumia — o motivo de o rot
   a mesma chamada que a tela de perfil já usava — só `SetRolePermissionsAsync` (gravar) é mesmo do
   grupo administrativo. Achado em 2026-09-27, ao implementar o modelo de permissões.
 
-Última execução: 2026-10-22, contra o SecureGate da `main` da plataforma (`7daf044`, client 0.22.0),
-com o adaptador já pelo client de `securegate:tenant-manage` (ADR-0052/0054). Parte automatizada:
-**13/14**. A que falhou, `GarantirPermissoes_UneComOQueJaExisteNoSecureGateReal`, recebe `400` porque o
-catálogo da Intranet não pode ser publicado: o SecureGate não registra o escopo `permissions:intranet`
-([secco-platform#49](https://github.com/rafsecco/secco-platform/issues/49)). As escritas de perfil, pessoa
-e sessão com o client de gestão passaram, com a trilha gravada no banco do SecureGate, sem LogStream.
-Parte manual: não repetida.
+Última execução: 2026-10-22, contra o SecureGate da `main` da plataforma (`9b674ea`, client 0.22.0),
+com o adaptador pelo client de `securegate:tenant-manage` (ADR-0052/0054) e o catálogo da Intranet
+publicado pela própria fumaça. Parte automatizada: **14/14**, duas vezes seguidas. As escritas tiveram a
+trilha gravada no banco do SecureGate, sem LogStream. Parte manual: não repetida.
 
 As fumaças de tenants administrados e de acesso de tenant administrado saíram junto com a
 área de tenants (ADR-0010, 2026-10-21).
