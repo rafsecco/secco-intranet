@@ -50,7 +50,6 @@ public class AcessoAutorizacaoTests(IntranetWebFactory factory) : IClassFixture<
 	[
 		"/Acesso",
 		"/Acesso?aba=usuarios",
-		"/Acesso?aba=federacao",
 		"/Acesso/Perfil?nome=qualquer",
 		$"/Acesso/Usuario/{Id}",
 	];
@@ -67,7 +66,6 @@ public class AcessoAutorizacaoTests(IntranetWebFactory factory) : IClassFixture<
 		$"/Acesso/EncerrarSessoes/{Id}",
 		"/Acesso/EditarPermissoes",
 		"/Acesso/ReconciliarPermissoes",
-		"/Acesso/SalvarFederacao",
 	];
 
 	[Theory]

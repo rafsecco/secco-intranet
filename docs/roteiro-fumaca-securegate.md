@@ -116,10 +116,8 @@ Abra `http://localhost:5250/Acesso` e confira:
    ou **desativar** esse usuário → toast vermelho "último intranet-admin ativo"; a conta segue ativa
    com o perfil (confira na API).
 9. **Usuário inexistente.** `/Acesso/Usuario/<guid aleatório>` → 404.
-10. **Federação.** Aba **Federação** → informe um GUID qualquer como directory id, marque
-    **Habilitada**, Salvar → toast verde, badge muda para "Habilitada", "Última alteração" aparece.
-    Desmarcar e salvar de novo → badge volta a "Desabilitada", directory id continua preenchido.
-    Salvar sem directory id → toast vermelho, nada muda na plataforma (confira pela API).
+10. **Federação.** A tela não tem mais aba Federação: mostra só a linha que informa que a federação
+    com o Entra ID é configurada pelo operador da instalação, no AdminPortal (ADR-0052 da plataforma).
 
 ### Diretório organizacional
 

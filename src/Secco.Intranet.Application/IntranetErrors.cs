@@ -232,12 +232,6 @@ public static class IntranetErrors
 		public static readonly Error CadastroRecusado =
 			Error.Validation("Intranet.Acesso.CadastroRecusado", "O SecureGate recusou o cadastro. Confira o e-mail, o nome e os perfis.");
 
-		/// <summary>"Só pelo Entra" pedido sem federação habilitada no tenant.</summary>
-		public static readonly Error EntraSemFederacao =
-			Error.Validation(
-				"Intranet.Acesso.EntraSemFederacao",
-				"Entrar só pelo Entra ID exige a federação habilitada para este sistema. Configure-a na aba Federação.");
-
 		/// <summary>Reenvio de convite para quem já tem senha ou não entra por senha.</summary>
 		public static readonly Error ConviteNaoCabe =
 			Error.Conflict("Intranet.Acesso.ConviteNaoCabe", "Esta pessoa já definiu a senha ou não entra por senha; não há convite a reenviar.");
@@ -332,12 +326,6 @@ public static class IntranetErrors
 			Error.Conflict(
 				"Intranet.Acesso.DesativacaoRecusada",
 				"A plataforma recusou a desativação (por exemplo, o último operador da instalação).");
-
-		/// <summary>Directory id do Entra ausente ou não é um GUID.</summary>
-		public static readonly Error DirectoryIdInvalido =
-			Error.Validation(
-				"Intranet.Acesso.DirectoryIdInvalido",
-				"Informe o directory id (tenant GUID) do Entra ID da empresa.");
 	}
 
 	/// <summary>Erros do Diretório organizacional.</summary>

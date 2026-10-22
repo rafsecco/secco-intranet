@@ -12,13 +12,20 @@ namespace Secco.Intranet.Web.Authentication;
 /// <c>ValidacaoChaveMestraHostedService</c> cobre para a chave mestra de documentos; aqui é a
 /// seção que liga a autenticação inteira. Não se aplica a <c>Testing</c>, que nunca configura
 /// SecureGate de propósito (a autorização real é exercida com claims falsas, não com este
-/// modo aberto). Também exige o client do login interativo, que é separado do de máquina.
+/// modo aberto). Também exige o client do login interativo, que é separado do de máquina, e o client de
+/// gestão do tenant (subseção <c>Secco:SecureGate:TenantManagement</c>).
 /// </summary>
 /// <param name="configuration">Configuração do host.</param>
 /// <param name="environment">Ambiente de hospedagem.</param>
 internal sealed class ValidacaoSecureGateHostedService(
 	IConfiguration configuration, IHostEnvironment environment) : IHostedService
 {
+	/// <summary>Chave do <c>ClientId</c> do client de gestão do tenant (ADR-0052 da plataforma).</summary>
+	internal const string TenantManagementClientIdKey = "Secco:SecureGate:TenantManagement:ClientId";
+
+	/// <summary>Chave do <c>ClientSecret</c> do client de gestão do tenant.</summary>
+	internal const string TenantManagementClientSecretKey = "Secco:SecureGate:TenantManagement:ClientSecret";
+
 	public Task StartAsync(CancellationToken cancellationToken)
 	{
 		if (environment.IsProduction() && !IntranetAuthenticationExtensions.IsConfigured(configuration))
@@ -40,6 +47,23 @@ internal sealed class ValidacaoSecureGateHostedService(
 				$"{IntranetAuthenticationExtensions.LoginClientIdKey} ausente em Production. O login " +
 				"interativo usa um client proprio (AuthorizationCode), separado do client de maquina " +
 				"de Secco:SecureGate.");
+		}
+
+		// A gestão de acesso usa o client de produto do tenant (securegate:tenant-manage, ADR-0052
+		// da plataforma), com credencial própria. Sem ela a tela de acesso só falharia na primeira
+		// chamada. Só as chaves são citadas, nunca os valores.
+		if (environment.IsProduction() && IntranetAuthenticationExtensions.IsConfigured(configuration))
+		{
+			foreach (var chave in new[] { TenantManagementClientIdKey, TenantManagementClientSecretKey })
+			{
+				if (string.IsNullOrWhiteSpace(configuration[chave]))
+				{
+					throw new InvalidOperationException(
+						$"{chave} ausente em Production. A gestao de acesso do tenant usa um client de " +
+						"produto proprio (securegate:tenant-manage), criado pelo operador da instalacao " +
+						"no tenant da Intranet, separado do client de maquina de Secco:SecureGate.");
+				}
+			}
 		}
 
 		return Task.CompletedTask;

@@ -189,6 +189,11 @@ processos (maior risco técnico) só entra com a base já sólida.
 
 ## Fase 4 — Integrações externas
 
+- [x] Gestão do tenant sem `securegate:admin` (ADR-0052 da plataforma, `Secco.SecureGate.Client`
+      0.21.0): `AddSecureGateTenantManagementClient()` no lugar de `AddSecureGateAdminClient()`,
+      credencial do client de produto em `Secco:SecureGate:TenantManagement` (exigida no startup
+      em Production) e federação Entra removida da Intranet. Nota de upgrade em
+      [guia-de-deploy.md](guia-de-deploy.md)
 - [ ] Chamados de TI com integração Jira/Zendesk/GitHub/Azure DevOps (conectores
       independentes, priorizar por demanda real)
 - [ ] Analytics em cima do LogStream. Depende da trilha de auditoria da Fase 1, que deixou de
@@ -201,7 +206,9 @@ processos (maior risco técnico) só entra com a base já sólida.
       `IntranetAuthenticationExtensions` não muda nada: o SecureGate mostra o botão do Entra
       na própria tela de login dele e devolve o mesmo formato de token de sempre. Fora daqui:
       criar a app registration e configurar `SecureGate:EntraId` no host do SecureGate é
-      operacional, não é código deste repositório
+      operacional, não é código deste repositório. **Substituído em 2026-10-22:** a aba
+      Federação saiu de `/acesso` (ADR-0052 da plataforma) e a federação do tenant passa a ser
+      do operador da instalação, no AdminPortal
 - [ ] **Identidade corporativa e exposição de rede.** A intranet não deve ser alcançável de
       fora da rede da empresa — a restrição é de rede, não de código, e o produto não a
       implementa sozinho. A aplicação **tem** saída para a internet; o que não deve existir é

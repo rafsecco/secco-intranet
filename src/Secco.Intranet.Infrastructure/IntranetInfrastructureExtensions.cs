@@ -115,13 +115,13 @@ public static class IntranetInfrastructureExtensions
 		services.AddScoped<IDevelopmentDataSeeder, PublicacoesDesenvolvimentoSeeder>();
 
 		// Composição lazy por configuração (mesmo padrão de AddSecureGateTenantCatalog na
-		// plataforma): AddSecureGateAdminClient() já é seguro chamar sempre — o HttpClient só
-		// ganha BaseAddress/handler de autenticação quando a seção Secco:SecureGate está
-		// configurada (ver Secco.SecureGate.Client). A escolha do adapter (real vs. no-op) só
-		// acontece na RESOLUÇÃO do ISetorAccessProvisioner, lendo o mesmo
-		// SecureGateClientCredentialsOptions que o client usa — evita ler IConfiguration
-		// diretamente aqui, seguindo o padrão de bind lazy já usado nesta classe.
-		services.AddSecureGateAdminClient();
+		// plataforma): AddSecureGateTenantManagementClient() já é seguro chamar sempre — o
+		// HttpClient só ganha BaseAddress/handler de autenticação quando a seção Secco:SecureGate
+		// está configurada (ver Secco.SecureGate.Client). Pede o scope securegate:tenant-manage
+		// com a credencial da subseção Secco:SecureGate:TenantManagement (ADR-0052 da plataforma):
+		// administra só o tenant da Intranet, sem securegate:admin. A escolha do adapter (real vs.
+		// indisponível) acontece na RESOLUÇÃO, em SecureGateTenantManagement.EstaDisponivel.
+		services.AddSecureGateTenantManagementClient();
 
 		// Catálogo de permissões da Intranet, publicado pelo seed de referência que o migrate roda
 		// (ADR-0039 da plataforma). Sem a seção Secco:SecureGate o publicador só registra o pulo; com
@@ -134,9 +134,7 @@ public static class IntranetInfrastructureExtensions
 			order: int.MaxValue);
 		services.AddScoped<ISetorAccessProvisioner>(serviceProvider =>
 		{
-			var secureGateOptions = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();
-
-			return secureGateOptions.IsConfigured
+			return SecureGateTenantManagement.EstaDisponivel(serviceProvider)
 				? ActivatorUtilities.CreateInstance<SecureGateSetorAccessProvisioner>(serviceProvider)
 				: ActivatorUtilities.CreateInstance<NullSetorAccessProvisioner>(serviceProvider);
 		});
@@ -153,9 +151,7 @@ public static class IntranetInfrastructureExtensions
 
 		services.AddScoped<IDiretorioDeUsuarios>(serviceProvider =>
 		{
-			var credenciais = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();
-
-			return credenciais.IsConfigured
+			return SecureGateTenantManagement.EstaDisponivel(serviceProvider)
 				? ActivatorUtilities.CreateInstance<SecureGateDiretorioDeUsuarios>(serviceProvider)
 				: ActivatorUtilities.CreateInstance<DiretorioVazio>(serviceProvider);
 		});
@@ -197,13 +193,12 @@ public static class IntranetInfrastructureExtensions
 
 	/// <summary>
 	/// Escolhe o adapter da gestão de acesso pela mesma configuração do client administrativo:
-	/// com <c>Secco:SecureGate</c> presente, o real; sem ela, o que responde "não configurado".
+	/// com <c>Secco:SecureGate</c> e <c>Secco:SecureGate:TenantManagement:ClientId</c> presentes,
+	/// o real; sem eles, o que responde "não configurado".
 	/// </summary>
 	private static IUsuariosParaDiretorio CriarUsuariosParaDiretorio(IServiceProvider serviceProvider)
 	{
-		var credenciais = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();
-
-		if (credenciais.IsConfigured)
+		if (SecureGateTenantManagement.EstaDisponivel(serviceProvider))
 		{
 			return ActivatorUtilities.CreateInstance<UsuariosParaDiretorioDoSecureGate>(serviceProvider);
 		}
@@ -215,9 +210,7 @@ public static class IntranetInfrastructureExtensions
 
 	private static IGestaoDeAcesso CriarGestaoDeAcesso(IServiceProvider serviceProvider)
 	{
-		var credenciais = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>();
-
-		return credenciais.IsConfigured
+		return SecureGateTenantManagement.EstaDisponivel(serviceProvider)
 			? ActivatorUtilities.CreateInstance<SecureGateGestaoDeAcesso>(serviceProvider)
 			: ActivatorUtilities.CreateInstance<GestaoDeAcessoIndisponivel>(serviceProvider);
 	}

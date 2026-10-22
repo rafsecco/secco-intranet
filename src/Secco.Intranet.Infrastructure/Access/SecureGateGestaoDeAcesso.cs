@@ -215,32 +215,6 @@ public sealed class SecureGateGestaoDeAcesso(
 			cancellationToken,
 			OperacoesDeAcessoNoSecureGate.PermissaoForaDoCatalogo);
 
-	/// <inheritdoc />
-	public Task<Result<FederacaoDto>> ObterFederacaoAsync(CancellationToken cancellationToken = default) =>
-		LerAsync(
-			"obter federacao",
-			async (tenantId, token) =>
-			{
-				var tenant = await client.GetTenantAsync(tenantId, token).ConfigureAwait(false);
-				var federacao = tenant.Federation;
-
-				return federacao is null
-					? new FederacaoDto(null, false, null)
-					: new FederacaoDto(federacao.DirectoryId, federacao.IsEnabled, federacao.UpdatedAt);
-			},
-			null,
-			cancellationToken);
-
-	/// <inheritdoc />
-	public Task<Result> DefinirFederacaoAsync(Guid directoryId, bool habilitada, CancellationToken cancellationToken = default) =>
-		EscreverAsync(
-			"definir federacao",
-			(tenantId, token) => client.UpsertTenantFederationAsync(
-				tenantId, new UpsertTenantFederationRequest { DirectoryId = directoryId, Enabled = habilitada }, token),
-			null,
-			null,
-			cancellationToken);
-
 	private static SituacaoDoUsuario Situacao(string? status) => OperacoesDeAcessoNoSecureGate.Situacao(status);
 
 	private Task<Result<T>> LerAsync<T>(

@@ -196,9 +196,9 @@ nenhuma API on-behalf-of do usuário hoje). Composição lazy por configuração
   grant a cada client de plataforma (ADR-0037 da plataforma). Como declarar os dois no
   SecureGate está no [guia de deploy](docs/guia-de-deploy.md).
 - **Redirect URI**: `/signin-oidc` (padrão do middleware OpenIdConnect).
-- **Scopes** do login interativo: `openid profile roles` — sem `securegate:admin` (esse
-  scope é exclusivo do provisionamento automático de Roles via client credentials, ver
-  abaixo) e sem `offline_access`/custódia de token.
+- **Scopes** do login interativo: `openid profile roles` — sem `securegate:admin` nem
+  `securegate:tenant-manage` (esse é do provisionamento automático de Roles via client
+  credentials, ver abaixo) e sem `offline_access`/custódia de token.
 - **Modo aberto**: sem `Secco:SecureGate:Authority` configurada, nenhum middleware de
   autenticação/autorização é registrado — modo válido apenas em DEV local (sem SecureGate
   disponível) e no ambiente `Testing`. ADR-0020: produção exige a seção; o modo aberto não
@@ -206,25 +206,25 @@ nenhuma API on-behalf-of do usuário hoje). Composição lazy por configuração
 
 Separadamente, o cadastro de um setor (ADR-0001) provisiona automaticamente as Roles
 `{slug}-admin`/`{slug}-user` no tenant atual via `Secco.SecureGate.Client`, autenticado por
-client credentials com o scope administrativo (`securegate:admin`, via
-`AddSecureGateAdminClient()`), usando o client de máquina de `Secco:SecureGate` — não confundir
-com o client e os scopes do login interativo acima. Sem
-a seção `Secco:SecureGate` configurada, esse provisionamento cai num adapter no-op
+client credentials com o scope `securegate:tenant-manage` (via
+`AddSecureGateTenantManagementClient()`, ADR-0052 da plataforma), usando o client de **produto** da
+subseção `Secco:SecureGate:TenantManagement` (`ClientId`/`ClientSecret`), criado pelo operador da
+instalação no tenant da Intranet e que alcança só este tenant — não confundir com o client de
+máquina de `Secco:SecureGate` (que já não tem `securegate:admin`) nem com o client e os scopes do
+login interativo acima. Sem a seção `Secco:SecureGate` ou sem o `TenantManagement:ClientId`
+configurados, esse provisionamento cai num adapter no-op
 (`NullSetorAccessProvisioner`), o mesmo modo aberto de DEV/Testing.
 
 ### Login federado via Microsoft Entra ID
 
-O protocolo de federação roda inteiro no `Secco.SecureGate` (ADR-0026 da plataforma) — a
-Intranet é só relying party e não muda nada na própria composição de autenticação para
-suportar isso. O que falta é operacional, fora deste repositório: alguém precisa criar
+O protocolo de federação roda inteiro no `Secco.SecureGate` (ADR-0026 da plataforma) e a Intranet
+é só relying party. **Ligar a federação de um tenant não é feito por esta aplicação**: desde a
+ADR-0052 da plataforma, isso é do operador da instalação, pelo AdminPortal. A tela `/acesso` só
+informa isso. O que existe em volta é operacional, fora deste repositório: alguém precisa criar
 **uma** app registration multi-tenant no Entra ID e configurar `SecureGate:EntraId`
-(`ClientId`, `ClientSecret`, `Authority`) no host do SecureGate.
-
-Feito isso, o `intranet-admin` liga a federação **do próprio tenant** na aba Federação de
-`/acesso`: informa o directory id (tenant GUID do Entra da empresa, não é segredo) e marca
-Habilitada. Dali em diante, a tela de login do SecureGate passa a oferecer "Entrar com
-Microsoft" para esse tenant. O usuário continua precisando existir na Intranet antes do
-primeiro login federado (ADR-0026: o Entra só prova identidade, nunca concede acesso).
+(`ClientId`, `ClientSecret`, `Authority`) no host do SecureGate. O usuário continua precisando
+existir na Intranet antes do primeiro login federado (ADR-0026: o Entra só prova identidade,
+nunca concede acesso).
 
 ### Primeiro `intranet-admin`
 

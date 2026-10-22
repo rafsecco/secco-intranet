@@ -17,7 +17,7 @@ namespace Secco.Intranet.Infrastructure.Access;
 /// só é resolvido quando a seção está configurada — ver <see cref="NullSetorAccessProvisioner"/>
 /// para o modo DEV/Testing.
 /// </summary>
-/// <param name="client">Client administrativo do SecureGate (autenticado, ver <c>AddSecureGateAdminClient()</c>).</param>
+/// <param name="client">Client administrativo do SecureGate (autenticado, ver <c>AddSecureGateTenantManagementClient()</c>).</param>
 /// <param name="tenantContext">Tenant da requisição atual (ADR-0005).</param>
 /// <param name="logger">Logger para falhas de provisionamento (ADR-0020: sem dados sensíveis).</param>
 public sealed class SecureGateSetorAccessProvisioner(
