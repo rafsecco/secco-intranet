@@ -519,3 +519,9 @@ do produto avaliou que o custo não se paga. A plataforma registrou a decisão n
   `securegate:admin`, que alcança a instalação inteira. A saída prevista (on-behalf-of da pessoa,
   ADR-0044 da plataforma) foi congelada junto com o resto da trilha. Reavaliar se a Intranet for
   exposta fora da rede corporativa (item de identidade e exposição de rede da Fase 4).
+- **Atualização (2026-10-22):** o risco acima foi tratado pela ADR-0052 da plataforma, adotada no
+  commit `b5840a7`. A gestão do próprio tenant usa um client de produto do tenant da Intranet com
+  `securegate:tenant-manage` e `directory:read`, que alcança pessoas e perfis deste tenant e não a
+  instalação. Pendência:
+  [secco-platform#47](https://github.com/rafsecco/secco-platform/issues/47) (`ListRoleMembers`
+  fora da lista do escopo).
