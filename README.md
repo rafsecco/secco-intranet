@@ -295,13 +295,13 @@ por setor).
 
 ### Próximos recursos do domínio (ainda não implementados)
 
-- `Recurso` + `SetorRecurso`: catálogo de módulos habilitáveis por setor (documentos,
-  processos, inventário...) com visibilidade público/privado.
-- `ItemMenu`: tabela autorecursiva para o menu extensível por quem adotar o projeto.
-- `ItemVencimento` + `AvisoAntecedencia`: avisos de vencimento (certificados, licenças...).
-- `AvisoUsuario`: central de notificação in-app (toast + área de avisos), consumindo o
-  canal in-app do `Secco.NotificationHub`.
-- Motor de processos (Fase 2): `ProcessoDefinicao` → `Etapa[]` → `ProcessoInstancia`.
+- `ItemVencimento` + `AvisoAntecedencia` (Fase 2): avisos de vencimento (certificados,
+  licenças...), com avisos escalonados.
+- Motor de processos (Fase 3): `ProcessoDefinicao` → `Etapa[]` → `ProcessoInstancia`.
+
+O catálogo de módulos por setor e o menu extensível já existem como a árvore `ItemMenu`, e a
+central de notificação in-app consome o `Secco.NotificationHub` direto, sem cópia local. Ver o
+[roadmap](docs/roadmap.md).
 
 ## Contribuindo
 

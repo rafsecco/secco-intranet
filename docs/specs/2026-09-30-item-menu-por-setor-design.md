@@ -196,7 +196,7 @@ mesmo padrão de `AcessoController.Perfil` ser uma tela de detalhe separada da l
 - Permissão própria por nó da árvore (ex.: um filho visível só com uma permissão extra,
   mesmo para quem já tem `setor-{slug}:read`) — decisão explícita de deixar para depois.
 - Tipo `Vencimento`/`ItemVencimento` como filho embutido — fica para quando esse recurso
-  (Fase 3 do roadmap) for construído; a árvore já suporta como `Personalizado` até lá.
+  (Fase 2 do roadmap desde 2026-10-22; antes, Fase 3) for construído; a árvore já suporta como `Personalizado` até lá.
 - Mecanismo de extensão/plugin para `Personalizado` renderizar algo dentro do próprio
   layout — o campo `Rota` (link) é a única integração desta rodada.
 - Generalizar `ItemMenu` para fora da árvore de um setor (Mural, Diretório, Inventário, o

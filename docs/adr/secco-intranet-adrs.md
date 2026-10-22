@@ -262,7 +262,7 @@ constrói:
   ([issue #2](https://github.com/rafsecco/secco-platform/issues/2)). Nenhuma trilha local, nem
   provisória: sem tabela, sem porta, sem pontos de instrumentação.
 - **`LogProcess`/`LogProcessDetail` fica reservado a processo de negócio com passos definidos** —
-  o consumidor previsto é o motor de workflow da Fase 2 (`ProcessoDefinicao` → `Etapa` →
+  o consumidor previsto é o motor de workflow da Fase 3 (era a Fase 2 até 2026-10-22; `ProcessoDefinicao` → `Etapa` →
   `ProcessoInstancia`). Usá-lo como trilha de usuário é proibido.
 
 ### Consequências
