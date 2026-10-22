@@ -1,7 +1,7 @@
 # Área administrativa de tenants — subsistema 1: ciclo de vida do tenant
 
 **Data:** 2026-10-07
-**Estado:** implementado (subsistema 1)
+**Estado:** removido — a Intranet administra só o próprio tenant ([ADR-0010](../adr/secco-intranet-adrs.md), commit `fccdb3e`). Mantida como registro do desenho.
 
 ## Problema
 

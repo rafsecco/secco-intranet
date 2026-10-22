@@ -1,7 +1,7 @@
 # Área administrativa de tenants — subsistema 4: credenciais do sistema administrado
 
 **Data:** 2026-10-18
-**Estado:** implementado
+**Estado:** removido — a Intranet administra só o próprio tenant ([ADR-0010](../adr/secco-intranet-adrs.md), commit `fccdb3e`). Mantida como registro do desenho.
 
 ## Problema
 
