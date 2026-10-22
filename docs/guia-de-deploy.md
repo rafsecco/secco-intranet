@@ -11,13 +11,6 @@ você já tem, ou vai provisionar separadamente, um `Secco.SecureGate` acessíve
 Intranet não roda sem ele (é a única dependência dura; LogStream e NotificationHub são
 opcionais, ver abaixo).
 
-> **Exceção temporária:** enquanto a
-> [secco-platform#48](https://github.com/rafsecco/secco-platform/issues/48) não for entregue, a
-> gestão de acesso (`/acesso` e a criação de setores) **exige o LogStream**. O SecureGate grava a
-> trilha de cada escrita do client de gestão no LogStream do tenant da Intranet, de forma síncrona e
-> fail-closed (ADR-0052 da plataforma). Sem o LogStream, ou sem o banco dele para o tenant da
-> Intranet, essas escritas recebem `503`. O resto da Intranet funciona.
-
 ## Limitações conhecidas — leia antes de começar
 
 Nenhuma delas impede o deploy, mas todas mudam como você vai operar. Ignorá-las custa
@@ -112,11 +105,10 @@ necessários se a Intranet usar esses serviços.
 O client de gestão **não** entra em `SecureGate:PlatformClients`: quem o cria é o operador da
 instalação, pela API do SecureGate, no tenant da Intranet (`POST /api/v1/tenants/{id}/clients`, com os
 escopos `securegate:tenant-manage` e `directory:read`). O secret volta só nessa resposta; guarde-o na
-hora e configure-o em `Secco__SecureGate__TenantManagement__ClientId`/`ClientSecret`. A auditoria do
-SecureGate (`SecureGate:Audit`) precisa estar configurada: sem ela, as escritas da tela de acesso
-recebem `403`. Ela grava no LogStream do tenant da Intranet, que precisa ter o banco do LogStream
-provisionado; sem ele, as escritas recebem `503` (ver a exceção temporária no topo,
-[secco-platform#48](https://github.com/rafsecco/secco-platform/issues/48)).
+hora e configure-o em `Secco__SecureGate__TenantManagement__ClientId`/`ClientSecret`. Cada escrita
+desse client é registrada pelo próprio SecureGate, no banco dele, antes de acontecer (ADR-0054 da
+plataforma): não depende do LogStream nem de `SecureGate:Audit`. Se a gravação falhar, a escrita recebe
+`503` e não acontece. Quem lê essa trilha é o operador, no AdminPortal (seção "Trilha" do tenant).
 
 Na configuração **do SecureGate** (não da Intranet), com os secrets por variável de ambiente
 (`SecureGate__PlatformClients__0__ClientSecret`, `SecureGate__PlatformClients__1__ClientSecret`):

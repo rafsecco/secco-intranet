@@ -61,11 +61,10 @@ e limpa no fim. A fumaça cria, a cada execução, um client de produto no tenan
 uma rota fora do escopo do client de gestão falha aqui, e não só em produção, como aconteceu com a
 [secco-platform#47](https://github.com/rafsecco/secco-platform/issues/47).
 
-**Trilha obrigatória nas escritas.** Toda escrita com `securegate:tenant-manage` exige a auditoria do
-SecureGate (`SecureGate:Audit`, com a identidade `installation-auditor`). Ela grava no LogStream do
-tenant de DEV, que precisa do banco do LogStream provisionado. Sem isso, as escritas recebem
-`403`/`503`. Até a [secco-platform#48](https://github.com/rafsecco/secco-platform/issues/48) tirar
-essa dependência, suba também o LogStream e configure a auditoria. Sem eles, só as leituras passam.
+**Trilha das escritas.** Toda escrita com `securegate:tenant-manage` é registrada pelo próprio
+SecureGate, no banco dele (ADR-0054 da plataforma,
+[secco-platform#48](https://github.com/rafsecco/secco-platform/issues/48)). Não precisa de LogStream
+nem de `SecureGate:Audit`: basta o SecureGate de DEV.
 
 O que cobrem, com o client gerado real e client credentials reais:
 
@@ -183,9 +182,13 @@ Registro do que a API real fez diferente do que se assumia — o motivo de o rot
   a mesma chamada que a tela de perfil já usava — só `SetRolePermissionsAsync` (gravar) é mesmo do
   grupo administrativo. Achado em 2026-09-27, ao implementar o modelo de permissões.
 
-Última execução completa: 2026-09-27, contra o SecureGate do monorepo na `main` (client 0.11.0).
-Parte automatizada: 10/10 (a décima garante e mescla permissão de um perfil). Parte manual: não
-repetida nesta rodada — sem mudança nas telas cobertas pelos itens 1–13.
+Última execução: 2026-10-22, contra o SecureGate da `main` da plataforma (`7daf044`, client 0.22.0),
+com o adaptador já pelo client de `securegate:tenant-manage` (ADR-0052/0054). Parte automatizada:
+**13/14**. A que falhou, `GarantirPermissoes_UneComOQueJaExisteNoSecureGateReal`, recebe `400` porque o
+catálogo da Intranet não pode ser publicado: o SecureGate não registra o escopo `permissions:intranet`
+([secco-platform#49](https://github.com/rafsecco/secco-platform/issues/49)). As escritas de perfil, pessoa
+e sessão com o client de gestão passaram, com a trilha gravada no banco do SecureGate, sem LogStream.
+Parte manual: não repetida.
 
 As fumaças de tenants administrados e de acesso de tenant administrado saíram junto com a
 área de tenants (ADR-0010, 2026-10-21).

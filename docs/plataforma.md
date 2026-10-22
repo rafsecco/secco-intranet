@@ -17,7 +17,7 @@ Duas regras sustentam esta lista:
 
 | Demanda | O que trava aqui | Issue |
 |---|---|---|
-| Trilha de `securegate:tenant-manage` (ADR-0052) sem depender do LogStream | A trilha de cada escrita do client de gestão grava no LogStream do tenant da Intranet, fail-closed. Sem LogStream, a gestão de acesso e a criação de setores recebem `503`, e o LogStream, opcional no produto, vira dependência dura | [#48](https://github.com/rafsecco/secco-platform/issues/48) |
+| Registrar `permissions:<produto>` para produto adotante (ADR-0039) | O SecureGate só registra `permissions:logstream`/`notificationhub`, e um client de plataforma com escopo não registrado é recusado. A Intranet não publica o catálogo dela, e o SecureGate real recusa as permissões dela (`400`), inclusive as de setor: **criar setor falha contra um SecureGate real** | [#49](https://github.com/rafsecco/secco-platform/issues/49) |
 | Reconciliação automática do mapeamento grupo→perfil (login federado + job periódico) | O CRUD do mapeamento e o rastreio de origem (`Manual`/`Directory`) já foram entregues (ver Atendidas) — falta só a parte que aplica isso sozinha: hoje o admin tem que atribuir/retirar o perfil à mão mesmo depois de mapear o grupo. Sem data na plataforma | [#28](https://github.com/rafsecco/secco-platform/issues/28) |
 
 ## Descartadas
@@ -36,6 +36,7 @@ cada capacidade — informação que some se a linha for apagada.
 
 | Demanda | Entregue em | Issue |
 |---|---|---|
+| Trilha de `securegate:tenant-manage` (ADR-0052) sem depender do LogStream | `Secco.SecureGate.Client` **0.22.0** (2026-10-22), ADR-0054 — a trilha da gestão do próprio tenant fica no banco do SecureGate, síncrona e fail-closed, sem `SecureGate:Audit` nem LogStream. Só o operador lê (`GET /api/v1/tenants/{id}/audit-entries` e o AdminPortal). Retenção opcional por `SecureGate:Audit:RetentionDays`. O LogStream volta a ser opcional | [#48](https://github.com/rafsecco/secco-platform/issues/48) |
 | `ListRoleMembers` aberto ao `securegate:tenant-manage` (ADR-0052) | Serviço SecureGate (2026-10-22), commit `7f28cab`, sem pacote novo — leitura só no tenant do token, sem trilha. Com isso todas as rotas que a gestão do próprio tenant usa estão na lista do escopo | [#47](https://github.com/rafsecco/secco-platform/issues/47) |
 | Troca do token da pessoa com reautenticação recente (operador designado e elevação) | `Secco.SDK.RelyingParty` **0.2.1** (2026-10-21), ADR-0050 — `RequireSeccoRecentAuthentication`, `ISeccoExchangedTokenProvider` e `AddSeccoExchangedToken`. **Nunca a 0.2.0** (redirecionamento aberto na volta do desafio). Congelada pela ADR-0051 da plataforma e sem consumidor aqui desde a [ADR-0010](adr/secco-intranet-adrs.md); volta a importar se o leitor de logs por elevação voltar ao roadmap | [#44](https://github.com/rafsecco/secco-platform/issues/44) |
 | `AddLogStream()` — o sink `ILogger` → LogStream | `Secco.SDK.Logging` **0.1.1** (2026-09-06), com fila local, lote por tenant e guarda anti-recursão. **Nunca usar a 0.1.0**: ela foi empacotada contra o `LogStream.Client` 0.2.0 e chama um método que a 0.3.0 renomeou, então o lote falha com `MissingMethodException` — e como o dispatcher engole a falha por design, o sintoma é log que simplesmente não chega | [#1](https://github.com/rafsecco/secco-platform/issues/1) |
