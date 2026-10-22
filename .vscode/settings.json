@@ -113,7 +113,9 @@
       "password": "",
       "savePassword": false,
       "trustServerCertificate": true,
-      "profileName": "Secco.Intranet — SQL Server dev (docker compose)"
+      "profileName": "Secco.Intranet — SQL Server dev (docker compose)",
+      "groupId": "ROOT",
+      "id": "2a6b7923-cee9-4957-b7a0-a1e3e805a1f7"
     }
   ]
 }
