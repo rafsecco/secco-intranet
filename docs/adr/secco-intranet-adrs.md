@@ -522,6 +522,5 @@ do produto avaliou que o custo não se paga. A plataforma registrou a decisão n
 - **Atualização (2026-10-22):** o risco acima foi tratado pela ADR-0052 da plataforma, adotada no
   commit `b5840a7`. A gestão do próprio tenant usa um client de produto do tenant da Intranet com
   `securegate:tenant-manage` e `directory:read`, que alcança pessoas e perfis deste tenant e não a
-  instalação. Pendência:
-  [secco-platform#47](https://github.com/rafsecco/secco-platform/issues/47) (`ListRoleMembers`
-  fora da lista do escopo).
+  instalação. O `ListRoleMembers`, que faltava na lista do escopo, entrou em
+  [secco-platform#47](https://github.com/rafsecco/secco-platform/issues/47).
