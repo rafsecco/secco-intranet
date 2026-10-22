@@ -127,6 +127,15 @@ if (IntranetAuthenticationExtensions.IsConfigured(app.Configuration))
 }
 
 app.MapSeccoHealthChecks();
+
+// O navegador pede /favicon.ico na raiz quando a resposta não declara ícone (a foto servida
+// direto, as páginas de erro em texto puro). O ícone é do tema — cada um tem a sua cor —, então a
+// raiz aponta para o SVG do tema ativo, sem exigir login: senão o ícone viraria desafio de login.
+app.MapGet("/favicon.ico", (HttpContext http, ThemeOptions tema) =>
+		Results.Redirect($"{http.Request.PathBase}/_content/Secco.Intranet.Themes.{tema.Nome}/favicon.svg"))
+	.AllowAnonymous()
+	.ExcludeFromDescription();
+
 app.MapControllerRoute(
 	name: "default",
 	pattern: "{controller=Mural}/{action=Index}/{id?}");

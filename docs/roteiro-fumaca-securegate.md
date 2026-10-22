@@ -210,8 +210,16 @@ O navegador percorreu:
 - organograma e inventário;
 - documento publicado no setor novo e baixado de volta, idêntico, com `no-store`.
 
-Tudo passou. Fica fora o tema Horizontal, que é escolhido na configuração e é coberto pelos testes de
-tela.
+Tudo passou. Na mesma tarde, a Intranet subiu de novo com `Intranet__Theme__Nome=Horizontal`:
+- login;
+- menus suspensos de Setores (com submenu por setor) e Administração;
+- modo escuro;
+- documentos de um setor;
+- recorte e envio da foto;
+- `/acesso`.
+
+Tudo passou, sem erro de console da Intranet. O `/favicon.ico` sem login redireciona para o SVG do
+tema ativo.
 
 As fumaças de tenants administrados e de acesso de tenant administrado saíram junto com a
 área de tenants (ADR-0010, 2026-10-21).

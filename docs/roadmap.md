@@ -120,7 +120,9 @@ processos (maior risco técnico) só entra com a base já sólida.
       fizer sentido, os itens fixos (Mural, Diretório, Inventário, Administração) virarem nós
 - [ ] Marketplace de temas (empacotamento + documentação para terceiros) — trazido da Fase 5.
       Os dois temas oficiais já provam o contrato; o que falta é o terceiro conseguir publicar e
-      instalar o próprio tema sem abrir este repositório
+      instalar o próprio tema sem abrir este repositório. Antes disso, tirar do core o caminho fixo
+      do Cropper.js no pacote do Vertical (`Views/Diretorio/Perfil.cshtml` e `Editar.cshtml`): hoje
+      funciona em qualquer tema só porque a Web sempre referencia o Vertical
 - [x] Área administrativa de acesso, primeiro corte: perfis e usuários do próprio tenant,
       exclusiva do `intranet-admin`, com testes de autorização em toda rota —
       [spec](specs/2026-09-23-area-administrativa-acesso-design.md). Entregue: só o
