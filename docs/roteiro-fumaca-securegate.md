@@ -189,7 +189,29 @@ Registro do que a API real fez diferente do que se assumia — o motivo de o rot
 Última execução: 2026-10-22, contra o SecureGate da `main` da plataforma (`9b674ea`, client 0.22.0),
 com o adaptador pelo client de `securegate:tenant-manage` (ADR-0052/0054) e o catálogo da Intranet
 publicado pela própria fumaça. Parte automatizada: **14/14**, duas vezes seguidas. As escritas tiveram a
-trilha gravada no banco do SecureGate, sem LogStream. Parte manual: não repetida.
+trilha gravada no banco do SecureGate, sem LogStream.
+
+Ponta a ponta em 2026-10-22, no mesmo SecureGate, com **login OIDC real** e não no modo aberto. Foi
+preciso:
+- um client de login de plataforma com redirect para `http://localhost:5250/signin-oidc`;
+- o client de gestão criado pela API;
+- o `intranet-admin` atribuído ao `dev@secco.local`.
+
+O navegador percorreu:
+- login no SecureGate;
+- `/acesso`: criar perfil, nome inválido, nome repetido, salvar permissão do catálogo, adicionar
+  membro, excluir com membro recusado, retirar, excluir;
+- autoexclusão do próprio `intranet-admin`, recusada (só exercitável com login real);
+- queda da sessão depois de mudar os perfis da pessoa (ADR-0032), com novo login;
+- criar setor, com os perfis `{slug}-admin`/`-user` nascidos com as famílias `setor-{slug}:read`/`write`
+  e a trilha `gestao-do-tenant.*` no SecureGate;
+- Diretório com só os ativos;
+- foto com orientação EXIF de celular (recorte no navegador e no servidor coincidiram);
+- organograma e inventário;
+- documento publicado no setor novo e baixado de volta, idêntico, com `no-store`.
+
+Tudo passou. Fica fora o tema Horizontal, que é escolhido na configuração e é coberto pelos testes de
+tela.
 
 As fumaças de tenants administrados e de acesso de tenant administrado saíram junto com a
 área de tenants (ADR-0010, 2026-10-21).
