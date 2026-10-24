@@ -35,7 +35,7 @@ Verificado na fonte (`secco-platform` em `9b674ea`, este repositório em `5b8cb6
 | Dono do item | O **setor**, como Documentos e Avisos. Novo tipo embutido `Vencimentos` na árvore de menu |
 | Quem decide que o aviso é de hoje | A **Intranet**, num worker em processo. O Hub entrega na hora, sem `ScheduledFor` |
 | Destinatários | O **responsável** do item, mais quem tem a Role `{slug}-admin` do setor, resolvidos **no dia do envio** |
-| Canais | Escalam com a proximidade: marco acima de 7 dias vai só ao sino; de 7 dias para baixo, e no dia, vai ao sino e por e-mail. Teams e Slack nunca |
+| Canais | Escalam com a proximidade: faltando mais de 7 dias, o aviso vai só ao sino; faltando 7 ou menos, e no dia, ele vai ao sino e por e-mail. Teams e Slack nunca |
 | Renovar | Informa a data nova. Registra o histórico e abre um ciclo novo de avisos |
 | Estado | Derivado do relógio, como no Mural (Em dia, A vencer, Vence hoje, Vencido), mais **Encerrado**, que é explícito |
 | Plataforma | Nada a pedir |
@@ -141,9 +141,10 @@ com a situação real, e não uma rajada atrasada.
 vencido, ou aplicação fora do ar na data) tem o marco 0 gravado como `Pulado`, sem envio. O estado
 Vencido aparece na lista; avisar de algo que venceu há semanas, sem ninguém ter pedido, é ruído.
 
-**Antecedência acrescentada no meio do ciclo:** ao salvar, os marcos novos que já estão devidos são
-gravados como `Pulado`. Sem isso, incluir "30 dias" num item que vence em 10 mandaria um aviso extra
-na hora, repetindo o que já foi dito.
+**Um marco mais distante que outro já tratado no ciclo nunca sai:** é gravado como `Pulado`. O caso
+é a antecedência acrescentada no meio do ciclo: incluir "30 dias" num item que vence em 10 e já recebeu
+o aviso de 7 repetiria o que já foi dito. Se nenhum marco foi tratado ainda, o marco novo sai
+normalmente, porque ninguém foi avisado.
 
 ### Destinatários
 
@@ -165,7 +166,7 @@ diferença é que o Mural descarta quem não tem e-mail, e aqui ninguém pode fi
 
 - **Título:** `"{Titulo do item} vence em {n} dia(s)"`, `"{Titulo} vence hoje"`.
 - **Resumo:** setor, data de vencimento por extenso e o responsável, se houver.
-- **Link:** a tela do item, `/setor/{slug}/vencimentos/{id}`.
+- **Link:** a tela do item, `/{slug}/vencimentos/{id}`.
 - **Origem/Tipo** (`Source`/`Type`): `vencimentos` / `aviso`.
 
 ### Falha do Hub
@@ -203,12 +204,12 @@ adaptador, sem criar um segundo caminho.
 Tudo debaixo da árvore do setor, nos dois temas oficiais, com claro e escuro (skill
 `secco-intranet-temas`):
 
-- **Lista** (`/setor/{slug}/vencimentos`): ordenada pela data de vencimento, os mais próximos
+- **Lista** (`/{slug}/vencimentos`): ordenada pela data de vencimento, os mais próximos
   primeiro, com o selo de estado, responsável e data. Os encerrados ficam fora; uma opção "mostrar
   encerrados" os inclui.
 - **Novo / editar**: título, descrição, data, responsável (escolhido entre as pessoas do tenant) e
   antecedências (campo com os dias, pré-preenchido com `30, 7, 1`).
-- **Detalhe** (`/setor/{slug}/vencimentos/{id}`): os dados, o estado, os próximos avisos do ciclo
+- **Detalhe** (`/{slug}/vencimentos/{id}`): os dados, o estado, os próximos avisos do ciclo
   atual com a data de cada um, o histórico de renovações e os avisos já tratados.
 - **Ações no detalhe:** Renovar (data nova e observação opcional), Encerrar (com confirmação) e
   Reativar.
@@ -257,13 +258,13 @@ O envio automático **não** vai à trilha: não é ação de usuário, e o regi
   - recuperação: vários marcos devidos geram um envio só, do mais próximo, e os outros como
     `Pulado`;
   - marco 0 depois do dia: `Pulado`, sem envio;
-  - antecedência acrescentada já devida: `Pulado`, sem envio;
+  - marco mais distante que um já tratado no ciclo: `Pulado`, sem envio;
   - setor inativo ou recurso desligado: nada enviado nem gravado;
   - responsável que perdeu a Role do setor deixa de receber;
   - sem e-mail cadastrado, num marco de e-mail: recebe no sino;
   - texto com os dias reais, não o número do marco;
   - destinatários: responsável mais `{slug}-admin`, sem repetição; ninguém → `SemDestinatario`;
-  - canais por marco (acima de 7 dias só sino; 7 ou menos e no dia, sino e e-mail).
+  - canais pelos dias que faltam (mais de 7, só sino; 7 ou menos e no dia, sino e e-mail).
 - **Integração:**
   - índice único: duas execuções concorrentes do mesmo marco geram um envio só;
   - falha do Hub desfaz o registro, e a execução seguinte envia;
