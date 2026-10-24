@@ -5,6 +5,7 @@ using Secco.Intranet.Domain.Inventario;
 using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Domain.Publicacoes;
 using Secco.Intranet.Domain.Setores;
+using Secco.Intranet.Domain.Vencimentos;
 using Secco.SDK.EntityFrameworkCore;
 
 namespace Secco.Intranet.Infrastructure.Contexts;
@@ -34,6 +35,15 @@ public sealed class IntranetDbContext(DbContextOptions<IntranetDbContext> option
 
 	/// <summary>Árvore de itens de menu da página de cada setor.</summary>
 	public DbSet<ItemMenu> ItensMenu => Set<ItemMenu>();
+
+	/// <summary>Itens com data de vencimento por setor (tabela <c>tb_itens_vencimento</c>).</summary>
+	public DbSet<ItemVencimento> ItensVencimento => Set<ItemVencimento>();
+
+	/// <summary>Histórico de renovações dos itens de vencimento.</summary>
+	public DbSet<RenovacaoDeVencimento> RenovacoesDeVencimento => Set<RenovacaoDeVencimento>();
+
+	/// <summary>Marcos de aviso já tratados por item e ciclo.</summary>
+	public DbSet<AvisoDeVencimentoEnviado> AvisosDeVencimentoEnviados => Set<AvisoDeVencimentoEnviado>();
 
 	/// <inheritdoc />
 	protected override void OnModelCreating(ModelBuilder modelBuilder)

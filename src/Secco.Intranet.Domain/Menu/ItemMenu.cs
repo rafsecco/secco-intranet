@@ -18,6 +18,9 @@ public enum TipoDeItemMenu
 
 	/// <summary>Item livre — rótulo e uma rota opcional, sem recurso embutido.</summary>
 	Personalizado = 3,
+
+	/// <summary>Itens com data de vencimento do setor.</summary>
+	Vencimentos = 4,
 }
 
 /// <summary>

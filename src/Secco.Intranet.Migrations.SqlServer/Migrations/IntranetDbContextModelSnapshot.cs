@@ -426,6 +426,156 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
                     b.ToTable("tb_setores");
                 });
 
+            modelBuilder.Entity("Secco.Intranet.Domain.Vencimentos.AvisoDeVencimentoEnviado", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id_pk_aviso_de_vencimento_enviado");
+
+                    b.Property<int>("Ciclo")
+                        .HasColumnType("int")
+                        .HasColumnName("nr_ciclo");
+
+                    b.Property<Guid>("ItemVencimentoId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id_fk_item_vencimento");
+
+                    b.Property<int>("Marco")
+                        .HasColumnType("int")
+                        .HasColumnName("nr_marco");
+
+                    b.Property<int>("QuantidadeDeDestinos")
+                        .HasColumnType("int")
+                        .HasColumnName("nr_quantidade_de_destinos");
+
+                    b.Property<int>("Resultado")
+                        .HasColumnType("int")
+                        .HasColumnName("ie_resultado");
+
+                    b.Property<DateTimeOffset>("TratadoEm")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("dt_tratado_em");
+
+                    b.HasKey("Id")
+                        .HasName("pk_avisos_de_vencimento_enviados");
+
+                    b.HasIndex("ItemVencimentoId", "Ciclo", "Marco")
+                        .IsUnique()
+                        .HasDatabaseName("uk_avisos_de_vencimento_enviados_id_fk_item_vencimento_nr_ciclo_nr_marco");
+
+                    b.ToTable("tb_avisos_de_vencimento_enviados");
+                });
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Vencimentos.ItemVencimento", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id_pk_item_vencimento");
+
+                    b.Property<string>("Antecedencias")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasColumnName("ds_antecedencias");
+
+                    b.Property<int>("Ciclo")
+                        .HasColumnType("int")
+                        .HasColumnName("nr_ciclo");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("dt_created_at");
+
+                    b.Property<DateOnly>("DataVencimento")
+                        .HasColumnType("date")
+                        .HasColumnName("dt_data_vencimento");
+
+                    b.Property<string>("Descricao")
+                        .HasMaxLength(4096)
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ds_descricao");
+
+                    b.Property<DateTimeOffset?>("EncerradoEm")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("dt_encerrado_em");
+
+                    b.Property<string>("EncerradoPor")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("ds_encerrado_por");
+
+                    b.Property<Guid?>("ResponsavelId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("responsavel_id");
+
+                    b.Property<Guid>("SetorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id_fk_setor");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("ds_titulo");
+
+                    b.HasKey("Id")
+                        .HasName("pk_itens_vencimento");
+
+                    b.HasIndex("SetorId", "DataVencimento")
+                        .HasDatabaseName("idx_itens_vencimento_id_fk_setor_dt_data_vencimento");
+
+                    b.ToTable("tb_itens_vencimento");
+                });
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Vencimentos.RenovacaoDeVencimento", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id_pk_renovacao_de_vencimento");
+
+                    b.Property<int>("CicloAnterior")
+                        .HasColumnType("int")
+                        .HasColumnName("nr_ciclo_anterior");
+
+                    b.Property<DateOnly>("DataAnterior")
+                        .HasColumnType("date")
+                        .HasColumnName("dt_data_anterior");
+
+                    b.Property<DateOnly>("DataNova")
+                        .HasColumnType("date")
+                        .HasColumnName("dt_data_nova");
+
+                    b.Property<Guid>("ItemVencimentoId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id_fk_item_vencimento");
+
+                    b.Property<string>("Observacao")
+                        .HasMaxLength(4096)
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ds_observacao");
+
+                    b.Property<DateTimeOffset>("RenovadoEm")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("dt_renovado_em");
+
+                    b.Property<string>("RenovadoPor")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("ds_renovado_por");
+
+                    b.HasKey("Id")
+                        .HasName("pk_renovacoes_de_vencimento");
+
+                    b.HasIndex("ItemVencimentoId")
+                        .HasDatabaseName("idx_renovacoes_de_vencimento_id_fk_item_vencimento");
+
+                    b.ToTable("tb_renovacoes_de_vencimento");
+                });
+
             modelBuilder.Entity("Secco.Intranet.Domain.Diretorio.PerfilColaborador", b =>
                 {
                     b.HasOne("Secco.Intranet.Domain.Setores.Setor", null)
@@ -478,6 +628,36 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_publicacoes_setor");
+                });
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Vencimentos.AvisoDeVencimentoEnviado", b =>
+                {
+                    b.HasOne("Secco.Intranet.Domain.Vencimentos.ItemVencimento", null)
+                        .WithMany()
+                        .HasForeignKey("ItemVencimentoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_avisos_de_vencimento_enviados_item_vencimento");
+                });
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Vencimentos.ItemVencimento", b =>
+                {
+                    b.HasOne("Secco.Intranet.Domain.Setores.Setor", null)
+                        .WithMany()
+                        .HasForeignKey("SetorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_itens_vencimento_setor");
+                });
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Vencimentos.RenovacaoDeVencimento", b =>
+                {
+                    b.HasOne("Secco.Intranet.Domain.Vencimentos.ItemVencimento", null)
+                        .WithMany()
+                        .HasForeignKey("ItemVencimentoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_renovacoes_de_vencimento_item_vencimento");
                 });
 #pragma warning restore 612, 618
         }

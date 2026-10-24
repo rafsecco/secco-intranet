@@ -52,34 +52,34 @@ public sealed class ItemVencimento : BaseEntity
 		CreatedAt = DateTimeOffset.UtcNow;
 	}
 
-	/// <summary>Setor dono do item.</summary>
+	/// <summary>Setor dono do item (coluna <c>id_fk_setor</c>)</summary>
 	public Guid SetorId { get; private set; }
 
-	/// <summary>Título de exibição.</summary>
+	/// <summary>Título de exibição (coluna <c>ds_titulo</c>)</summary>
 	public string Titulo { get; private set; }
 
-	/// <summary>Descrição livre.</summary>
+	/// <summary>Descrição livre (coluna <c>ds_descricao</c>)</summary>
 	public string? Descricao { get; private set; }
 
-	/// <summary>Data do vencimento do ciclo atual.</summary>
+	/// <summary>Data do vencimento do ciclo atual (coluna <c>dt_data_vencimento</c>)</summary>
 	public DateOnly DataVencimento { get; private set; }
 
-	/// <summary>Usuário responsável, destinatário dos avisos.</summary>
+	/// <summary>Usuário responsável, destinatário dos avisos (coluna <c>responsavel_id</c>)</summary>
 	public Guid? ResponsavelId { get; private set; }
 
-	/// <summary>Marcos de aviso em dias antes do vencimento, em ordem decrescente. O marco 0 (no dia) é implícito.</summary>
+	/// <summary>Marcos de aviso em dias antes do vencimento, em ordem decrescente. O marco 0 (no dia) é implícito (coluna <c>ds_antecedencias</c>)</summary>
 	public IReadOnlyList<int> Antecedencias { get; private set; }
 
-	/// <summary>Ciclo de aviso atual; nasce em 1 e sobe a cada mudança de data.</summary>
+	/// <summary>Ciclo de aviso atual; nasce em 1 e sobe a cada mudança de data (coluna <c>nr_ciclo</c>)</summary>
 	public int Ciclo { get; private set; }
 
-	/// <summary>Momento do encerramento; <c>null</c> enquanto o item está ativo.</summary>
+	/// <summary>Momento do encerramento; <c>null</c> enquanto o item está ativo (coluna <c>dt_encerrado_em</c>)</summary>
 	public DateTimeOffset? EncerradoEm { get; private set; }
 
-	/// <summary>Quem encerrou o item; <c>null</c> enquanto está ativo.</summary>
+	/// <summary>Quem encerrou o item; <c>null</c> enquanto está ativo (coluna <c>ds_encerrado_por</c>)</summary>
 	public string? EncerradoPor { get; private set; }
 
-	/// <summary>Momento da criação.</summary>
+	/// <summary>Momento da criação (coluna <c>dt_created_at</c>)</summary>
 	public DateTimeOffset CreatedAt { get; private set; }
 
 	/// <summary>Indica se o item foi encerrado.</summary>

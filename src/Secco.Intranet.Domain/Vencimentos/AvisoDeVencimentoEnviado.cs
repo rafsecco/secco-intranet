@@ -42,21 +42,21 @@ public sealed class AvisoDeVencimentoEnviado : BaseEntity
 		TratadoEm = tratadoEm;
 	}
 
-	/// <summary>Item avisado.</summary>
+	/// <summary>Item avisado (coluna <c>id_fk_item_vencimento</c>)</summary>
 	public Guid ItemVencimentoId { get; private set; }
 
-	/// <summary>Ciclo do item em que o marco foi tratado.</summary>
+	/// <summary>Ciclo do item em que o marco foi tratado (coluna <c>nr_ciclo</c>)</summary>
 	public int Ciclo { get; private set; }
 
-	/// <summary>Marco em dias antes do vencimento (0 = no dia).</summary>
+	/// <summary>Marco em dias antes do vencimento (0 = no dia) (coluna <c>nr_marco</c>)</summary>
 	public int Marco { get; private set; }
 
-	/// <summary>Desfecho do tratamento.</summary>
+	/// <summary>Desfecho do tratamento (coluna <c>ie_resultado</c>)</summary>
 	public ResultadoDoAviso Resultado { get; private set; }
 
-	/// <summary>Quantidade de destinatários alcançados.</summary>
+	/// <summary>Quantidade de destinatários alcançados (coluna <c>nr_quantidade_de_destinos</c>)</summary>
 	public int QuantidadeDeDestinos { get; private set; }
 
-	/// <summary>Momento do tratamento.</summary>
+	/// <summary>Momento do tratamento (coluna <c>dt_tratado_em</c>)</summary>
 	public DateTimeOffset TratadoEm { get; private set; }
 }
