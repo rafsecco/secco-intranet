@@ -49,6 +49,11 @@ public sealed class CriarVencimentoHandler(
 			return IntranetErrors.Vencimentos.TituloTooLong(limites.MaxNameLength);
 		}
 
+		if (command.Descricao is { } descricao && descricao.Length > limites.MaxDescriptionLength)
+		{
+			return IntranetErrors.Vencimentos.DescricaoTooLong(limites.MaxDescriptionLength);
+		}
+
 		if (command.ResponsavelId is { } responsavelId
 			&& !await ApoioDeVencimentos
 				.ResponsavelTemAcessoAsync(diretorio, responsavelId, command.SetorSlug, cancellationToken)

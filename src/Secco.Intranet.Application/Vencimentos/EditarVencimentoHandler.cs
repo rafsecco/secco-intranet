@@ -50,6 +50,11 @@ public sealed class EditarVencimentoHandler(
 			return IntranetErrors.Vencimentos.TituloTooLong(limites.MaxNameLength);
 		}
 
+		if (command.Descricao is { } descricao && descricao.Length > limites.MaxDescriptionLength)
+		{
+			return IntranetErrors.Vencimentos.DescricaoTooLong(limites.MaxDescriptionLength);
+		}
+
 		var item = await repository.GetParaEdicaoAsync(command.Id, cancellationToken).ConfigureAwait(false);
 
 		if (item is null || item.SetorId != command.SetorId)

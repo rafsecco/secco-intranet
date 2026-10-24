@@ -114,7 +114,7 @@ public class VencimentoHandlersTests
 
 		public EditarVencimentoHandler Editar => new(Repositorio, Diretorio, new IntranetOptions(), Trilha);
 
-		public RenovarVencimentoHandler Renovar => new(Repositorio, Relogio, Ator, Trilha);
+		public RenovarVencimentoHandler Renovar => new(Repositorio, Relogio, new IntranetOptions(), Ator, Trilha);
 
 		public EncerrarVencimentoHandler Encerrar => new(Repositorio, Relogio, Ator, Trilha);
 
@@ -444,5 +444,52 @@ public class VencimentoHandlersTests
 		var resultado = await c.Obter.HandleAsync(item.Id, Setor);
 
 		resultado.Error.Should().Be(IntranetErrors.Vencimentos.NotFound);
+	}
+
+	[Fact]
+	public async Task Criar_DescricaoAcimaDoLimite_Recusa_SemGravar()
+	{
+		var c = new Cenario();
+		var limite = new IntranetOptions().MaxDescriptionLength;
+
+		var resultado = await c.Criar.HandleAsync(NovoComando() with { Descricao = new string('x', limite + 1) });
+
+		resultado.Error.Should().Be(IntranetErrors.Vencimentos.DescricaoTooLong(limite));
+		c.Repositorio.Itens.Should().BeEmpty();
+		c.Repositorio.Salvou.Should().Be(0);
+		c.Trilha.Registros.Should().BeEmpty();
+	}
+
+	[Fact]
+	public async Task Editar_DescricaoAcimaDoLimite_Recusa_SemGravar()
+	{
+		var c = new Cenario();
+		var item = c.Com("Contrato", new DateOnly(2026, 12, 31));
+		var limite = new IntranetOptions().MaxDescriptionLength;
+
+		var resultado = await c.Editar.HandleAsync(
+			new EditarVencimentoCommand(item.Id, Setor, Slug, "Contrato", new string('x', limite + 1), item.DataVencimento, null, [7]));
+
+		resultado.Error.Should().Be(IntranetErrors.Vencimentos.DescricaoTooLong(limite));
+		item.Descricao.Should().BeNull();
+		c.Repositorio.Salvou.Should().Be(0);
+		c.Trilha.Registros.Should().BeEmpty();
+	}
+
+	[Fact]
+	public async Task Renovar_ObservacaoAcimaDoLimite_Recusa_SemGravar()
+	{
+		var c = new Cenario();
+		var item = c.Com("Contrato", new DateOnly(2026, 12, 31));
+		var limite = new IntranetOptions().MaxDescriptionLength;
+
+		var resultado = await c.Renovar.HandleAsync(
+			new RenovarVencimentoCommand(item.Id, Setor, Slug, new DateOnly(2027, 12, 31), new string('x', limite + 1)));
+
+		resultado.Error.Should().Be(IntranetErrors.Vencimentos.ObservacaoTooLong(limite));
+		item.DataVencimento.Should().Be(new DateOnly(2026, 12, 31));
+		c.Repositorio.Renovacoes.Should().BeEmpty();
+		c.Repositorio.Salvou.Should().Be(0);
+		c.Trilha.Registros.Should().BeEmpty();
 	}
 }

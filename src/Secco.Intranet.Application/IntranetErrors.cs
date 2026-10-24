@@ -478,6 +478,14 @@ public static class IntranetErrors
 		public static Error TituloTooLong(int limit) =>
 			Error.Validation("Intranet.Vencimentos.TituloTooLong", $"O título excede o limite de {limit} caracteres.");
 
+		/// <summary>Descrição acima do limite configurado.</summary>
+		public static Error DescricaoTooLong(int limit) =>
+			Error.Validation("Intranet.Vencimentos.DescricaoTooLong", $"A descrição excede o limite de {limit} caracteres.");
+
+		/// <summary>Observação da renovação acima do limite configurado.</summary>
+		public static Error ObservacaoTooLong(int limit) =>
+			Error.Validation("Intranet.Vencimentos.ObservacaoTooLong", $"A observação excede o limite de {limit} caracteres.");
+
 		/// <summary>Antecedências fora de 1 a 6 valores distintos entre 1 e 365 dias.</summary>
 		public static readonly Error AntecedenciasInvalidas =
 			Error.Validation(

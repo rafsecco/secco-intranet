@@ -17,6 +17,7 @@ public sealed record RenovarVencimentoCommand(Guid Id, Guid SetorId, string Seto
 public sealed class RenovarVencimentoHandler(
 	IItemVencimentoRepository repository,
 	RelogioDeVencimentos relogio,
+	IntranetOptions limites,
 	IAtorAtual ator,
 	ITrilhaDeAuditoria trilha)
 {
@@ -26,6 +27,11 @@ public sealed class RenovarVencimentoHandler(
 	public async Task<Result<Guid>> HandleAsync(RenovarVencimentoCommand command, CancellationToken cancellationToken = default)
 	{
 		ArgumentNullException.ThrowIfNull(command);
+
+		if (command.Observacao is { } observacao && observacao.Length > limites.MaxDescriptionLength)
+		{
+			return IntranetErrors.Vencimentos.ObservacaoTooLong(limites.MaxDescriptionLength);
+		}
 
 		var item = await repository.GetParaEdicaoAsync(command.Id, cancellationToken).ConfigureAwait(false);
 
