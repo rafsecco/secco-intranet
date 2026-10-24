@@ -262,7 +262,7 @@ public sealed class SetoresController(
 		}
 
 		var result = await createHandler.HandleAsync(
-			new CreateSetorCommand(form.Nome, form.Slug, form.Fixo, form.Icone, form.HabilitarDocumentos, form.HabilitarAvisos),
+			new CreateSetorCommand(form.Nome, form.Slug, form.Fixo, form.Icone, form.HabilitarDocumentos, form.HabilitarAvisos, form.HabilitarVencimentos),
 			cancellationToken);
 
 		if (result.IsFailure)

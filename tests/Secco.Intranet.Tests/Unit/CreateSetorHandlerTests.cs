@@ -177,6 +177,38 @@ public class CreateSetorHandlerTests
 		itens.Itens.Where(i => i.SetorId == setorId).Should().ContainSingle(i => i.Tipo == Secco.Intranet.Domain.Menu.TipoDeItemMenu.Setor);
 	}
 
+	[Fact]
+	public async Task CreateSetor_ComHabilitarVencimentos_CriaOItem_DepoisDeDocumentos()
+	{
+		var itens = new ItemMenuRepositorioFalso();
+		var handler = new CreateSetorHandler(new FakeRepository(), Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), itens);
+
+		var resultado = await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro", HabilitarVencimentos: true));
+
+		resultado.IsSuccess.Should().BeTrue();
+		var setorId = resultado.Value.Id;
+		var raiz = itens.Itens.Single(i => i.SetorId == setorId && i.Tipo == Secco.Intranet.Domain.Menu.TipoDeItemMenu.Setor);
+		var documentos = itens.Itens.Single(i => i.SetorId == setorId && i.Tipo == Secco.Intranet.Domain.Menu.TipoDeItemMenu.Documentos);
+		var vencimentos = itens.Itens.Single(i => i.SetorId == setorId && i.Tipo == Secco.Intranet.Domain.Menu.TipoDeItemMenu.Vencimentos);
+
+		vencimentos.ParentId.Should().Be(raiz.Id);
+		vencimentos.Nome.Should().Be("Vencimentos");
+		vencimentos.Slug.Should().Be("vencimentos");
+		documentos.Ordem.Should().BeLessThan(vencimentos.Ordem, "Documentos vem antes de Vencimentos em ordem alfabética");
+	}
+
+	[Fact]
+	public async Task CreateSetor_PorPadrao_NaoCriaVencimentos()
+	{
+		var itens = new ItemMenuRepositorioFalso();
+		var handler = new CreateSetorHandler(new FakeRepository(), Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), itens);
+
+		var resultado = await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
+
+		resultado.IsSuccess.Should().BeTrue();
+		itens.Itens.Should().NotContain(i => i.Tipo == Secco.Intranet.Domain.Menu.TipoDeItemMenu.Vencimentos);
+	}
+
 	[Theory]
 	[InlineData("mural")]
 	[InlineData("Setores")]

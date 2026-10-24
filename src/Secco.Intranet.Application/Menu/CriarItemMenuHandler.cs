@@ -87,7 +87,7 @@ public sealed class CriarItemMenuHandler(IItemMenuRepository repository, ITrilha
 		var arvore = await repository.ListarPorSetorAsync(command.SetorId, cancellationToken).ConfigureAwait(false);
 		var pai = arvore.FirstOrDefault(item => item.Id == command.ParentId);
 
-		// Documentos/Avisos são folhas: com filho, a página do recurso redirecionaria para ele.
+		// Documentos/Avisos/Vencimentos são folhas: com filho, a página do recurso redirecionaria para ele.
 		if (pai is null || (pai.Tipo != TipoDeItemMenu.Setor && pai.Tipo != TipoDeItemMenu.Personalizado))
 		{
 			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.PaiInvalido);
@@ -99,7 +99,7 @@ public sealed class CriarItemMenuHandler(IItemMenuRepository repository, ITrilha
 			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.SlugJaExisteEntreIrmaos);
 		}
 
-		if ((command.Tipo == TipoDeItemMenu.Documentos || command.Tipo == TipoDeItemMenu.Avisos)
+		if ((command.Tipo == TipoDeItemMenu.Documentos || command.Tipo == TipoDeItemMenu.Avisos || command.Tipo == TipoDeItemMenu.Vencimentos)
 			&& await repository.ExisteTipoAsync(command.SetorId, command.Tipo, cancellationToken).ConfigureAwait(false))
 		{
 			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.TipoJaExiste);

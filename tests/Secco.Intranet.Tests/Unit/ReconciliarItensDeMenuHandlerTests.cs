@@ -53,6 +53,19 @@ public class ReconciliarItensDeMenuHandlerTests
 	}
 
 	[Fact]
+	public async Task Reconciliar_NaoCriaVencimentos()
+	{
+		var setores = new FakeSetorRepository().Com("financeiro");
+		var itens = new ItemMenuRepositorioFalso();
+		var handler = new ReconciliarItensDeMenuHandler(new SearchSetoresHandler(setores), itens, new TrilhaDeAcessoFalsa());
+
+		await handler.HandleAsync();
+
+		itens.Itens.Should().NotBeEmpty();
+		itens.Itens.Should().NotContain(i => i.Tipo == TipoDeItemMenu.Vencimentos);
+	}
+
+	[Fact]
 	public async Task SetorComDocumentosMasSemAvisos_SoCompletaOQueFalta()
 	{
 		var setores = new FakeSetorRepository().Com("ti");

@@ -38,4 +38,7 @@ public sealed class SetorFormViewModel
 
 	/// <summary>Se o setor nasce com o item Avisos na árvore de menu. Marcado por padrão.</summary>
 	public bool HabilitarAvisos { get; set; } = true;
+
+	/// <summary>Se o setor nasce com o item Vencimentos na árvore de menu. Desmarcado por padrão.</summary>
+	public bool HabilitarVencimentos { get; set; }
 }

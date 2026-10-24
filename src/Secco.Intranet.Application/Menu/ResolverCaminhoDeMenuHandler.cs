@@ -55,7 +55,7 @@ public sealed class ResolverCaminhoDeMenuHandler(IItemMenuRepository repository)
 	}
 
 	/// <summary>
-	/// Caminho (slugs a partir da raiz) do item de um tipo embutido — Documentos ou Avisos,
+	/// Caminho (slugs a partir da raiz) do item de um tipo embutido — Documentos, Avisos ou Vencimentos,
 	/// no máximo um por setor. Nulo se o setor não tem esse item, ou se ele ou qualquer
 	/// ancestral está desativado: nesse caso o recurso está desligado para o setor.
 	/// </summary>

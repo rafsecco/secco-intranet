@@ -14,9 +14,10 @@ namespace Secco.Intranet.Application.Setores;
 /// <param name="Icone">Classe do Bootstrap Icons para o menu; vazio usa o padrão.</param>
 /// <param name="HabilitarDocumentos">Se nasce com o item Documentos na árvore de menu. Default <c>true</c>.</param>
 /// <param name="HabilitarAvisos">Se nasce com o item Avisos na árvore de menu. Default <c>true</c>.</param>
+/// <param name="HabilitarVencimentos">Se nasce com o item Vencimentos na árvore de menu. Default <c>false</c>.</param>
 public sealed record CreateSetorCommand(
 	string? Nome, string? Slug, bool Fixo = false, string? Icone = null,
-	bool HabilitarDocumentos = true, bool HabilitarAvisos = true);
+	bool HabilitarDocumentos = true, bool HabilitarAvisos = true, bool HabilitarVencimentos = false);
 
 /// <summary>
 /// Caso de uso: valida unicidade do slug (ADR-0020), provisiona as Roles do setor no
@@ -95,8 +96,8 @@ public sealed class CreateSetorHandler(
 
 		await repository.AddAsync(setor, cancellationToken).ConfigureAwait(false);
 
-		// A raiz da árvore nasce sempre; Documentos/Avisos são escolha do formulário. Ordem
-		// alfabética entre os dois: "Avisos" antes de "Documentos".
+		// A raiz da árvore nasce sempre; Avisos/Documentos/Vencimentos são escolha do formulário.
+		// Ordem alfabética: "Avisos", "Documentos", "Vencimentos".
 		var raiz = new ItemMenu(setor.Id, null, setor.Nome, setor.Slug, TipoDeItemMenu.Setor, null, null, 0);
 		await itemMenuRepository.AddAsync(raiz, cancellationToken).ConfigureAwait(false);
 
@@ -112,7 +113,14 @@ public sealed class CreateSetorHandler(
 		if (command.HabilitarDocumentos)
 		{
 			await itemMenuRepository.AddAsync(
-				new ItemMenu(setor.Id, raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, null, ordem),
+				new ItemMenu(setor.Id, raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, null, ordem++),
+				cancellationToken).ConfigureAwait(false);
+		}
+
+		if (command.HabilitarVencimentos)
+		{
+			await itemMenuRepository.AddAsync(
+				new ItemMenu(setor.Id, raiz.Id, "Vencimentos", "vencimentos", TipoDeItemMenu.Vencimentos, null, null, ordem),
 				cancellationToken).ConfigureAwait(false);
 		}
 

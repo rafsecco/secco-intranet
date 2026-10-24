@@ -130,6 +130,36 @@ public class CriarItemMenuHandlerTests
 	}
 
 	[Fact]
+	public async Task CriarItemMenu_SegundoVencimentosNoSetor_Recusa()
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = CriarRaiz(repo);
+		repo.Itens.Add(new ItemMenu(SetorId, raiz.Id, "Vencimentos", "vencimentos", TipoDeItemMenu.Vencimentos, null, null, 0));
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
+
+		var resultado = await handler.HandleAsync(
+			new CriarItemMenuCommand(SetorId, raiz.Id, "Vencimentos 2", "vencimentos-2", TipoDeItemMenu.Vencimentos, null, null));
+
+		resultado.IsFailure.Should().BeTrue();
+		resultado.Error.Should().Be(IntranetErrors.Menu.TipoJaExiste);
+	}
+
+	[Fact]
+	public async Task CriarItemMenu_FilhoDeVencimentos_Recusa()
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = CriarRaiz(repo);
+		var pai = new ItemMenu(SetorId, raiz.Id, "Vencimentos", "vencimentos", TipoDeItemMenu.Vencimentos, null, null, 0);
+		repo.Itens.Add(pai);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
+
+		var resultado = await handler.HandleAsync(
+			new CriarItemMenuCommand(SetorId, pai.Id, "Filho", "filho", TipoDeItemMenu.Personalizado, null, null));
+
+		resultado.Error.Should().Be(IntranetErrors.Menu.PaiInvalido);
+	}
+
+	[Fact]
 	public async Task PaiPersonalizado_Aceita()
 	{
 		var repo = new ItemMenuRepositorioFalso();

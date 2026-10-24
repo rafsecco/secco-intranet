@@ -67,7 +67,7 @@ public static class IntranetPermissoes
 		new(Diretorio.Manage, "Administrar o diretório: dados funcionais de terceiros e importação"),
 		new(Inventario.Read, "Consultar o inventário"),
 		new(Setor.FamiliaRead, "Ler um setor específico"),
-		new(Setor.FamiliaWrite, "Alterar um setor específico: publicações, documentos e menu"),
+		new(Setor.FamiliaWrite, "Alterar um setor específico: publicações, documentos, vencimentos e menu"),
 	];
 
 	/// <summary>

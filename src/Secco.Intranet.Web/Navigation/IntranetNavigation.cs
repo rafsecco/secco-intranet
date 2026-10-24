@@ -134,10 +134,10 @@ public static class IntranetNavigation
 		return resultado;
 	}
 
-	/// <summary>Documentos/Avisos abrem no caminho da árvore; Personalizado vai direto para a rota, se tiver.</summary>
+	/// <summary>Documentos/Avisos/Vencimentos abrem no caminho da árvore; Personalizado vai direto para a rota, se tiver.</summary>
 	private static string? Destino(ItemMenuDto item, string caminhoDoItem) => item.Tipo switch
 	{
-		TipoDeItemMenu.Documentos or TipoDeItemMenu.Avisos => caminhoDoItem,
+		TipoDeItemMenu.Documentos or TipoDeItemMenu.Avisos or TipoDeItemMenu.Vencimentos => caminhoDoItem,
 		TipoDeItemMenu.Personalizado when !string.IsNullOrWhiteSpace(item.Rota) => item.Rota,
 		_ => null,
 	};

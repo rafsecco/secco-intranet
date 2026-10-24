@@ -111,6 +111,10 @@
                 {
                     <option value="@TipoDeItemMenu.Avisos">Avisos</option>
                 }
+                @if (!tiposExistentes.Contains(TipoDeItemMenu.Vencimentos))
+                {
+                    <option value="@TipoDeItemMenu.Vencimentos">Vencimentos</option>
+                }
             </select>
         </div>
         <div class="col-sm-2">
