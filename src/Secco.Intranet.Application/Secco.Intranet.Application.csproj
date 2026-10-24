@@ -14,4 +14,10 @@
     <ProjectReference Include="..\Secco.Intranet.Domain\Secco.Intranet.Domain.csproj" />
   </ItemGroup>
 
+  <!-- As regras puras do aviso (AvisoDeVencimento) sao internal, mas precisam de teste
+       direto: lotes e destinatarios sao onde um erro silencioso manda aviso a quem nao deve. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Secco.Intranet.Tests" />
+  </ItemGroup>
+
 </Project>

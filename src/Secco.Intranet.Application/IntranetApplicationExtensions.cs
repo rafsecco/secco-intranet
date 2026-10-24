@@ -89,6 +89,7 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ReativarVencimentoHandler>();
 		services.AddScoped<ListarVencimentosDoSetorHandler>();
 		services.AddScoped<ObterVencimentoHandler>();
+		services.AddScoped<ProcessarAvisosDeVencimentoHandler>();
 
 		return services;
 	}

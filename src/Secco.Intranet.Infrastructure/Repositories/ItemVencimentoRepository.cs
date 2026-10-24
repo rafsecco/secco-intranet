@@ -61,7 +61,7 @@ internal sealed class ItemVencimentoRepository(IntranetDbContext context) : IIte
 		var setores = await context.Setores
 			.AsNoTracking()
 			.Where(setor => setor.Ativo)
-			.Select(setor => new { setor.Id, setor.Slug })
+			.Select(setor => new { setor.Id, setor.Slug, setor.Nome })
 			.ToListAsync(ct)
 			.ConfigureAwait(false);
 
@@ -81,7 +81,7 @@ internal sealed class ItemVencimentoRepository(IntranetDbContext context) : IIte
 
 		var habilitados = setores
 			.Where(setor => RecursoEstaLigado(menu.Where(item => item.SetorId == setor.Id).ToList()))
-			.ToDictionary(setor => setor.Id, setor => setor.Slug);
+			.ToDictionary(setor => setor.Id);
 
 		if (habilitados.Count == 0)
 		{
@@ -118,7 +118,8 @@ internal sealed class ItemVencimentoRepository(IntranetDbContext context) : IIte
 		return itens
 			.Select(item => new ItemParaAviso(
 				item,
-				habilitados[item.SetorId],
+				habilitados[item.SetorId].Slug,
+				habilitados[item.SetorId].Nome,
 				avisosPorItem.TryGetValue(item.Id, out var tratados)
 					? tratados.Where(aviso => aviso.Ciclo == item.Ciclo).Select(aviso => aviso.Marco).ToHashSet()
 					: new HashSet<int>()))

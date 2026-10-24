@@ -162,6 +162,7 @@ public class VencimentoPersistenciaTests(IntranetWebFactory factory) : IClassFix
 		ids.Should().Contain(ativo.Id);
 		ids.Should().NotContain([encerrado.Id, doSetorInativo.Id, doRecursoDesligado.Id, doSetorSemRecurso.Id]);
 		elegiveis.Single(e => e.Item.Id == ativo.Id).SetorSlug.Should().Be(setorOk.Slug);
+		elegiveis.Single(e => e.Item.Id == ativo.Id).SetorNome.Should().Be(setorOk.Nome);
 	}
 
 	[Fact]

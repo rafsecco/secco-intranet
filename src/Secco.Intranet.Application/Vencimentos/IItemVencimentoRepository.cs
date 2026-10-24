@@ -5,8 +5,9 @@ namespace Secco.Intranet.Application.Vencimentos;
 /// <summary>Item elegível ao aviso automático, com o que o varredor precisa saber dele.</summary>
 /// <param name="Item">O item de vencimento (não encerrado).</param>
 /// <param name="SetorSlug">Slug do setor dono, usado para montar o link do aviso.</param>
+/// <param name="SetorNome">Nome do setor dono, usado no resumo do aviso.</param>
 /// <param name="MarcosTratados">Marcos já tratados no ciclo atual do item.</param>
-public sealed record ItemParaAviso(ItemVencimento Item, string SetorSlug, IReadOnlySet<int> MarcosTratados);
+public sealed record ItemParaAviso(ItemVencimento Item, string SetorSlug, string SetorNome, IReadOnlySet<int> MarcosTratados);
 
 /// <summary>Persistência de itens de vencimento, renovações e avisos tratados.</summary>
 public interface IItemVencimentoRepository
