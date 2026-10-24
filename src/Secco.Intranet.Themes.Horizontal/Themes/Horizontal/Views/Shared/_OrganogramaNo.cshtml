@@ -1,0 +1,27 @@
+@model NoOrganogramaModel
+@{
+	var nivel = ViewData["nivel"] is int n ? n : 0;
+	var temEquipe = Model.Equipe.Count > 0;
+}
+<li class="sc-org__no" data-nivel="@nivel" data-equipe="@Model.Equipe.Count">
+	@if (temEquipe)
+	{
+		<details open>
+			<summary class="sc-org__cartao">
+				@await Html.PartialAsync("_OrganogramaCartao", Model)
+			</summary>
+			<ul class="sc-org__equipe">
+				@foreach (var membro in Model.Equipe)
+				{
+					<partial name="_OrganogramaNo" model="membro" view-data="@(new ViewDataDictionary(ViewData) { ["nivel"] = nivel + 1 })" />
+				}
+			</ul>
+		</details>
+	}
+	else
+	{
+		<div class="sc-org__cartao">
+			@await Html.PartialAsync("_OrganogramaCartao", Model)
+		</div>
+	}
+</li>

@@ -1,0 +1,9 @@
+@model OrganogramaModel
+<section class="sc-org sc-panel" aria-label="Organograma">
+	<ul class="sc-org__raizes">
+		@foreach (var raiz in Model.Raizes)
+		{
+			<partial name="_OrganogramaNo" model="raiz" view-data="@(new ViewDataDictionary(ViewData) { ["nivel"] = 0 })" />
+		}
+	</ul>
+</section>

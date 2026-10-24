@@ -85,6 +85,8 @@ public class DiretorioOrganogramaTests(IntranetWebFactory factory) : IClassFixtu
 		html.Should().Contain($"chefe{sufixo}@x.com").And.Contain($"membro{sufixo}@x.com");
 		html.IndexOf($"chefe{sufixo}@x.com", StringComparison.Ordinal)
 			.Should().BeLessThan(html.IndexOf($"membro{sufixo}@x.com", StringComparison.Ordinal), "a chefia vem antes da equipe");
+		html.Should().MatchRegex("sc-org__no\"[^>]*data-nivel=\"0\"[^>]*data-equipe=\"1\"", "o chefe é a raiz e tem uma pessoa na equipe");
+		html.Should().MatchRegex("sc-org__no\"[^>]*data-nivel=\"1\"[^>]*data-equipe=\"0\"", "o membro é folha, um nível abaixo");
 	}
 
 	[Fact]

@@ -1,0 +1,17 @@
+@model NoOrganogramaModel
+<partial name="_Avatar" model="Model.Avatar" />
+<span class="sc-org__texto">
+	<a class="sc-org__nome" href="@Model.Url">@Model.Nome</a>
+	@if (!string.IsNullOrWhiteSpace(Model.Cargo))
+	{
+		<span class="sc-org__cargo">@Model.Cargo</span>
+	}
+	@if (Model.GestorInativo)
+	{
+		<partial name="_Badge" model="@(new BadgeModel("gestor inativo", BadgeVariante.Aviso))" />
+	}
+</span>
+@if (Model.Equipe.Count > 0)
+{
+	<span class="sc-org__contagem">@Model.Equipe.Count<span class="visually-hidden"> na equipe</span></span>
+}

@@ -31,6 +31,7 @@ Secco.Intranet.Themes.<Nome>/
 │       ├── _Card.cshtml
 │       ├── _Badge.cshtml
 │       ├── _Avatar.cshtml
+│       ├── _Organograma.cshtml
 │       ├── _EmptyState.cshtml
 │       ├── _Pagination.cshtml
 │       └── Components/
@@ -54,6 +55,7 @@ Cada arquivo acima recebe um modelo de `Secco.Intranet.Web.Theming.Contracts`:
 | `_Card.cshtml` | `CardModel` | Card de conteúdo das listagens |
 | `_Badge.cshtml` | `BadgeModel` | Etiqueta curta de classificação |
 | `_Avatar.cshtml` | `AvatarModel` | Foto da pessoa, ou as iniciais quando não há foto |
+| `_Organograma.cshtml` | `OrganogramaModel` | Árvore de quem reporta a quem |
 | `_EmptyState.cshtml` | `EmptyStateModel` | Tela vazia, com a ação que a resolve |
 | `_Pagination.cshtml` | `PaginationModel` | Navegação entre páginas |
 | `Components/Navigation/Default.cshtml` | `NavigationModel` | Menu já resolvido para o usuário |
@@ -104,6 +106,16 @@ num contêiner com rolagem, então o painel precisa de `position: fixed` com a p
 continuar alcançável. Uma terceira fica com o CSS do tema: o contêiner do menu cria contexto de
 empilhamento (`sticky`), então ele precisa de `z-index` acima do conteúdo, senão o painel fica
 atrás dos cards.
+
+**Organograma.** O core entrega a árvore pronta (`OrganogramaModel` → `NoOrganogramaModel`
+recursivo) e o tema desenha. Para que CSS e testes de adotantes tenham onde se agarrar, os dois
+temas publicados usam os mesmos ganchos: `sc-org` (contêiner), `sc-org__no` (cada pessoa, um
+`<li>`), `sc-org__cartao` (o cartão), `sc-org__equipe` (a lista dos subordinados), e os atributos
+`data-nivel` (0 na raiz) e `data-equipe` (tamanho da equipe direta; 0 em quem não tem equipe).
+Cada gestor recolhe a equipe com `<details open>`/`<summary>`, o que funciona sem JavaScript e
+no teclado. Os temas oficiais ficam no básico: linhas feitas só de CSS, rolagem horizontal
+dentro do painel e lista recuada abaixo de 768px. Efeitos como destacar o ramo sob o mouse,
+mostrar só os gestores ou animar as linhas são decisão do tema.
 
 **Testes de tela.** `tests/Secco.Intranet.Tests/Ui` roda o menu num Chromium de verdade, nos dois
 temas (hover, clique, teclado, celular, sem JavaScript). São opt-in: instale o navegador uma vez

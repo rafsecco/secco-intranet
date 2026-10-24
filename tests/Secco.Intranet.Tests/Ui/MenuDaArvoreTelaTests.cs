@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using Secco.Intranet.Application.Acesso;
+using Secco.Intranet.Application.Diretorio;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Menu;
@@ -61,6 +62,9 @@ public sealed class TelaFixture : IAsyncLifetime
 	/// <summary>Slug do setor do cenário.</summary>
 	public string Slug { get; } = $"ui-{Guid.NewGuid():N}"[..12];
 
+	/// <summary>Sufixo dos nomes das pessoas do organograma do cenário.</summary>
+	public string SufixoDoOrganograma => Slug[3..];
+
 	/// <summary>Nome do setor do cenário.</summary>
 	public string NomeDoSetor => $"Setor {Slug}";
 
@@ -90,8 +94,10 @@ public sealed class TelaFixture : IAsyncLifetime
 		await ((IAsyncLifetime)_fabrica).InitializeAsync();
 		await _fabrica.EnsureDatabaseMigratedAsync();
 		await CriarCenarioAsync();
+		await CriarOrganogramaAsync();
 		_fabrica.ResolvedorDePermissoes = new PermissionResolverDeTeste()
-			.ComPermissao(PerfilDoVisitante, IntranetPermissoes.Setor.Read(Slug));
+			.ComPermissao(PerfilDoVisitante, IntranetPermissoes.Setor.Read(Slug))
+			.ComPermissao("diretorio-user", IntranetPermissoes.Diretorio.Read);
 
 		foreach (var tema in new[] { "Vertical", "Horizontal" })
 		{
@@ -112,7 +118,7 @@ public sealed class TelaFixture : IAsyncLifetime
 	}
 
 	/// <summary>Abre uma página com o tenant no cabeçalho.</summary>
-	public async Task<IPage> AbrirAsync(string tema, int largura = 1280, int altura = 800, bool javaScript = true)
+	public async Task<IPage> AbrirAsync(string tema, int largura = 1280, int altura = 800, bool javaScript = true, bool diretorio = false)
 	{
 		var contexto = await Navegador.NewContextAsync(new BrowserNewContextOptions
 		{
@@ -122,7 +128,7 @@ public sealed class TelaFixture : IAsyncLifetime
 			ExtraHTTPHeaders = new Dictionary<string, string>
 			{
 				[SeccoHeaders.TenantId] = Tenant.ToString(),
-				[RolesDeTesteMiddleware.Header] = PerfilDoVisitante,
+				[RolesDeTesteMiddleware.Header] = diretorio ? $"{PerfilDoVisitante},diretorio-user" : PerfilDoVisitante,
 			},
 		});
 
@@ -152,6 +158,33 @@ public sealed class TelaFixture : IAsyncLifetime
 		(await criar.HandleAsync(new CriarItemMenuCommand(
 			setor.Value.Id, relatorios.Value.Id, "Vendas", "vendas", TipoDeItemMenu.Personalizado, "/diretorio", null)))
 			.IsSuccess.Should().BeTrue();
+	}
+
+	/// <summary>
+	/// Um organograma de três níveis: Chefe → (Ana → Caio, Bruno). Os usuários vêm de um falso do
+	/// SecureGate que fica na fábrica pelo tempo da fixture; os gestores são gravados de verdade.
+	/// </summary>
+	private async Task CriarOrganogramaAsync()
+	{
+		var chefe = Guid.NewGuid();
+		var ana = Guid.NewGuid();
+		var bruno = Guid.NewGuid();
+		var caio = Guid.NewGuid();
+		var sufixo = SufixoDoOrganograma;
+		_fabrica.UsuariosDoDiretorio = new UsuariosParaDiretorioFalso()
+			.Com(chefe, $"chefe-{sufixo}@x.com", $"Chefe {sufixo}")
+			.Com(ana, $"ana-{sufixo}@x.com", $"Ana {sufixo}")
+			.Com(bruno, $"bruno-{sufixo}@x.com", $"Bruno {sufixo}")
+			.Com(caio, $"caio-{sufixo}@x.com", $"Caio {sufixo}");
+
+		using var escopo = _fabrica.Services.CreateScope();
+		escopo.ServiceProvider.SetTenant(_fabrica.TenantAlfa);
+		var editar = escopo.ServiceProvider.GetRequiredService<EditarDadosFuncionaisHandler>();
+
+		foreach (var (pessoa, gestor) in new[] { (ana, chefe), (bruno, chefe), (caio, ana) })
+		{
+			(await editar.HandleAsync(new EditarDadosFuncionaisCommand(pessoa, null, null, gestor))).IsSuccess.Should().BeTrue();
+		}
 	}
 
 	/// <inheritdoc />
