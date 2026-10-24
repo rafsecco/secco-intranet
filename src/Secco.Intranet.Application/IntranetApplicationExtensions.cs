@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Diretorio;
 using Secco.Intranet.Application.Documentos;
@@ -6,6 +7,7 @@ using Secco.Intranet.Application.Inventario;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Setores;
+using Secco.Intranet.Application.Vencimentos;
 
 namespace Secco.Intranet.Application;
 
@@ -77,6 +79,16 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ImportarDiretorioHandler>();
 		services.AddScoped<FotoDoColaboradorHandler>();
 
+		// "Hoje" do produto é a data no fuso configurado; o relógio é singleton porque o fuso é resolvido uma vez.
+		services.TryAddSingleton(TimeProvider.System);
+		services.AddSingleton<RelogioDeVencimentos>();
+		services.AddScoped<CriarVencimentoHandler>();
+		services.AddScoped<EditarVencimentoHandler>();
+		services.AddScoped<RenovarVencimentoHandler>();
+		services.AddScoped<EncerrarVencimentoHandler>();
+		services.AddScoped<ReativarVencimentoHandler>();
+		services.AddScoped<ListarVencimentosDoSetorHandler>();
+		services.AddScoped<ObterVencimentoHandler>();
 
 		return services;
 	}

@@ -175,4 +175,15 @@ public class ItemVencimentoTests
 		item.DataVencimento.Should().Be(Hoje.AddDays(5));
 		item.Ciclo.Should().Be(2);
 	}
+
+	[Fact]
+	public void Reativar_ItemAtivo_Lanca()
+	{
+		var item = Criar();
+
+		var reativar = () => item.Reativar(Hoje.AddDays(5), Hoje);
+
+		reativar.Should().Throw<DomainInvariantException>();
+		item.Ciclo.Should().Be(1);
+	}
 }

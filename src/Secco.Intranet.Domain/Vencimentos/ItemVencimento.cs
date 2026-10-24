@@ -150,9 +150,14 @@ public sealed class ItemVencimento : BaseEntity
 	}
 
 	/// <summary>Reativa um item encerrado com uma nova data futura, abrindo um ciclo novo.</summary>
-	/// <exception cref="DomainInvariantException">A nova data não é posterior a <paramref name="hoje"/>.</exception>
+	/// <exception cref="DomainInvariantException">O item não está encerrado, ou a nova data não é posterior a <paramref name="hoje"/>.</exception>
 	public void Reativar(DateOnly novaData, DateOnly hoje)
 	{
+		if (!EstaEncerrado)
+		{
+			throw new DomainInvariantException("Só um item de vencimento encerrado pode ser reativado.");
+		}
+
 		if (novaData <= hoje)
 		{
 			throw new DomainInvariantException("A nova data deve ser posterior a hoje.");

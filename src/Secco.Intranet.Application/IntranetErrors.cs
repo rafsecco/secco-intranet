@@ -462,4 +462,46 @@ public static class IntranetErrors
 				"Intranet.Menu.RotaInvalida",
 				"A rota precisa ser um caminho da própria intranet (começando com /) ou um endereço http/https completo.");
 	}
+
+	/// <summary>Erros do recurso Vencimentos.</summary>
+	public static class Vencimentos
+	{
+		/// <summary>Item não encontrado no setor da rota.</summary>
+		public static readonly Error NotFound =
+			Error.NotFound("Intranet.Vencimentos.NotFound", "Vencimento não encontrado.");
+
+		/// <summary>Título ausente ou vazio.</summary>
+		public static readonly Error TituloRequired =
+			Error.Validation("Intranet.Vencimentos.TituloRequired", "O título é obrigatório.");
+
+		/// <summary>Título acima do limite configurado.</summary>
+		public static Error TituloTooLong(int limit) =>
+			Error.Validation("Intranet.Vencimentos.TituloTooLong", $"O título excede o limite de {limit} caracteres.");
+
+		/// <summary>Antecedências fora de 1 a 6 valores distintos entre 1 e 365 dias.</summary>
+		public static readonly Error AntecedenciasInvalidas =
+			Error.Validation(
+				"Intranet.Vencimentos.AntecedenciasInvalidas",
+				"Informe de 1 a 6 antecedências distintas, cada uma entre 1 e 365 dias.");
+
+		/// <summary>Nova data que não é posterior ao vencimento atual e a hoje.</summary>
+		public static readonly Error DataDeRenovacaoInvalida =
+			Error.Validation(
+				"Intranet.Vencimentos.DataDeRenovacaoInvalida",
+				"A nova data deve ser posterior ao vencimento atual e a hoje.");
+
+		/// <summary>Tentativa de alterar um vencimento já encerrado.</summary>
+		public static readonly Error Encerrado =
+			Error.Validation("Intranet.Vencimentos.Encerrado", "Um vencimento encerrado não aceita alterações.");
+
+		/// <summary>Tentativa de reativar um vencimento que não está encerrado.</summary>
+		public static readonly Error NaoEncerrado =
+			Error.Validation("Intranet.Vencimentos.NaoEncerrado", "Só um vencimento encerrado pode ser reativado.");
+
+		/// <summary>Responsável sem Role no setor do vencimento.</summary>
+		public static readonly Error ResponsavelSemAcesso =
+			Error.Validation(
+				"Intranet.Vencimentos.ResponsavelSemAcesso",
+				"O responsável precisa ter acesso ao setor do vencimento.");
+	}
 }

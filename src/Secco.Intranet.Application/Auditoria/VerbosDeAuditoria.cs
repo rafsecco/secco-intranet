@@ -105,30 +105,20 @@ public static class VerbosDeAuditoria
 	/// <summary>Importação CSV aplicada.</summary>
 	public const string DiretorioImportar = "diretorio.importar";
 
+	/// <summary>Vencimento criado.</summary>
+	public const string VencimentoCriar = "vencimento.criar";
 
+	/// <summary>Dados do vencimento alterados.</summary>
+	public const string VencimentoEditar = "vencimento.editar";
 
+	/// <summary>Vencimento renovado para uma data posterior.</summary>
+	public const string VencimentoRenovar = "vencimento.renovar";
 
+	/// <summary>Vencimento encerrado.</summary>
+	public const string VencimentoEncerrar = "vencimento.encerrar";
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	/// <summary>Vencimento encerrado voltou a ser acompanhado.</summary>
+	public const string VencimentoReativar = "vencimento.reativar";
 }
 
 /// <summary>Tipos de recurso da trilha.</summary>
@@ -155,6 +145,6 @@ public static class RecursosDeAuditoria
 	/// <summary>Perfil de colaborador no Diretório.</summary>
 	public const string Diretorio = "diretorio";
 
-	/// <summary>Tenant administrado (ADR-0008).</summary>
-	public const string Tenant = "tenant";
+	/// <summary>Item de vencimento de um setor.</summary>
+	public const string Vencimento = "vencimento";
 }
