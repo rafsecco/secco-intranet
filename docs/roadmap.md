@@ -55,8 +55,6 @@ processos (maior risco técnico) só entra com a base já sólida.
       publicar/arquivar de Documentos e criar/editar/desativar/reativar de Setor. Fica fora,
       por decisão registrada no spec: **quem baixou qual documento** (auditoria de leitura,
       recusada por volume) e **quem entrou** (login — nunca esteve no escopo deste item)
-      (entidade, publicação, edição). Um recurso só, com discriminador de tipo
-      (aviso, evento, notícia)
 - [x] Diretório organizacional (perfil de colaborador, organograma básico) —
       [spec](specs/2026-09-24-diretorio-organizacional-design.md): perfil complementar local por
       usuário do SecureGate, busca de pessoas, "Meu perfil" e edição pelo admin (cargo, setor e
@@ -90,39 +88,12 @@ processos (maior risco técnico) só entra com a base já sólida.
       o Hub é dono do estado de lida, e uma cópia local violaria a ADR-0006. O toast virou
       o `Feedback` do contrato de tema, invocado uma vez pelo layout
 
-## Fase 2 — Operacional
+## Administração do tenant (entregue)
 
-> Trocada de ordem com o controle de processos em 2026-10-22: os recursos daqui são mais simples e
-> não dependem do motor de processos. O RH self-service, que depende dele, foi junto para a Fase 3.
+> Entregue entre as Fases 1 e 4, fora da ordem das fases: a administração do próprio tenant era
+> pré-requisito do modelo de permissões e dos recursos por setor. Reunida aqui em 2026-10-24 para que
+> as fases abaixo mostrem só o que falta.
 
-- [x] Foto do colaborador no Diretório — upload, recorte e redução pela SDK de imagem
-      (`Secco.SDK.Imaging` 0.1.0, [secco-platform#29](https://github.com/rafsecco/secco-platform/issues/29),
-      ADR-0042). Variante única de 256 px em WebP, guardada cifrada na pasta lógica
-      `diretorio/fotos`; recorte com Cropper.js no tema Vertical. Etapa 6 da
-      [spec do Diretório](specs/2026-09-24-diretorio-organizacional-design.md); plano em
-      [plans/2026-10-18-foto-do-colaborador.md](plans/2026-10-18-foto-do-colaborador.md)
-- [ ] Recurso de aviso de vencimento (`ItemVencimento` + `AvisoAntecedencia`, múltiplos
-      avisos escalonados) — ex: renovação de certificado
-- [ ] Ferramentas do dia a dia (reserva de sala, links rápidos)
-
-## Fase 3 — Controle de processos (v1 simples)
-
-- [ ] Motor de workflow linear: `ProcessoDefinicao` → `Etapa[]` → `ProcessoInstancia`,
-      com prazo por etapa e notificação (in-app, via NotificationHub) aos setores
-      envolvidos quando uma etapa inicia
-- [ ] Onboarding de novo colaborador implementado como um processo (caso de teste real)
-- [ ] Notificação ao usuário, ao abrir a intranet, de processos pendentes para ele
-- [ ] RH self-service (férias, holerites) — sobre o motor de processos desta fase (solicitação de
-      férias = processo com etapas). Veio da antiga Fase 3 (Operacional) por depender do motor
-- [ ] `ItemMenu` além dos setores — a seção Setores do menu principal já vem da árvore de cada
-      setor (setor = nível 0, submenus flutuantes, URL `/{setor}/{item}/…` —
-      [spec](specs/2026-10-01-menu-principal-arvore-dos-setores-design.md)); falta, se um dia
-      fizer sentido, os itens fixos (Mural, Diretório, Inventário, Administração) virarem nós
-- [ ] Marketplace de temas (empacotamento + documentação para terceiros) — trazido da Fase 5.
-      Os dois temas oficiais já provam o contrato; o que falta é o terceiro conseguir publicar e
-      instalar o próprio tema sem abrir este repositório. Antes disso, tirar do core o caminho fixo
-      do Cropper.js no pacote do Vertical (`Views/Diretorio/Perfil.cshtml` e `Editar.cshtml`): hoje
-      funciona em qualquer tema só porque a Web sempre referencia o Vertical
 - [x] Área administrativa de acesso, primeiro corte: perfis e usuários do próprio tenant,
       exclusiva do `intranet-admin`, com testes de autorização em toda rota —
       [spec](specs/2026-09-23-area-administrativa-acesso-design.md). Entregue: só o
@@ -179,7 +150,7 @@ processos (maior risco técnico) só entra com a base já sólida.
         [secco-platform#45](https://github.com/rafsecco/secco-platform/issues/45) e
         [#46](https://github.com/rafsecco/secco-platform/issues/46). A administração do próprio
         tenant passou a usar o client de produto com `securegate:tenant-manage` (ADR-0052 da
-        plataforma, ver Fase 4), que resolve o risco registrado na ADR-0010
+        plataforma, ver o último item desta seção), que resolve o risco registrado na ADR-0010
   - [x] Remover o código já entregue dos subsistemas 1, 2 e 4 (administração de outros tenants),
         2026-10-21: telas, handlers, adapters, testes e a tabela `tb_tenants_administrados`
         (migration `RemoverTenantsAdministrados` nos dois engines). Os tenants e clients criados
@@ -193,14 +164,48 @@ processos (maior risco técnico) só entra com a base já sólida.
   - [x] Criar setor contra um SecureGate com o catálogo: as permissões por setor saem das
         famílias `setor-{id}:read`/`write` publicadas no catálogo (ADR-0043 da plataforma,
         [secco-platform#36](https://github.com/rafsecco/secco-platform/issues/36))
-
-## Fase 4 — Integrações externas
-
 - [x] Gestão do tenant sem `securegate:admin` (ADR-0052 da plataforma, `Secco.SecureGate.Client`
       0.21.0): `AddSecureGateTenantManagementClient()` no lugar de `AddSecureGateAdminClient()`,
       credencial do client de produto em `Secco:SecureGate:TenantManagement` (exigida no startup
       em Production) e federação Entra removida da Intranet. Nota de upgrade em
       [guia-de-deploy.md](guia-de-deploy.md)
+
+## Fase 2 — Operacional
+
+> Trocada de ordem com o controle de processos em 2026-10-22: os recursos daqui são mais simples e
+> não dependem do motor de processos. O RH self-service, que depende dele, foi junto para a Fase 3.
+
+- [x] Foto do colaborador no Diretório — upload, recorte e redução pela SDK de imagem
+      (`Secco.SDK.Imaging` 0.1.0, [secco-platform#29](https://github.com/rafsecco/secco-platform/issues/29),
+      ADR-0042). Variante única de 256 px em WebP, guardada cifrada na pasta lógica
+      `diretorio/fotos`; recorte com Cropper.js no tema Vertical. Etapa 6 da
+      [spec do Diretório](specs/2026-09-24-diretorio-organizacional-design.md); plano em
+      [plans/2026-10-18-foto-do-colaborador.md](plans/2026-10-18-foto-do-colaborador.md)
+- [ ] Recurso de aviso de vencimento (`ItemVencimento` + `AvisoAntecedencia`, múltiplos
+      avisos escalonados) — ex: renovação de certificado
+- [ ] Ferramentas do dia a dia (reserva de sala, links rápidos)
+
+## Fase 3 — Controle de processos (v1 simples)
+
+- [ ] Motor de workflow linear: `ProcessoDefinicao` → `Etapa[]` → `ProcessoInstancia`,
+      com prazo por etapa e notificação (in-app, via NotificationHub) aos setores
+      envolvidos quando uma etapa inicia
+- [ ] Onboarding de novo colaborador implementado como um processo (caso de teste real)
+- [ ] Notificação ao usuário, ao abrir a intranet, de processos pendentes para ele
+- [ ] RH self-service (férias, holerites) — sobre o motor de processos desta fase (solicitação de
+      férias = processo com etapas). Veio da antiga Fase 3 (Operacional) por depender do motor
+- [ ] `ItemMenu` além dos setores — a seção Setores do menu principal já vem da árvore de cada
+      setor (setor = nível 0, submenus flutuantes, URL `/{setor}/{item}/…` —
+      [spec](specs/2026-10-01-menu-principal-arvore-dos-setores-design.md)); falta, se um dia
+      fizer sentido, os itens fixos (Mural, Diretório, Inventário, Administração) virarem nós
+- [ ] Marketplace de temas (empacotamento + documentação para terceiros) — trazido da Fase 5.
+      Os dois temas oficiais já provam o contrato; o que falta é o terceiro conseguir publicar e
+      instalar o próprio tema sem abrir este repositório. Antes disso, tirar do core o caminho fixo
+      do Cropper.js no pacote do Vertical (`Views/Diretorio/Perfil.cshtml` e `Editar.cshtml`): hoje
+      funciona em qualquer tema só porque a Web sempre referencia o Vertical
+
+## Fase 4 — Integrações externas
+
 - [ ] Chamados de TI com integração Jira/Zendesk/GitHub/Azure DevOps (conectores
       independentes, priorizar por demanda real)
 - [ ] Analytics em cima do LogStream. Depende da trilha de auditoria da Fase 1, que deixou de
