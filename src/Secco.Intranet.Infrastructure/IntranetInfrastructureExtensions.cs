@@ -21,6 +21,7 @@ using Secco.Intranet.Infrastructure.Diretorio;
 using Secco.Intranet.Infrastructure.Notificacao;
 using Secco.Intranet.Infrastructure.Repositories;
 using Secco.Intranet.Infrastructure.Seeding;
+using Secco.Intranet.Infrastructure.Vencimentos;
 using Secco.LogStream.Client;
 using Secco.NotificationHub.Client;
 using Secco.SDK.AspNetCore.Tenancy;
@@ -150,6 +151,13 @@ public static class IntranetInfrastructureExtensions
 		if (!string.IsNullOrWhiteSpace(notificacaoOptions.HubUrl))
 		{
 			services.AddNotificationHubClient(opcoes => opcoes.BaseUrl = notificacaoOptions.HubUrl);
+
+			// Sem Hub não há para onde enviar o aviso: o worker só existe com Hub configurado.
+			services.AddHostedService<VencimentosWorker>();
+		}
+		else
+		{
+			services.AddHostedService<AvisoDeVencimentoDesligadoHostedService>();
 		}
 
 		services.AddScoped<IDiretorioDeUsuarios>(serviceProvider =>
