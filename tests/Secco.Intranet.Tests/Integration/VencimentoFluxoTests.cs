@@ -2,6 +2,7 @@ using System.Net;
 using AwesomeAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Application.Setores;
@@ -42,6 +43,7 @@ public class VencimentoFluxoTests(IntranetWebFactory factory) : IClassFixture<In
 	public Task DisposeAsync()
 	{
 		factory.UsuariosDoDiretorio = null;
+		factory.ResolvedorDePermissoes = null;
 
 		return Task.CompletedTask;
 	}
@@ -54,11 +56,11 @@ public class VencimentoFluxoTests(IntranetWebFactory factory) : IClassFixture<In
 			Task.FromResult<IReadOnlyList<UsuarioDoTenant>>([.. Usuarios]);
 	}
 
-	private HttpClient CriarCliente()
+	private HttpClient CriarCliente(string role = "intranet-admin")
 	{
 		var client = _fabrica.CreateClient();
 		client.DefaultRequestHeaders.Add(SeccoHeaders.TenantId, factory.TenantAlfa.ToString());
-		client.DefaultRequestHeaders.Add(RolesDeTesteMiddleware.Header, "intranet-admin");
+		client.DefaultRequestHeaders.Add(RolesDeTesteMiddleware.Header, role);
 
 		return client;
 	}
@@ -79,7 +81,17 @@ public class VencimentoFluxoTests(IntranetWebFactory factory) : IClassFixture<In
 		return slug;
 	}
 
-	private static string Data(int dias) => DateOnly.FromDateTime(DateTime.UtcNow).AddDays(dias).ToString("yyyy-MM-dd");
+	/// <summary>
+	/// Data daqui a <paramref name="dias"/> dias no fuso do produto (o mesmo do
+	/// <c>RelogioDeVencimentos</c>), não em UTC: perto da meia-noite os dois dias diferem.
+	/// </summary>
+	private static string Data(int dias)
+	{
+		var fuso = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+		var hoje = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, fuso).DateTime);
+
+		return hoje.AddDays(dias).ToString("yyyy-MM-dd");
+	}
 
 	/// <summary>Cadastra pela tela e devolve o id do item, tirado da URL do detalhe para onde o POST redireciona.</summary>
 	private static async Task<(Guid Id, string Pagina)> CadastrarAsync(
@@ -275,7 +287,84 @@ public class VencimentoFluxoTests(IntranetWebFactory factory) : IClassFixture<In
 			("__RequestVerificationToken", token)));
 
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
-		Decodificar(await resposta.Content.ReadAsStringAsync()).Should().Contain("abc");
+		Decodificar(await resposta.Content.ReadAsStringAsync())
+			.Should().Contain("Informe os dias separados por vírgula, como 30, 7, 1.");
 		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().EndWith("/novo");
+	}
+
+	[Fact]
+	public async Task Editar_ItemEncerrado_RedirecionaParaODetalhe()
+	{
+		var slug = await CriarSetorAsync();
+		var client = CriarCliente();
+
+		var (id, _) = await CadastrarAsync(client, slug, "Apólice", 20);
+		var token = await TokenAsync(client, $"/{slug}/vencimentos/{id}");
+
+		(await client.PostAsync($"/{slug}/vencimentos/{id}/encerrar", Form(("__RequestVerificationToken", token))))
+			.StatusCode.Should().Be(HttpStatusCode.OK);
+
+		var resposta = await client.GetAsync($"/{slug}/vencimentos/{id}/editar");
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be($"/{slug}/vencimentos/{id}");
+		Decodificar(await resposta.Content.ReadAsStringAsync()).Should().Contain("Este vencimento está encerrado.");
+
+		// O POST direto também é recusado, sem abrir caminho para alterar o item.
+		var post = await client.PostAsync($"/{slug}/vencimentos/{id}/editar", Form(
+			("Form.Titulo", "Alterado"), ("Form.DataVencimento", Data(30)), ("Form.Antecedencias", "7"),
+			("__RequestVerificationToken", token)));
+
+		Decodificar(await post.Content.ReadAsStringAsync()).Should().Contain("Um vencimento encerrado não aceita alterações.");
+		Decodificar(await client.GetStringAsync($"/{slug}/vencimentos/{id}")).Should().Contain("Apólice").And.NotContain("Alterado");
+	}
+
+	/// <summary>
+	/// Cliente cuja única Role tem apenas as permissões pedidas, por setor. Cada chamada usa uma
+	/// Role nova, porque o resolvedor do SDK guarda o resultado por (tenant, role).
+	/// </summary>
+	private HttpClient CriarClienteComPermissoes(params (string Slug, string Acao)[] permissoes)
+	{
+		var role = $"papel-{Guid.NewGuid():N}";
+		var resolvedor = new PermissionResolverDeTeste();
+
+		foreach (var (slug, acao) in permissoes)
+		{
+			resolvedor.ComPermissao(role, acao == "read" ? IntranetPermissoes.Setor.Read(slug) : IntranetPermissoes.Setor.Write(slug));
+		}
+
+		factory.ResolvedorDePermissoes = resolvedor;
+
+		return CriarCliente(role);
+	}
+
+	[Fact]
+	public async Task SemLeitura_404NaListaENoDetalhe()
+	{
+		var slug = await CriarSetorAsync();
+		var (id, _) = await CadastrarAsync(CriarCliente(), slug, "Contrato", 20);
+		var client = CriarClienteComPermissoes();
+
+		(await client.GetAsync($"/{slug}/vencimentos")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+		(await client.GetAsync($"/{slug}/vencimentos/{id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+	}
+
+	[Fact]
+	public async Task SoLeitura_404EmNovoERenovar()
+	{
+		var soLeitura = await CriarSetorAsync();
+		var comEscrita = await CriarSetorAsync();
+		var (id, _) = await CadastrarAsync(CriarCliente(), soLeitura, "Contrato", 20);
+
+		// A mesma Role lê o primeiro setor e escreve no segundo. O token antifalsificação sai do
+		// formulário do segundo (o detalhe de quem só lê não tem formulário) e vale para o primeiro,
+		// porque o token é preso à identidade, não ao setor: o 404 abaixo é da permissão, não do token.
+		var client = CriarClienteComPermissoes((soLeitura, "read"), (comEscrita, "read"), (comEscrita, "write"));
+		var token = await TokenAsync(client, $"/{comEscrita}/vencimentos/novo");
+
+		(await client.GetAsync($"/{soLeitura}/vencimentos/{id}")).StatusCode.Should().Be(HttpStatusCode.OK, "a leitura vale");
+		(await client.GetAsync($"/{soLeitura}/vencimentos/novo")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+		(await client.PostAsync($"/{soLeitura}/vencimentos/{id}/renovar", Form(
+			("novaData", Data(90)), ("__RequestVerificationToken", token)))).StatusCode.Should().Be(HttpStatusCode.NotFound);
 	}
 }

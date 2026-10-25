@@ -36,11 +36,19 @@ public class ProcessarAvisosDeVencimentoHandlerTests
 		/// <summary>Falha uma única vez, na N-ésima chamada (1 = primeira); 0 nunca falha.</summary>
 		public int FalharNaChamada { get; set; }
 
+		/// <summary>Cancela (<see cref="OperationCanceledException"/>) na N-ésima chamada; 0 nunca cancela.</summary>
+		public int CancelarNaChamada { get; set; }
+
 		private int _chamadas;
 
 		public Task EnviarLoteAsync(MensagemParaEnviar mensagem, CancellationToken cancellationToken = default)
 		{
 			_chamadas++;
+
+			if (_chamadas == CancelarNaChamada)
+			{
+				throw new OperationCanceledException();
+			}
 
 			if (_chamadas == FalharNaChamada)
 			{
@@ -58,6 +66,8 @@ public class ProcessarAvisosDeVencimentoHandlerTests
 		public List<AvisoDeVencimentoEnviado> Registrados { get; } = [];
 
 		public List<Guid> Removidos { get; } = [];
+
+		public List<CancellationToken> TokensDaRemocao { get; } = [];
 
 		public bool Recusar { get; set; }
 
@@ -92,6 +102,7 @@ public class ProcessarAvisosDeVencimentoHandlerTests
 		public Task RemoverAvisoAsync(Guid avisoId, CancellationToken ct = default)
 		{
 			Removidos.Add(avisoId);
+			TokensDaRemocao.Add(ct);
 
 			return Task.CompletedTask;
 		}
@@ -106,13 +117,21 @@ public class ProcessarAvisosDeVencimentoHandlerTests
 	{
 		public List<LogLevel> Niveis { get; } = [];
 
+		public List<string> Mensagens { get; } = [];
+
 		public IDisposable? BeginScope<TState>(TState state)
 			where TState : notnull => null;
 
 		public bool IsEnabled(LogLevel logLevel) => true;
 
 		public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
-			Niveis.Add(logLevel);
+			Registrar(logLevel, formatter(state, exception));
+
+		private void Registrar(LogLevel nivel, string mensagem)
+		{
+			Niveis.Add(nivel);
+			Mensagens.Add(mensagem);
+		}
 	}
 
 	private static UsuarioDoTenant Admin(string? email = "ana@empresa.com") => new(Guid.NewGuid(), email, ["ti-admin"]);
@@ -354,5 +373,48 @@ public class ProcessarAvisosDeVencimentoHandlerTests
 		enviados.Should().Be(0);
 		notificador.Enviadas.Should().ContainSingle();
 		repositorio.Removidos.Should().Equal(repositorio.Registrados.Single().Id);
+	}
+
+	[Fact]
+	public async Task CancelamentoDuranteOEnvio_DesfazORegistro_ERelanca()
+	{
+		var item = Item("Certificado", 7);
+		var repositorio = new RepositorioFalso(item);
+		var notificador = new NotificadorFalso { CancelarNaChamada = 1 };
+		using var cts = new CancellationTokenSource();
+
+		var acao = () => Montar(repositorio, new DiretorioFalso(Admin()), notificador).HandleAsync(cts.Token);
+
+		await acao.Should().ThrowAsync<OperationCanceledException>();
+		repositorio.Removidos.Should().Equal(repositorio.Registrados.Single().Id);
+		repositorio.TokensDaRemocao.Should().ContainSingle().Which.Should().Be(CancellationToken.None);
+	}
+
+	[Fact]
+	public async Task Logs_CitamOIdDoItem_NuncaOTitulo()
+	{
+		var diretorioVazio = Item("Segredo A", 7);
+		var logVazio = new LogFalso();
+		await Montar(new RepositorioFalso(diretorioVazio), new DiretorioFalso(), new NotificadorFalso(), logVazio).HandleAsync();
+
+		var semDestinatario = Item("Segredo B", 7);
+		var logSemDestino = new LogFalso();
+		await Montar(
+			new RepositorioFalso(semDestinatario),
+			new DiretorioFalso(new UsuarioDoTenant(Guid.NewGuid(), "u@x.com", ["ti-user"])),
+			new NotificadorFalso(),
+			logSemDestino).HandleAsync();
+
+		var indisponivel = Item("Segredo C", 7);
+		var logIndisponivel = new LogFalso();
+		await Montar(
+			new RepositorioFalso(indisponivel),
+			new DiretorioFalso(Admin()),
+			new NotificadorFalso { FalharNaChamada = 1 },
+			logIndisponivel).HandleAsync();
+
+		logVazio.Mensagens.Should().ContainSingle().Which.Should().Contain(diretorioVazio.Item.Id.ToString()).And.NotContain("Segredo");
+		logSemDestino.Mensagens.Should().ContainSingle().Which.Should().Contain(semDestinatario.Item.Id.ToString()).And.NotContain("Segredo");
+		logIndisponivel.Mensagens.Should().ContainSingle().Which.Should().Contain(indisponivel.Item.Id.ToString()).And.NotContain("Segredo");
 	}
 }

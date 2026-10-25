@@ -238,6 +238,19 @@ public class VencimentoHandlersTests
 	}
 
 	[Fact]
+	public async Task Editar_ItemDeOutroSetor_ComTituloVazio_NotFound()
+	{
+		var c = new Cenario();
+		var item = c.Com("Contrato", new DateOnly(2026, 12, 31), Guid.NewGuid());
+
+		var resultado = await c.Editar.HandleAsync(
+			new EditarVencimentoCommand(item.Id, Setor, Slug, "  ", null, new DateOnly(2027, 1, 1), null, [7]));
+
+		resultado.Error.Should().Be(IntranetErrors.Vencimentos.NotFound);
+		c.Trilha.Registros.Should().BeEmpty();
+	}
+
+	[Fact]
 	public async Task Editar_MudandoData_RegistraDatasNaTrilha()
 	{
 		var c = new Cenario();

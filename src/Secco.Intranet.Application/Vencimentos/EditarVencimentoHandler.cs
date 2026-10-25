@@ -38,6 +38,20 @@ public sealed class EditarVencimentoHandler(
 	{
 		ArgumentNullException.ThrowIfNull(command);
 
+		// Primeiro o item e o setor: quem não enxerga o item não pode descobrir nada sobre ele
+		// pela ordem das validações (um título vazio não vira outro erro que não NotFound).
+		var item = await repository.GetParaEdicaoAsync(command.Id, cancellationToken).ConfigureAwait(false);
+
+		if (item is null || item.SetorId != command.SetorId)
+		{
+			return IntranetErrors.Vencimentos.NotFound;
+		}
+
+		if (item.EstaEncerrado)
+		{
+			return IntranetErrors.Vencimentos.Encerrado;
+		}
+
 		if (string.IsNullOrWhiteSpace(command.Titulo))
 		{
 			return IntranetErrors.Vencimentos.TituloRequired;
@@ -53,18 +67,6 @@ public sealed class EditarVencimentoHandler(
 		if (command.Descricao is { } descricao && descricao.Length > limites.MaxDescriptionLength)
 		{
 			return IntranetErrors.Vencimentos.DescricaoTooLong(limites.MaxDescriptionLength);
-		}
-
-		var item = await repository.GetParaEdicaoAsync(command.Id, cancellationToken).ConfigureAwait(false);
-
-		if (item is null || item.SetorId != command.SetorId)
-		{
-			return IntranetErrors.Vencimentos.NotFound;
-		}
-
-		if (item.EstaEncerrado)
-		{
-			return IntranetErrors.Vencimentos.Encerrado;
 		}
 
 		// Só confere o acesso quando o responsável muda: quem já era responsável e perdeu a

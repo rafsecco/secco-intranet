@@ -272,4 +272,20 @@ public class VencimentosWorkerTests(IntranetWebFactory factory) : IClassFixture<
 		hospedados.Should().NotContain(h => h is VencimentosWorker);
 		hospedados.Should().ContainSingle(h => h.GetType().Name == "AvisoDeVencimentoDesligadoHostedService");
 	}
+
+	[Fact]
+	public async Task ComHubConfigurado_WorkerRegistrado()
+	{
+		// Habilitado=false: o worker sobe, lê a trava e sai; nenhum ciclo roda contra o Hub.
+		await using var app = factory.WithWebHostBuilder(builder =>
+		{
+			builder.UseSetting("Intranet:Notificacao:HubUrl", "http://hub.invalido.local");
+			builder.UseSetting("Intranet:Vencimentos:Habilitado", "false");
+		});
+
+		var hospedados = app.Services.GetServices<IHostedService>().ToList();
+
+		hospedados.Should().ContainSingle(h => h is VencimentosWorker);
+		hospedados.Should().NotContain(h => h.GetType().Name == "AvisoDeVencimentoDesligadoHostedService");
+	}
 }

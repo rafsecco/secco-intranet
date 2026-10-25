@@ -63,8 +63,9 @@ public sealed class ProcessarAvisosDeVencimentoHandler(
 				// O adaptador devolve lista vazia tanto para tenant sem usuários quanto para falha
 				// do SecureGate; registrar aqui marcaria o marco como sem destinatário para sempre.
 				logger.LogWarning(
-					"Diretório de usuários vazio ou indisponível; o aviso do marco {Marco} de um item de vencimento fica para a próxima execução.",
-					marcoAEnviar);
+					"Diretório de usuários vazio ou indisponível; o aviso do marco {Marco} do item de vencimento {ItemId} fica para a próxima execução.",
+					marcoAEnviar,
+					item.Id);
 
 				continue;
 			}
@@ -74,8 +75,9 @@ public sealed class ProcessarAvisosDeVencimentoHandler(
 			if (destinatarios.Count == 0)
 			{
 				logger.LogWarning(
-					"Nenhum destinatário para o aviso do marco {Marco} de um item de vencimento do setor {Setor}.",
+					"Nenhum destinatário para o aviso do marco {Marco} do item de vencimento {ItemId} do setor {Setor}.",
 					marcoAEnviar,
+					item.Id,
 					candidato.SetorSlug);
 
 				await RegistrarAsync(item, marcoAEnviar, ResultadoDoAviso.SemDestinatario, 0, ct).ConfigureAwait(false);
@@ -133,11 +135,20 @@ public sealed class ProcessarAvisosDeVencimentoHandler(
 			await repository.RemoverAvisoAsync(aviso.Id, ct).ConfigureAwait(false);
 
 			logger.LogWarning(
-				"NotificationHub indisponível; o aviso do marco {Marco} de um item de vencimento do setor {Setor} será tentado na próxima execução.",
+				"NotificationHub indisponível; o aviso do marco {Marco} do item de vencimento {ItemId} do setor {Setor} será tentado na próxima execução.",
 				marco,
+				item.Id,
 				candidato.SetorSlug);
 
 			return false;
+		}
+		catch (OperationCanceledException)
+		{
+			// Desligamento no meio do envio: ninguém recebeu, então o marco volta a ficar pendente.
+			// O token da varredura já está cancelado, por isso o desfazer usa CancellationToken.None.
+			await repository.RemoverAvisoAsync(aviso.Id, CancellationToken.None).ConfigureAwait(false);
+
+			throw;
 		}
 
 		return true;

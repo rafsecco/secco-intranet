@@ -4,6 +4,7 @@ using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Application.Vencimentos;
 using Secco.Intranet.Domain.Menu;
+using Secco.Intranet.Domain.Vencimentos;
 using Secco.Intranet.Web.Models.Vencimentos;
 using Secco.Intranet.Web.Navigation;
 using Secco.Intranet.Web.ViewComponents;
@@ -153,9 +154,20 @@ public sealed class VencimentosController(
 
 		var detalhe = await obterHandler.HandleAsync(id, alvo.Value.Setor.Id, cancellationToken).ConfigureAwait(false);
 
-		return detalhe.IsFailure
-			? NotFound()
-			: View("Formulario", await MontarFormularioAsync(alvo.Value, VencimentoFormViewModel.De(detalhe.Value), id, cancellationToken).ConfigureAwait(false));
+		if (detalhe.IsFailure)
+		{
+			return NotFound();
+		}
+
+		if (detalhe.Value.Estado == EstadoDoVencimento.Encerrado)
+		{
+			// O detalhe esconde "Editar" nesse estado; quem chega pela URL volta para lá, com o motivo.
+			TempData[FeedbackViewComponent.ChaveDaMensagemDeErro] = "Este vencimento está encerrado.";
+
+			return RedirectToAction(nameof(Detalhe), new { slug, id });
+		}
+
+		return View("Formulario", await MontarFormularioAsync(alvo.Value, VencimentoFormViewModel.De(detalhe.Value), id, cancellationToken).ConfigureAwait(false));
 	}
 
 	/// <summary>Grava a edição.</summary>
