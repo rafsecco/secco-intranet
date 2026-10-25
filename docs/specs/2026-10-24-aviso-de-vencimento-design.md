@@ -1,7 +1,7 @@
 # Aviso de vencimento — desenho do recurso
 
 **Data:** 2026-10-24
-**Estado:** rascunho, aguardando aprovação
+**Estado:** aprovado, implementado
 
 ## Problema
 

@@ -246,6 +246,16 @@ preenchidas) reaproveitam `Secco__SecureGate__ClientId`/`ClientSecret` — os SD
 client credentials a partir dessa mesma seção (secco-platform#25); não há uma credencial
 separada para configurar.
 
+## Aviso de vencimento (`Intranet:Vencimentos`)
+
+O recurso Vencimentos envia os avisos por um worker em processo, um por tenant, que acorda a cada intervalo, decide quais marcos venceram e manda cada aviso na hora pelo `Secco.NotificationHub`. Sem `Intranet__Notificacao__HubUrl` o worker nem é registrado e não há aviso de vencimento (as telas continuam funcionando).
+
+| Variável | Obrigatória | Descrição |
+|---|---|---|
+| `Intranet__Vencimentos__Habilitado` | Não (padrão `true`) | `false` desliga o worker. |
+| `Intranet__Vencimentos__IntervaloEmMinutos` | Não (padrão `60`) | De quanto em quanto tempo o worker confere os itens. |
+| `Intranet__Vencimentos__FusoHorario` | Não (padrão `America/Sao_Paulo`) | Fuso que define "hoje" para os marcos de aviso. Id IANA (ex.: `America/Sao_Paulo`). Id inválido: o worker registra um erro no log e não roda. |
+
 ## `docker-compose` de produção
 
 Exemplo mínimo — adapte para o seu proxy e para onde o banco realmente mora (gerenciado

@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Domain.Setores;
+using Secco.Intranet.Domain.Vencimentos;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SDK.EntityFrameworkCore.Seeding;
 
@@ -29,6 +30,8 @@ internal sealed class SetoresDesenvolvimentoSeeder(
 		("Financeiro", "financeiro", false),
 		("Diretoria", "diretoria", false),
 	];
+
+	private const string SetorDeVencimentos = "financeiro";
 
 	/// <summary>Roda primeiro: as publicações de amostra dependem dos setores.</summary>
 	public int Order => 0;
@@ -61,7 +64,60 @@ internal sealed class SetoresDesenvolvimentoSeeder(
 			}
 
 			await GarantirArvoresAsync(context, cancellationToken).ConfigureAwait(false);
+			await GarantirVencimentosAsync(context, cancellationToken).ConfigureAwait(false);
 		}
+	}
+
+	/// <summary>
+	/// Liga o recurso Vencimentos no setor <see cref="SetorDeVencimentos"/> e cria dois itens de amostra
+	/// (um a vencer em 5 dias, um já vencido), para a tela e o worker terem o que mostrar. Idempotente:
+	/// só cria o item de menu se o setor ainda não tem um Vencimentos, e os itens se ainda não há nenhum.
+	/// As datas são relativas ao dia em <c>America/Sao_Paulo</c> no momento do seed.
+	/// </summary>
+	private static async Task GarantirVencimentosAsync(Contexts.IntranetDbContext context, CancellationToken cancellationToken)
+	{
+		var setor = await context.Setores
+			.FirstOrDefaultAsync(s => s.Slug == SetorDeVencimentos, cancellationToken)
+			.ConfigureAwait(false);
+
+		if (setor is null)
+		{
+			return;
+		}
+
+		var raiz = await context.ItensMenu
+			.FirstOrDefaultAsync(item => item.SetorId == setor.Id && item.Tipo == TipoDeItemMenu.Setor, cancellationToken)
+			.ConfigureAwait(false);
+
+		var temMenu = await context.ItensMenu
+			.AnyAsync(item => item.SetorId == setor.Id && item.Tipo == TipoDeItemMenu.Vencimentos, cancellationToken)
+			.ConfigureAwait(false);
+
+		if (!temMenu && raiz is not null)
+		{
+			var ordem = await context.ItensMenu
+				.CountAsync(item => item.ParentId == raiz.Id, cancellationToken)
+				.ConfigureAwait(false);
+
+			context.ItensMenu.Add(new ItemMenu(setor.Id, raiz.Id, "Vencimentos", "vencimentos", TipoDeItemMenu.Vencimentos, null, null, ordem));
+		}
+
+		var temItens = await context.ItensVencimento
+			.AnyAsync(item => item.SetorId == setor.Id, cancellationToken)
+			.ConfigureAwait(false);
+
+		if (!temItens)
+		{
+			var agora = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo"));
+			var hoje = DateOnly.FromDateTime(agora.DateTime);
+
+			context.ItensVencimento.Add(new ItemVencimento(
+				setor.Id, "Renovação do certificado digital", "Certificado A1 usado na emissão de notas.", hoje.AddDays(5), null, null));
+			context.ItensVencimento.Add(new ItemVencimento(
+				setor.Id, "Contrato de manutenção do ar-condicionado", null, hoje.AddDays(-10), null, null));
+		}
+
+		await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 	}
 
 	/// <summary>

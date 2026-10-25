@@ -181,8 +181,14 @@ processos (maior risco técnico) só entra com a base já sólida.
       `diretorio/fotos`; recorte com Cropper.js no tema Vertical. Etapa 6 da
       [spec do Diretório](specs/2026-09-24-diretorio-organizacional-design.md); plano em
       [plans/2026-10-18-foto-do-colaborador.md](plans/2026-10-18-foto-do-colaborador.md)
-- [ ] Recurso de aviso de vencimento (`ItemVencimento` + `AvisoAntecedencia`, múltiplos
-      avisos escalonados) — ex: renovação de certificado
+- [x] Recurso de aviso de vencimento — item de menu `Vencimentos` por setor, com itens
+      (`ItemVencimento`: título, data, responsável opcional, antecedências escalonadas em dias),
+      telas de lista, detalhe, criar, renovar e encerrar, e histórico de renovações. Quem decide o
+      dia do aviso é a Intranet, num worker em processo por tenant; o NotificationHub entrega na
+      hora, porque o Hub não tem cancelamento de entrega agendada (renovar ou encerrar um item
+      não teria como desfazer um aviso já agendado). Sem `Intranet:Notificacao:HubUrl` não há
+      aviso de vencimento. [Spec](specs/2026-10-24-aviso-de-vencimento-design.md); plano em
+      [plans/2026-10-24-aviso-de-vencimento.md](plans/2026-10-24-aviso-de-vencimento.md)
 - [ ] Ferramentas do dia a dia (reserva de sala, links rápidos)
 
 ## Fase 3 — Controle de processos (v1 simples)
