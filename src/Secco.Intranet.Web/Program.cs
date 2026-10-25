@@ -36,6 +36,7 @@ builder.Services.AddSingleton<IRenderizadorMarkdown, RenderizadorMarkdown>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAtorAtual, AtorDoHttpContext>();
 builder.Services.AddScoped<IPermissoesDeSetor, PermissoesDeSetor>();
+builder.Services.AddScoped<AcessoAoRecursoDoSetor>();
 
 // Cross-cutting individual do SDK (ADR-0004): correlação, tenancy (ADR-0005) e health
 // checks. Sem AddSeccoAuthentication() — ver comentário acima (autorização por permissão,

@@ -32,8 +32,7 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="documentoOptions">Limites de upload.</param>
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
 /// <param name="environment">Ambiente de hospedagem — o modo aberto só vale em Development (ADR-0020).</param>
-/// <param name="searchSetores">Busca de setores, para saber o universo de slugs a checar.</param>
-/// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura/escrita (ADR-0021).</param>
+/// <param name="acesso">Checagens de leitura, escrita e recurso ligado, compartilhadas com os demais controllers de recurso do setor.</param>
 /// <param name="resolverCaminho">Resolução de caminho na árvore de itens de menu do setor.</param>
 [Route("{slug:" + SlugDeSetorRouteConstraint.Nome + "}")]
 public sealed class SetorController(
@@ -48,12 +47,9 @@ public sealed class SetorController(
 	DocumentoOptions documentoOptions,
 	IConfiguration configuration,
 	IWebHostEnvironment environment,
-	SearchSetoresHandler searchSetores,
-	IPermissoesDeSetor permissoesDeSetor,
+	AcessoAoRecursoDoSetor acesso,
 	ResolverCaminhoDeMenuHandler resolverCaminho) : Controller
 {
-	private const int LimiteSetoresConsultados = 200;
-
 	/// <summary>
 	/// Qualquer nó da árvore do setor: renderiza pelo tipo; nó que só agrupa responde 404.
 	/// </summary>
@@ -338,32 +334,9 @@ public sealed class SetorController(
 		return View("Avisos", await MontarAvisosAsync(setor, resolucao, form, cancellationToken).ConfigureAwait(false));
 	}
 
-	/// <summary>
-	/// Setor e posição na árvore do item de um tipo embutido. Nulo quando o setor não existe
-	/// ou está inativo, ou quando o recurso está desligado (item ausente, ou ele/um ancestral
-	/// desativado) — quem chama responde 404 nos três casos.
-	/// </summary>
-	private async Task<(SetorDto Setor, ResultadoDaResolucao Resolucao)?> ResolverTipoAsync(
-		string slug, TipoDeItemMenu tipo, CancellationToken cancellationToken)
-	{
-		var setor = await getSetorHandler.HandleAsync(slug, cancellationToken).ConfigureAwait(false);
-
-		if (setor.IsFailure || !setor.Value.Ativo)
-		{
-			return null;
-		}
-
-		var caminho = await resolverCaminho.CaminhoDoTipoAsync(setor.Value.Id, tipo, cancellationToken).ConfigureAwait(false);
-
-		if (caminho is null)
-		{
-			return null;
-		}
-
-		var resolvido = await resolverCaminho.HandleAsync(setor.Value.Id, caminho, cancellationToken).ConfigureAwait(false);
-
-		return resolvido.IsFailure ? null : (setor.Value, resolvido.Value);
-	}
+	private Task<(SetorDto Setor, ResultadoDaResolucao Resolucao)?> ResolverTipoAsync(
+		string slug, TipoDeItemMenu tipo, CancellationToken cancellationToken) =>
+		acesso.ResolverTipoAsync(slug, tipo, cancellationToken);
 
 	private RedirectToActionResult VoltarPara(string slug, ResultadoDaResolucao resolucao) =>
 		RedirectToAction(nameof(Resolver), new { slug, caminho = string.Join('/', resolucao.CaminhoCompleto) });
@@ -406,71 +379,12 @@ public sealed class SetorController(
 			Trilho(setor, resolucao));
 	}
 
-	/// <summary>
-	/// Ler exige a permissão de leitura do setor (ADR-0021). Mesmo bypass de
-	/// <see cref="PodePublicarAsync"/>: só em Development sem autenticação configurada (modo
-	/// aberto de DEV local) não há permissão a resolver — consistente com o menu, que nesse modo
-	/// mostra todo setor. Em Testing (que também não configura SecureGate) e em qualquer outro
-	/// ambiente, o caminho de permissão de verdade roda sempre, para nunca ficar aberto por
-	/// engano fora do Development (ADR-0020).
-	/// </summary>
-	private async Task<bool> PodeLerAsync(string slug, CancellationToken cancellationToken)
-	{
-		if (AcessoAdministrativo.ModoAbertoDeDev(environment, configuration))
-		{
-			return true;
-		}
+	private Task<bool> PodeLerAsync(string slug, CancellationToken cancellationToken) =>
+		acesso.PodeLerAsync(User, slug, cancellationToken);
 
-		var slugsComLeitura = await permissoesDeSetor
-			.SlugsComPermissaoAsync(User, "read", [slug], cancellationToken)
-			.ConfigureAwait(false);
+	private Task<bool> PodePublicarAsync(string slug, CancellationToken cancellationToken) =>
+		acesso.PodeEscreverAsync(User, slug, cancellationToken);
 
-		return slugsComLeitura.Contains(slug);
-	}
-
-	/// <summary>
-	/// Publicar exige a permissão de escrita do setor (ADR-0021). Só em Development sem
-	/// autenticação configurada — o modo aberto de DEV local — não há permissão a resolver, e a
-	/// checagem é dispensada; fora do Development, mesmo sem SecureGate configurado, a permissão
-	/// de verdade é sempre consultada (ADR-0020).
-	/// </summary>
-	private async Task<bool> PodePublicarAsync(string slug, CancellationToken cancellationToken)
-	{
-		if (AcessoAdministrativo.ModoAbertoDeDev(environment, configuration))
-		{
-			return true;
-		}
-
-		var slugsComEscrita = await permissoesDeSetor
-			.SlugsComPermissaoAsync(User, "write", [slug], cancellationToken)
-			.ConfigureAwait(false);
-
-		return slugsComEscrita.Contains(slug);
-	}
-
-	/// <summary>
-	/// Setores em que o usuário tem escrita — vazio só no modo aberto de DEV local (Development
-	/// sem autenticação configurada), quando o handler ignora o filtro por completo
-	/// (<c>ExigirVinculo: false</c>). Fora do Development a lista vem sempre da permissão real.
-	/// </summary>
-	private async Task<IReadOnlySet<string>> SlugsComEscritaAsync(CancellationToken cancellationToken)
-	{
-		if (AcessoAdministrativo.ModoAbertoDeDev(environment, configuration))
-		{
-			return new HashSet<string>();
-		}
-
-		var setores = await searchSetores
-			.HandleAsync(new SetorSearchCriteria(ApenasAtivos: true, Page: new PageRequest(1, LimiteSetoresConsultados)), cancellationToken)
-			.ConfigureAwait(false);
-
-		if (setores.IsFailure)
-		{
-			return new HashSet<string>();
-		}
-
-		var slugs = setores.Value.Items.Select(s => s.Slug).ToList();
-
-		return await permissoesDeSetor.SlugsComPermissaoAsync(User, "write", slugs, cancellationToken).ConfigureAwait(false);
-	}
+	private Task<IReadOnlySet<string>> SlugsComEscritaAsync(CancellationToken cancellationToken) =>
+		acesso.SlugsComEscritaAsync(User, cancellationToken);
 }

@@ -25,7 +25,7 @@ public enum TipoDeItemMenu
 
 /// <summary>
 /// Nó de uma árvore autorrecursiva de itens de menu, escopada a um Setor. A raiz
-/// (<see cref="TipoDeItemMenu.Setor"/>) nasce junto com o <c>Setor</c>; Documentos, Avisos e
+/// (<see cref="TipoDeItemMenu.Setor"/>) nasce junto com o <c>Setor</c>; Documentos, Avisos, Vencimentos e
 /// itens <c>Personalizado</c> são sempre descendentes dela. <see cref="ParentId"/> só é
 /// definido na criação — por isso a árvore é acíclica sem checagem.
 /// </summary>
