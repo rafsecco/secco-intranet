@@ -1,0 +1,66 @@
+@using Secco.Intranet.Domain.Vencimentos
+@using Secco.Intranet.Web.Models.Vencimentos
+@model SetorVencimentosViewModel
+@{
+	ViewData["Title"] = $"{Model.Titulo} · {Model.Setor.Nome}";
+
+	var acoes = new List<PageActionModel>();
+
+	if (Model.PodeEscrever)
+	{
+		acoes.Add(new PageActionModel(
+			"Novo vencimento",
+			Url.Action("Novo", "Vencimentos", new { slug = Model.Setor.Slug })!,
+			"bi-plus-lg",
+			Primaria: true));
+	}
+
+	acoes.Add(Model.IncluiEncerrados
+		? new PageActionModel("Ocultar encerrados", Url.Action("Resolver", "Setor", new { slug = Model.Setor.Slug, caminho = Context.Request.RouteValues["caminho"] })!, "bi-eye-slash")
+		: new PageActionModel("Mostrar encerrados", Url.Action("Resolver", "Setor", new { slug = Model.Setor.Slug, caminho = Context.Request.RouteValues["caminho"], encerrados = "true" })!, "bi-eye"));
+
+	var cabecalho = new PageHeaderModel(Model.Titulo, Model.Trilho, Model.Setor.Slug, acoes);
+
+	var vazio = new EmptyStateModel(
+		"bi-calendar-check",
+		"Nenhum vencimento cadastrado",
+		Model.PodeEscrever
+			? "Use \"Novo vencimento\" para cadastrar o primeiro."
+			: "Quando o setor cadastrar algum vencimento, ele aparece aqui.");
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+@if (Model.Itens.Count == 0)
+{
+	<partial name="_EmptyState" model="vazio" />
+}
+else
+{
+	<ul class="sc-list">
+		@foreach (var item in Model.Itens)
+		{
+			var etiqueta = EtiquetaDeVencimento.Para(item.Estado);
+
+			<li class="sc-list__item" style="--sc-setor-hue:@SetorHue.From(Model.Setor.Slug)">
+				<span class="sc-list__icon" aria-hidden="true"><i class="bi bi-calendar-check"></i></span>
+				<div class="sc-list__text">
+					<p class="sc-list__title">
+						<a asp-controller="Vencimentos" asp-action="Detalhe"
+						   asp-route-slug="@Model.Setor.Slug" asp-route-id="@item.Id">@item.Titulo</a>
+					</p>
+					<span class="sc-list__sub">
+						<span class="sc-meta">@item.DataVencimento.ToString("dd/MM/yyyy")</span>
+						<partial name="_Badge" model="etiqueta" />
+						@if (item.ResponsavelId is { } responsavelId)
+						{
+							<span class="text-body-secondary small">
+								@(Model.Responsaveis.TryGetValue(responsavelId, out var nome) ? nome : "sem acesso ao setor")
+							</span>
+						}
+					</span>
+				</div>
+			</li>
+		}
+	</ul>
+}

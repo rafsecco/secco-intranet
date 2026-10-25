@@ -4,10 +4,12 @@ using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Application.Setores;
+using Secco.Intranet.Application.Vencimentos;
 using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Web.Models;
 using Secco.Intranet.Web.Models.Documentos;
 using Secco.Intranet.Web.Models.Publicacoes;
+using Secco.Intranet.Web.Models.Vencimentos;
 using Secco.Intranet.Web.Navigation;
 using Secco.Intranet.Web.ViewComponents;
 using Secco.SharedKernel.Constants;
@@ -32,6 +34,8 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="documentoOptions">Limites de upload.</param>
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
 /// <param name="environment">Ambiente de hospedagem — o modo aberto só vale em Development (ADR-0020).</param>
+/// <param name="listarVencimentosHandler">Listagem de vencimentos do setor.</param>
+/// <param name="responsaveisHandler">Nomes de quem pode ser responsável, para a coluna da lista.</param>
 /// <param name="acesso">Checagens de leitura, escrita e recurso ligado, compartilhadas com os demais controllers de recurso do setor.</param>
 /// <param name="resolverCaminho">Resolução de caminho na árvore de itens de menu do setor.</param>
 [Route("{slug:" + SlugDeSetorRouteConstraint.Nome + "}")]
@@ -47,6 +51,8 @@ public sealed class SetorController(
 	DocumentoOptions documentoOptions,
 	IConfiguration configuration,
 	IWebHostEnvironment environment,
+	ListarVencimentosDoSetorHandler listarVencimentosHandler,
+	ListarResponsaveisPossiveisHandler responsaveisHandler,
 	AcessoAoRecursoDoSetor acesso,
 	ResolverCaminhoDeMenuHandler resolverCaminho) : Controller
 {
@@ -88,6 +94,9 @@ public sealed class SetorController(
 			TipoDeItemMenu.Avisos => View(
 				"Avisos",
 				await MontarAvisosAsync(setor.Value, resolvido.Value, new PublicacaoFormViewModel(), cancellationToken).ConfigureAwait(false)),
+			TipoDeItemMenu.Vencimentos => View(
+				"Vencimentos",
+				await MontarVencimentosAsync(setor.Value, resolvido.Value, cancellationToken).ConfigureAwait(false)),
 			// Rota validada na criação do item: caminho local ou http(s) absoluto.
 			TipoDeItemMenu.Personalizado when !string.IsNullOrWhiteSpace(no.Rota) => Redirect(no.Rota),
 			// A raiz e o Personalizado sem rota só agrupam: o menu não oferece link para eles.
@@ -315,6 +324,27 @@ public sealed class SetorController(
 		return VoltarPara(slug, alvo.Value.Resolucao);
 	}
 
+	private async Task<SetorVencimentosViewModel> MontarVencimentosAsync(
+		SetorDto setor, ResultadoDaResolucao resolucao, CancellationToken cancellationToken)
+	{
+		var incluiEncerrados = string.Equals(Request.Query["encerrados"], "true", StringComparison.OrdinalIgnoreCase);
+
+		var itens = await listarVencimentosHandler
+			.HandleAsync(setor.Id, incluiEncerrados, cancellationToken)
+			.ConfigureAwait(false);
+
+		var responsaveis = await responsaveisHandler.HandleAsync(setor.Slug, cancellationToken).ConfigureAwait(false);
+
+		return new SetorVencimentosViewModel(
+			setor,
+			itens.IsSuccess ? itens.Value : [],
+			responsaveis.ToDictionary(responsavel => responsavel.Id, responsavel => responsavel.Nome),
+			await PodePublicarAsync(setor.Slug, cancellationToken).ConfigureAwait(false),
+			incluiEncerrados,
+			resolucao.No.Nome,
+			Trilho(setor, resolucao));
+	}
+
 	/// <summary>
 	/// Identificador do usuário atual, quando a autenticação está ativa. Sem ele — o modo
 	/// aberto de DEV — ninguém é excluído do próprio aviso, o que é inofensivo.
@@ -343,7 +373,7 @@ public sealed class SetorController(
 
 	/// <summary>"Financeiro › Relatórios": o setor e os ancestrais do nó, para o subtítulo da página.</summary>
 	private static string Trilho(SetorDto setor, ResultadoDaResolucao resolucao) =>
-		string.Join(" › ", [setor.Nome, .. resolucao.Ancestrais.Select(ancestral => ancestral.Nome)]);
+		AcessoAoRecursoDoSetor.Trilho(setor, resolucao);
 
 	private async Task<SetorDocumentosViewModel> MontarDocumentosAsync(
 		SetorDto setor, ResultadoDaResolucao resolucao, DocumentoFormViewModel form, CancellationToken cancellationToken)

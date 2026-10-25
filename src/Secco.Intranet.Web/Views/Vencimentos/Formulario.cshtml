@@ -1,0 +1,68 @@
+@using Secco.Intranet.Web.Models.Vencimentos
+@model VencimentoFormPaginaViewModel
+@{
+	var editando = Model.Id is not null;
+	var titulo = editando ? "Editar vencimento" : "Novo vencimento";
+
+	ViewData["Title"] = $"{titulo} · {Model.Setor.Nome}";
+
+	var cabecalho = new PageHeaderModel(titulo, Model.Trilho, Model.Setor.Slug);
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel mb-3">
+	<div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+	<form method="post"
+		  asp-controller="Vencimentos"
+		  asp-action="@(editando ? "Editar" : "Novo")"
+		  asp-route-slug="@Model.Setor.Slug"
+		  asp-route-id="@Model.Id">
+		<div class="row g-3">
+			<div class="col-md-8">
+				<label class="form-label" asp-for="Form.Titulo">Título</label>
+				<input class="form-control" asp-for="Form.Titulo" autocomplete="off" />
+				<span class="text-danger" asp-validation-for="Form.Titulo"></span>
+			</div>
+
+			<div class="col-md-4">
+				<label class="form-label" asp-for="Form.DataVencimento">Data de vencimento</label>
+				<input class="form-control" type="date" asp-for="Form.DataVencimento" />
+				<span class="text-danger" asp-validation-for="Form.DataVencimento"></span>
+			</div>
+
+			<div class="col-12">
+				<label class="form-label" asp-for="Form.Descricao">Descrição</label>
+				<textarea class="form-control" asp-for="Form.Descricao" rows="3"></textarea>
+				<span class="text-danger" asp-validation-for="Form.Descricao"></span>
+			</div>
+
+			<div class="col-md-6">
+				<label class="form-label" asp-for="Form.ResponsavelId">Responsável</label>
+				<select class="form-select" asp-for="Form.ResponsavelId">
+					<option value="">Sem responsável</option>
+					@foreach (var responsavel in Model.Responsaveis)
+					{
+						<option value="@responsavel.Id" selected="@(responsavel.Id == Model.Form.ResponsavelId)">@responsavel.Nome</option>
+					}
+				</select>
+				<div class="form-text">Quem tem acesso ao setor. O responsável recebe os avisos.</div>
+			</div>
+
+			<div class="col-md-6">
+				<label class="form-label" asp-for="Form.Antecedencias">Avisar com antecedência de (dias)</label>
+				<input class="form-control" asp-for="Form.Antecedencias" autocomplete="off" />
+				<span class="text-danger" asp-validation-for="Form.Antecedencias"></span>
+				<div class="form-text">De 1 a 6 valores, de 1 a 365 dias, separados por vírgula. O aviso do dia sempre acontece.</div>
+			</div>
+		</div>
+
+		<div class="sc-form__actions">
+			<button class="btn btn-primary" type="submit">Salvar vencimento</button>
+			<a class="btn btn-outline-secondary"
+			   asp-controller="Setor" asp-action="Resolver" asp-route-slug="@Model.Setor.Slug"
+			   asp-route-caminho="@Model.CaminhoDaLista">Cancelar</a>
+		</div>
+	</form>
+</div>

@@ -1,0 +1,186 @@
+@using Secco.Intranet.Domain.Vencimentos
+@using Secco.Intranet.Web.Models.Vencimentos
+@model VencimentoDetalheViewModel
+@{
+	var detalhe = Model.Detalhe;
+	var encerrado = detalhe.Estado == EstadoDoVencimento.Encerrado;
+	var etiqueta = EtiquetaDeVencimento.Para(detalhe.Estado);
+
+	ViewData["Title"] = $"{detalhe.Titulo} · {Model.Setor.Nome}";
+
+	var acoes = new List<PageActionModel>();
+
+	if (Model.PodeEscrever && !encerrado)
+	{
+		acoes.Add(new PageActionModel(
+			"Editar",
+			Url.Action("Editar", "Vencimentos", new { slug = Model.Setor.Slug, id = detalhe.Id })!,
+			"bi-pencil"));
+	}
+
+	var cabecalho = new PageHeaderModel(detalhe.Titulo, Model.Trilho, Model.Setor.Slug, acoes);
+
+	static string Marco(int marco) => marco == 0 ? "No dia" : $"{marco} dia(s) antes";
+
+	static string Resultado(ResultadoDoAviso resultado) => resultado switch
+	{
+		ResultadoDoAviso.Enviado => "Enviado",
+		ResultadoDoAviso.Pulado => "Pulado",
+		_ => "Sem destinatário",
+	};
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel mb-3">
+	<dl class="row mb-0">
+		<dt class="col-sm-3">Estado</dt>
+		<dd class="col-sm-9"><partial name="_Badge" model="etiqueta" /></dd>
+
+		<dt class="col-sm-3">Vence em</dt>
+		<dd class="col-sm-9"><span class="sc-meta">@detalhe.DataVencimento.ToString("dd/MM/yyyy")</span></dd>
+
+		<dt class="col-sm-3">Responsável</dt>
+		<dd class="col-sm-9">
+			@if (Model.ResponsavelSemAcesso)
+			{
+				<span class="text-body-secondary">sem acesso ao setor</span>
+			}
+			else
+			{
+				@(Model.ResponsavelNome ?? "—")
+			}
+		</dd>
+
+		<dt class="col-sm-3">Avisos</dt>
+		<dd class="col-sm-9">
+			<span class="sc-meta">@string.Join(", ", detalhe.Antecedencias.Select(dias => $"{dias} d")) e no dia</span>
+		</dd>
+
+		@if (!string.IsNullOrWhiteSpace(detalhe.Descricao))
+		{
+			<dt class="col-sm-3">Descrição</dt>
+			<dd class="col-sm-9">@detalhe.Descricao</dd>
+		}
+	</dl>
+</div>
+
+@if (Model.PodeEscrever)
+{
+	<div class="sc-panel mb-3">
+		@if (encerrado)
+		{
+			<h2 class="h6 mb-3">Reativar</h2>
+
+			<form method="post" asp-controller="Vencimentos" asp-action="Reativar"
+				  asp-route-slug="@Model.Setor.Slug" asp-route-id="@detalhe.Id"
+				  data-confirmar="Reativar este vencimento? Os avisos voltam a partir da data nova.">
+				<div class="row g-3 align-items-end">
+					<div class="col-md-4">
+						<label class="form-label" for="novaData">Nova data de vencimento</label>
+						<input class="form-control" type="date" id="novaData" name="novaData" required />
+					</div>
+					<div class="col-md-4">
+						<button class="btn btn-primary" type="submit">Reativar</button>
+					</div>
+				</div>
+			</form>
+		}
+		else
+		{
+			<h2 class="h6 mb-3">Renovar</h2>
+
+			<form method="post" asp-controller="Vencimentos" asp-action="Renovar"
+				  asp-route-slug="@Model.Setor.Slug" asp-route-id="@detalhe.Id">
+				<div class="row g-3 align-items-end">
+					<div class="col-md-4">
+						<label class="form-label" for="novaData">Nova data de vencimento</label>
+						<input class="form-control" type="date" id="novaData" name="novaData" required />
+					</div>
+					<div class="col-md-5">
+						<label class="form-label" for="observacao">Observação (opcional)</label>
+						<input class="form-control" id="observacao" name="observacao" autocomplete="off" />
+					</div>
+					<div class="col-md-3">
+						<button class="btn btn-primary" type="submit">Renovar</button>
+					</div>
+				</div>
+			</form>
+
+			<hr />
+
+			<form method="post" asp-controller="Vencimentos" asp-action="Encerrar"
+				  asp-route-slug="@Model.Setor.Slug" asp-route-id="@detalhe.Id"
+				  data-confirmar="Encerrar este vencimento? Os avisos param.">
+				<button class="btn btn-outline-danger" type="submit">Encerrar vencimento</button>
+			</form>
+		}
+	</div>
+}
+
+@if (!encerrado)
+{
+	<div class="sc-panel mb-3">
+		<h2 class="h6 mb-3">Próximos avisos</h2>
+
+		@if (detalhe.ProximosAvisos.Count == 0)
+		{
+			<p class="text-body-secondary mb-0">Nenhum aviso pendente neste ciclo.</p>
+		}
+		else
+		{
+			<ul class="mb-0">
+				@foreach (var (marco, data) in detalhe.ProximosAvisos)
+				{
+					<li>@Marco(marco) <span class="sc-meta">@data.ToString("dd/MM/yyyy")</span></li>
+				}
+			</ul>
+		}
+	</div>
+}
+
+<div class="sc-panel mb-3">
+	<h2 class="h6 mb-3">Renovações</h2>
+
+	@if (detalhe.Renovacoes.Count == 0)
+	{
+		<p class="text-body-secondary mb-0">Ainda não foi renovado.</p>
+	}
+	else
+	{
+		<ul class="mb-0">
+			@foreach (var renovacao in detalhe.Renovacoes)
+			{
+				<li>
+					<span class="sc-meta">@renovacao.DataAnterior.ToString("dd/MM/yyyy") → @renovacao.DataNova.ToString("dd/MM/yyyy")</span>
+					por @renovacao.RenovadoPor em @renovacao.RenovadoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+					@if (!string.IsNullOrWhiteSpace(renovacao.Observacao))
+					{
+						<span class="text-body-secondary"> — @renovacao.Observacao</span>
+					}
+				</li>
+			}
+		</ul>
+	}
+</div>
+
+<div class="sc-panel mb-3">
+	<h2 class="h6 mb-3">Avisos tratados</h2>
+
+	@if (detalhe.Avisos.Count == 0)
+	{
+		<p class="text-body-secondary mb-0">Nenhum aviso foi tratado ainda.</p>
+	}
+	else
+	{
+		<ul class="mb-0">
+			@foreach (var aviso in detalhe.Avisos)
+			{
+				<li>
+					@Marco(aviso.Marco): @Resultado(aviso.Resultado)
+					<span class="sc-meta">@aviso.TratadoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+				</li>
+			}
+		</ul>
+	}
+</div>

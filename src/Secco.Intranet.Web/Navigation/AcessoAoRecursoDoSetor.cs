@@ -27,6 +27,17 @@ public sealed class AcessoAoRecursoDoSetor(
 {
 	private const int LimiteSetoresConsultados = 200;
 
+	/// <summary>"Financeiro › Relatórios": o setor e os ancestrais do nó, para o subtítulo da página.</summary>
+	/// <param name="setor">Setor da página.</param>
+	/// <param name="resolucao">Posição do nó na árvore.</param>
+	public static string Trilho(SetorDto setor, ResultadoDaResolucao resolucao)
+	{
+		ArgumentNullException.ThrowIfNull(setor);
+		ArgumentNullException.ThrowIfNull(resolucao);
+
+		return string.Join(" › ", [setor.Nome, .. resolucao.Ancestrais.Select(ancestral => ancestral.Nome)]);
+	}
+
 	/// <summary>Se o modo aberto de DEV local está ativo (Development sem autenticação configurada).</summary>
 	public bool ModoAbertoDeDev => AcessoAdministrativo.ModoAbertoDeDev(environment, configuration);
 
