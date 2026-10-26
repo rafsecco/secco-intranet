@@ -57,11 +57,23 @@ outra Role do SecureGate — só que sem vínculo com a estrutura de setores.
 
 ## Ao adicionar um novo recurso habilitável por setor
 
-Todo novo módulo que **pertence a um setor** (Documentos, Processos, Vencimentos...) e
-precisa ser "habilitado por setor" passa pela tabela `SetorRecurso` (catálogo em
-`Recurso`), nunca por uma flag solta na entidade `Setor`. Ver seção "Próximos recursos"
-do README.
+Todo novo módulo que **pertence a um setor** (Documentos, Avisos, Vencimentos, Processos...)
+é "habilitado por setor" como um **tipo embutido da árvore `ItemMenu`** (`TipoDeItemMenu`),
+nunca por uma flag solta na entidade `Setor`: ligar o recurso é existir um item ativo daquele
+tipo debaixo da raiz do setor ([spec](../../../docs/specs/2026-09-30-item-menu-por-setor-design.md)).
+A tabela `SetorRecurso`/`Recurso` prevista no começo nunca existiu — a árvore a substituiu.
 
-Nem todo recurso se encaixa nisso — antes de forçar um módulo em `SetorRecurso`,
-pergunte se ele pertence a **um** setor ou é transversal à Intranet. O Inventário é
-transversal: ver "Recursos sem setor dono" acima.
+O exemplo mais recente e completo é Vencimentos
+([spec](../../../docs/specs/2026-10-24-aviso-de-vencimento-design.md)). Um tipo novo mexe em:
+
+- `TipoDeItemMenu` (valor novo) e `CriarItemMenuHandler` (folha, no máximo um por setor);
+- `CreateSetorHandler` (checkbox no cadastro do setor — decidir se vem marcado) e, só se o
+  recurso já estava em uso antes da árvore, `ReconciliarItensDeMenuHandler`;
+- `IntranetNavigation` (destino do item) e o dropdown de `Views/Setores/Menu.cshtml`;
+- `SetorController.Resolver` (a tela do tipo) e as checagens de leitura, escrita e recurso
+  ligado pelo `AcessoAoRecursoDoSetor` — recurso desligado é 404 na leitura **e** na escrita;
+- a descrição da família `setor-{id}:write` em `IntranetPermissoes`.
+
+Nem todo recurso se encaixa nisso — antes de forçar um módulo na árvore, pergunte se ele
+pertence a **um** setor ou é transversal à Intranet. O Inventário é transversal: ver
+"Recursos sem setor dono" acima.

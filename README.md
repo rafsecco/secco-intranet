@@ -295,9 +295,12 @@ por setor).
 
 ### Próximos recursos do domínio (ainda não implementados)
 
-- `ItemVencimento` + `AvisoAntecedencia` (Fase 2): avisos de vencimento (certificados,
-  licenças...), com avisos escalonados.
 - Motor de processos (Fase 3): `ProcessoDefinicao` → `Etapa[]` → `ProcessoInstancia`.
+
+Os avisos de vencimento (certificados, licenças, contratos), com marcos escalonados, já existem
+como o item de menu `Vencimentos` de cada setor — ver a
+[spec](docs/specs/2026-10-24-aviso-de-vencimento-design.md) e a seção `Intranet:Vencimentos` do
+[guia de deploy](docs/guia-de-deploy.md).
 
 O catálogo de módulos por setor e o menu extensível já existem como a árvore `ItemMenu`, e a
 central de notificação in-app consome o `Secco.NotificationHub` direto, sem cópia local. Ver o

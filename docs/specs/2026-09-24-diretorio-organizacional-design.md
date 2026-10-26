@@ -162,6 +162,12 @@ risco que o flag existia para conter.
 `/diretorio/organograma`: árvore por gestor, em blocos `<details>` aninhados (recolhe e expande sem
 JavaScript e funciona nos dois temas).
 
+> **Revisto em 2026-10-24:** a árvore passou a ser o parcial `_Organograma` do contrato de tema
+> (`OrganogramaModel`), desenhada de cima para baixo com linhas conectoras em CSS e voltando a lista
+> recuada abaixo de 768px. Ganchos estáveis (`sc-org*`, `data-nivel`, `data-equipe`) deixam destaque
+> de ramo e animação para o tema do adotante — ver [`docs/temas.md`](../temas.md). As regras abaixo
+> não mudaram.
+
 - **Raízes:** quem tem equipe e não tem gestor ativo. Quem **não tem gestor nem equipe** vai para uma
   seção recolhida "Sem posição no organograma" — senão o topo viraria uma lista plana de centenas
   de nomes.

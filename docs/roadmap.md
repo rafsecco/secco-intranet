@@ -55,7 +55,8 @@ processos (maior risco técnico) só entra com a base já sólida.
       publicar/arquivar de Documentos e criar/editar/desativar/reativar de Setor. Fica fora,
       por decisão registrada no spec: **quem baixou qual documento** (auditoria de leitura,
       recusada por volume) e **quem entrou** (login — nunca esteve no escopo deste item)
-- [x] Diretório organizacional (perfil de colaborador, organograma básico) —
+- [x] Diretório organizacional (perfil de colaborador, organograma em árvore — parcial
+      `_Organograma` do contrato de tema desde 2026-10-24) —
       [spec](specs/2026-09-24-diretorio-organizacional-design.md): perfil complementar local por
       usuário do SecureGate, busca de pessoas, "Meu perfil" e edição pelo admin (cargo, setor e
       gestor só do admin), organograma por gestor com regra de ciclo, importação CSV em duas etapas,
