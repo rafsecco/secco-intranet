@@ -64,9 +64,16 @@ if ($Tema) {
 }
 
 if (-not $SemDocker) {
-    docker compose --project-directory $raiz up -d
+    # O docker escreve o progresso no stderr; com 'Stop' o PowerShell trata isso como erro e
+    # aborta mesmo com o compose dando certo. Quem decide o sucesso é o código de saída.
+    $preferenciaAnterior = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    # 2>&1 + ForEach-Object: o progresso sai como texto comum, não como ErrorRecord vermelho.
+    docker compose --project-directory $raiz up -d 2>&1 | ForEach-Object { "$_" }
+    $codigoDoCompose = $LASTEXITCODE
+    $ErrorActionPreference = $preferenciaAnterior
 
-    if ($LASTEXITCODE -ne 0) {
+    if ($codigoDoCompose -ne 0) {
         throw 'docker compose up falhou — o Docker está rodando?'
     }
 }
