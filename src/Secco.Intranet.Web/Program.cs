@@ -32,6 +32,9 @@ builder.Services.Configure<RouteOptions>(opcoes =>
 
 // Sistema de temas (ADR-0003/ADR-0004): o expander da precedencia as views do tema ativo.
 builder.Services.AddIntranetTheming();
+// Itens extras do menu principal (versoes de pacote: ADR-0011): o catalogo le as application
+// parts no primeiro uso, entao uma RCL externa so precisa estar referenciada.
+builder.Services.AddSingleton<CatalogoDeItensDoMenuPrincipal>();
 builder.Services.AddSingleton<IRenderizadorMarkdown, RenderizadorMarkdown>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAtorAtual, AtorDoHttpContext>();

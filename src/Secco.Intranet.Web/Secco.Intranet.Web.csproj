@@ -13,6 +13,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Secco.Intranet.Web.Theming\Secco.Intranet.Web.Theming.csproj" />
+    <!-- Contrato de extensao do menu principal: RCLs externas referenciam so este projeto. -->
+    <ProjectReference Include="..\Secco.Intranet.Web.Extensibility\Secco.Intranet.Web.Extensibility.csproj" />
     <!-- Temas de saida (ADR-0003): entram por referencia para que os assets de cada RCL
          sejam publicados; qual tema fica ativo e decidido em Intranet:Theme. Vertical e o
          padrao; Horizontal e o segundo tema oficial que a ADR-0003 ja previa. -->
