@@ -3,8 +3,9 @@
   <!-- Contrato de extensão do menu principal (mesmo raciocínio da ADR-0004 para o Theming): o
        único projeto que uma RCL externa precisa referenciar para acrescentar itens ao menu.
        Deliberadamente sem dependência de Secco.Intranet.Web nem de nenhum outro projeto do
-       produto — é o que quebra o ciclo, já que a Web referencia as RCLs externas. Só o BCL e o
-       framework compartilhado do ASP.NET (DependencyInjection.Abstractions vem nele). -->
+       produto — é o que quebra o ciclo, já que a Web referencia as RCLs externas. Depende só
+       do framework compartilhado do ASP.NET Core (DependencyInjection.Abstractions vem nele) e de
+       nenhum projeto do produto. -->
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>

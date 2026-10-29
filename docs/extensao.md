@@ -111,11 +111,12 @@ encontrado pelos dois caminhos aparece uma vez só.
 - **`Url`:** caminho local, começando com `/` e não com `//`. URL externa (`https://...`) não é
   aceita.
 - **`Icone`:** classe do Bootstrap Icons (`bi-*`) ou `null` para item sem ícone.
+- **`Rotulo`:** obrigatório; nulo, vazio ou só espaços deixa o item de fora.
 - **`Ordem` e `Rotulo`:** `Ordem` é a posição padrão entre os extras; no empate, vale o `Rotulo`
   (ordinal, sem diferenciar caixa).
 - **`Chave` duplicada:** vale a implementação de menor nome completo de tipo; a outra é ignorada.
 
-Item inválido (`Chave` ou `Url` fora das regras, `Chave` duplicada, exceção ao criar o item ou no
+Item inválido (`Chave`, `Rotulo` ou `Url` fora das regras, `Chave` duplicada, exceção ao criar o item ou no
 gate) **fica fora do menu e da tela de ordenação, com um aviso no log**, em vez de derrubar a
 aplicação: o menu está no layout de todas as telas, inclusive a de erro. Procure o aviso no log do
 `Secco.Intranet.Web`, que nomeia o tipo e a regra violada. No modo aberto de DEV o gate não é

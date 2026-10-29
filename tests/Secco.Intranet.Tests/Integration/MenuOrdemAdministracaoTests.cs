@@ -238,6 +238,36 @@ public class MenuOrdemAdministracaoTests(IntranetWebFactory factory) : IClassFix
 	}
 
 	[Fact]
+	public async Task Mover_GrupoInexistente_Recebe400_ENaoGrava()
+	{
+		await LimparPosicoesAsync(factory.TenantAlfa);
+
+		try
+		{
+			var resposta = await PostarAsync(Admin(), "mover", "99", "mural", paraCima: false);
+
+			resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+			using var escopo = factory.Services.CreateScope();
+			escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
+			var posicoes = await escopo.ServiceProvider.GetRequiredService<IPosicaoMenuRepository>().ListarAsync(CancellationToken.None);
+			posicoes.Should().NotContain(p => (int)p.Grupo == 99);
+		}
+		finally
+		{
+			await LimparPosicoesAsync(factory.TenantAlfa);
+		}
+	}
+
+	[Fact]
+	public async Task Restaurar_GrupoInexistente_Recebe400()
+	{
+		var resposta = await PostarAsync(Admin(), "restaurar", "99");
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+	}
+
+	[Fact]
 	public async Task TemaHorizontal_RenderizaATelaDeOrdenacao()
 	{
 		var client = Configurar(

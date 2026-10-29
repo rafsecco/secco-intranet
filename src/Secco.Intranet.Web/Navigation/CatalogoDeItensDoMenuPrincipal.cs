@@ -83,20 +83,31 @@ public sealed partial class CatalogoDeItensDoMenuPrincipal
 		return itens;
 	}
 
-	private static List<Type> DescobrirTipos(ApplicationPartManager partManager, IEnumerable<RegistroDeItemDeMenuPrincipal> registros)
+	private List<Type> DescobrirTipos(ApplicationPartManager partManager, IEnumerable<RegistroDeItemDeMenuPrincipal> registros)
 	{
-		var dasParts = partManager.ApplicationParts
-			.OfType<AssemblyPart>()
-			.SelectMany(p => p.Types)
-			.Select(t => t.AsType())
-			.Where(t => t.IsClass && !t.IsAbstract && t.IsVisible && !t.ContainsGenericParameters
-				&& typeof(IItemDeMenuPrincipal).IsAssignableFrom(t));
+		try
+		{
+			var dasParts = partManager.ApplicationParts
+				.OfType<AssemblyPart>()
+				.SelectMany(p => p.Types)
+				.Select(t => t.AsType())
+				.Where(t => t.IsClass && !t.IsAbstract && t.IsVisible && !t.ContainsGenericParameters
+					&& typeof(IItemDeMenuPrincipal).IsAssignableFrom(t));
 
-		return dasParts
-			.Concat(registros.Select(r => r.Tipo))
-			.Distinct()
-			.OrderBy(t => t.FullName, StringComparer.Ordinal)
-			.ToList();
+			return dasParts
+				.Concat(registros.Select(r => r.Tipo))
+				.Distinct()
+				.OrderBy(t => t.FullName, StringComparer.Ordinal)
+				.ToList();
+		}
+#pragma warning disable CA1031 // uma RCL externa quebrada nunca derruba a página
+		catch (Exception ex)
+#pragma warning restore CA1031
+		{
+			_logger.LogWarning(ex, "Não foi possível descobrir os itens extras do menu principal; o menu segue sem eles.");
+
+			return [];
+		}
 	}
 
 	private static string? Validar(IItemDeMenuPrincipal item)
@@ -110,6 +121,11 @@ public sealed partial class CatalogoDeItensDoMenuPrincipal
 		if (chave is ChaveMural or ChaveDiretorio)
 		{
 			return $"a chave '{chave}' é reservada aos itens fixos";
+		}
+
+		if (string.IsNullOrWhiteSpace(item.Rotulo))
+		{
+			return "o rótulo é obrigatório";
 		}
 
 		var url = item.Url;
@@ -129,6 +145,6 @@ public sealed partial class CatalogoDeItensDoMenuPrincipal
 		}
 	}
 
-	[GeneratedRegex("^[a-z0-9-]{1,64}$", RegexOptions.CultureInvariant)]
+	[GeneratedRegex(@"\A[a-z0-9-]{1,64}\z", RegexOptions.CultureInvariant)]
 	private static partial Regex ChaveValida();
 }

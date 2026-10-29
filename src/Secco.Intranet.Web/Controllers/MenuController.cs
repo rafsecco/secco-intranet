@@ -50,6 +50,11 @@ public sealed class MenuController(
 	[ValidateAntiForgeryToken]
 	public async Task<IActionResult> Mover(GrupoDoMenu grupo, string? chave, bool paraCima, CancellationToken cancellationToken = default)
 	{
+		if (!Enum.IsDefined(grupo))
+		{
+			return BadRequest();
+		}
+
 		var linhas = await LinhasAsync(grupo, cancellationToken);
 		var resultado = await moverPosicao.HandleAsync(
 			grupo, [.. linhas.Select(linha => linha.Chave)], chave ?? string.Empty, paraCima, cancellationToken);
@@ -64,6 +69,11 @@ public sealed class MenuController(
 	[ValidateAntiForgeryToken]
 	public async Task<IActionResult> Restaurar(GrupoDoMenu grupo, CancellationToken cancellationToken = default)
 	{
+		if (!Enum.IsDefined(grupo))
+		{
+			return BadRequest();
+		}
+
 		var resultado = await restaurarOrdem.HandleAsync(grupo, cancellationToken);
 
 		return Voltar(resultado, "Ordem padrão restaurada.");

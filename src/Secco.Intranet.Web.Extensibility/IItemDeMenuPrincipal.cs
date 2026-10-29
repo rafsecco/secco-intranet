@@ -20,7 +20,7 @@ public interface IItemDeMenuPrincipal
 	/// </summary>
 	string Chave { get; }
 
-	/// <summary>Texto exibido no menu.</summary>
+	/// <summary>Texto exibido no menu; obrigatório (nulo, vazio ou só espaços deixa o item de fora).</summary>
 	string Rotulo { get; }
 
 	/// <summary>Classe do Bootstrap Icons (<c>bi-*</c>); nulo para item sem ícone.</summary>

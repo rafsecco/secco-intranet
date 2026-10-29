@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Security.Claims;
 using AwesomeAssertions;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
@@ -100,6 +101,51 @@ public class CatalogoDeItensDoMenuPrincipalTests
 
 		log.Entradas.Where(e => e.Nivel == LogLevel.Warning && e.Mensagem.Contains(nameof(ItemChaveComEspaco), StringComparison.Ordinal))
 			.Should().ContainSingle();
+	}
+
+	[Fact]
+	public void Criar_IgnoraChaveComQuebraDeLinhaFinal()
+	{
+		Catalogo().Criar(Provider()).Select(i => i.GetType()).Should().NotContain(typeof(ItemChaveComQuebraDeLinha));
+	}
+
+	[Fact]
+	public void Criar_IgnoraRotuloEmBranco()
+	{
+		var tipos = Catalogo().Criar(Provider()).Select(i => i.GetType()).ToList();
+
+		tipos.Should().NotContain(typeof(ItemRotuloVazio));
+		tipos.Should().NotContain(typeof(ItemRotuloSoEspacos));
+	}
+
+	[Fact]
+	public void Criar_ItemQueLancaNoConstrutor_FicaDeFora_EAvisaUmaVez()
+	{
+		var log = new LoggerCapturador<CatalogoDeItensDoMenuPrincipal>();
+		var catalogo = Catalogo(log: log);
+
+		var primeira = catalogo.Criar(Provider());
+		var segunda = catalogo.Criar(Provider());
+
+		primeira.Select(i => i.GetType()).Should().NotContain(typeof(ItemQueLancaNoConstrutor));
+		segunda.Select(i => i.GetType()).Should().NotContain(typeof(ItemQueLancaNoConstrutor));
+		log.Entradas.Where(e => e.Nivel == LogLevel.Warning && e.Mensagem.Contains(nameof(ItemQueLancaNoConstrutor), StringComparison.Ordinal))
+			.Should().ContainSingle();
+	}
+
+	[Fact]
+	public void Criar_PartQueLancaAoListarTipos_DevolveVazio_EAvisa()
+	{
+		var parts = new ApplicationPartManager();
+		parts.ApplicationParts.Add(new AssemblyPart(new AssemblyQueLanca()));
+		var log = new LoggerCapturador<CatalogoDeItensDoMenuPrincipal>();
+		var catalogo = Catalogo(parts, log);
+
+		catalogo.Criar(Provider()).Should().BeEmpty();
+		var segunda = () => catalogo.Criar(Provider());
+
+		segunda.Should().NotThrow();
+		log.Entradas.Count(e => e.Nivel == LogLevel.Warning).Should().Be(1);
 	}
 
 	private static ServiceProvider Provider() => new ServiceCollection().AddSingleton<ServicoDeTeste>().BuildServiceProvider();
@@ -206,5 +252,37 @@ public class CatalogoDeItensDoMenuPrincipalTests
 	public sealed class ItemDuplicadoB : ItemBase
 	{
 		public override string Chave => "catalogo-duplicado";
+	}
+
+	public sealed class ItemChaveComQuebraDeLinha : ItemBase
+	{
+		public override string Chave => "catalogo-quebra\n";
+	}
+
+	public sealed class ItemRotuloVazio : ItemBase
+	{
+		public override string Chave => "catalogo-rotulo-vazio";
+
+		public override string Rotulo => "";
+	}
+
+	public sealed class ItemRotuloSoEspacos : ItemBase
+	{
+		public override string Chave => "catalogo-rotulo-espacos";
+
+		public override string Rotulo => "   ";
+	}
+
+	public sealed class ItemQueLancaNoConstrutor : ItemBase
+	{
+		public ItemQueLancaNoConstrutor() => throw new InvalidOperationException("falha de teste");
+
+		public override string Chave => "catalogo-lanca";
+	}
+
+	/// <summary>Assembly cuja lista de tipos lança, como uma RCL externa quebrada.</summary>
+	private sealed class AssemblyQueLanca : Assembly
+	{
+		public override IEnumerable<TypeInfo> DefinedTypes => throw new ReflectionTypeLoadException([], []);
 	}
 }
