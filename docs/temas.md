@@ -6,6 +6,8 @@ e [ADR-0004](adr/secco-intranet-adrs.md#adr-0004-contrato-de-tema-em-projeto-pr�
 
 > **A regra:** o core decide *o que* a página mostra; o tema decide *como* ela parece.
 
+Para acrescentar itens ao menu principal sem escrever um tema, veja [`extensao.md`](extensao.md).
+
 O core não sabe qual framework CSS você usa — carrega o que o seu tema declarar no
 `_Layout`. O tema padrão usa Bootstrap, mas isso não é exigência.
 

@@ -171,6 +171,13 @@ processos (maior risco técnico) só entra com a base já sólida.
       em Production) e federação Entra removida da Intranet. Nota de upgrade em
       [guia-de-deploy.md](guia-de-deploy.md)
 
+- [x] Menu principal extensível e ordenável: projeto `Secco.Intranet.Web.Extensibility` com
+      `IItemDeMenuPrincipal`, para uma RCL externa acrescentar itens ao grupo principal sem editar o
+      core (descoberta pelas application parts, gate de visibilidade por item), e tela `/menu`,
+      exclusiva do `intranet-admin`, para ordenar o grupo principal e a seção Setores por tenant
+      (`tb_posicoes_menu`) — [ADR-0011](adr/secco-intranet-adrs.md), [guia](extensao.md),
+      [spec](specs/2026-10-29-menu-extensivel-e-ordenavel-design.md). Issue #2
+
 ## Fase 2 — Operacional
 
 > Trocada de ordem com o controle de processos em 2026-10-22: os recursos daqui são mais simples e

@@ -5,7 +5,7 @@
 > Para mudar uma decisão, cria-se uma nova ADR que **substitui** a anterior — ADRs nunca são editadas retroativamente nem apagadas.
 > Decisões da plataforma (multi-tenancy, `Result<T>`, nomenclatura de banco...) estão em `secco-platform/docs/adr/secco-platform-adrs.md` — este documento cobre apenas decisões específicas deste produto.
 
-**Última atualização:** 2026-10-17 (ADR-0009 adicionada)
+**Última atualização:** 2026-10-29 (ADR-0011 adicionada)
 
 ---
 
@@ -524,3 +524,48 @@ do produto avaliou que o custo não se paga. A plataforma registrou a decisão n
   `securegate:tenant-manage` e `directory:read`, que alcança pessoas e perfis deste tenant e não a
   instalação. O `ListRoleMembers`, que faltava na lista do escopo, entrou em
   [secco-platform#47](https://github.com/rafsecco/secco-platform/issues/47).
+
+---
+
+## ADR-0011: Ponto de extensão do menu principal em projeto próprio (`Secco.Intranet.Web.Extensibility`)
+
+**Status:** Aceita
+**Data:** 2026-10-29
+
+### Contexto
+Os itens fixos do grupo principal do menu (Mural e Diretório) estavam escritos à mão em
+`IntranetNavigation.Build`. Quem adota a intranet e quer uma página própria no menu, fora da árvore
+de algum setor, tinha de editar `IntranetNavigation.cs` e `NavigationViewComponent.cs`, o que vira
+conflito a cada sincronização de um fork. A página em si já pode morar numa RCL separada; o único
+bloqueio era o item de menu.
+
+O contrato não pode morar no `Secco.Intranet.Web`: o Web referencia a RCL externa, então a RCL
+externa não pode referenciar o Web (o mesmo ciclo que motivou a ADR-0004). Junto veio um segundo
+pedido: o admin da instalação precisa decidir a ordem do menu, que era fixa no código.
+
+### Decisão
+1. **Projeto próprio, `Secco.Intranet.Web.Extensibility`**, sem referência a outro projeto do
+   produto. Expõe `IItemDeMenuPrincipal` e `AddItemDeMenuPrincipal<T>()`.
+2. **Descoberta pelas application parts do MVC**, feita pelo `CatalogoDeItensDoMenuPrincipal` no
+   primeiro uso (não no registro), somada aos tipos registrados por `AddItemDeMenuPrincipal<T>()`.
+   Quem estende só referencia o projeto da RCL no Web; não edita `Program.cs`.
+3. **`Chave` estável** (1 a 64 caracteres, `[a-z0-9-]`) é a identidade do item e o que o banco
+   guarda; `mural` e `diretorio` são reservadas.
+4. **Ordem por tenant**, em `tb_posicoes_menu`, para o grupo principal e para a seção Setores,
+   editada em `/menu` pelo `intranet-admin` (ADR-0008). Sem posição salva, vale a ordem padrão e o
+   menu fica como era.
+5. O item extra é uma folha, só com caminho local, no grupo principal; o tema continua recebendo uma
+   `NavigationModel` já resolvida (ADR-0004).
+
+### Consequências
+- Mudar `IItemDeMenuPrincipal` (inclusive acrescentar membro) quebra quem estende. Mudanças no
+  contrato são mudanças incompatíveis e pedem aviso.
+- Item inválido (`Chave` ou `Url` fora das regras, `Chave` duplicada, exceção ao criar o item ou no
+  gate) some do menu com um `LogWarning`, em vez de falhar o startup: o menu está no layout de todas
+  as telas, inclusive a de erro.
+- A ordem é do tenant e vale para todos; não há ordem por usuário. Reordenar não muda quem vê o quê.
+- A `Chave` não pode mudar depois de publicada, ou a posição salva vira órfã (é ignorada e removida
+  na próxima gravação).
+- O grupo Administração continua fixo, e item extra não muda de grupo nem tem filhos.
+- A primeira parte da `Url` de um item extra não deve coincidir com o slug de um setor, porque a rota
+  da RCL e a página do setor disputariam o caminho.

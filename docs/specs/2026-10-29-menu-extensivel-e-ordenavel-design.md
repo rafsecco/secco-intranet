@@ -1,7 +1,7 @@
 # Menu principal extensível e ordenável — desenho do recurso
 
 **Data:** 2026-10-29
-**Estado:** rascunho, aguardando aprovação
+**Estado:** aprovado, implementado
 **Origem:** issue #2 ("Ponto de extensão para itens fixos extras no menu principal"), ampliada na conversa de desenho com a ordenação pelo admin
 
 ## Problema
