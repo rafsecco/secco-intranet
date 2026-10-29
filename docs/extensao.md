@@ -125,8 +125,10 @@ chamado e todos os itens aparecem, como os demais itens do menu.
 O item fica ativo quando a rota atual corresponde ao caminho da `Url` (sem query string e sem `/`
 final).
 
-> **Cuidado com o slug de setor:** a primeira parte da `Url` não deve coincidir com o slug de um
-> setor existente. A rota da sua RCL e a página do setor (`/{slug}/...`) disputariam o caminho.
+> **Slug de setor:** o setor mora na raiz (`/{slug}/...`), então o primeiro segmento fixo de toda
+> rota registrada fica reservado automaticamente, inclusive as da sua RCL. Com `[HttpGet("/institucional")]`,
+> ninguém consegue criar um setor com slug `institucional`, e você não edita nada no core para isso.
+> Um setor que já existia com esse slug antes de a RCL entrar sai do menu, com um aviso no log.
 
 ## Quem decide a posição final
 

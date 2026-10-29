@@ -14,6 +14,7 @@ namespace Secco.Intranet.Web.Navigation;
 /// <param name="Arvores">Itens ativos da árvore de cada setor, por SetorId (de <c>ListarArvoresDosSetoresHandler</c>); setor sem entrada não aparece.</param>
 /// <param name="ItensExtras">Itens extras de projetos externos que o usuário pode ver.</param>
 /// <param name="Posicoes">Posições salvas do menu do tenant; nulo = ordem padrão.</param>
+/// <param name="SlugsReservados">Slugs que as rotas fixas ocupam; setor com um deles fica fora do menu. Nulo = nenhum.</param>
 public sealed record NavigationRequest(
 	IReadOnlyList<SetorDto> Setores,
 	string CaminhoAtual,
@@ -22,7 +23,8 @@ public sealed record NavigationRequest(
 	bool MostrarInventario,
 	IReadOnlyDictionary<Guid, IReadOnlyList<ItemMenuDto>>? Arvores = null,
 	IReadOnlyList<ItemExtraDoMenu>? ItensExtras = null,
-	PosicoesDoMenuDto? Posicoes = null);
+	PosicoesDoMenuDto? Posicoes = null,
+	ISlugsReservados? SlugsReservados = null);
 
 /// <summary>
 /// Montagem do menu. O Mural é o único item fixo que fala com a empresa toda; a seção Setores
@@ -51,6 +53,8 @@ public static class IntranetNavigation
 			.ToList();
 
 		var setores = OrdemDoMenu.Ordenar(request.Setores, setor => setor.Id.ToString("D"), request.Posicoes?.Setores)
+			// Setor com slug de rota fixa (criado antes da rota existir): a rota vence e o link daria 404.
+			.Where(setor => request.SlugsReservados?.Contem(setor.Slug) != true)
 			.Select(setor => SetorNoMenu(setor, request.Arvores, caminho))
 			.OfType<NavigationItemModel>()
 			.ToList();
@@ -128,8 +132,7 @@ public static class IntranetNavigation
 	private static NavigationItemModel? SetorNoMenu(
 		SetorDto setor, IReadOnlyDictionary<Guid, IReadOnlyList<ItemMenuDto>>? arvores, string caminho)
 	{
-		// Setor criado antes da lista de reservados: a rota fixa vence a dele e o link daria 404.
-		if (SlugsReservados.Contem(setor.Slug) || arvores is null || !arvores.TryGetValue(setor.Id, out var itens))
+		if (arvores is null || !arvores.TryGetValue(setor.Id, out var itens))
 		{
 			return null;
 		}

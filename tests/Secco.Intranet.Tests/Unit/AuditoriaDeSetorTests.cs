@@ -66,7 +66,7 @@ public class AuditoriaDeSetorTests
 	{
 		var trilha = new TrilhaFalsa();
 		var handler = new CreateSetorHandler(
-			new RepositorioFalso(setor: null), new IntranetOptions(), new ProvisionerFalso(), trilha, new ItemMenuRepositorioFalso());
+			new RepositorioFalso(setor: null), new IntranetOptions(), new ProvisionerFalso(), trilha, new ItemMenuRepositorioFalso(), new SlugsReservadosFalsos());
 
 		var resultado = await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
 

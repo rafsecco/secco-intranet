@@ -19,7 +19,7 @@ namespace Secco.Intranet.Web.Controllers;
 
 /// <summary>
 /// Página de um item da árvore de menu de um setor, em <c>/{setor}/{item}/…</c> na raiz da URL —
-/// as rotas fixas do produto vencem por precedência, e <c>SlugsReservados</c> impede setor com o
+/// as rotas fixas do produto vencem por precedência, e <c>ISlugsReservados</c> impede setor com o
 /// nome delas. O menu principal é quem navega a árvore; aqui só se resolve o nó pelo tipo.
 /// Separada de <c>SetoresController</c>, que é a administração do cadastro.
 /// </summary>

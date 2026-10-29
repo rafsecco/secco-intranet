@@ -13,6 +13,9 @@ namespace Secco.Intranet.Tests.Unit;
 /// <summary>Teste unitário do handler de criação de setor (ADR-0012): sem infraestrutura, fake da porta.</summary>
 public class CreateSetorHandlerTests
 {
+	// Os reservados de verdade vêm das rotas do Web (SlugsReservadosTests); aqui só importa a recusa.
+	private static readonly SlugsReservadosFalsos Reservados = new("mural", "setores", "acesso");
+
 	private sealed class TrilhaFalsa : ITrilhaDeAuditoria
 	{
 		public Task RegistrarAsync(RegistroDeAuditoria registro, CancellationToken cancellationToken = default) =>
@@ -67,7 +70,7 @@ public class CreateSetorHandlerTests
 	public async Task Handle_WithValidCommand_PersistsAndReturnsDto()
 	{
 		var repository = new FakeRepository();
-		var handler = new CreateSetorHandler(repository, Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), new ItemMenuRepositorioFalso());
+		var handler = new CreateSetorHandler(repository, Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), new ItemMenuRepositorioFalso(), Reservados);
 
 		var result = await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
 
@@ -81,7 +84,7 @@ public class CreateSetorHandlerTests
 	[InlineData("   ")]
 	public async Task Handle_WithoutNome_ReturnsValidationFailure(string? nome)
 	{
-		var handler = new CreateSetorHandler(new FakeRepository(), Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), new ItemMenuRepositorioFalso());
+		var handler = new CreateSetorHandler(new FakeRepository(), Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), new ItemMenuRepositorioFalso(), Reservados);
 
 		var result = await handler.HandleAsync(new CreateSetorCommand(nome, "financeiro"));
 
@@ -92,7 +95,7 @@ public class CreateSetorHandlerTests
 	[Fact]
 	public async Task Handle_WithNomeAboveLimit_ReturnsValidationFailure()
 	{
-		var handler = new CreateSetorHandler(new FakeRepository(), Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), new ItemMenuRepositorioFalso());
+		var handler = new CreateSetorHandler(new FakeRepository(), Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), new ItemMenuRepositorioFalso(), Reservados);
 
 		var result = await handler.HandleAsync(
 			new CreateSetorCommand(new string('x', Options.MaxNameLength + 1), "financeiro"));
@@ -105,7 +108,7 @@ public class CreateSetorHandlerTests
 	public async Task Handle_WithDuplicateSlug_ReturnsConflictFailure()
 	{
 		var repository = new FakeRepository();
-		var handler = new CreateSetorHandler(repository, Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), new ItemMenuRepositorioFalso());
+		var handler = new CreateSetorHandler(repository, Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), new ItemMenuRepositorioFalso(), Reservados);
 
 		await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
 		var result = await handler.HandleAsync(new CreateSetorCommand("Financeiro Filial", "financeiro"));
@@ -122,7 +125,7 @@ public class CreateSetorHandlerTests
 		{
 			ResultToReturn = Result.Failure(IntranetErrors.Setores.AccessProvisioningUnavailable),
 		};
-		var handler = new CreateSetorHandler(repository, Options, provisioner, new TrilhaFalsa(), new ItemMenuRepositorioFalso());
+		var handler = new CreateSetorHandler(repository, Options, provisioner, new TrilhaFalsa(), new ItemMenuRepositorioFalso(), Reservados);
 
 		var result = await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
 
@@ -135,7 +138,7 @@ public class CreateSetorHandlerTests
 	public async Task Handle_WithValidCommand_CallsProvisionerWithCommandSlug()
 	{
 		var provisioner = new FakeSetorAccessProvisioner();
-		var handler = new CreateSetorHandler(new FakeRepository(), Options, provisioner, new TrilhaFalsa(), new ItemMenuRepositorioFalso());
+		var handler = new CreateSetorHandler(new FakeRepository(), Options, provisioner, new TrilhaFalsa(), new ItemMenuRepositorioFalso(), Reservados);
 
 		await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
 
@@ -147,7 +150,7 @@ public class CreateSetorHandlerTests
 	{
 		var repository = new FakeRepository();
 		var itens = new ItemMenuRepositorioFalso();
-		var handler = new CreateSetorHandler(repository, Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), itens);
+		var handler = new CreateSetorHandler(repository, Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), itens, Reservados);
 
 		var resultado = await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
 
@@ -167,7 +170,7 @@ public class CreateSetorHandlerTests
 	{
 		var repository = new FakeRepository();
 		var itens = new ItemMenuRepositorioFalso();
-		var handler = new CreateSetorHandler(repository, Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), itens);
+		var handler = new CreateSetorHandler(repository, Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), itens, Reservados);
 
 		var resultado = await handler.HandleAsync(
 			new CreateSetorCommand("TI", "ti", HabilitarDocumentos: false, HabilitarAvisos: false));
@@ -181,7 +184,7 @@ public class CreateSetorHandlerTests
 	public async Task CreateSetor_ComHabilitarVencimentos_CriaOItem_DepoisDeDocumentos()
 	{
 		var itens = new ItemMenuRepositorioFalso();
-		var handler = new CreateSetorHandler(new FakeRepository(), Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), itens);
+		var handler = new CreateSetorHandler(new FakeRepository(), Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), itens, Reservados);
 
 		var resultado = await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro", HabilitarVencimentos: true));
 
@@ -201,7 +204,7 @@ public class CreateSetorHandlerTests
 	public async Task CreateSetor_PorPadrao_NaoCriaVencimentos()
 	{
 		var itens = new ItemMenuRepositorioFalso();
-		var handler = new CreateSetorHandler(new FakeRepository(), Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), itens);
+		var handler = new CreateSetorHandler(new FakeRepository(), Options, new FakeSetorAccessProvisioner(), new TrilhaFalsa(), itens, Reservados);
 
 		var resultado = await handler.HandleAsync(new CreateSetorCommand("Financeiro", "financeiro"));
 
@@ -213,16 +216,11 @@ public class CreateSetorHandlerTests
 	[InlineData("mural")]
 	[InlineData("Setores")]
 	[InlineData(" acesso ")]
-	[InlineData("setor")]
-	[InlineData("api")]
-	[InlineData(".well-known")]
-	[InlineData("signin-oidc")]
-	[InlineData("signout-callback-oidc")]
 	public async Task Handle_ComSlugReservado_RecusaSemProvisionarRoles(string slug)
 	{
 		var repository = new FakeRepository();
 		var provisioner = new FakeSetorAccessProvisioner();
-		var handler = new CreateSetorHandler(repository, Options, provisioner, new TrilhaFalsa(), new ItemMenuRepositorioFalso());
+		var handler = new CreateSetorHandler(repository, Options, provisioner, new TrilhaFalsa(), new ItemMenuRepositorioFalso(), Reservados);
 
 		var resultado = await handler.HandleAsync(new CreateSetorCommand("Qualquer", slug));
 

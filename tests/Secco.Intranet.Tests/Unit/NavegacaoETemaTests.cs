@@ -4,6 +4,7 @@ using Secco.Intranet;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Menu;
+using Secco.Intranet.Tests.Support;
 using Secco.Intranet.Web.Navigation;
 using Secco.Intranet.Web.Theming;
 using Secco.Intranet.Web.Theming.Contracts;
@@ -270,7 +271,7 @@ public class NavegacaoETemaTests
 	[Fact]
 	public void Build_SetorComSlugReservado_NaoApareceNoMenu()
 	{
-		// Criado antes da lista de reservados existir: a rota fixa vence e o link daria 404.
+		// Criado antes de a rota existir: a rota fixa vence e o link daria 404.
 		var setor = Setor("Documentos", "documentos");
 		var raiz = No(null, "Documentos", "documentos", TipoDeItemMenu.Setor);
 		var arvores = new Dictionary<Guid, IReadOnlyList<ItemMenuDto>>
@@ -278,7 +279,8 @@ public class NavegacaoETemaTests
 			[setor.Id] = [raiz, No(raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos)],
 		};
 
-		var menu = IntranetNavigation.Build(new NavigationRequest([setor], "/", false, false, false, arvores));
+		var menu = IntranetNavigation.Build(new NavigationRequest(
+			[setor], "/", false, false, false, arvores, SlugsReservados: new SlugsReservadosFalsos("documentos")));
 
 		menu.Grupos.Single(grupo => grupo.Titulo == "Setores").Itens.Should().BeEmpty();
 	}

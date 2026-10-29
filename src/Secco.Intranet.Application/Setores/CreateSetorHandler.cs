@@ -29,12 +29,14 @@ public sealed record CreateSetorCommand(
 /// <param name="accessProvisioner">Provisionamento das Roles do setor no SecureGate.</param>
 /// <param name="trilha">Trilha de auditoria.</param>
 /// <param name="itemMenuRepository">Persistência da árvore de itens de menu do setor.</param>
+/// <param name="slugsReservados">Slugs que as rotas fixas já ocupam.</param>
 public sealed class CreateSetorHandler(
 	ISetorRepository repository,
 	IntranetOptions options,
 	ISetorAccessProvisioner accessProvisioner,
 	ITrilhaDeAuditoria trilha,
-	IItemMenuRepository itemMenuRepository)
+	IItemMenuRepository itemMenuRepository,
+	ISlugsReservados slugsReservados)
 {
 	/// <summary>Executa o caso de uso.</summary>
 	/// <param name="command">Comando de criação.</param>
@@ -59,7 +61,7 @@ public sealed class CreateSetorHandler(
 		}
 
 		// O setor mora na raiz da URL; um slug igual a uma rota do produto ficaria inalcançável.
-		if (SlugsReservados.Contem(command.Slug))
+		if (slugsReservados.Contem(command.Slug))
 		{
 			return IntranetErrors.Setores.SlugReservado(command.Slug.Trim());
 		}

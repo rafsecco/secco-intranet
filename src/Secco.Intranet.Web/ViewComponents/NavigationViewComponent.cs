@@ -29,6 +29,7 @@ namespace Secco.Intranet.Web.ViewComponents;
 /// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura (ADR-0021).</param>
 /// <param name="catalogo">Catálogo dos itens extras de projetos externos.</param>
 /// <param name="authorizationService">Serviço de autorização do framework, para o nível do Diretório.</param>
+/// <param name="slugsReservados">Slugs que as rotas fixas ocupam; setor com um deles sai do menu.</param>
 /// <param name="logger">Log de diagnóstico.</param>
 public sealed class NavigationViewComponent(
 	IServiceProvider serviceProvider,
@@ -38,6 +39,7 @@ public sealed class NavigationViewComponent(
 	IPermissoesDeSetor permissoesDeSetor,
 	CatalogoDeItensDoMenuPrincipal catalogo,
 	IAuthorizationService authorizationService,
+	ISlugsReservados slugsReservados,
 	ILogger<NavigationViewComponent> logger) : ViewComponent
 {
 	/// <summary>Quantos setores o menu mostra; a tela de ordenação usa o mesmo limite para listar o que o menu pode exibir.</summary>
@@ -54,7 +56,7 @@ public sealed class NavigationViewComponent(
 
 		var setores = await CarregarSetoresAsync(HttpContext.User, exigirPermissao: !modoAberto).ConfigureAwait(false);
 
-		foreach (var setor in setores.Where(setor => SlugsReservados.Contem(setor.Slug)))
+		foreach (var setor in setores.Where(setor => slugsReservados.Contem(setor.Slug)))
 		{
 			// A montagem do menu tira o setor (o link daria 404); sem este aviso ele some calado.
 			logger.LogWarning(
@@ -75,7 +77,8 @@ public sealed class NavigationViewComponent(
 			ItensExtras: await GatesDoMenuPrincipal
 				.FiltrarAsync(catalogo.Criar(serviceProvider), HttpContext.User, modoAberto, logger, HttpContext.RequestAborted)
 				.ConfigureAwait(false),
-			Posicoes: await CarregarPosicoesAsync().ConfigureAwait(false));
+			Posicoes: await CarregarPosicoesAsync().ConfigureAwait(false),
+			SlugsReservados: slugsReservados);
 
 		return View(IntranetNavigation.Build(request));
 	}
