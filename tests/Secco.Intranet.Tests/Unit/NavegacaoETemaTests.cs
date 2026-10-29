@@ -114,6 +114,20 @@ public class NavegacaoETemaTests
 	}
 
 	[Fact]
+	public void Build_ComMostrarAdministracao_TemOItemMenuDepoisDeAcesso()
+	{
+		var menu = IntranetNavigation.Build(
+			new NavigationRequest([], "/menu", MostrarAdministracao: true, MostrarDiretorio: false, MostrarInventario: false));
+
+		var administracao = menu.Grupos.Single(grupo => grupo.Titulo == "Administração").Itens;
+
+		administracao.Select(item => item.Texto).Should().Equal("Setores", "Acesso", "Menu");
+		administracao[2].Url.Should().Be("/menu");
+		administracao[2].Icone.Should().Be("bi-list-ol");
+		administracao[2].Ativo.Should().BeTrue();
+	}
+
+	[Fact]
 	public void Build_ComAcessoAoDiretorio_OfereceODiretorio()
 	{
 		var menu = IntranetNavigation.Build(
@@ -230,7 +244,7 @@ public class NavegacaoETemaTests
 
 		menu.Grupos.Single(grupo => grupo.Titulo is null).Itens.Should().NotContain(item => item.Texto == "Inventário");
 		menu.Grupos.Single(grupo => grupo.Titulo == "Administração").Itens.Select(item => item.Texto)
-			.Should().Equal("Setores", "Acesso", "Inventário");
+			.Should().Equal("Setores", "Acesso", "Menu", "Inventário");
 	}
 
 	[Fact]

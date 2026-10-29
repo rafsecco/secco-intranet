@@ -1,0 +1,70 @@
+@using Secco.Intranet.Domain.Menu
+@model MenuOrdemViewModel
+@{
+    ViewData["Title"] = "Menu";
+
+    var cabecalho = new PageHeaderModel(
+        "Menu",
+        "Ordem dos itens do menu deste tenant. Item novo entra no fim da lista; Restaurar padrão volta à ordem de fábrica.");
+
+    var grupos = new[]
+    {
+        (Grupo: GrupoDoMenu.Principal, Titulo: "Principal", Linhas: Model.Principal, Vazio: "Nenhum item"),
+        (Grupo: GrupoDoMenu.Setores, Titulo: "Setores", Linhas: Model.Setores, Vazio: "Nenhum setor ativo"),
+    };
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-stack">
+    @foreach (var (grupo, titulo, linhas, vazio) in grupos)
+    {
+        Func<object?, Microsoft.AspNetCore.Html.IHtmlContent> corpo = @<text>
+            @if (linhas.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyStateModel("bi-list-ol", vazio, "Nada para ordenar aqui por enquanto."))" />
+            }
+            else
+            {
+                <ul class="sc-list mb-3">
+                    @for (var i = 0; i < linhas.Count; i++)
+                    {
+                        var linha = linhas[i];
+                        <li class="sc-list__item" data-grupo="@grupo" data-chave="@linha.Chave">
+                            <div class="sc-list__text">
+                                <p class="sc-list__title">
+                                    @if (!string.IsNullOrWhiteSpace(linha.Icone))
+                                    {
+                                        <i class="bi @linha.Icone" aria-hidden="true"></i>
+                                    }
+                                    @linha.Rotulo
+                                </p>
+                                <div class="d-flex gap-2">
+                                    <form method="post" asp-action="Mover" class="d-inline">
+                                        <input type="hidden" name="grupo" value="@grupo" />
+                                        <input type="hidden" name="chave" value="@linha.Chave" />
+                                        <input type="hidden" name="paraCima" value="true" />
+                                        <button class="btn btn-sm btn-outline-secondary" type="submit" aria-label="Subir @linha.Rotulo" disabled="@(i == 0)">&uarr;</button>
+                                    </form>
+                                    <form method="post" asp-action="Mover" class="d-inline">
+                                        <input type="hidden" name="grupo" value="@grupo" />
+                                        <input type="hidden" name="chave" value="@linha.Chave" />
+                                        <input type="hidden" name="paraCima" value="false" />
+                                        <button class="btn btn-sm btn-outline-secondary" type="submit" aria-label="Descer @linha.Rotulo" disabled="@(i == linhas.Count - 1)">&darr;</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </li>
+                    }
+                </ul>
+                <form method="post" asp-action="Restaurar" class="d-inline"
+                      data-confirmar="Restaurar a ordem padrão do grupo &quot;@titulo&quot;? As posições salvas serão apagadas.">
+                    <input type="hidden" name="grupo" value="@grupo" />
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Restaurar padrão</button>
+                </form>
+            }
+        </text>;
+
+        <partial name="_Card" model="@(new CardModel(titulo, Corpo: corpo(null)))" />
+    }
+</div>

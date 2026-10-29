@@ -40,7 +40,8 @@ public sealed class NavigationViewComponent(
 	IAuthorizationService authorizationService,
 	ILogger<NavigationViewComponent> logger) : ViewComponent
 {
-	private const int LimiteSetoresNoMenu = 50;
+	/// <summary>Quantos setores o menu mostra; a tela de ordenação usa o mesmo limite para listar o que o menu pode exibir.</summary>
+	internal const int LimiteSetoresNoMenu = 50;
 
 	/// <summary>Renderiza o menu.</summary>
 	public async Task<IViewComponentResult> InvokeAsync()
