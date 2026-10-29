@@ -27,8 +27,8 @@ Um projeto Razor Class Library com a sua página (controller e views), como qual
 </ItemGroup>
 ```
 
-O projeto do contrato não depende de nenhum outro projeto do produto, só do BCL e de
-`Microsoft.Extensions.DependencyInjection.Abstractions`.
+O projeto do contrato não depende de nenhum outro projeto do produto, só do framework compartilhado do ASP.NET Core
+(`Microsoft.AspNetCore.App`).
 
 ### 3. Implementar `IItemDeMenuPrincipal`
 
@@ -54,6 +54,10 @@ O item é instanciado a cada requisição, então o construtor pode receber serv
 por permissão, injete o `IAuthorizationService`:
 
 ```csharp
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Secco.Intranet.Web.Extensibility;
+
 public sealed class ItemRelatorios(IAuthorizationService autorizacao) : IItemDeMenuPrincipal
 {
 	public string Chave => "relatorios";
