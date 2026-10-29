@@ -51,6 +51,12 @@ public static class VerbosDeAuditoria
 	/// <summary>Reconciliação em lote das árvores de menu dos setores antigos.</summary>
 	public const string MenuReconciliar = "menu.reconciliar";
 
+	/// <summary>Item do menu principal ou setor trocou de posição.</summary>
+	public const string MenuOrdemMover = "menu.ordem-mover";
+
+	/// <summary>Ordem de um grupo do menu devolvida ao padrão.</summary>
+	public const string MenuOrdemRestaurar = "menu.ordem-restaurar";
+
 	/// <summary>Item de inventário criado.</summary>
 	public const string InventarioCriar = "inventario.criar";
 

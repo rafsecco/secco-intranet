@@ -21,4 +21,11 @@ internal static class AuditoriaDeMenu
 				VerbosDeAuditoria.MenuReconciliar, RecursosDeAuditoria.Menu, "reconciliacao",
 				JsonSerializer.Serialize(new { setores })),
 			cancellationToken);
+
+	/// <summary>Registra uma mudança de ordem do menu; <paramref name="recursoId"/> é a chave movida ou o grupo restaurado.</summary>
+	public static Task OrdemAsync(
+		ITrilhaDeAuditoria trilha, string verbo, string recursoId, object dados, CancellationToken cancellationToken) =>
+		trilha.RegistrarAsync(
+			new RegistroDeAuditoria(verbo, RecursosDeAuditoria.Menu, recursoId, JsonSerializer.Serialize(dados)),
+			cancellationToken);
 }

@@ -434,6 +434,10 @@ public static class IntranetErrors
 		public static readonly Error NotFound =
 			Error.NotFound("Intranet.Menu.NotFound", "Item de menu não encontrado.");
 
+		/// <summary>A chave a mover não está mais na lista do menu.</summary>
+		public static readonly Error PosicaoNotFound =
+			Error.NotFound("Intranet.Menu.PosicaoNotFound", "O item não está mais no menu.");
+
 		/// <summary>A linha raiz (Tipo = Setor) não é criável/editável/excluível pela tela.</summary>
 		public static readonly Error RaizProtegida =
 			Error.Validation("Intranet.Menu.RaizProtegida", "O item raiz do setor não pode ser alterado por aqui.");
