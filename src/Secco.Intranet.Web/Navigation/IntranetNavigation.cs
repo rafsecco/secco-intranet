@@ -12,13 +12,17 @@ namespace Secco.Intranet.Web.Navigation;
 /// <param name="MostrarDiretorio">Se o item Diretório deve aparecer (nível de acesso de Usuário ou acima).</param>
 /// <param name="MostrarInventario">Se o item de menu do Inventário deve aparecer.</param>
 /// <param name="Arvores">Itens ativos da árvore de cada setor, por SetorId (de <c>ListarArvoresDosSetoresHandler</c>); setor sem entrada não aparece.</param>
+/// <param name="ItensExtras">Itens extras de projetos externos que o usuário pode ver.</param>
+/// <param name="Posicoes">Posições salvas do menu do tenant; nulo = ordem padrão.</param>
 public sealed record NavigationRequest(
 	IReadOnlyList<SetorDto> Setores,
 	string CaminhoAtual,
 	bool MostrarAdministracao,
 	bool MostrarDiretorio,
 	bool MostrarInventario,
-	IReadOnlyDictionary<Guid, IReadOnlyList<ItemMenuDto>>? Arvores = null);
+	IReadOnlyDictionary<Guid, IReadOnlyList<ItemMenuDto>>? Arvores = null,
+	IReadOnlyList<ItemExtraDoMenu>? ItensExtras = null,
+	PosicoesDoMenuDto? Posicoes = null);
 
 /// <summary>
 /// Montagem do menu. O Mural é o único item fixo que fala com a empresa toda; a seção Setores
@@ -34,18 +38,19 @@ public static class IntranetNavigation
 
 		var caminho = string.IsNullOrWhiteSpace(request.CaminhoAtual) ? "/" : request.CaminhoAtual;
 
-		var principais = new List<NavigationItemModel>
-		{
-			new("Mural", "bi-megaphone", "/", EhMural(caminho)),
-		};
+		var padrao = PrincipalNaOrdemPadrao(request.MostrarDiretorio, request.ItensExtras ?? []);
 
-		if (request.MostrarDiretorio)
-		{
-			principais.Add(new NavigationItemModel(
-				"Diretório", "bi-people", "/diretorio", Corresponde(caminho, "/diretorio")));
-		}
+		var principais = OrdemDoMenu.Ordenar(padrao, entrada => entrada.Chave, request.Posicoes?.Principal)
+			.Select(entrada => new NavigationItemModel(
+				entrada.Rotulo,
+				entrada.Icone,
+				entrada.Url,
+				entrada.Chave == CatalogoDeItensDoMenuPrincipal.ChaveMural
+					? EhMural(caminho)
+					: Corresponde(caminho, CaminhoDe(entrada.Url))))
+			.ToList();
 
-		var setores = request.Setores
+		var setores = OrdemDoMenu.Ordenar(request.Setores, setor => setor.Id.ToString("D"), request.Posicoes?.Setores)
 			.Select(setor => SetorNoMenu(setor, request.Arvores, caminho))
 			.OfType<NavigationItemModel>()
 			.ToList();
@@ -78,6 +83,44 @@ public static class IntranetNavigation
 		}
 
 		return new NavigationModel(grupos);
+	}
+
+	/// <summary>
+	/// Entradas do grupo principal na ordem padrão: Mural, Diretório (se pedido) e os extras por
+	/// <see cref="ItemExtraDoMenu.Ordem"/> e depois <see cref="ItemExtraDoMenu.Rotulo"/>.
+	/// </summary>
+	/// <param name="incluirDiretorio">Se o Diretório entra.</param>
+	/// <param name="extras">Itens extras visíveis.</param>
+	public static IReadOnlyList<EntradaDoMenuPrincipal> PrincipalNaOrdemPadrao(bool incluirDiretorio, IEnumerable<ItemExtraDoMenu> extras)
+	{
+		ArgumentNullException.ThrowIfNull(extras);
+
+		var entradas = new List<EntradaDoMenuPrincipal>
+		{
+			new(CatalogoDeItensDoMenuPrincipal.ChaveMural, "Mural", "bi-megaphone", "/"),
+		};
+
+		if (incluirDiretorio)
+		{
+			entradas.Add(new EntradaDoMenuPrincipal(CatalogoDeItensDoMenuPrincipal.ChaveDiretorio, "Diretório", "bi-people", "/diretorio"));
+		}
+
+		entradas.AddRange(extras
+			.OrderBy(extra => extra.Ordem)
+			.ThenBy(extra => extra.Rotulo, StringComparer.OrdinalIgnoreCase)
+			.Select(extra => new EntradaDoMenuPrincipal(extra.Chave, extra.Rotulo, extra.Icone, extra.Url)));
+
+		return entradas;
+	}
+
+	/// <summary>Caminho de uma URL: sem query nem fragmento e sem a barra final (exceto a raiz).</summary>
+	private static string CaminhoDe(string url)
+	{
+		var corte = url.IndexOfAny(['?', '#']);
+		var caminho = corte < 0 ? url : url[..corte];
+		var semBarra = caminho.TrimEnd('/');
+
+		return semBarra.Length == 0 ? "/" : semBarra;
 	}
 
 	/// <summary>O setor como nó de nível 0, sem link; nulo se nada debaixo dele leva a algum lugar.</summary>

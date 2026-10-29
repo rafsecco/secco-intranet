@@ -268,4 +268,109 @@ public class NavegacaoETemaTests
 
 		menu.Grupos.Single(grupo => grupo.Titulo == "Setores").Itens.Should().BeEmpty();
 	}
+
+	private static ItemExtraDoMenu Extra(string chave, string rotulo, int ordem = 0, string? url = null) =>
+		new(chave, rotulo, "bi-star", url ?? $"/{chave}", ordem);
+
+	private static PosicoesDoMenuDto Posicoes(
+		IReadOnlyDictionary<string, int>? principal = null, IReadOnlyDictionary<string, int>? setores = null) =>
+		new(principal ?? new Dictionary<string, int>(), setores ?? new Dictionary<string, int>());
+
+	private static IReadOnlyList<string> Principal(NavigationModel menu) =>
+		menu.Grupos.Single(grupo => grupo.Titulo is null).Itens.Select(item => item.Texto).ToList();
+
+	private static (SetorDto Setor, Dictionary<Guid, IReadOnlyList<ItemMenuDto>> Arvores) SetorComArvore(string nome, string slug)
+	{
+		var setor = Setor(nome, slug);
+		var raiz = No(null, nome, slug, TipoDeItemMenu.Setor);
+
+		return (setor, new Dictionary<Guid, IReadOnlyList<ItemMenuDto>>
+		{
+			[setor.Id] = [raiz, No(raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos)],
+		});
+	}
+
+	[Fact]
+	public void Build_ComItemExtra_EntraDepoisDosFixos()
+	{
+		var menu = IntranetNavigation.Build(new NavigationRequest(
+			[], "/", false, MostrarDiretorio: true, false, ItensExtras: [Extra("institucional", "Institucional")]));
+
+		Principal(menu).Should().Equal("Mural", "Diretório", "Institucional");
+	}
+
+	[Fact]
+	public void Build_ExtrasPorOrdem_EDepoisPorRotulo()
+	{
+		var menu = IntranetNavigation.Build(new NavigationRequest(
+			[], "/", false, false, false,
+			ItensExtras: [Extra("b", "Beta", 1), Extra("a", "Alfa", 1), Extra("z", "Zeta", 0)]));
+
+		Principal(menu).Should().Equal("Mural", "Zeta", "Alfa", "Beta");
+	}
+
+	[Fact]
+	public void Build_ComPosicoes_ReordenaOPrincipalInclusiveOsFixos()
+	{
+		var posicoes = Posicoes(new Dictionary<string, int> { ["institucional"] = 0, ["mural"] = 1, ["diretorio"] = 2 });
+
+		var menu = IntranetNavigation.Build(new NavigationRequest(
+			[], "/", false, MostrarDiretorio: true, false,
+			ItensExtras: [Extra("institucional", "Institucional")], Posicoes: posicoes));
+
+		Principal(menu).Should().Equal("Institucional", "Mural", "Diretório");
+	}
+
+	[Fact]
+	public void Build_ComPosicoesDeSetores_ReordenaASecaoSetores()
+	{
+		var (setorA, arvoresA) = SetorComArvore("A", "setor-a");
+		var (setorB, arvoresB) = SetorComArvore("B", "setor-b");
+		var arvores = arvoresA.Concat(arvoresB).ToDictionary(par => par.Key, par => par.Value);
+		var posicoes = Posicoes(setores: new Dictionary<string, int> { [setorB.Id.ToString("D")] = 0 });
+
+		var menu = IntranetNavigation.Build(new NavigationRequest(
+			[setorA, setorB], "/", false, false, false, arvores, Posicoes: posicoes));
+
+		menu.Grupos.Single(grupo => grupo.Titulo == "Setores").Itens.Select(item => item.Texto).Should().Equal("B", "A");
+	}
+
+	[Fact]
+	public void Build_ItemExtraNaRotaDele_FicaAtivo()
+	{
+		var menu = IntranetNavigation.Build(new NavigationRequest(
+			[], "/institucional/historia", false, false, false, ItensExtras: [Extra("institucional", "Institucional")]));
+
+		menu.Grupos.SelectMany(grupo => grupo.Itens).Where(item => item.Ativo)
+			.Should().ContainSingle().Which.Texto.Should().Be("Institucional");
+	}
+
+	[Fact]
+	public void Build_ItemExtraComQueryEBarraFinal_FicaAtivoPeloCaminho()
+	{
+		var menu = IntranetNavigation.Build(new NavigationRequest(
+			[], "/institucional", false, false, false,
+			ItensExtras: [Extra("institucional", "Institucional", url: "/institucional/?aba=1")]));
+
+		menu.Grupos.SelectMany(grupo => grupo.Itens).Single(item => item.Texto == "Institucional").Ativo.Should().BeTrue();
+	}
+
+	[Fact]
+	public void Build_PosicaoDoDiretorio_SemAcessoAoDiretorio_NaoFazODiretorioAparecer()
+	{
+		var posicoes = Posicoes(new Dictionary<string, int> { ["diretorio"] = 0 });
+
+		var menu = IntranetNavigation.Build(new NavigationRequest(
+			[], "/", false, MostrarDiretorio: false, false, Posicoes: posicoes));
+
+		Principal(menu).Should().Equal("Mural");
+	}
+
+	[Fact]
+	public void PrincipalNaOrdemPadrao_DevolveMuralDiretorioEExtras()
+	{
+		var entradas = IntranetNavigation.PrincipalNaOrdemPadrao(true, [Extra("x", "X")]);
+
+		entradas.Select(e => e.Chave).Should().Equal("mural", "diretorio", "x");
+	}
 }

@@ -27,6 +27,7 @@ namespace Secco.Intranet.Web.ViewComponents;
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
 /// <param name="environment">Ambiente de hospedagem, para o modo aberto de DEV.</param>
 /// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura (ADR-0021).</param>
+/// <param name="catalogo">Catálogo dos itens extras de projetos externos.</param>
 /// <param name="authorizationService">Serviço de autorização do framework, para o nível do Diretório.</param>
 /// <param name="logger">Log de diagnóstico.</param>
 public sealed class NavigationViewComponent(
@@ -35,6 +36,7 @@ public sealed class NavigationViewComponent(
 	IConfiguration configuration,
 	IWebHostEnvironment environment,
 	IPermissoesDeSetor permissoesDeSetor,
+	CatalogoDeItensDoMenuPrincipal catalogo,
 	IAuthorizationService authorizationService,
 	ILogger<NavigationViewComponent> logger) : ViewComponent
 {
@@ -68,9 +70,37 @@ public sealed class NavigationViewComponent(
 			MostrarInventario: modoAberto
 				|| AcessoAdministrativo.TemAcesso(HttpContext.User, AcessoAdministrativo.RoleInventarioAdmin)
 				|| (await authorizationService.AuthorizeAsync(HttpContext.User, IntranetPermissoes.Inventario.Read).ConfigureAwait(false)).Succeeded,
-			Arvores: await CarregarArvoresAsync(setores).ConfigureAwait(false));
+			Arvores: await CarregarArvoresAsync(setores).ConfigureAwait(false),
+			ItensExtras: await GatesDoMenuPrincipal
+				.FiltrarAsync(catalogo.Criar(serviceProvider), HttpContext.User, modoAberto, logger, HttpContext.RequestAborted)
+				.ConfigureAwait(false),
+			Posicoes: await CarregarPosicoesAsync().ConfigureAwait(false));
 
 		return View(IntranetNavigation.Build(request));
+	}
+
+	private async Task<PosicoesDoMenuDto> CarregarPosicoesAsync()
+	{
+		// Sem tenant não há banco a consultar: ordem padrão.
+		if (!tenantContext.IsResolved)
+		{
+			return PosicoesDoMenuDto.Vazias;
+		}
+
+		try
+		{
+			return await serviceProvider
+				.GetRequiredService<ObterPosicoesDoMenuHandler>()
+				.HandleAsync(HttpContext.RequestAborted)
+				.ConfigureAwait(false);
+		}
+#pragma warning disable CA1031 // Mesmo motivo de CarregarSetoresAsync: o menu está no layout.
+		catch (Exception exception)
+#pragma warning restore CA1031
+		{
+			logger.LogWarning(exception, "Não foi possível carregar as posições do menu; usando a ordem padrão.");
+			return PosicoesDoMenuDto.Vazias;
+		}
 	}
 
 	private async Task<IReadOnlyDictionary<Guid, IReadOnlyList<ItemMenuDto>>?> CarregarArvoresAsync(IReadOnlyList<SetorDto> setores)

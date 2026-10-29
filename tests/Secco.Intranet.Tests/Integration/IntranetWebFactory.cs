@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Diretorio;
@@ -125,6 +126,11 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 	protected override void ConfigureTestServices(IServiceCollection services)
 	{
 		services.AddSingleton<IStartupFilter, RolesDeTesteStartupFilter>();
+		// É assim que o "projeto externo" é simulado: o assembly de testes entra como application part,
+		// e os IItemDeMenuPrincipal públicos dele são descobertos pelo catálogo como seriam os de um
+		// projeto referenciado.
+		services.AddMvcCore().ConfigureApplicationPartManager(manager =>
+			manager.ApplicationParts.Add(new AssemblyPart(typeof(IntranetWebFactory).Assembly)));
 		services.AddScoped<IGestaoDeAcesso>(serviceProvider =>
 			GestaoDeAcesso ?? ActivatorUtilities.CreateInstance<GestaoDeAcessoIndisponivel>(serviceProvider));
 		services.AddScoped<IUsuariosParaDiretorio>(_ => UsuariosDoDiretorio ?? new UsuariosParaDiretorioIndisponivel());
