@@ -302,6 +302,37 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
                     b.ToTable("tb_itens_menu");
                 });
 
+            modelBuilder.Entity("Secco.Intranet.Domain.Menu.PosicaoMenu", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id_pk_posicao_menu");
+
+                    b.Property<string>("Chave")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("ds_chave");
+
+                    b.Property<int>("Grupo")
+                        .HasColumnType("int")
+                        .HasColumnName("ie_grupo");
+
+                    b.Property<int>("Ordem")
+                        .HasColumnType("int")
+                        .HasColumnName("nr_ordem");
+
+                    b.HasKey("Id")
+                        .HasName("pk_posicoes_menu");
+
+                    b.HasIndex("Grupo", "Chave")
+                        .IsUnique()
+                        .HasDatabaseName("uk_posicoes_menu_ie_grupo_ds_chave");
+
+                    b.ToTable("tb_posicoes_menu");
+                });
+
             modelBuilder.Entity("Secco.Intranet.Domain.Publicacoes.Publicacao", b =>
                 {
                     b.Property<Guid>("Id")
