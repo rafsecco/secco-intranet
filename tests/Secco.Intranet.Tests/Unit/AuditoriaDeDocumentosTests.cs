@@ -44,6 +44,15 @@ public class AuditoriaDeDocumentosTests
 			string setorSlug,
 			CancellationToken cancellationToken = default) =>
 			Task.FromResult<IReadOnlyList<DocumentoDto>>([]);
+
+		public Task<IReadOnlyList<Documento>> ListarIrmaosAsync(
+			Guid setorId,
+			Guid? parentId,
+			CancellationToken cancellationToken = default) =>
+			throw new NotImplementedException();
+
+		public Task<bool> TemFilhosAtivosAsync(Guid documentoId, CancellationToken cancellationToken = default) =>
+			throw new NotImplementedException();
 	}
 
 	private static DocumentoComSetor Existente()

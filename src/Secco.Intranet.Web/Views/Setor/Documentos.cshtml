@@ -87,7 +87,7 @@ else
                 <div class="sc-list__text">
                     <p class="sc-list__title">@documento.Titulo</p>
                     <span class="sc-list__sub">
-                        <span class="sc-meta">@Tamanho(documento.Tamanho) · @documento.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</span>
+                        <span class="sc-meta">@Tamanho(documento.Tamanho ?? 0) · @documento.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</span>
                         <partial name="_Badge" model="badge" />
                     </span>
                     @if (documento.Descricao is not null)

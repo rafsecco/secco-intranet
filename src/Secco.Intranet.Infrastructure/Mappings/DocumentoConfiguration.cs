@@ -22,6 +22,13 @@ internal sealed class DocumentoConfiguration : IEntityTypeConfiguration<Document
 			.HasForeignKey(documento => documento.SetorId)
 			.OnDelete(DeleteBehavior.Restrict);
 
+		builder
+			.HasOne<Documento>()
+			.WithMany()
+			.HasForeignKey(documento => documento.ParentId)
+			.OnDelete(DeleteBehavior.Restrict)
+			.IsRequired(false);
+
 		// Sem limite explicito o provider gera nvarchar(max)/text para tudo. Caminho e chave
 		// embrulhada tem tamanho conhecido; titulo e descricao seguem os limites de entrada.
 		builder.Property(documento => documento.Titulo).HasMaxLength(256);
@@ -32,7 +39,7 @@ internal sealed class DocumentoConfiguration : IEntityTypeConfiguration<Document
 		builder.Property(documento => documento.ChaveEmbrulhada).HasMaxLength(256);
 		builder.Property(documento => documento.CriadoPor).HasMaxLength(256);
 
-		builder.HasIndex(documento => documento.SetorId);
+		builder.HasIndex(documento => new { documento.SetorId, documento.ParentId, documento.Ordem });
 		builder.HasIndex(documento => documento.Ativo);
 		builder.HasIndex(documento => documento.CreatedAt);
 	}

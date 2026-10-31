@@ -3,10 +3,21 @@ using Secco.SharedKernel.Exceptions;
 
 namespace Secco.Intranet.Domain.Documentos;
 
+/// <summary>Natureza de um item da lista de documentos.</summary>
+public enum TipoDeDocumento
+{
+	/// <summary>Documento com arquivo anexado.</summary>
+	Arquivo = 1,
+
+	/// <summary>Grupo sem arquivo, que contém documentos abaixo dele.</summary>
+	Grupo = 2,
+}
+
 /// <summary>
-/// Documento publicado por um setor. A entidade guarda apenas os metadados; os bytes ficam
-/// no <c>IArquivoStore</c>, cifrados, endereçados por <see cref="CaminhoRelativo"/> e
-/// destrancados pela <see cref="ChaveEmbrulhada"/>.
+/// Documento publicado por um setor, ou grupo que reúne documentos. Para um arquivo, a entidade
+/// guarda apenas os metadados; os bytes ficam no <c>IArquivoStore</c>, cifrados, endereçados por
+/// <see cref="CaminhoRelativo"/> e destrancados pela <see cref="ChaveEmbrulhada"/>. Um grupo não
+/// tem arquivo, então esses campos são nulos.
 /// </summary>
 public sealed class Documento : BaseEntity
 {
@@ -14,14 +25,10 @@ public sealed class Documento : BaseEntity
 	{
 		// Construtor de rehidratação do EF Core
 		Titulo = string.Empty;
-		NomeArquivo = string.Empty;
-		ContentType = string.Empty;
-		CaminhoRelativo = string.Empty;
-		ChaveEmbrulhada = string.Empty;
 		CriadoPor = string.Empty;
 	}
 
-	/// <summary>Cria um documento já gravado no armazenamento.</summary>
+	/// <summary>Cria um documento (arquivo) já gravado no armazenamento.</summary>
 	/// <param name="setorId">Setor dono. Obrigatório.</param>
 	/// <param name="titulo">Título de exibição. Obrigatório.</param>
 	/// <param name="descricao">Descrição livre. Opcional.</param>
@@ -32,6 +39,8 @@ public sealed class Documento : BaseEntity
 	/// <param name="caminhoRelativo">Endereço opaco devolvido pelo armazenamento.</param>
 	/// <param name="chaveEmbrulhada">Chave do arquivo, cifrada pela chave mestra.</param>
 	/// <param name="criadoPor">Identificação de quem publicou.</param>
+	/// <param name="parentId">Grupo que contém o documento; <c>null</c> na raiz.</param>
+	/// <param name="ordem">Posição entre os irmãos, a partir de zero.</param>
 	/// <exception cref="DomainInvariantException">Se algum campo obrigatório estiver vazio ou o tamanho não for positivo.</exception>
 	public Documento(
 		Guid setorId,
@@ -43,7 +52,9 @@ public sealed class Documento : BaseEntity
 		Visibilidade visibilidade,
 		string caminhoRelativo,
 		string chaveEmbrulhada,
-		string criadoPor)
+		string criadoPor,
+		Guid? parentId = null,
+		int ordem = 0)
 	{
 		if (setorId == Guid.Empty)
 		{
@@ -70,6 +81,9 @@ public sealed class Documento : BaseEntity
 			throw new DomainInvariantException("Um documento exige tamanho positivo.");
 		}
 
+		Tipo = TipoDeDocumento.Arquivo;
+		ParentId = parentId;
+		Ordem = ordem;
 		SetorId = setorId;
 		Titulo = titulo.Trim();
 		Descricao = string.IsNullOrWhiteSpace(descricao) ? null : descricao.Trim();
@@ -84,6 +98,53 @@ public sealed class Documento : BaseEntity
 		CreatedAt = DateTimeOffset.UtcNow;
 	}
 
+	/// <summary>
+	/// Cria um grupo: item sem arquivo que apenas agrupa documentos abaixo dele. A visibilidade é
+	/// sempre <see cref="Visibilidade.Setor"/>, pois não há conteúdo a proteger.
+	/// </summary>
+	/// <param name="setorId">Setor dono. Obrigatório.</param>
+	/// <param name="titulo">Título de exibição. Obrigatório.</param>
+	/// <param name="descricao">Descrição livre. Opcional.</param>
+	/// <param name="criadoPor">Identificação de quem criou.</param>
+	/// <returns>O grupo, ativo, na raiz e na posição zero.</returns>
+	/// <exception cref="DomainInvariantException">Se o setor ou o título estiverem vazios.</exception>
+	public static Documento CriarGrupo(Guid setorId, string titulo, string? descricao, string criadoPor)
+	{
+		if (setorId == Guid.Empty)
+		{
+			throw new DomainInvariantException("Um grupo exige um setor dono.");
+		}
+
+		if (string.IsNullOrWhiteSpace(titulo))
+		{
+			throw new DomainInvariantException("Um grupo exige título não vazio.");
+		}
+
+		return new Documento
+		{
+			Tipo = TipoDeDocumento.Grupo,
+			SetorId = setorId,
+			Titulo = titulo.Trim(),
+			Descricao = string.IsNullOrWhiteSpace(descricao) ? null : descricao.Trim(),
+			Visibilidade = Visibilidade.Setor,
+			CriadoPor = criadoPor,
+			Ativo = true,
+			CreatedAt = DateTimeOffset.UtcNow,
+		};
+	}
+
+	/// <summary>Arquivo ou grupo (coluna <c>ie_tipo</c>).</summary>
+	public TipoDeDocumento Tipo { get; private set; }
+
+	/// <summary>Grupo que contém este item; <c>null</c> na raiz (coluna <c>id_fk_documento</c>).</summary>
+	public Guid? ParentId { get; private set; }
+
+	/// <summary>Posição entre os irmãos ativos, a partir de zero (coluna <c>nr_ordem</c>).</summary>
+	public int Ordem { get; private set; }
+
+	/// <summary>Indica se o item é um grupo, sem arquivo.</summary>
+	public bool EhGrupo => Tipo == TipoDeDocumento.Grupo;
+
 	/// <summary>Setor dono (coluna <c>id_fk_setor</c>).</summary>
 	public Guid SetorId { get; private set; }
 
@@ -93,27 +154,27 @@ public sealed class Documento : BaseEntity
 	/// <summary>Descrição livre (coluna <c>ds_descricao</c>).</summary>
 	public string? Descricao { get; private set; }
 
-	/// <summary>Nome original do arquivo enviado (coluna <c>ds_nome_arquivo</c>).</summary>
-	public string NomeArquivo { get; private set; }
+	/// <summary>Nome original do arquivo enviado; nulo no grupo (coluna <c>ds_nome_arquivo</c>).</summary>
+	public string? NomeArquivo { get; private set; }
 
-	/// <summary>Tipo apurado do conteúdo (coluna <c>ds_content_type</c>).</summary>
-	public string ContentType { get; private set; }
+	/// <summary>Tipo apurado do conteúdo; nulo no grupo (coluna <c>ds_content_type</c>).</summary>
+	public string? ContentType { get; private set; }
 
-	/// <summary>Tamanho do conteúdo original, em bytes (coluna <c>nr_tamanho</c>).</summary>
-	public long Tamanho { get; private set; }
+	/// <summary>Tamanho do conteúdo original, em bytes; nulo no grupo (coluna <c>nr_tamanho</c>).</summary>
+	public long? Tamanho { get; private set; }
 
 	/// <summary>Quem enxerga o documento (coluna <c>ie_visibilidade</c>).</summary>
 	public Visibilidade Visibilidade { get; private set; }
 
-	/// <summary>Endereço opaco no armazenamento (coluna <c>ds_caminho_relativo</c>).</summary>
-	public string CaminhoRelativo { get; private set; }
+	/// <summary>Endereço opaco no armazenamento; nulo no grupo (coluna <c>ds_caminho_relativo</c>).</summary>
+	public string? CaminhoRelativo { get; private set; }
 
 	/// <summary>
 	/// Chave do arquivo cifrada pela chave mestra, no formato <c>secco-enc:v1:</c>
-	/// (coluna <c>ds_chave_embrulhada</c>). Rotacionar a chave mestra reescreve só esta
-	/// coluna — nunca o arquivo.
+	/// (coluna <c>ds_chave_embrulhada</c>); nula no grupo. Rotacionar a chave mestra reescreve só
+	/// esta coluna — nunca o arquivo.
 	/// </summary>
-	public string ChaveEmbrulhada { get; private set; }
+	public string? ChaveEmbrulhada { get; private set; }
 
 	/// <summary>Identificação de quem publicou (coluna <c>ds_criado_por</c>).</summary>
 	public string CriadoPor { get; private set; }
@@ -127,6 +188,15 @@ public sealed class Documento : BaseEntity
 	/// <summary>Troca quem enxerga o documento.</summary>
 	/// <param name="visibilidade">Nova visibilidade.</param>
 	public void AlterarVisibilidade(Visibilidade visibilidade) => Visibilidade = visibilidade;
+
+	/// <summary>Coloca o item em um pai e uma posição.</summary>
+	/// <param name="parentId">Novo pai; <c>null</c> para a raiz.</param>
+	/// <param name="ordem">Nova posição entre os irmãos.</param>
+	public void Posicionar(Guid? parentId, int ordem)
+	{
+		ParentId = parentId;
+		Ordem = ordem;
+	}
 
 	/// <summary>Retira o documento de circulação, preservando o registro e o arquivo.</summary>
 	public void Arquivar() => Ativo = false;

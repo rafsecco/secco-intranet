@@ -50,7 +50,9 @@ public sealed class BaixarDocumentoHandler(IDocumentoRepository repository, IArq
 		// Documento inexistente, arquivado ou fora do alcance do usuário devolvem o MESMO erro:
 		// distinguir "não existe" de "existe mas você não pode ver" entrega a quem sonda a
 		// informação de que o documento existe.
-		if (encontrado is null || !encontrado.Documento.Ativo || !PodeLer(encontrado, query))
+		// Grupo não tem arquivo para entregar: também é "não encontrado".
+		if (encontrado is null || !encontrado.Documento.Ativo || encontrado.Documento.EhGrupo
+			|| !PodeLer(encontrado, query))
 		{
 			return IntranetErrors.Documentos.NotFound;
 		}
@@ -58,11 +60,11 @@ public sealed class BaixarDocumentoHandler(IDocumentoRepository repository, IArq
 		var documento = encontrado.Documento;
 
 		return new DocumentoParaDownload(
-			documento.NomeArquivo,
-			documento.ContentType,
-			documento.Tamanho,
+			documento.NomeArquivo!,
+			documento.ContentType!,
+			documento.Tamanho!.Value,
 			(destino, token) => store.EscreverEmAsync(
-				documento.CaminhoRelativo, documento.ChaveEmbrulhada, destino, token));
+				documento.CaminhoRelativo!, documento.ChaveEmbrulhada!, destino, token));
 	}
 
 	private static bool PodeLer(DocumentoComSetor encontrado, BaixarDocumentoQuery query) =>

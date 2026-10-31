@@ -102,19 +102,16 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
                         .HasColumnName("fl_ativo");
 
                     b.Property<string>("CaminhoRelativo")
-                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_caminho_relativo");
 
                     b.Property<string>("ChaveEmbrulhada")
-                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_chave_embrulhada");
 
                     b.Property<string>("ContentType")
-                        .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)")
                         .HasColumnName("ds_content_type");
@@ -135,18 +132,29 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
                         .HasColumnName("ds_descricao");
 
                     b.Property<string>("NomeArquivo")
-                        .IsRequired()
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)")
                         .HasColumnName("ds_nome_arquivo");
+
+                    b.Property<int>("Ordem")
+                        .HasColumnType("int")
+                        .HasColumnName("nr_ordem");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id_fk_parent");
 
                     b.Property<Guid>("SetorId")
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_fk_setor");
 
-                    b.Property<long>("Tamanho")
+                    b.Property<long?>("Tamanho")
                         .HasColumnType("bigint")
                         .HasColumnName("nr_tamanho");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("int")
+                        .HasColumnName("ie_tipo");
 
                     b.Property<string>("Titulo")
                         .IsRequired()
@@ -167,8 +175,11 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
                     b.HasIndex("CreatedAt")
                         .HasDatabaseName("idx_documentos_dt_created_at");
 
-                    b.HasIndex("SetorId")
-                        .HasDatabaseName("idx_documentos_id_fk_setor");
+                    b.HasIndex("ParentId")
+                        .HasDatabaseName("idx_documentos_id_fk_parent");
+
+                    b.HasIndex("SetorId", "ParentId", "Ordem")
+                        .HasDatabaseName("idx_documentos_id_fk_setor_id_fk_parent_nr_ordem");
 
                     b.ToTable("tb_documentos");
                 });
@@ -618,6 +629,12 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
 
             modelBuilder.Entity("Secco.Intranet.Domain.Documentos.Documento", b =>
                 {
+                    b.HasOne("Secco.Intranet.Domain.Documentos.Documento", null)
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_documentos_documento");
+
                     b.HasOne("Secco.Intranet.Domain.Setores.Setor", null)
                         .WithMany()
                         .HasForeignKey("SetorId")

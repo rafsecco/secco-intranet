@@ -1,4 +1,5 @@
 using AwesomeAssertions;
+using Secco.Intranet.Application;
 using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Domain;
 using Secco.Intranet.Domain.Documentos;
@@ -26,6 +27,15 @@ public class BaixarDocumentoHandlerTests
 			string setorSlug,
 			CancellationToken cancellationToken = default) =>
 			Task.FromResult<IReadOnlyList<DocumentoDto>>([]);
+
+		public Task<IReadOnlyList<Documento>> ListarIrmaosAsync(
+			Guid setorId,
+			Guid? parentId,
+			CancellationToken cancellationToken = default) =>
+			throw new NotImplementedException();
+
+		public Task<bool> TemFilhosAtivosAsync(Guid documentoId, CancellationToken cancellationToken = default) =>
+			throw new NotImplementedException();
 	}
 
 	private sealed class StoreFalso : IArquivoStore
@@ -138,5 +148,19 @@ public class BaixarDocumentoHandlerTests
 		negado.Error.Code.Should().Be(
 			inexistente.Error.Code,
 			"distinguir os dois casos revelaria a existência do documento a quem não pode vê-lo");
+	}
+
+	[Fact]
+	public async Task Baixar_Grupo_NaoEncontrado()
+	{
+		var grupo = Domain.Documentos.Documento.CriarGrupo(Guid.NewGuid(), "Políticas", null, "quem.criou");
+		var handler = new BaixarDocumentoHandler(
+			new RepositorioFalso(new DocumentoComSetor(grupo, "Financeiro", "financeiro")), new StoreFalso());
+
+		var resultado = await handler.HandleAsync(new BaixarDocumentoQuery(
+			Guid.NewGuid(), new HashSet<string>(StringComparer.OrdinalIgnoreCase), ExigirVinculo: false));
+
+		resultado.IsFailure.Should().BeTrue();
+		resultado.Error.Should().Be(IntranetErrors.Documentos.NotFound);
 	}
 }

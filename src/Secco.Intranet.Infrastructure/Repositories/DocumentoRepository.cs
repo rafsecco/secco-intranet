@@ -41,7 +41,7 @@ internal sealed class DocumentoRepository(IntranetDbContext context) : IDocument
 				(documento, setor) => new { Documento = documento, Setor = setor })
 			// A ordenação vem ANTES da projeção: ordenar por um campo do DTO faria o provider
 			// tentar traduzir o próprio construtor, que ele não sabe traduzir.
-			.OrderByDescending(par => par.Documento.CreatedAt)
+			.OrderBy(par => par.Documento.Ordem)
 			.Select(par => new DocumentoDto(
 				par.Documento.Id,
 				par.Documento.Titulo,
@@ -54,7 +54,26 @@ internal sealed class DocumentoRepository(IntranetDbContext context) : IDocument
 				par.Setor.Nome,
 				par.Setor.Slug,
 				par.Documento.CriadoPor,
-				par.Documento.CreatedAt))
+				par.Documento.CreatedAt,
+				par.Documento.Tipo,
+				par.Documento.ParentId,
+				par.Documento.Ordem))
 			.ToListAsync(cancellationToken)
+			.ConfigureAwait(false);
+
+	public async Task<IReadOnlyList<Documento>> ListarIrmaosAsync(
+		Guid setorId,
+		Guid? parentId,
+		CancellationToken cancellationToken = default) =>
+		await context.Documentos
+			.Where(documento => documento.SetorId == setorId && documento.ParentId == parentId && documento.Ativo)
+			.OrderBy(documento => documento.Ordem)
+			.ToListAsync(cancellationToken)
+			.ConfigureAwait(false);
+
+	public async Task<bool> TemFilhosAtivosAsync(Guid documentoId, CancellationToken cancellationToken = default) =>
+		await context.Documentos
+			.AsNoTracking()
+			.AnyAsync(documento => documento.ParentId == documentoId && documento.Ativo, cancellationToken)
 			.ConfigureAwait(false);
 }

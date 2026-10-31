@@ -25,8 +25,22 @@ public interface IDocumentoRepository
 	/// <param name="cancellationToken">Token de cancelamento.</param>
 	Task<DocumentoComSetor?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
-	/// <summary>Lista os documentos ativos de um setor, do mais recente para o mais antigo.</summary>
+	/// <summary>Lista os documentos ativos de um setor, por <c>Ordem</c>; filhos e raiz vêm na mesma lista plana.</summary>
 	/// <param name="setorSlug">Slug do setor.</param>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
 	Task<IReadOnlyList<DocumentoDto>> ListarPorSetorAsync(string setorSlug, CancellationToken cancellationToken = default);
+
+	/// <summary>Lista os itens ativos de um mesmo pai, rastreados, por <c>Ordem</c>.</summary>
+	/// <param name="setorId">Identificador do setor.</param>
+	/// <param name="parentId">Pai dos irmãos; <c>null</c> para a raiz.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	Task<IReadOnlyList<Documento>> ListarIrmaosAsync(
+		Guid setorId,
+		Guid? parentId,
+		CancellationToken cancellationToken = default);
+
+	/// <summary>Indica se o documento tem filhos ativos.</summary>
+	/// <param name="documentoId">Identificador do possível pai.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	Task<bool> TemFilhosAtivosAsync(Guid documentoId, CancellationToken cancellationToken = default);
 }
