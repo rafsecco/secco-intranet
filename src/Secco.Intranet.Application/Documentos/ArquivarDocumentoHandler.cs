@@ -49,7 +49,24 @@ public sealed class ArquivarDocumentoHandler(IDocumentoRepository repository, IT
 			return encontrado.Documento.Id;
 		}
 
+		if (await repository.TemFilhosAtivosAsync(encontrado.Documento.Id, cancellationToken).ConfigureAwait(false))
+		{
+			return IntranetErrors.Documentos.ItemComFilhos;
+		}
+
+		var irmaos = await repository
+			.ListarIrmaosAsync(encontrado.Documento.SetorId, encontrado.Documento.ParentId, cancellationToken)
+			.ConfigureAwait(false);
+
 		encontrado.Documento.Arquivar();
+
+		var restantes = irmaos.Where(item => item.Id != encontrado.Documento.Id).ToList();
+
+		for (var indice = 0; indice < restantes.Count; indice++)
+		{
+			restantes[indice].Posicionar(encontrado.Documento.ParentId, indice);
+		}
+
 		await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
 		await trilha

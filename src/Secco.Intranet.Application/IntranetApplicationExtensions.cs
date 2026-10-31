@@ -34,6 +34,7 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ListarDocumentosHandler>();
 		services.AddScoped<BaixarDocumentoHandler>();
 		services.AddScoped<ArquivarDocumentoHandler>();
+		services.AddScoped<MoverDocumentoHandler>();
 
 		services.AddScoped<ListarMuralHandler>();
 		services.AddScoped<ObterPublicacaoHandler>();

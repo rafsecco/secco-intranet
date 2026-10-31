@@ -21,6 +21,9 @@ public static class VerbosDeAuditoria
 	/// <summary>Grupo de documentos criado.</summary>
 	public const string DocumentoGrupoCriar = "documento.grupo-criar";
 
+	/// <summary>Documento movido na lista do setor (subir, descer, recuar ou desrecuar).</summary>
+	public const string DocumentoMover = "documento.mover";
+
 	/// <summary>Documento tirado de circulação.</summary>
 	public const string DocumentoArquivar = "documento.arquivar";
 

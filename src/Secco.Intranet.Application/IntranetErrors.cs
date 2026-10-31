@@ -90,6 +90,16 @@ public static class IntranetErrors
 				"Intranet.Documento.ParentInvalido",
 				"O item escolhido em \"Abaixo de\" não está mais disponível. Escolha outro.");
 
+		/// <summary>O movimento pedido fere a hierarquia ou a posição do item (ex.: subir o primeiro).</summary>
+		public static readonly Error MovimentoInvalido =
+			Error.Validation("Intranet.Documento.MovimentoInvalido", "Não foi possível mover este item.");
+
+		/// <summary>Arquivar um item que ainda tem documentos ativos abaixo dele.</summary>
+		public static readonly Error ItemComFilhos =
+			Error.Validation(
+				"Intranet.Documento.ItemComFilhos",
+				"Este item tem documentos abaixo dele. Mova ou arquive esses documentos primeiro.");
+
 		/// <summary>Registro não encontrado no banco do tenant atual.</summary>
 		public static readonly Error NotFound =
 			Error.NotFound("Intranet.Documento.NotFound", "Documento não encontrado.");

@@ -52,7 +52,7 @@ public class AuditoriaDeDocumentosTests
 			Task.FromResult<IReadOnlyList<Documento>>([]);
 
 		public Task<bool> TemFilhosAtivosAsync(Guid documentoId, CancellationToken cancellationToken = default) =>
-			throw new NotImplementedException();
+			Task.FromResult(false);
 	}
 
 	private static DocumentoComSetor Existente()
@@ -149,6 +149,82 @@ public class AuditoriaDeDocumentosTests
 
 		resultado.IsFailure.Should().BeTrue();
 		trilha.Registros.Should().BeEmpty("o que não aconteceu não entra na trilha");
+	}
+
+	private static Documento ArquivoEm(Setor setor, string titulo, Guid? parentId, int ordem) =>
+		new(
+			setor.Id,
+			titulo,
+			null,
+			"a.pdf",
+			"application/pdf",
+			10,
+			Visibilidade.Setor,
+			"t/ab/x",
+			"secco-enc:v1:x",
+			"alguem",
+			parentId,
+			ordem);
+
+	[Fact]
+	public async Task Arquivar_ItemComFilhosAtivos_Recusa()
+	{
+		var setor = new Setor("Financeiro", "financeiro");
+		var repositorio = new Support.DocumentoRepositorioEmMemoria();
+		repositorio.RegistrarSetor(setor);
+		var pai = ArquivoEm(setor, "Pai", null, 0);
+		repositorio.Documentos.Add(pai);
+		repositorio.Documentos.Add(ArquivoEm(setor, "Filho", pai.Id, 0));
+		var trilha = new TrilhaFalsa();
+		var handler = new ArquivarDocumentoHandler(repositorio, trilha);
+
+		var resultado = await handler.HandleAsync(new ArquivarDocumentoCommand(
+			pai.Id, Setores("financeiro"), ExigirVinculo: true));
+
+		resultado.Error.Should().Be(IntranetErrors.Documentos.ItemComFilhos);
+		pai.Ativo.Should().BeTrue();
+		repositorio.Gravacoes.Should().Be(0);
+		trilha.Registros.Should().BeEmpty();
+	}
+
+	[Fact]
+	public async Task Arquivar_GrupoVazio_Arquiva()
+	{
+		var setor = new Setor("Financeiro", "financeiro");
+		var repositorio = new Support.DocumentoRepositorioEmMemoria();
+		repositorio.RegistrarSetor(setor);
+		var grupo = Documento.CriarGrupo(setor.Id, "Grupo", null, "alguem");
+		repositorio.Documentos.Add(grupo);
+		var trilha = new TrilhaFalsa();
+		var handler = new ArquivarDocumentoHandler(repositorio, trilha);
+
+		var resultado = await handler.HandleAsync(new ArquivarDocumentoCommand(
+			grupo.Id, Setores("financeiro"), ExigirVinculo: true));
+
+		resultado.IsSuccess.Should().BeTrue();
+		grupo.Ativo.Should().BeFalse();
+		trilha.Registros.Should().ContainSingle();
+	}
+
+	[Fact]
+	public async Task Arquivar_RenumeraIrmaos()
+	{
+		var setor = new Setor("Financeiro", "financeiro");
+		var repositorio = new Support.DocumentoRepositorioEmMemoria();
+		repositorio.RegistrarSetor(setor);
+		var a = ArquivoEm(setor, "A", null, 0);
+		var b = ArquivoEm(setor, "B", null, 1);
+		var c = ArquivoEm(setor, "C", null, 2);
+		repositorio.Documentos.AddRange([a, b, c]);
+		var handler = new ArquivarDocumentoHandler(repositorio, new TrilhaFalsa());
+
+		var resultado = await handler.HandleAsync(new ArquivarDocumentoCommand(
+			b.Id, Setores("financeiro"), ExigirVinculo: true));
+
+		resultado.IsSuccess.Should().BeTrue();
+		a.Ordem.Should().Be(0);
+		c.Ordem.Should().Be(1);
+		repositorio.Gravacoes.Should().Be(1, "arquivar e renumerar saem na mesma gravação");
 	}
 
 	[Fact]
