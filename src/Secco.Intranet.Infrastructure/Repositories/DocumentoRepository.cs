@@ -42,6 +42,8 @@ internal sealed class DocumentoRepository(IntranetDbContext context) : IDocument
 			// A ordenação vem ANTES da projeção: ordenar por um campo do DTO faria o provider
 			// tentar traduzir o próprio construtor, que ele não sabe traduzir.
 			.OrderBy(par => par.Documento.Ordem)
+			.ThenByDescending(par => par.Documento.CreatedAt)
+			.ThenBy(par => par.Documento.Id)
 			.Select(par => new DocumentoDto(
 				par.Documento.Id,
 				par.Documento.Titulo,
@@ -68,6 +70,8 @@ internal sealed class DocumentoRepository(IntranetDbContext context) : IDocument
 		await context.Documentos
 			.Where(documento => documento.SetorId == setorId && documento.ParentId == parentId && documento.Ativo)
 			.OrderBy(documento => documento.Ordem)
+			.ThenByDescending(documento => documento.CreatedAt)
+			.ThenBy(documento => documento.Id)
 			.ToListAsync(cancellationToken)
 			.ConfigureAwait(false);
 

@@ -18,6 +18,9 @@ public static class VerbosDeAuditoria
 	/// <summary>Arquivo enviado.</summary>
 	public const string DocumentoPublicar = "documento.publicar";
 
+	/// <summary>Grupo de documentos criado.</summary>
+	public const string DocumentoGrupoCriar = "documento.grupo-criar";
+
 	/// <summary>Documento tirado de circulação.</summary>
 	public const string DocumentoArquivar = "documento.arquivar";
 

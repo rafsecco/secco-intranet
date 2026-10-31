@@ -49,7 +49,7 @@ public class AuditoriaDeDocumentosTests
 			Guid setorId,
 			Guid? parentId,
 			CancellationToken cancellationToken = default) =>
-			throw new NotImplementedException();
+			Task.FromResult<IReadOnlyList<Documento>>([]);
 
 		public Task<bool> TemFilhosAtivosAsync(Guid documentoId, CancellationToken cancellationToken = default) =>
 			throw new NotImplementedException();

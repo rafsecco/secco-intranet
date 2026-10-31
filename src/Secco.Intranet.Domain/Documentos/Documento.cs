@@ -136,7 +136,7 @@ public sealed class Documento : BaseEntity
 	/// <summary>Arquivo ou grupo (coluna <c>ie_tipo</c>).</summary>
 	public TipoDeDocumento Tipo { get; private set; }
 
-	/// <summary>Grupo que contém este item; <c>null</c> na raiz (coluna <c>id_fk_documento</c>).</summary>
+	/// <summary>Grupo que contém este item; <c>null</c> na raiz (coluna <c>id_fk_parent</c>).</summary>
 	public Guid? ParentId { get; private set; }
 
 	/// <summary>Posição entre os irmãos ativos, a partir de zero (coluna <c>nr_ordem</c>).</summary>

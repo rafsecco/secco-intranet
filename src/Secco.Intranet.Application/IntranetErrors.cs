@@ -84,6 +84,12 @@ public static class IntranetErrors
 				"Intranet.Documento.ArquivoNaoAceito",
 				"Tipo de arquivo não aceito, ou o conteúdo não corresponde à extensão.");
 
+		/// <summary>O item escolhido como pai não existe, está arquivado, é de outro setor ou não é da raiz.</summary>
+		public static readonly Error ParentInvalido =
+			Error.Validation(
+				"Intranet.Documento.ParentInvalido",
+				"O item escolhido em \"Abaixo de\" não está mais disponível. Escolha outro.");
+
 		/// <summary>Registro não encontrado no banco do tenant atual.</summary>
 		public static readonly Error NotFound =
 			Error.NotFound("Intranet.Documento.NotFound", "Documento não encontrado.");

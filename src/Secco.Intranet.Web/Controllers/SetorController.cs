@@ -384,7 +384,8 @@ public sealed class SetorController(
 
 		return new SetorDocumentosViewModel(
 			setor,
-			documentos.IsSuccess ? documentos.Value : [],
+			// A página ainda mostra lista plana: cada item da raiz seguido dos filhos.
+			documentos.IsSuccess ? [.. documentos.Value.SelectMany(no => new[] { no.Documento }.Concat(no.Filhos))] : [],
 			await PodePublicarAsync(setor.Slug, cancellationToken).ConfigureAwait(false),
 			form,
 			documentoOptions.TamanhoMaximoBytes,

@@ -16,6 +16,7 @@ namespace Secco.Intranet.Application.Documentos;
 /// <param name="Conteudo">Fluxo do arquivo. Precisa ser posicionável para a apuração do tipo.</param>
 /// <param name="Visibilidade">Quem enxerga o documento.</param>
 /// <param name="CriadoPor">Identificação de quem publica.</param>
+/// <param name="ParentId">Item da raiz sob o qual publicar; <c>null</c> publica na raiz.</param>
 public sealed record PublicarDocumentoCommand(
 	string? SetorSlug,
 	string? Titulo,
@@ -24,7 +25,8 @@ public sealed record PublicarDocumentoCommand(
 	long Tamanho,
 	Stream Conteudo,
 	Visibilidade Visibilidade,
-	string CriadoPor);
+	string CriadoPor,
+	Guid? ParentId = null);
 
 /// <summary>
 /// Caso de uso de publicação: valida o setor e o arquivo, grava o conteúdo cifrado e só
@@ -92,11 +94,26 @@ public sealed class PublicarDocumentoHandler(
 			return IntranetErrors.Documentos.ArquivoNaoAceito;
 		}
 
+		// O pai é validado antes de gravar o conteúdo: recusar depois deixaria um arquivo órfão.
+		if (command.ParentId is { } parentId)
+		{
+			var pai = await repository.GetByIdAsync(parentId, cancellationToken).ConfigureAwait(false);
+
+			if (!PosicaoDeDocumentos.PodeSerPai(pai, setor.Slug))
+			{
+				return IntranetErrors.Documentos.ParentInvalido;
+			}
+		}
+
 		// O conteúdo vai para o armazenamento ANTES da linha existir. Um arquivo órfão é inerte
 		// — cifrado, sem chave no banco e sem endereço conhecido por ninguém. A ordem inversa
 		// produziria uma linha apontando para um arquivo inexistente, que é um documento quebrado
 		// aparecendo na listagem.
 		var gravado = await store.GravarAsync(command.Conteudo, cancellationToken).ConfigureAwait(false);
+
+		var ordem = await PosicaoDeDocumentos
+			.AbrirLugarAsync(repository, setor.Id, command.ParentId, cancellationToken)
+			.ConfigureAwait(false);
 
 		var documento = new Documento(
 			setor.Id,
@@ -108,7 +125,9 @@ public sealed class PublicarDocumentoHandler(
 			command.Visibilidade,
 			gravado.CaminhoRelativo,
 			gravado.ChaveEmbrulhada,
-			command.CriadoPor);
+			command.CriadoPor,
+			command.ParentId,
+			ordem);
 
 		await repository.AddAsync(documento, cancellationToken).ConfigureAwait(false);
 
@@ -125,6 +144,7 @@ public sealed class PublicarDocumentoHandler(
 						visibilidade = documento.Visibilidade.ToString(),
 						tamanho = documento.Tamanho,
 						setor = setor.Slug,
+						pai = documento.ParentId?.ToString(),
 					})),
 				cancellationToken)
 			.ConfigureAwait(false);
@@ -141,7 +161,10 @@ public sealed class PublicarDocumentoHandler(
 			setor.Nome,
 			setor.Slug,
 			documento.CriadoPor,
-			documento.CreatedAt);
+			documento.CreatedAt,
+			documento.Tipo,
+			documento.ParentId,
+			documento.Ordem);
 	}
 
 	private async Task<string?> ApurarContentTypeAsync(
