@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Secco.Intranet.Application;
 using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Publicacoes;
@@ -27,6 +28,8 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="listarHandler">Listagem de documentos do setor.</param>
 /// <param name="publicarDocumentoHandler">Publicação de documento.</param>
 /// <param name="arquivarHandler">Arquivamento de documento.</param>
+/// <param name="criarGrupoHandler">Criação de grupo de documentos.</param>
+/// <param name="moverHandler">Movimento de documento na lista do setor.</param>
 /// <param name="publicarPublicacaoHandler">Publicação de aviso.</param>
 /// <param name="editarPublicacaoHandler">Edição de aviso.</param>
 /// <param name="arquivarPublicacaoHandler">Arquivamento de aviso.</param>
@@ -44,6 +47,8 @@ public sealed class SetorController(
 	ListarDocumentosHandler listarHandler,
 	PublicarDocumentoHandler publicarDocumentoHandler,
 	ArquivarDocumentoHandler arquivarHandler,
+	CriarGrupoDeDocumentosHandler criarGrupoHandler,
+	MoverDocumentoHandler moverHandler,
 	PublicarPublicacaoHandler publicarPublicacaoHandler,
 	EditarPublicacaoHandler editarPublicacaoHandler,
 	ArquivarPublicacaoHandler arquivarPublicacaoHandler,
@@ -175,7 +180,106 @@ public sealed class SetorController(
 		return VoltarPara(slug, resolucao);
 	}
 
-	/// <summary>Retira um documento de circulação, preservando o registro e o arquivo.</summary>
+	/// <summary>Tela de organizar: ordem, hierarquia, grupos e arquivamento dos documentos do setor.</summary>
+	/// <param name="slug">Slug do setor.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpGet("documentos/organizar")]
+	public async Task<IActionResult> Organizar(string slug, CancellationToken cancellationToken = default)
+	{
+		var alvo = await ResolverEscritaAsync(slug, cancellationToken).ConfigureAwait(false);
+
+		if (alvo is null)
+		{
+			return NotFound();
+		}
+
+		return View(
+			"OrganizarDocumentos",
+			await MontarOrganizarAsync(alvo.Value.Setor, alvo.Value.Resolucao, new GrupoFormViewModel(), cancellationToken)
+				.ConfigureAwait(false));
+	}
+
+	/// <summary>Muda um documento de lugar: sobe, desce, recua ou volta para a raiz.</summary>
+	/// <param name="slug">Slug do setor.</param>
+	/// <param name="id">Identificador do documento.</param>
+	/// <param name="acao">Movimento pedido.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost("documentos/{id:guid}/mover")]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> MoverDocumento(
+		string slug, Guid id, MovimentoDeDocumento acao, CancellationToken cancellationToken = default)
+	{
+		var alvo = await ResolverEscritaAsync(slug, cancellationToken).ConfigureAwait(false);
+
+		if (alvo is null)
+		{
+			return NotFound();
+		}
+
+		var resultado = await moverHandler
+			.HandleAsync(new MoverDocumentoCommand(slug, id, acao), cancellationToken)
+			.ConfigureAwait(false);
+
+		if (resultado.IsFailure)
+		{
+			if (resultado.Error == IntranetErrors.Documentos.NotFound)
+			{
+				return NotFound();
+			}
+
+			TempData[FeedbackViewComponent.ChaveDaMensagemDeErro] = resultado.Error.Description;
+		}
+
+		return RedirectToAction(nameof(Organizar), new { slug });
+	}
+
+	/// <summary>Cria um grupo no topo da lista de documentos do setor.</summary>
+	/// <param name="slug">Slug do setor.</param>
+	/// <param name="form">Dados do formulário.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost("documentos/grupos")]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> CriarGrupo(
+		string slug, GrupoFormViewModel form, CancellationToken cancellationToken = default)
+	{
+		ArgumentNullException.ThrowIfNull(form);
+
+		var alvo = await ResolverEscritaAsync(slug, cancellationToken).ConfigureAwait(false);
+
+		if (alvo is null)
+		{
+			return NotFound();
+		}
+
+		var (setor, resolucao) = alvo.Value;
+
+		if (ModelState.IsValid)
+		{
+			var resultado = await criarGrupoHandler
+				.HandleAsync(
+					new CriarGrupoDeDocumentosCommand(slug, form.Titulo, form.Descricao, User.Identity?.Name ?? "desconhecido"),
+					cancellationToken)
+				.ConfigureAwait(false);
+
+			if (resultado.IsSuccess)
+			{
+				TempData[FeedbackViewComponent.ChaveDaMensagem] = $"Grupo \"{resultado.Value.Titulo}\" criado.";
+
+				return RedirectToAction(nameof(Organizar), new { slug });
+			}
+
+			ModelState.AddModelError(string.Empty, resultado.Error.Description);
+		}
+
+		return View(
+			"OrganizarDocumentos",
+			await MontarOrganizarAsync(setor, resolucao, form, cancellationToken).ConfigureAwait(false));
+	}
+
+	/// <summary>
+	/// Retira um documento de circulação, preservando o registro e o arquivo. Sempre volta para a
+	/// tela de organizar, que é o único lugar com o botão.
+	/// </summary>
 	/// <param name="slug">Slug do setor.</param>
 	/// <param name="id">Identificador do documento.</param>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
@@ -199,12 +303,19 @@ public sealed class SetorController(
 
 		if (resultado.IsFailure)
 		{
-			return NotFound();
+			if (resultado.Error != IntranetErrors.Documentos.ItemComFilhos)
+			{
+				return NotFound();
+			}
+
+			TempData[FeedbackViewComponent.ChaveDaMensagemDeErro] = resultado.Error.Description;
+		}
+		else
+		{
+			TempData[FeedbackViewComponent.ChaveDaMensagem] = "Documento arquivado.";
 		}
 
-		TempData[FeedbackViewComponent.ChaveDaMensagem] = "Documento arquivado.";
-
-		return VoltarPara(slug, alvo.Value.Resolucao);
+		return RedirectToAction(nameof(Organizar), new { slug });
 	}
 
 	/// <summary>Publica ou atualiza um aviso do setor.</summary>
@@ -394,6 +505,31 @@ public sealed class SetorController(
 			resolucao.No.Nome,
 			Trilho(setor, resolucao),
 			[.. nos.Select(no => new OpcaoAbaixoDe(no.Documento.Id, no.Documento.Titulo))]);
+	}
+
+	/// <summary>Setor e item de Documentos, só para quem escreve; quem não pode recebe o mesmo que setor inexistente.</summary>
+	private async Task<(SetorDto Setor, ResultadoDaResolucao Resolucao)?> ResolverEscritaAsync(
+		string slug, CancellationToken cancellationToken) =>
+		await PodePublicarAsync(slug, cancellationToken).ConfigureAwait(false)
+			? await ResolverTipoAsync(slug, TipoDeItemMenu.Documentos, cancellationToken).ConfigureAwait(false)
+			: null;
+
+	private async Task<OrganizarDocumentosViewModel> MontarOrganizarAsync(
+		SetorDto setor, ResultadoDaResolucao resolucao, GrupoFormViewModel form, CancellationToken cancellationToken)
+	{
+		var documentos = await listarHandler
+			.HandleAsync(new ListarDocumentosQuery(setor.Slug), cancellationToken)
+			.ConfigureAwait(false);
+
+		IReadOnlyList<NoDeDocumentoDto> nos = documentos.IsSuccess ? documentos.Value : [];
+
+		return new OrganizarDocumentosViewModel(
+			setor,
+			resolucao.No.Nome,
+			Trilho(setor, resolucao),
+			Url.Action(nameof(Resolver), new { slug = setor.Slug, caminho = string.Join('/', resolucao.CaminhoCompleto) })!,
+			OrganizarDocumentosViewModel.MontarLinhas(nos),
+			form);
 	}
 
 	private async Task<SetorAvisosViewModel> MontarAvisosAsync(

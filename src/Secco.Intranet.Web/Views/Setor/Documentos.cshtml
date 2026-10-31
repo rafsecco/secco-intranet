@@ -5,7 +5,13 @@
 @{
     ViewData["Title"] = $"{Model.Titulo} · {Model.Setor.Nome}";
 
-    var cabecalho = new PageHeaderModel(Model.Titulo, Model.Trilho, Model.Setor.Slug);
+    var cabecalho = new PageHeaderModel(
+        Model.Titulo,
+        Model.Trilho,
+        Model.Setor.Slug,
+        Model.PodePublicar
+            ? new[] { new PageActionModel("Organizar", Url.Action("Organizar", new { slug = Model.Setor.Slug })!, "bi-list-ol") }
+            : null);
 
     var vazio = new EmptyStateModel(
         "bi-folder2-open",

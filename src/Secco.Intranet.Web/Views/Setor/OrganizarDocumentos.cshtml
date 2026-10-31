@@ -1,0 +1,86 @@
+@using Secco.Intranet.Web.Models.Documentos
+@model OrganizarDocumentosViewModel
+@{
+    ViewData["Title"] = $"Organizar · {Model.Titulo} · {Model.Setor.Nome}";
+
+    var cabecalho = new PageHeaderModel(
+        $"Organizar {Model.Titulo}",
+        "Mude a ordem dos documentos, recue um item para dentro do anterior ou arquive. Só existe um nível abaixo da raiz, e grupo não vira filho.",
+        Model.Setor.Slug,
+        new[] { new PageActionModel("Voltar", Model.UrlDaPagina, "bi-arrow-left") });
+
+    var vazio = new EmptyStateModel(
+        "bi-folder2-open",
+        "Nenhum documento neste setor",
+        "Publique um documento na página ou crie um grupo no formulário abaixo.");
+
+    Func<object?, Microsoft.AspNetCore.Html.IHtmlContent> botao(Guid id, string acao, string valor, string rotulo, string simbolo, string titulo, bool habilitado) =>
+        @<form method="post" asp-action="MoverDocumento" asp-route-slug="@Model.Setor.Slug" asp-route-id="@id" class="d-inline">
+            <input type="hidden" name="acao" value="@valor" />
+            <button class="btn btn-sm btn-outline-secondary" type="submit" aria-label="@rotulo @titulo" title="@rotulo" disabled="@(!habilitado)">@simbolo</button>
+        </form>;
+
+    Func<object?, Microsoft.AspNetCore.Html.IHtmlContent> lista = @<text>
+        <ul class="sc-list mb-0">
+            @foreach (var linha in Model.Linhas)
+            {
+                <li class="sc-list__item@(linha.EhFilho ? " ms-4" : string.Empty)" data-documento="@linha.Id">
+                    <div class="sc-list__text">
+                        <p class="sc-list__title@(linha.EhGrupo ? " fw-bold" : string.Empty)">
+                            <i class="bi @(linha.EhGrupo ? "bi-folder2" : linha.EhFilho ? "bi-arrow-return-right" : "bi-file-earmark")" aria-hidden="true"></i>
+                            <span>@linha.Titulo</span>
+                        </p>
+                        <div class="d-flex flex-wrap gap-2">
+                            @botao(linha.Id, "subir", "1", "Subir", "↑", linha.Titulo, linha.PodeSubir)(null)
+                            @botao(linha.Id, "descer", "2", "Descer", "↓", linha.Titulo, linha.PodeDescer)(null)
+                            @botao(linha.Id, "recuar", "3", "Recuar", "→", linha.Titulo, linha.PodeRecuar)(null)
+                            @botao(linha.Id, "desrecuar", "4", "Desrecuar", "←", linha.Titulo, linha.PodeDesrecuar)(null)
+                            <form method="post" asp-action="Arquivar" asp-route-slug="@Model.Setor.Slug" asp-route-id="@linha.Id" class="d-inline"
+                                  data-confirmar="Arquivar &quot;@linha.Titulo&quot;? O documento sai da lista, mas o registro e o arquivo são preservados.">
+                                <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Arquivar @linha.Titulo" disabled="@(!linha.PodeArquivar)">Arquivar</button>
+                            </form>
+                        </div>
+                    </div>
+                </li>
+            }
+        </ul>
+    </text>;
+
+    Func<object?, Microsoft.AspNetCore.Html.IHtmlContent> novoGrupo = @<text>
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+        <form method="post" asp-action="CriarGrupo" asp-route-slug="@Model.Setor.Slug">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="Form.Titulo">Título</label>
+                    <input class="form-control" asp-for="Form.Titulo" autocomplete="off" />
+                    <span class="text-danger" asp-validation-for="Form.Titulo"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="Form.Descricao">Descrição</label>
+                    <input class="form-control" asp-for="Form.Descricao" autocomplete="off" />
+                </div>
+            </div>
+
+            <div class="sc-form__actions">
+                <button class="btn btn-primary" type="submit">Criar grupo</button>
+            </div>
+        </form>
+    </text>;
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-stack">
+    @if (Model.Linhas.Count == 0)
+    {
+        <partial name="_EmptyState" model="vazio" />
+    }
+    else
+    {
+        <partial name="_Card" model="@(new CardModel("Documentos", Corpo: lista(null)))" />
+    }
+
+    <partial name="_Card" model="@(new CardModel("Novo grupo", Corpo: novoGrupo(null)))" />
+</div>
