@@ -82,7 +82,7 @@ public sealed class MoverDocumentoHandler(IDocumentoRepository repository, ITril
 
 				var lista = irmaos.ToList();
 				(lista[indice], lista[alvo]) = (lista[alvo], lista[indice]);
-				Renumerar(lista, paiDe);
+				PosicaoDeDocumentos.Renumerar(lista, paiDe);
 				break;
 			}
 
@@ -107,7 +107,7 @@ public sealed class MoverDocumentoHandler(IDocumentoRepository repository, ITril
 				documento.Posicionar(acima.Id, filhos.Count);
 
 				var raiz = irmaos.Where(item => item.Id != documento.Id).ToList();
-				Renumerar(raiz, null);
+				PosicaoDeDocumentos.Renumerar(raiz, null);
 				break;
 			}
 
@@ -123,12 +123,18 @@ public sealed class MoverDocumentoHandler(IDocumentoRepository repository, ITril
 					.ConfigureAwait(false)).ToList();
 				var posicaoDoPai = IndexOf(raiz, paiDe.Value);
 
+				// Pai fora da raiz ativa: não há "logo depois do pai" onde pôr o item.
+				if (posicaoDoPai < 0)
+				{
+					return Result.Failure(IntranetErrors.Documentos.MovimentoInvalido);
+				}
+
 				raiz.Insert(posicaoDoPai + 1, documento);
 				paiPara = null;
-				Renumerar(raiz, null);
+				PosicaoDeDocumentos.Renumerar(raiz, null);
 
 				var restantes = irmaos.Where(item => item.Id != documento.Id).ToList();
-				Renumerar(restantes, paiDe);
+				PosicaoDeDocumentos.Renumerar(restantes, paiDe);
 				break;
 			}
 
@@ -171,13 +177,5 @@ public sealed class MoverDocumentoHandler(IDocumentoRepository repository, ITril
 		}
 
 		return -1;
-	}
-
-	private static void Renumerar(IReadOnlyList<Documento> lista, Guid? parentId)
-	{
-		for (var indice = 0; indice < lista.Count; indice++)
-		{
-			lista[indice].Posicionar(parentId, indice);
-		}
 	}
 }

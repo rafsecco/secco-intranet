@@ -283,6 +283,24 @@ public class MoverDocumentoHandlerTests
 	}
 
 	[Fact]
+	public async Task Desrecuar_PaiForaDaRaizAtiva_Recusa()
+	{
+		// O arquivar recusa item com filhos; aqui o pai sai da raiz por fora, e o filho não pode
+		// cair no topo em silêncio.
+		var cenario = new Cenario();
+		var pai = cenario.Arquivo("Pai", ordem: 0);
+		var filho = cenario.Arquivo("F0", pai.Id, 0);
+		cenario.Arquivo("Outro", ordem: 1);
+		pai.Arquivar();
+
+		var resultado = await cenario.MoverAsync(filho, MovimentoDeDocumento.Desrecuar);
+
+		resultado.Error.Should().Be(IntranetErrors.Documentos.MovimentoInvalido);
+		filho.ParentId.Should().Be(pai.Id);
+		cenario.NadaMudou(0);
+	}
+
+	[Fact]
 	public async Task Mover_DocumentoDeOutroSetor_NaoEncontrado()
 	{
 		var cenario = new Cenario();

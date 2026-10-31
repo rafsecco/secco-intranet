@@ -60,12 +60,8 @@ public sealed class ArquivarDocumentoHandler(IDocumentoRepository repository, IT
 
 		encontrado.Documento.Arquivar();
 
-		var restantes = irmaos.Where(item => item.Id != encontrado.Documento.Id).ToList();
-
-		for (var indice = 0; indice < restantes.Count; indice++)
-		{
-			restantes[indice].Posicionar(encontrado.Documento.ParentId, indice);
-		}
+		PosicaoDeDocumentos.Renumerar(
+			[.. irmaos.Where(item => item.Id != encontrado.Documento.Id)], encontrado.Documento.ParentId);
 
 		await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 

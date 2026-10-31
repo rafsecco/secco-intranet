@@ -32,6 +32,17 @@ internal static class PosicaoDeDocumentos
 		return noTopo ? 0 : irmaos.Count;
 	}
 
+	/// <summary>Renumera os irmãos de zero a n-1 sob o pai informado, na ordem da lista.</summary>
+	/// <param name="irmaos">Irmãos na ordem desejada, já rastreados.</param>
+	/// <param name="parentId">Pai comum; <c>null</c> na raiz.</param>
+	public static void Renumerar(IReadOnlyList<Documento> irmaos, Guid? parentId)
+	{
+		for (var indice = 0; indice < irmaos.Count; indice++)
+		{
+			irmaos[indice].Posicionar(parentId, indice);
+		}
+	}
+
 	/// <summary>Indica se o documento pode ser pai: ativo, da raiz e do setor informado.</summary>
 	/// <param name="pai">Candidato a pai, com o setor dono.</param>
 	/// <param name="setorSlug">Slug do setor onde o item novo será criado.</param>

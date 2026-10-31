@@ -1,3 +1,4 @@
+@using Secco.Intranet.Application.Documentos
 @using Secco.Intranet.Web.Models.Documentos
 @model OrganizarDocumentosViewModel
 @{
@@ -14,9 +15,9 @@
         "Nenhum documento neste setor",
         "Publique um documento na página ou crie um grupo no formulário abaixo.");
 
-    Func<object?, Microsoft.AspNetCore.Html.IHtmlContent> botao(Guid id, string acao, string valor, string rotulo, string simbolo, string titulo, bool habilitado) =>
+    Func<object?, Microsoft.AspNetCore.Html.IHtmlContent> botao(Guid id, MovimentoDeDocumento acao, string rotulo, string simbolo, string titulo, bool habilitado) =>
         @<form method="post" asp-action="MoverDocumento" asp-route-slug="@Model.Setor.Slug" asp-route-id="@id" class="d-inline">
-            <input type="hidden" name="acao" value="@valor" />
+            <input type="hidden" name="acao" value="@((int)acao)" />
             <button class="btn btn-sm btn-outline-secondary" type="submit" aria-label="@rotulo @titulo" title="@rotulo" disabled="@(!habilitado)">@simbolo</button>
         </form>;
 
@@ -31,10 +32,10 @@
                             <span>@linha.Titulo</span>
                         </p>
                         <div class="d-flex flex-wrap gap-2">
-                            @botao(linha.Id, "subir", "1", "Subir", "↑", linha.Titulo, linha.PodeSubir)(null)
-                            @botao(linha.Id, "descer", "2", "Descer", "↓", linha.Titulo, linha.PodeDescer)(null)
-                            @botao(linha.Id, "recuar", "3", "Recuar", "→", linha.Titulo, linha.PodeRecuar)(null)
-                            @botao(linha.Id, "desrecuar", "4", "Desrecuar", "←", linha.Titulo, linha.PodeDesrecuar)(null)
+                            @botao(linha.Id, MovimentoDeDocumento.Subir, "Subir", "↑", linha.Titulo, linha.PodeSubir)(null)
+                            @botao(linha.Id, MovimentoDeDocumento.Descer, "Descer", "↓", linha.Titulo, linha.PodeDescer)(null)
+                            @botao(linha.Id, MovimentoDeDocumento.Recuar, "Recuar", "→", linha.Titulo, linha.PodeRecuar)(null)
+                            @botao(linha.Id, MovimentoDeDocumento.Desrecuar, "Desrecuar", "←", linha.Titulo, linha.PodeDesrecuar)(null)
                             <form method="post" asp-action="Arquivar" asp-route-slug="@Model.Setor.Slug" asp-route-id="@linha.Id" class="d-inline"
                                   data-confirmar="Arquivar &quot;@linha.Titulo&quot;? O documento sai da lista, mas o registro e o arquivo são preservados.">
                                 <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Arquivar @linha.Titulo" disabled="@(!linha.PodeArquivar)">Arquivar</button>
