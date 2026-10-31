@@ -15,7 +15,9 @@ Duas regras sustentam esta lista:
 
 ## Demandas abertas
 
-Nenhuma no momento.
+| Demanda | O que trava | Issue |
+|---|---|---|
+| Perfil implícito do tenant: todo usuário ativo tem, sem atribuição | Nada bloqueia. As bibliotecas de documentos ([#4](https://github.com/rafsecco/secco-intranet/issues/4)) que todos leem funcionam com um perfil comum atribuído a cada pessoa, mas quem entra depois e não recebe o perfil fica sem ver, sem aviso | [#51](https://github.com/rafsecco/secco-platform/issues/51) |
 
 ## Descartadas
 
