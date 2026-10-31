@@ -177,6 +177,13 @@ processos (maior risco técnico) só entra com a base já sólida.
       exclusiva do `intranet-admin`, para ordenar o grupo principal e a seção Setores por tenant
       (`tb_posicoes_menu`) — [ADR-0011](adr/secco-intranet-adrs.md), [guia](extensao.md),
       [spec](specs/2026-10-29-menu-extensivel-e-ordenavel-design.md). Issue #2
+- [x] Slugs reservados derivados das rotas registradas: uma página de RCL na raiz fica
+      reservada sem editar o core ([guia](extensao.md)). Issue #3
+- [x] Documentos do setor com hierarquia e ordem manual: grupos (subtítulo), documento abaixo de
+      outro (um nível), tela de organizar (subir, descer, recuar, desrecuar) e parcial de tema
+      `_ListaDeDocumentos` — [spec](specs/2026-10-31-documentos-hierarquia-e-ordem-design.md), plano em
+      [plans/2026-10-31-documentos-hierarquia-e-ordem.md](plans/2026-10-31-documentos-hierarquia-e-ordem.md).
+      Issue #4, parte 1 de 3 (faltam substituir arquivo com histórico e as bibliotecas sem setor)
 
 ## Fase 2 — Operacional
 

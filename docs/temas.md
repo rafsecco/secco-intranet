@@ -123,7 +123,8 @@ mostrar só os gestores ou animar as linhas são decisão do tema.
 
 **Lista de documentos.** O core entrega a árvore pronta (`ListaDeDocumentosModel` →
 `ItemDaListaDeDocumentosModel`, dois níveis) com URL, ícone, etiqueta, detalhe e badge já
-calculados, e sem os grupos vazios; o tema só desenha, sem botões. Os temas publicados usam os
+calculados, e sem os grupos vazios; o tema só desenha, sem botões. O ícone do grupo é escolha do
+tema (os oficiais usam `bi-folder2`); o dos arquivos vem pronto no model. Os temas publicados usam os
 mesmos ganchos: `sc-doclist` (contêiner), `sc-doclist__item` (cada item, com `--grupo` no
 grupo, que é um subtítulo) e `sc-doclist__filhos` (a lista recuada dos documentos abaixo do
 item). Um tema que usa uma partial auxiliar para a recursão (`_ListaDeDocumentosItem`) a leva

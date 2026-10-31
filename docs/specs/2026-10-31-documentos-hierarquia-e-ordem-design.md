@@ -1,7 +1,7 @@
 # Documentos com hierarquia e ordem manual — desenho do recurso
 
 **Data:** 2026-10-31
-**Estado:** aprovado
+**Estado:** aprovado, implementado (parte 1)
 **Origem:** issue #4 ("Bibliotecas de documentos"), parte 1 de 3. A parte 2 é substituir arquivo com
 histórico de versões; a parte 3 são as bibliotecas (dono sem setor). Esta parte vale só para o
 Documentos do setor, mas a lista e a tela de organizar ficam prontas para a biblioteca reaproveitar.
@@ -47,11 +47,10 @@ O `Documento` ganha três campos:
 | Propriedade | Coluna | Regra |
 |---|---|---|
 | `Tipo` (`TipoDeDocumento`: `Arquivo = 1`, `Grupo = 2`) | `ie_tipo` | |
-| `PaiId` (Guid?) | `id_fk_documento` (FK para a própria tabela) | nulo = raiz |
+| `ParentId` (Guid?) | `id_fk_parent` (FK para a própria tabela) | nulo = raiz |
 | `Ordem` (int) | `nr_ordem` | posição entre os irmãos |
 
-Nomes de coluna pela convention (ADR-0017). Índice `idx_documentos_id_fk_setor_id_fk_documento_nr_ordem`
-(ou o equivalente que a convention gerar com prefixo `idx_`), porque a lista sempre lê por setor e
+Nomes de coluna pela convention (ADR-0017). Índice `idx_documentos_id_fk_setor_id_fk_parent_nr_ordem`, porque a lista sempre lê por setor e
 pai na ordem.
 
 **Grupo:** os campos de arquivo (`NomeArquivo`, `ContentType`, `CaminhoRelativo`,
@@ -71,7 +70,7 @@ documento não encontrado.
 - Grupo é sempre raiz: nunca filho.
 - Não existe neto: um item com filhos ativos não vira filho de ninguém.
 
-A entidade expõe só a mudança de posição (`PaiId` + `Ordem`). Quem decide se a posição é válida é o
+A entidade expõe só a mudança de posição (`ParentId` + `Ordem`). Quem decide se a posição é válida é o
 caso de uso.
 
 ### 2. Ordem
@@ -157,7 +156,7 @@ public sealed record ItemDaListaDeDocumentosModel(
 - `Vertical` e `Horizontal` implementam a versão padrão: ícone pelo tipo, grupo como subtítulo,
   filhos recuados. Dark e light obrigatórios (skill `secco-intranet-temas`).
 
-O `DocumentoDto` ganha `Tipo`, `PaiId` e `Ordem`, e os campos de arquivo passam a aceitar nulo.
+O `DocumentoDto` ganha `Tipo`, `ParentId` e `Ordem`, e os campos de arquivo passam a aceitar nulo.
 
 ### 7. Auditoria
 
