@@ -34,6 +34,7 @@ Secco.Intranet.Themes.<Nome>/
 │       ├── _Badge.cshtml
 │       ├── _Avatar.cshtml
 │       ├── _Organograma.cshtml
+│       ├── _ListaDeDocumentos.cshtml
 │       ├── _EmptyState.cshtml
 │       ├── _Pagination.cshtml
 │       └── Components/
@@ -58,6 +59,7 @@ Cada arquivo acima recebe um modelo de `Secco.Intranet.Web.Theming.Contracts`:
 | `_Badge.cshtml` | `BadgeModel` | Etiqueta curta de classificação |
 | `_Avatar.cshtml` | `AvatarModel` | Foto da pessoa, ou as iniciais quando não há foto |
 | `_Organograma.cshtml` | `OrganogramaModel` | Árvore de quem reporta a quem |
+| `_ListaDeDocumentos.cshtml` | `ListaDeDocumentosModel` | Documentos do setor, com grupos e filhos |
 | `_EmptyState.cshtml` | `EmptyStateModel` | Tela vazia, com a ação que a resolve |
 | `_Pagination.cshtml` | `PaginationModel` | Navegação entre páginas |
 | `Components/Navigation/Default.cshtml` | `NavigationModel` | Menu já resolvido para o usuário |
@@ -118,6 +120,14 @@ Cada gestor recolhe a equipe com `<details open>`/`<summary>`, o que funciona se
 no teclado. Os temas oficiais ficam no básico: linhas feitas só de CSS, rolagem horizontal
 dentro do painel e lista recuada abaixo de 768px. Efeitos como destacar o ramo sob o mouse,
 mostrar só os gestores ou animar as linhas são decisão do tema.
+
+**Lista de documentos.** O core entrega a árvore pronta (`ListaDeDocumentosModel` →
+`ItemDaListaDeDocumentosModel`, dois níveis) com URL, ícone, etiqueta, detalhe e badge já
+calculados, e sem os grupos vazios; o tema só desenha, sem botões. Os temas publicados usam os
+mesmos ganchos: `sc-doclist` (contêiner), `sc-doclist__item` (cada item, com `--grupo` no
+grupo, que é um subtítulo) e `sc-doclist__filhos` (a lista recuada dos documentos abaixo do
+item). Um tema que usa uma partial auxiliar para a recursão (`_ListaDeDocumentosItem`) a leva
+junto.
 
 **Testes de tela.** `tests/Secco.Intranet.Tests/Ui` roda o menu num Chromium de verdade, nos dois
 temas (hover, clique, teclado, celular, sem JavaScript). São opt-in: instale o navegador uma vez

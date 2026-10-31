@@ -1,4 +1,3 @@
-@using Secco.Intranet.Application.Documentos
 @using Secco.Intranet.Domain
 @using Secco.Intranet.Domain.Documentos
 @using Secco.Intranet.Web.Models.Documentos
@@ -14,13 +13,6 @@
         Model.PodePublicar
             ? "Envie o primeiro arquivo pelo formulário acima."
             : "Quando o setor publicar algum documento, ele aparece aqui.");
-
-    static string Tamanho(long bytes) => bytes switch
-    {
-        < 1024 => $"{bytes} B",
-        < 1024 * 1024 => $"{bytes / 1024d:0.#} KB",
-        _ => $"{bytes / (1024d * 1024d):0.#} MB",
-    };
 }
 
 <partial name="_PageHeader" model="cabecalho" />
@@ -46,12 +38,23 @@
                     <div class="form-text">Até @(Model.TamanhoMaximoBytes / (1024 * 1024)) MB. PDF, imagem, Office, texto ou ZIP.</div>
                 </div>
 
-                <div class="col-md-8">
+                <div class="col-md-12">
                     <label class="form-label" asp-for="Form.Descricao">Descrição</label>
                     <input class="form-control" asp-for="Form.Descricao" autocomplete="off" />
                 </div>
 
-                <div class="col-md-4">
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="Form.ParentId">Abaixo de</label>
+                    <select class="form-select" asp-for="Form.ParentId">
+                        <option value="">Raiz</option>
+                        @foreach (var opcao in Model.AbaixoDe)
+                        {
+                            <option value="@opcao.Id">@opcao.Titulo</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-6">
                     <label class="form-label" asp-for="Form.Visibilidade">Quem pode ver</label>
                     <select class="form-select" asp-for="Form.Visibilidade">
                         <option value="@((int)Visibilidade.Setor)">Somente este setor</option>
@@ -67,53 +70,11 @@
     </div>
 }
 
-@if (Model.Documentos.Count == 0)
+@if (Model.Lista.Itens.Count == 0)
 {
     <partial name="_EmptyState" model="vazio" />
 }
 else
 {
-    <ul class="sc-list">
-        @foreach (var documento in Model.Documentos)
-        {
-            var badge = documento.Visibilidade == Visibilidade.Empresa
-                ? new BadgeModel("Toda a empresa", BadgeVariante.Neutro)
-                : new BadgeModel(documento.SetorNome, BadgeVariante.Setor, documento.SetorSlug);
-
-            <li class="sc-list__item" style="--sc-setor-hue:@SetorHue.From(documento.SetorSlug)">
-                <span class="sc-list__icon" aria-hidden="true">
-                    <i class="bi @TiposDeArquivo.Icone(documento.NomeArquivo)"></i>
-                </span>
-                <div class="sc-list__text">
-                    <p class="sc-list__title">@documento.Titulo</p>
-                    <span class="sc-list__sub">
-                        <span class="sc-meta">@Tamanho(documento.Tamanho ?? 0) · @documento.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</span>
-                        <partial name="_Badge" model="badge" />
-                    </span>
-                    @if (documento.Descricao is not null)
-                    {
-                        <p class="mb-0 mt-1 text-body-secondary small">@documento.Descricao</p>
-                    }
-                </div>
-                <div class="sc-list__actions d-flex gap-1">
-                    <a class="btn btn-outline-secondary btn-sm"
-                       asp-controller="Documentos" asp-action="Download" asp-route-id="@documento.Id">
-                        <i class="bi bi-download" aria-hidden="true"></i>
-                        <span class="visually-hidden">Baixar @documento.Titulo</span>
-                    </a>
-                    @if (Model.PodePublicar)
-                    {
-                        <form method="post" asp-action="Arquivar"
-                              asp-route-slug="@Model.Setor.Slug" asp-route-id="@documento.Id">
-                            <button class="btn btn-outline-secondary btn-sm" type="submit"
-                                    title="Arquivar @documento.Titulo">
-                                <i class="bi bi-archive" aria-hidden="true"></i>
-                                <span class="visually-hidden">Arquivar @documento.Titulo</span>
-                            </button>
-                        </form>
-                    }
-                </div>
-            </li>
-        }
-    </ul>
+    <partial name="_ListaDeDocumentos" model="Model.Lista" />
 }

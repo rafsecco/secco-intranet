@@ -80,6 +80,15 @@ public static class TiposDeArquivo
 		return null;
 	}
 
+	/// <summary>Etiqueta curta da extensão, sem o ponto e em maiúsculas; <c>null</c> quando não há extensão.</summary>
+	/// <param name="nomeArquivo">Nome original do arquivo.</param>
+	public static string? Etiqueta(string? nomeArquivo)
+	{
+		var extensao = Path.GetExtension(nomeArquivo ?? string.Empty).TrimStart('.');
+
+		return extensao.Length == 0 ? null : extensao.ToUpperInvariant();
+	}
+
 	/// <summary>Nome do ícone que representa a extensão na interface.</summary>
 	/// <param name="nomeArquivo">Nome original do arquivo.</param>
 	public static string Icone(string? nomeArquivo) =>

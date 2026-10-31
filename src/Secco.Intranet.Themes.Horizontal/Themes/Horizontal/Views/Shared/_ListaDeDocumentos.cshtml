@@ -1,0 +1,7 @@
+@model ListaDeDocumentosModel
+<ul class="sc-doclist">
+	@foreach (var item in Model.Itens)
+	{
+		<partial name="_ListaDeDocumentosItem" model="item" />
+	}
+</ul>

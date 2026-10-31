@@ -159,7 +159,8 @@ public sealed class SetorController(
 				arquivo.Length,
 				conteudo,
 				form.Visibilidade,
-				User.Identity?.Name ?? "desconhecido"),
+				User.Identity?.Name ?? "desconhecido",
+				form.ParentId),
 			cancellationToken).ConfigureAwait(false);
 
 		if (resultado.IsFailure)
@@ -382,15 +383,17 @@ public sealed class SetorController(
 			.HandleAsync(new ListarDocumentosQuery(setor.Slug), cancellationToken)
 			.ConfigureAwait(false);
 
+		IReadOnlyList<NoDeDocumentoDto> nos = documentos.IsSuccess ? documentos.Value : [];
+
 		return new SetorDocumentosViewModel(
 			setor,
-			// A página ainda mostra lista plana: cada item da raiz seguido dos filhos.
-			documentos.IsSuccess ? [.. documentos.Value.SelectMany(no => new[] { no.Documento }.Concat(no.Filhos))] : [],
+			ListaDeDocumentosFactory.Montar(nos, id => Url.Action("Download", "Documentos", new { id })!),
 			await PodePublicarAsync(setor.Slug, cancellationToken).ConfigureAwait(false),
 			form,
 			documentoOptions.TamanhoMaximoBytes,
 			resolucao.No.Nome,
-			Trilho(setor, resolucao));
+			Trilho(setor, resolucao),
+			[.. nos.Select(no => new OpcaoAbaixoDe(no.Documento.Id, no.Documento.Titulo))]);
 	}
 
 	private async Task<SetorAvisosViewModel> MontarAvisosAsync(

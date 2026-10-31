@@ -883,6 +883,116 @@ html.sc-js .sc-nav__sub.is-open {
   }
 }
 
+// --- Lista de documentos -------------------------------------------------------
+// Ganchos estaveis para temas de adotantes: .sc-doclist, .sc-doclist__item (--grupo),
+// .sc-doclist__filhos (docs/temas.md). O grupo e um subtitulo; os filhos ficam recuados.
+.sc-doclist {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--sc-border);
+  border-radius: var(--bs-border-radius);
+  background-color: var(--sc-surface);
+  list-style: none;
+
+  &__item {
+    border-top: 1px solid var(--sc-border);
+  }
+
+  &__item:first-child {
+    border-top: 0;
+  }
+
+  &__linha {
+    display: flex;
+    align-items: center;
+    gap: .875rem;
+    padding: .75rem 1rem;
+  }
+
+  &__icone {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--bs-border-radius-sm);
+    background-color: var(--sc-surface-muted);
+    color: var(--sc-text-muted);
+    font-size: 1.125rem;
+  }
+
+  &__texto {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__titulo {
+    display: block;
+    margin: 0;
+    color: var(--sc-text);
+    font-size: .9375rem;
+    font-weight: 600;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+
+  a#{&}__titulo:hover {
+    text-decoration: underline;
+  }
+
+  a#{&}__titulo:focus-visible {
+    outline: 2px solid var(--sc-primary);
+    outline-offset: 2px;
+  }
+
+  &__titulo--grupo {
+    color: var(--sc-text-muted);
+    font-size: .8125rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  &__sub {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: center;
+    margin-top: .125rem;
+  }
+
+  &__tipo {
+    padding: 0 .4rem;
+    border: 1px solid var(--sc-border);
+    border-radius: var(--bs-border-radius-sm);
+    color: var(--sc-text-muted);
+    font-size: .6875rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+  }
+
+  &__descricao {
+    margin: .25rem 0 0;
+    color: var(--sc-text-muted);
+    font-size: .875rem;
+  }
+
+  &__item--grupo > &__linha {
+    background-color: var(--sc-surface-muted);
+  }
+
+  &__filhos {
+    margin: 0;
+    padding: 0 0 0 1.5rem;
+    border-top: 1px solid var(--sc-border);
+    list-style: none;
+  }
+
+  &__filhos &__item:first-child {
+    border-top: 0;
+  }
+}
+
 // --- Organograma -------------------------------------------------------------
 // Ganchos estaveis para temas de adotantes: .sc-org, .sc-org__no, .sc-org__cartao,
 // .sc-org__equipe, data-nivel e data-equipe (ver docs/temas.md). Abaixo de 768px e uma lista

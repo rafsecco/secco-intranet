@@ -1,0 +1,42 @@
+@model ItemDaListaDeDocumentosModel
+<li class="sc-doclist__item@(Model.EhGrupo ? " sc-doclist__item--grupo" : null)">
+	<div class="sc-doclist__linha">
+		<span class="sc-doclist__icone" aria-hidden="true">
+			<i class="bi @(Model.EhGrupo ? "bi-folder2" : Model.Icone)"></i>
+		</span>
+		<div class="sc-doclist__texto">
+			@if (Model.EhGrupo)
+			{
+				<h2 class="sc-doclist__titulo sc-doclist__titulo--grupo">@Model.Titulo</h2>
+			}
+			else
+			{
+				<a class="sc-doclist__titulo" href="@Model.Url">@Model.Titulo</a>
+				<span class="sc-doclist__sub">
+					@if (Model.Tipo is not null)
+					{
+						<span class="sc-doclist__tipo">@Model.Tipo</span>
+					}
+					<span class="sc-meta">@Model.Detalhe</span>
+					@if (Model.Badge is not null)
+					{
+						<partial name="_Badge" model="Model.Badge" />
+					}
+				</span>
+			}
+			@if (Model.Descricao is not null)
+			{
+				<p class="sc-doclist__descricao">@Model.Descricao</p>
+			}
+		</div>
+	</div>
+	@if (Model.Filhos.Count > 0)
+	{
+		<ul class="sc-doclist__filhos">
+			@foreach (var filho in Model.Filhos)
+			{
+				<partial name="_ListaDeDocumentosItem" model="filho" />
+			}
+		</ul>
+	}
+</li>
