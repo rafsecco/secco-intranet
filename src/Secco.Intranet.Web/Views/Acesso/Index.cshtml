@@ -6,7 +6,8 @@
     var nosPerfis = Model.Aba == AbaDoAcesso.Perfis;
 
     static BadgeModel BadgeDoPerfil(PerfilDto perfil) =>
-        perfil.Reservado ? new BadgeModel("Reservado", BadgeVariante.Perigo)
+        perfil.Implicito ? new BadgeModel("Todos os membros", BadgeVariante.Sucesso)
+        : perfil.Reservado ? new BadgeModel("Reservado", BadgeVariante.Perigo)
         : perfil.Tipo == TipoDePerfil.Produto ? new BadgeModel("Do produto", BadgeVariante.Sucesso)
         : perfil.Tipo == TipoDePerfil.Setor ? new BadgeModel("Do setor", BadgeVariante.Neutro)
         : new BadgeModel("Perfil", BadgeVariante.Aviso);

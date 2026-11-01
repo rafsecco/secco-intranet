@@ -44,7 +44,8 @@ public enum PapelNoSetor
 /// <param name="TotalDePermissoes">Quantas permissões o perfil carrega.</param>
 /// <param name="Tipo">Classificação pelo nome.</param>
 /// <param name="Reservado">Se é reservado da plataforma.</param>
-public sealed record PerfilDto(string Nome, int TotalDePermissoes, TipoDePerfil Tipo, bool Reservado);
+/// <param name="Implicito">Se é o perfil implícito do tenant: todo membro ativo o tem, sem atribuição.</param>
+public sealed record PerfilDto(string Nome, int TotalDePermissoes, TipoDePerfil Tipo, bool Reservado, bool Implicito = false);
 
 /// <summary>Detalhe de um perfil.</summary>
 /// <param name="Nome">Nome do perfil.</param>
@@ -52,8 +53,12 @@ public sealed record PerfilDto(string Nome, int TotalDePermissoes, TipoDePerfil 
 /// <param name="Reservado">Se a plataforma o marca como reservado.</param>
 /// <param name="TotalDeMembros">Quantos usuários o têm.</param>
 /// <param name="Tipo">Classificação pelo nome.</param>
+/// <param name="Implicito">
+/// Se é o perfil implícito do tenant: todo membro ativo o tem, sem atribuição. As permissões são
+/// editáveis; atribuir, retirar e excluir, não.
+/// </param>
 public sealed record PerfilDetalheDto(
-	string Nome, IReadOnlyList<string> Permissoes, bool Reservado, int TotalDeMembros, TipoDePerfil Tipo);
+	string Nome, IReadOnlyList<string> Permissoes, bool Reservado, int TotalDeMembros, TipoDePerfil Tipo, bool Implicito = false);
 
 /// <summary>Um membro de um perfil.</summary>
 /// <param name="UsuarioId">Identificador do usuário.</param>

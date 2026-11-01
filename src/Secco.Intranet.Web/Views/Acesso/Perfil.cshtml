@@ -7,7 +7,9 @@
 
     var cabecalho = new PageHeaderModel(
         perfil.Nome,
-        "Marque as permissões deste perfil.",
+        perfil.Implicito
+            ? "Todo membro ativo do tenant tem este perfil, sem atribuição, inclusive quem entrar depois. Marque o que todos podem fazer."
+            : "Marque as permissões deste perfil.",
         Acoes: new[] { new PageActionModel("Voltar", Url.Action("Index")!, "bi-arrow-left") });
 
     var catalogoDePermissoes = IntranetPermissoes.Catalogo.ToList();
@@ -45,7 +47,7 @@
         _ => new BadgeModel("Desconhecida", BadgeVariante.Neutro),
     };
 
-    var podeExcluir = perfil.Tipo == TipoDePerfil.Comum && !perfil.Reservado;
+    var podeExcluir = perfil.Tipo == TipoDePerfil.Comum && !perfil.Reservado && !perfil.Implicito;
 }
 
 <partial name="_PageHeader" model="cabecalho" />
@@ -73,39 +75,47 @@
 </div>
 
 <div class="sc-panel mt-3">
-    <h2 class="h6">Membros (@perfil.TotalDeMembros)</h2>
-
-    @if (tela.Membros.Itens.Count == 0)
+    @if (perfil.Implicito)
     {
-        <partial name="_EmptyState" model="@(new EmptyStateModel("bi-people", "Ninguém tem este perfil ainda"))" />
+        <h2 class="h6">Membros</h2>
+        <p class="text-muted mb-0">Todos os membros ativos do tenant. Ninguém é adicionado nem retirado por aqui.</p>
     }
     else
     {
-        <ul class="sc-list">
-            @foreach (var membro in tela.Membros.Itens)
-            {
-                <li class="sc-list__item">
-                    <div class="sc-list__text">
-                        <p class="sc-list__title">
-                            <a class="text-reset text-decoration-none" asp-action="Usuario" asp-route-id="@membro.UsuarioId">@(string.IsNullOrWhiteSpace(membro.Email) ? "(sem e-mail)" : membro.Email)</a>
-                        </p>
-                        <span class="sc-list__sub"><partial name="_Badge" model="BadgeDaSituacao(membro.Situacao)" /></span>
-                    </div>
-                    <form method="post" asp-action="RetirarPerfil" class="d-inline">
-                        <input type="hidden" name="usuarioId" value="@membro.UsuarioId" />
-                        <input type="hidden" name="perfil" value="@perfil.Nome" />
-                        <input type="hidden" name="origem" value="perfil" />
-                        <button class="btn btn-sm btn-outline-danger" type="submit">Retirar</button>
-                    </form>
-                </li>
-            }
-        </ul>
+        <h2 class="h6">Membros (@perfil.TotalDeMembros)</h2>
 
-        <partial name="_Pagination" model="paginacao" />
+        @if (tela.Membros.Itens.Count == 0)
+        {
+            <partial name="_EmptyState" model="@(new EmptyStateModel("bi-people", "Ninguém tem este perfil ainda"))" />
+        }
+        else
+        {
+            <ul class="sc-list">
+                @foreach (var membro in tela.Membros.Itens)
+                {
+                    <li class="sc-list__item">
+                        <div class="sc-list__text">
+                            <p class="sc-list__title">
+                                <a class="text-reset text-decoration-none" asp-action="Usuario" asp-route-id="@membro.UsuarioId">@(string.IsNullOrWhiteSpace(membro.Email) ? "(sem e-mail)" : membro.Email)</a>
+                            </p>
+                            <span class="sc-list__sub"><partial name="_Badge" model="BadgeDaSituacao(membro.Situacao)" /></span>
+                        </div>
+                        <form method="post" asp-action="RetirarPerfil" class="d-inline">
+                            <input type="hidden" name="usuarioId" value="@membro.UsuarioId" />
+                            <input type="hidden" name="perfil" value="@perfil.Nome" />
+                            <input type="hidden" name="origem" value="perfil" />
+                            <button class="btn btn-sm btn-outline-danger" type="submit">Retirar</button>
+                        </form>
+                    </li>
+                }
+            </ul>
+
+            <partial name="_Pagination" model="paginacao" />
+        }
     }
 </div>
 
-@if (!perfil.Reservado)
+@if (!perfil.Reservado && !perfil.Implicito)
 {
     <div class="sc-panel mt-3">
         @if (tela.Candidatos.Count == 0)

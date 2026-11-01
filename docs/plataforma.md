@@ -17,7 +17,7 @@ Duas regras sustentam esta lista:
 
 | Demanda | O que trava | Issue |
 |---|---|---|
-| Perfil implícito do tenant: todo usuário ativo tem, sem atribuição | Nada bloqueia. As bibliotecas de documentos ([#4](https://github.com/rafsecco/secco-intranet/issues/4)) que todos leem funcionam com um perfil comum atribuído a cada pessoa, mas quem entra depois e não recebe o perfil fica sem ver, sem aviso | [#51](https://github.com/rafsecco/secco-platform/issues/51) |
+| _(nenhuma)_ | | |
 
 ## Descartadas
 
@@ -36,6 +36,7 @@ cada capacidade — informação que some se a linha for apagada.
 
 | Demanda | Entregue em | Issue |
 |---|---|---|
+| Perfil implícito do tenant: todo usuário ativo tem, sem atribuição | `Secco.SecureGate.Client` **0.24.0** (2026-10-31), ADR-0056 — perfil `tenant-member` em todo tenant, acrescentado pelo SecureGate aos papéis do token de toda pessoa ativa, inclusive quem entra depois. Permissões editáveis pelo admin; ninguém cria, atribui, retira nem exclui. A tela de Acesso mostra "Todos os membros". Cada instalação roda o `migrate` do SecureGate para criar o perfil nos tenants existentes | [#51](https://github.com/rafsecco/secco-platform/issues/51) |
 | Registrar `permissions:<produto>` para produto adotante (ADR-0039) | Serviço SecureGate (2026-10-22), commit `9b674ea`, sem pacote novo — `SecureGate:PermissionCatalog:Products: ["intranet"]` faz o seed de referência registrar `permissions:intranet`. Adotado no guia de deploy; a fumaça publica o catálogo e passou 14/14 | [#49](https://github.com/rafsecco/secco-platform/issues/49) |
 | Trilha de `securegate:tenant-manage` (ADR-0052) sem depender do LogStream | `Secco.SecureGate.Client` **0.22.0** (2026-10-22), ADR-0054 — a trilha da gestão do próprio tenant fica no banco do SecureGate, síncrona e fail-closed, sem `SecureGate:Audit` nem LogStream. Só o operador lê (`GET /api/v1/tenants/{id}/audit-entries` e o AdminPortal). Retenção opcional por `SecureGate:Audit:RetentionDays`. O LogStream volta a ser opcional | [#48](https://github.com/rafsecco/secco-platform/issues/48) |
 | `ListRoleMembers` aberto ao `securegate:tenant-manage` (ADR-0052) | Serviço SecureGate (2026-10-22), commit `7f28cab`, sem pacote novo — leitura só no tenant do token, sem trilha. Com isso todas as rotas que a gestão do próprio tenant usa estão na lista do escopo | [#47](https://github.com/rafsecco/secco-platform/issues/47) |

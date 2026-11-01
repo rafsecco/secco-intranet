@@ -28,6 +28,7 @@ public class ClassificacaoDePerfilTests
 	[InlineData("platform-operator")]
 	[InlineData("installation-log-reader")]
 	[InlineData("installation-auditor")]
+	[InlineData("tenant-member")]
 	public void EhReservado_ReconheceOsReservadosDaPlataforma(string nome)
 	{
 		ClassificacaoDePerfil.EhReservado(nome).Should().BeTrue();

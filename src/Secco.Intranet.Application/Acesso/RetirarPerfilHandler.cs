@@ -31,6 +31,12 @@ public sealed class RetirarPerfilHandler(IGestaoDeAcesso gestao, ITrilhaDeAudito
 			return Result.Failure(IntranetErrors.Acesso.PerfilRequired);
 		}
 
+		// O implícito não tem atribuição a desfazer: todo membro ativo o tem.
+		if (string.Equals(perfil, ClassificacaoDePerfil.PerfilImplicito, StringComparison.OrdinalIgnoreCase))
+		{
+			return Result.Failure(IntranetErrors.Acesso.PerfilReservado);
+		}
+
 		if (string.Equals(perfil, ClassificacaoDePerfil.IntranetAdmin, StringComparison.OrdinalIgnoreCase))
 		{
 			if (RegrasDeIntranetAdmin.EhOProprio(ator, command.UsuarioId))

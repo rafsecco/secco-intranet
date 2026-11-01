@@ -48,6 +48,7 @@ public class EscritaDeAcessoHandlersTests
 	[Theory]
 	[InlineData("installation-operator")]
 	[InlineData("Installation-Auditor")]
+	[InlineData("tenant-member")]
 	public async Task CriarPerfil_Reservado_Recusa(string nome)
 	{
 		var gestao = Cenario();
@@ -171,6 +172,18 @@ public class EscritaDeAcessoHandlersTests
 	}
 
 	[Fact]
+	public async Task AtribuirPerfil_Implicito_RecusaSemChamarAPlataforma()
+	{
+		var gestao = Cenario().ComPerfilImplicito();
+
+		var resultado = await new AtribuirPerfilHandler(gestao, new TrilhaDeAcessoFalsa())
+			.HandleAsync(new AtribuirPerfilCommand(Ana, "tenant-member"));
+
+		resultado.Error.Should().Be(IntranetErrors.Acesso.PerfilReservado);
+		gestao.Chamadas.Should().BeEmpty();
+	}
+
+	[Fact]
 	public async Task AtribuirPerfil_MarcadoComoReservadoPelaPlataforma_Recusa()
 	{
 		// Um reservado que a lista local não conhece: a decisão definitiva vem do IsReserved.
@@ -218,6 +231,18 @@ public class EscritaDeAcessoHandlersTests
 	}
 
 	// --- RetirarPerfil ---
+
+	[Fact]
+	public async Task RetirarPerfil_Implicito_RecusaSemChamarAPlataforma()
+	{
+		var gestao = Cenario().ComPerfilImplicito();
+
+		var resultado = await new RetirarPerfilHandler(gestao, new TrilhaDeAcessoFalsa(), new AtorDeAcessoFalso(Admin))
+			.HandleAsync(new RetirarPerfilCommand(Ana, "Tenant-Member"));
+
+		resultado.Error.Should().Be(IntranetErrors.Acesso.PerfilReservado);
+		gestao.Chamadas.Should().BeEmpty();
+	}
 
 	[Fact]
 	public async Task RetirarPerfil_IntranetAdminDeSiMesmo_Recusa()

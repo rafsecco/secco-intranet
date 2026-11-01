@@ -34,9 +34,15 @@ public static partial class ClassificacaoDePerfil
 		[IntranetAdmin, InventarioAdmin, DiretorioAdmin, DiretorioUsuario];
 
 	/// <summary>
-	/// Reservados da plataforma — espelho de <c>RoleInputRules.ReservedNames</c> do SecureGate.
-	/// A recusa definitiva vem do <c>IsReserved</c> do <c>GetRole</c>; este conjunto só evita a
-	/// chamada e esconde o perfil dos seletores.
+	/// Perfil implícito do tenant (ADR-0056 da plataforma): todo membro ativo o tem, sem atribuição.
+	/// O admin edita as permissões dele; ninguém cria, atribui, retira nem exclui.
+	/// </summary>
+	public const string PerfilImplicito = "tenant-member";
+
+	/// <summary>
+	/// Reservados da plataforma — espelho de <c>RoleInputRules.IsReservedName</c> do SecureGate, que
+	/// inclui o perfil implícito. A recusa definitiva vem do SecureGate; este conjunto só evita a
+	/// chamada e esconde o perfil dos seletores de atribuição.
 	/// </summary>
 	private static readonly HashSet<string> Reservados = new(StringComparer.OrdinalIgnoreCase)
 	{
@@ -44,6 +50,7 @@ public static partial class ClassificacaoDePerfil
 		"platform-operator",
 		"installation-log-reader",
 		"installation-auditor",
+		PerfilImplicito,
 	};
 
 	[GeneratedRegex("^[a-zA-Z0-9](?:[a-zA-Z0-9._-]*[a-zA-Z0-9])?$", RegexOptions.CultureInvariant)]

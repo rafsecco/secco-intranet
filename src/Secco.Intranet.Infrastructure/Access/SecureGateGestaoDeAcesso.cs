@@ -36,7 +36,8 @@ public sealed class SecureGateGestaoDeAcesso(
 						p.Name,
 						p.Permissions?.Count ?? 0,
 						ClassificacaoDePerfil.Tipo(p.Name),
-						ClassificacaoDePerfil.EhReservado(p.Name)))];
+						ClassificacaoDePerfil.EhReservado(p.Name),
+						p.IsImplicit))];
 
 				return lista;
 			},
@@ -56,7 +57,8 @@ public sealed class SecureGateGestaoDeAcesso(
 					[.. papel.Permissions ?? []],
 					papel.IsReserved,
 					papel.MemberCount,
-					ClassificacaoDePerfil.Tipo(papel.Name));
+					ClassificacaoDePerfil.Tipo(papel.Name),
+					papel.IsImplicit);
 			},
 			IntranetErrors.Acesso.PerfilNaoEncontrado,
 			cancellationToken);

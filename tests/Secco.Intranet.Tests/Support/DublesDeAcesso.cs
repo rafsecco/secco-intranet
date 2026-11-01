@@ -62,6 +62,15 @@ public sealed class GestaoDeAcessoFalsa : IGestaoDeAcesso
 		return this;
 	}
 
+	/// <summary>Acrescenta o perfil implícito do tenant, como o SecureGate o devolve.</summary>
+	public GestaoDeAcessoFalsa ComPerfilImplicito(params string[] permissoes)
+	{
+		Perfis.Add(new PerfilDetalheDto(
+			ClassificacaoDePerfil.PerfilImplicito, permissoes, false, 0, ClassificacaoDePerfil.Tipo(ClassificacaoDePerfil.PerfilImplicito), Implicito: true));
+
+		return this;
+	}
+
 	/// <summary>Acrescenta um usuário.</summary>
 	public GestaoDeAcessoFalsa ComUsuario(
 		Guid id, string email, SituacaoDoUsuario situacao = SituacaoDoUsuario.Ativo, params string[] perfis)
@@ -84,7 +93,7 @@ public sealed class GestaoDeAcessoFalsa : IGestaoDeAcesso
 	public Task<Result<IReadOnlyList<PerfilDto>>> ListarPerfisAsync(CancellationToken cancellationToken = default)
 	{
 		IReadOnlyList<PerfilDto> lista =
-			[.. Perfis.Select(p => new PerfilDto(p.Nome, p.Permissoes.Count, p.Tipo, p.Reservado))];
+			[.. Perfis.Select(p => new PerfilDto(p.Nome, p.Permissoes.Count, p.Tipo, p.Reservado || ClassificacaoDePerfil.EhReservado(p.Nome), p.Implicito))];
 
 		return Task.FromResult(Result.Success(lista));
 	}

@@ -310,6 +310,29 @@ public class AcessoTelasTests(IntranetWebFactory factory) : IClassFixture<Intran
 	}
 
 	[Fact]
+	public async Task Perfil_Implicito_EditaPermissoesSemMembrosNemExcluir()
+	{
+		var gestao = CenarioDePerfil().ComPerfilImplicito("mural:read");
+
+		var html = Decodificar(await CriarClienteAdmin(gestao).GetStringAsync("/Acesso/Perfil?nome=tenant-member"));
+
+		html.Should().Contain("name=\"permissoes\"", "o admin edita o que todos podem fazer");
+		html.Should().Contain("Todos os membros ativos do tenant");
+		html.Should().NotContain("Adicionar membro").And.NotContain("Excluir perfil")
+			.And.NotContain("Ninguém tem este perfil", "o perfil implícito não tem lista de membros");
+	}
+
+	[Fact]
+	public async Task Listagem_PerfilImplicito_MarcadoComoDeTodos()
+	{
+		var gestao = CenarioDePerfil().ComPerfilImplicito();
+
+		var html = Decodificar(await CriarClienteAdmin(gestao).GetStringAsync("/Acesso?aba=perfis"));
+
+		html.Should().Contain("tenant-member").And.Contain("Todos os membros");
+	}
+
+	[Fact]
 	public async Task Perfil_DoProdutoOuDeSetor_NaoOfereceExcluir()
 	{
 		var html = await CriarClienteAdmin(CenarioDePerfil()).GetStringAsync("/Acesso/Perfil?nome=intranet-admin");
