@@ -111,12 +111,29 @@
   // Acao irreversivel: <form data-confirmar="Pergunta?"> pergunta antes de enviar. Sem JS o
   // formulario envia direto — o mesmo de antes deste atributo existir, entao uma falha de
   // script nao trava nada. Delegado no document para valer em formularios de qualquer view.
+  // O mesmo atributo num <input type="file"> pergunta so quando ha arquivo escolhido (ex.:
+  // substituir o arquivo de um documento); a pergunta do formulario, se houver, vem primeiro.
   document.addEventListener('submit', function (evento) {
     var formulario = evento.target;
-    var pergunta = formulario instanceof HTMLFormElement ? formulario.getAttribute('data-confirmar') : null;
+
+    if (!(formulario instanceof HTMLFormElement)) {
+      return;
+    }
+
+    var pergunta = formulario.getAttribute('data-confirmar');
 
     if (pergunta && !window.confirm(pergunta)) {
       evento.preventDefault();
+      return;
+    }
+
+    var campos = formulario.querySelectorAll('input[type=file][data-confirmar]');
+
+    for (var i = 0; i < campos.length; i++) {
+      if (campos[i].files && campos[i].files.length > 0 && !window.confirm(campos[i].getAttribute('data-confirmar'))) {
+        evento.preventDefault();
+        return;
+      }
     }
   });
 })();

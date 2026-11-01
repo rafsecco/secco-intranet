@@ -160,6 +160,9 @@ texto antes de enviar o formulário e cancelar o envio se a pessoa desistir — 
 publicados fazem isso em `wwwroot/js/theme.js`, com um listener de `submit` no `document`
 (vale para qualquer view, inclusive as que ainda não existem). Sem o script, o formulário
 envia direto: um tema que esqueça disso não quebra nada, mas perde a confirmação.
+O mesmo atributo num `<input type="file" data-confirmar="...">` pergunta só quando há arquivo
+escolhido (a tela de editar documento o usa para avisar que o arquivo atual será apagado);
+sem arquivo escolhido, o envio segue sem perguntar. A pergunta do formulário, se houver, vem primeiro.
 
 ## Modo claro e escuro é obrigatório
 
