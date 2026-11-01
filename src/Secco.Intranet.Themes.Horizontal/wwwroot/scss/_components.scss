@@ -1221,3 +1221,16 @@ html.sc-js .sc-nav__sub.is-open {
     }
   }
 }
+
+// Recuo por nivel na arvore de itens de menu do setor (/Setores/Menu). Classe por nivel, e nao
+// padding no atributo style, pela CSP; a partir do decimo nivel o recuo para de crescer.
+@for $nivel from 0 through 10 {
+  .sc-list__item--nivel-#{$nivel} {
+    padding-left: calc(1rem + #{$nivel} * 1.5rem);
+  }
+}
+
+// Area de recorte da foto do colaborador (Diretorio): largura maxima do Cropper.
+.sc-recorte-foto {
+  max-width: 480px;
+}

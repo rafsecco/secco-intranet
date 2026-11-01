@@ -7,12 +7,12 @@
     {
         "sc-card",
         temSetor ? "sc-card--setor" : null,
+        temSetor ? SetorHue.Classe(Model.SetorSlug) : null,
         navegavel ? "sc-card--navegavel" : null,
     }.Where(classe => classe is not null));
 
-    string? estilo = temSetor ? $"--sc-setor-hue:{SetorHue.From(Model.SetorSlug)}" : null;
 }
-<article class="@classes" style="@estilo">
+<article class="@classes">
     <div class="sc-card__head">
         <h3 class="sc-card__title">
             @if (navegavel)

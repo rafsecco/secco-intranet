@@ -19,6 +19,16 @@ public static class SetorHue
 
 	private static readonly int[] Hues = [152, 199, 221, 265, 291, 340, 18, 41];
 
+	/// <summary>
+	/// Os matizes possíveis. Cada tema define uma classe <c>sc-hue-{matiz}</c> para cada um, que só
+	/// declara <c>--sc-setor-hue</c>: a CSP da Intranet não aceita atributo <c>style</c>.
+	/// </summary>
+	public static IReadOnlyList<int> Matizes => Hues;
+
+	/// <summary>Classe CSS (<c>sc-hue-{matiz}</c>) que pinta o elemento com a cor do setor.</summary>
+	/// <param name="slug">Slug do setor. Nulo ou vazio devolve a classe do primeiro matiz.</param>
+	public static string Classe(string? slug) => $"sc-hue-{From(slug)}";
+
 	/// <summary>Matiz (0–360) do setor informado.</summary>
 	/// <param name="slug">Slug do setor. Nulo ou vazio devolve o primeiro matiz.</param>
 	public static int From(string? slug)

@@ -77,8 +77,19 @@
   --bs-link-hover-color: #4FE0AB;
 }
 
+// Matizes do setor, os mesmos de SetorHue.Matizes: o core poe a classe sc-hue-{matiz} no elemento.
+// Classe, e nao atributo style, porque a CSP da Intranet nao aceita estilo inline (ADR-0057 da
+// plataforma). Um teste confere que todo matiz do SetorHue tem a classe no CSS compilado.
+$sc-matizes-de-setor: 152, 199, 221, 265, 291, 340, 18, 41;
+
+@each $matiz in $sc-matizes-de-setor {
+  .sc-hue-#{$matiz} {
+    --sc-setor-hue: #{$matiz};
+  }
+}
+
 // Cores derivadas do matiz do setor. Sem --sc-setor-hue o elemento cai no matiz base.
-[style*="--sc-setor-hue"],
+[class*="sc-hue-"],
 .sc-setor {
   --sc-setor:      hsl(var(--sc-setor-hue, 152) var(--sc-setor-saturation) var(--sc-setor-lightness));
   --sc-setor-soft: hsl(var(--sc-setor-hue, 152) var(--sc-setor-saturation) var(--sc-setor-soft-light));

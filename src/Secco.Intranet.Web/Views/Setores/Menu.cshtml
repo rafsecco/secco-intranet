@@ -26,7 +26,7 @@
 <ul class="sc-list mb-3">
     @foreach (var (no, profundidade) in linhas)
     {
-        <li class="sc-list__item" style="padding-left: @(16 + profundidade * 24)px">
+        <li class="sc-list__item sc-list__item--nivel-@Math.Min(profundidade, 10)">
             <div class="sc-list__text">
                 <p class="sc-list__title">
                     @if (!string.IsNullOrWhiteSpace(no.Item.Icone))

@@ -166,7 +166,7 @@ else
         {
             var etiqueta = Etiqueta(publicacao);
 
-            <li class="sc-list__item" style="--sc-setor-hue:@SetorHue.From(publicacao.SetorSlug)">
+            <li class="sc-list__item @SetorHue.Classe(publicacao.SetorSlug)">
                 @if (publicacao.TemImagem)
                 {
                     <img class="sc-list__miniatura" src="@urlDaImagem(publicacao.Id)" alt="" loading="lazy" />

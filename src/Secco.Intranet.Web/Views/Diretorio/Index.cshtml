@@ -60,7 +60,7 @@ else
         @foreach (var pessoa in pagina.Items)
         {
             <div class="col-12 col-md-6 col-xl-4">
-                <article class="sc-card h-100" style="--sc-setor-hue:@SetorHue.From(pessoa.SetorSlug ?? pessoa.Nome)">
+                <article class="sc-card h-100 @SetorHue.Classe(pessoa.SetorSlug ?? pessoa.Nome)">
                     <div class="d-flex gap-3">
                         <partial name="_Avatar" model="@(new AvatarModel(Iniciais.De(pessoa.Nome), pessoa.TemFoto ? $"/diretorio/{pessoa.UsuarioId}/foto" : null, AvatarTamanho.Grande))" />
                         <div class="min-w-0">

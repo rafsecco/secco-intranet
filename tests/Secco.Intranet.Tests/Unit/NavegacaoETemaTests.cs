@@ -103,6 +103,35 @@ public class NavegacaoETemaTests
 		SetorHue.From(slug).Should().Be(SetorHue.From(slug), "a cor de um setor não pode mudar a cada reinício");
 
 	[Fact]
+	public void SetorHue_Classe_EAClasseDoMatiz() =>
+		SetorHue.Classe("financeiro").Should().Be($"sc-hue-{SetorHue.From("financeiro")}");
+
+	// A cor do setor sai por classe porque a CSP não aceita atributo style: um matiz sem a classe no
+	// CSS compilado deixaria o setor sem cor, sem nenhum erro visível.
+	[Theory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public void CssDoTema_DefineUmaClassePorMatizDoSetorHue(string tema)
+	{
+		var raiz = new DirectoryInfo(AppContext.BaseDirectory);
+
+		while (raiz is not null && !File.Exists(Path.Combine(raiz.FullName, "Secco.Intranet.slnx")))
+		{
+			raiz = raiz.Parent;
+		}
+
+		raiz.Should().NotBeNull("o teste lê o CSS compilado do tema a partir da raiz do repositório");
+
+		var css = File.ReadAllText(Path.Combine(
+			raiz!.FullName, "src", $"Secco.Intranet.Themes.{tema}", "wwwroot", "css", "theme.css"));
+
+		foreach (var matiz in SetorHue.Matizes)
+		{
+			css.Should().MatchRegex($@"\.sc-hue-{matiz}\{{--sc-setor-hue:\s*{matiz}\}}");
+		}
+	}
+
+	[Fact]
 	public void Build_ComAdministracao_OfereceSetoresEAcesso()
 	{
 		var menu = IntranetNavigation.Build(

@@ -33,7 +33,7 @@
 
 <partial name="_PageHeader" model="cabecalho" />
 
-<article class="@classes" style="--sc-setor-hue:@SetorHue.From(publicacao.SetorSlug)">
+<article class="@classes @SetorHue.Classe(publicacao.SetorSlug)">
     <partial name="_Badge" model="badgeDoSetor" />
 
     @if (publicacao.Corpo is not null)

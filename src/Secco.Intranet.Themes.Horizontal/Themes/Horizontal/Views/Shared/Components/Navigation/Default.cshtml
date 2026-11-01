@@ -12,14 +12,14 @@
         var temFilhos = filhos.Count > 0;
         var atual = item.Ativo && !filhos.Any(filho => filho.Ativo);
         var temSetor = !string.IsNullOrWhiteSpace(item.SetorSlug);
-        string? estilo = temSetor ? $"--sc-setor-hue:{SetorHue.From(item.SetorSlug)}" : null;
+        string? matiz = temSetor ? SetorHue.Classe(item.SetorSlug) : null;
         string? painel = temFilhos ? $"sc-nav-sub-{++sequencia}" : null;
         var classe = item.Ativo ? "sc-nav__item is-active" : "sc-nav__item";
 
         <li class="@(temFilhos ? "sc-nav__node" : null)">
             @if (item.Url is null)
             {
-                <button class="@classe sc-nav__item--grupo" type="button" style="@estilo"
+                <button class="@classe sc-nav__item--grupo @matiz" type="button"
                         data-sc-submenu aria-controls="@painel" aria-expanded="false" aria-haspopup="true">
                     @if (!string.IsNullOrWhiteSpace(item.Icone))
                     {
@@ -32,7 +32,7 @@
             else
             {
                 <div class="sc-nav__row">
-                    <a class="@classe" href="@item.Url" style="@estilo"
+                    <a class="@classe @matiz" href="@item.Url"
                        aria-current="@(atual ? "page" : null)">
                         @if (!string.IsNullOrWhiteSpace(item.Icone))
                         {

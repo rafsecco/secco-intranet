@@ -84,6 +84,10 @@ builder.Services.AddSeccoAuthorization();
 // habilite atrás de um reverse proxy que seja o único caminho até a aplicação.
 builder.Services.AddIntranetProxyForwarding(builder.Configuration);
 
+// Cabeçalhos de segurança (ADR-0057 da plataforma): CSP sem script nem estilo inline, nosniff,
+// Referrer-Policy, Permissions-Policy, frame-ancestors e HSTS. Ver IntranetSecurityHeadersExtensions.
+builder.Services.AddIntranetSecurityHeaders();
+
 var app = builder.Build();
 
 // Processo controlado (ADR-0005; ADR-0038 da plataforma): `dotnet Secco.Intranet.Web.dll migrate`
@@ -94,11 +98,14 @@ if (SeccoCommands.IsMigrate(args))
 	return await app.Services.RunSeccoMigrationsAsync() ? 0 : 1;
 }
 
+// Primeiro do pipeline: os cabeçalhos saem no OnStarting, inclusive na página de erro e no 404 do
+// UseStatusCodePages. O HSTS também vem daqui, por isso não há UseHsts().
+app.UseSeccoSecurityHeaders();
+
 if (!app.Environment.IsDevelopment())
 {
 	// ADR-0020: nunca expor stack trace/detalhe interno fora de Development.
 	app.UseExceptionHandler("/Home/Error");
-	app.UseHsts();
 }
 
 // Antes de qualquer middleware que olhe esquema/IP da requisição (ADR-0020) — se a chave não

@@ -256,9 +256,16 @@ processos (maior risco técnico) só entra com a base já sólida.
       fora da rede da empresa — a restrição é de rede, não de código, e o produto não a
       implementa sozinho. A aplicação **tem** saída para a internet; o que não deve existir é
       entrada de fora
-- [ ] ⛔ Cabeçalhos de segurança HTTP (CSP com nonce, `Referrer-Policy`, `Permissions-Policy`,
-      `frame-ancestors`): pedido ao `Secco.SDK.AspNetCore`, o produto não os implementa
-      localmente — [secco-platform#53](https://github.com/rafsecco/secco-platform/issues/53)
+- [x] Cabeçalhos de segurança HTTP pelo `Secco.SDK.AspNetCore` 0.10.1 (ADR-0057 da plataforma,
+      [secco-platform#53](https://github.com/rafsecco/secco-platform/issues/53)): CSP com nonce,
+      `nosniff`, `Referrer-Policy`, `Permissions-Policy`, `frame-ancestors` e HSTS, e `form-action`
+      com a origem do SecureGate. Para a CSP não abrir exceção, os temas deixaram o script inline
+      (`preferencias.js`) e o `style` da cor do setor (classes `sc-hue-{matiz}`); os únicos `style`
+      liberados, por hash, são quatro valores exatos do editor Toast UI e do
+      `asp-validation-summary`. Começa em `Intranet:Csp:Modo=ReportOnly`
+- [ ] CSP em `Enforce` por padrão. Navegando em Enforce (2026-11-01) só sobrou bloqueada a imagem
+      externa num aviso em Markdown (`![](https://...)`, `img-src 'self' data:`); falta decidir o
+      que o Mural faz com ela e acompanhar os relatórios antes de virar o padrão
 
 ## Fase 5 — Comunidade (pós-lançamento open source)
 

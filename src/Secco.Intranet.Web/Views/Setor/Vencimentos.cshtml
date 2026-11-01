@@ -42,7 +42,7 @@ else
 		{
 			var etiqueta = EtiquetaDeVencimento.Para(item.Estado);
 
-			<li class="sc-list__item" style="--sc-setor-hue:@SetorHue.From(Model.Setor.Slug)">
+			<li class="sc-list__item @SetorHue.Classe(Model.Setor.Slug)">
 				<span class="sc-list__icon" aria-hidden="true"><i class="bi bi-calendar-check"></i></span>
 				<div class="sc-list__text">
 					<p class="sc-list__title">

@@ -183,17 +183,50 @@ sistema, o terceiro a escolha explícita do usuário — e o `:not()` garante qu
 "claro" vença um sistema em modo escuro.
 
 Para não piscar no modo errado a cada carregamento, o `_Layout` aplica a preferência
-guardada **antes** da primeira pintura, num script inline no `<head>`.
+guardada **antes** da primeira pintura, com um `<script src>` síncrono no `<head>`, antes do
+CSS (`wwwroot/js/preferencias.js` nos dois temas publicados).
+
+## Sem script nem estilo inline (CSP)
+
+A Intranet responde com Content-Security-Policy (ADR-0057 da plataforma, `Secco.SDK.AspNetCore`):
+`script-src` e `style-src` só aceitam arquivos da própria origem, e o atributo `style` só é aceito
+para alguns valores exatos de bibliotecas de terceiros. Um tema precisa respeitar isso:
+
+- **Nada de `<script>` sem `src`** nem `onclick=` e afins. O código vai para um arquivo do tema.
+- **Nada de `style="..."`** nas views. O que variar por item vira classe no CSS do tema.
+- Estilo aplicado **por JavaScript** (`elemento.style.x = ...`) continua permitido.
+
+Na Intranet, a política começa em modo de relato (`Intranet:Csp:Modo`, ver o
+[guia de deploy](guia-de-deploy.md)). Um tema que a desrespeite funciona até o modo virar
+`Enforce`, e aí quebra. Os testes de integração reprovam qualquer página dos temas publicados
+que emita script ou estilo inline.
 
 ## A cor do setor
 
 Todo conteúdo da Intranet pertence a um setor, e o tema padrão transforma isso em
-informação: `SetorHue.From(slug)` devolve um matiz estável, exposto como `--sc-setor-hue` no
-elemento. Saturação e luminosidade ficam por conta do tema, fixas por modo, para o contraste
-não depender da cor sorteada.
+informação: `SetorHue.Classe(slug)` devolve a classe `sc-hue-{matiz}`, de um matiz estável entre
+os de `SetorHue.Matizes`. O tema define uma classe por matiz, que só declara `--sc-setor-hue`, e
+deriva dela as cores. Saturação e luminosidade ficam por conta do tema, fixas por modo, para o
+contraste não depender da cor sorteada:
+
+```scss
+$sc-matizes-de-setor: 152, 199, 221, 265, 291, 340, 18, 41;   // os de SetorHue.Matizes
+
+@each $matiz in $sc-matizes-de-setor {
+  .sc-hue-#{$matiz} { --sc-setor-hue: #{$matiz}; }
+}
+```
+
+É classe, e não `style="--sc-setor-hue: …"`, por causa da CSP acima. O core também usa a classe
+nas views dele (lista de setores, Diretório, Mural), então um tema que não a defina deixa essas
+telas sem cor de setor.
 
 Seu tema não é obrigado a usar isso — mas se usar cor por setor, use `SetorHue`: é o que faz
 o mesmo setor ter a mesma cor no menu, no card e no cabeçalho.
+
+Duas classes mais do core também precisam existir no CSS do tema: `sc-list__item--nivel-{0..10}`
+(recuo da árvore de itens de menu em `/Setores/Menu`) e `sc-recorte-foto` (largura máxima da área
+de recorte da foto no Diretório). Os temas publicados as definem no fim de `_components.scss`.
 
 ## Piso de qualidade
 

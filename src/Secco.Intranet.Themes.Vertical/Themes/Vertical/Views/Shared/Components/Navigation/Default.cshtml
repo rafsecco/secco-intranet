@@ -12,7 +12,7 @@
         var temFilhos = filhos.Count > 0;
         var atual = item.Ativo && !filhos.Any(filho => filho.Ativo);
         var temSetor = nivel == 0 && !string.IsNullOrWhiteSpace(item.SetorSlug);
-        string? estilo = temSetor ? $"--sc-setor-hue:{SetorHue.From(item.SetorSlug)}" : null;
+        string? matiz = temSetor ? SetorHue.Classe(item.SetorSlug) : null;
         string? painel = temFilhos ? $"sc-nav-sub-{++sequencia}" : null;
         var classe = item.Ativo ? "sc-nav__item is-active" : "sc-nav__item";
 
@@ -20,7 +20,7 @@
             @if (item.Url is null)
             {
                 @* O title cobre a barra recolhida, onde o rótulo some e sobra só o ícone. *@
-                <button class="@classe sc-nav__item--grupo" type="button" style="@estilo" title="@item.Texto"
+                <button class="@classe sc-nav__item--grupo @matiz" type="button" title="@item.Texto"
                         data-sc-submenu aria-controls="@painel" aria-expanded="false" aria-haspopup="true">
                     @if (!string.IsNullOrWhiteSpace(item.Icone))
                     {
@@ -33,7 +33,7 @@
             else
             {
                 <div class="sc-nav__row">
-                    <a class="@classe" href="@item.Url" style="@estilo" title="@item.Texto"
+                    <a class="@classe @matiz" href="@item.Url" title="@item.Texto"
                        aria-current="@(atual ? "page" : null)">
                         @if (!string.IsNullOrWhiteSpace(item.Icone))
                         {

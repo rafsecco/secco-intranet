@@ -52,7 +52,7 @@ else
     <ul class="sc-list">
         @foreach (var setor in Model.Page.Items)
         {
-            <li class="sc-list__item" style="--sc-setor-hue:@SetorHue.From(setor.Slug)">
+            <li class="sc-list__item @SetorHue.Classe(setor.Slug)">
                 <span class="sc-list__icon" aria-hidden="true"><i class="bi bi-diagram-3"></i></span>
                 <div class="sc-list__text">
                     <p class="sc-list__title">

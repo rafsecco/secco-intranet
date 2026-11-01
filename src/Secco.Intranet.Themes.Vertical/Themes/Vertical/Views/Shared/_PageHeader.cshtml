@@ -1,9 +1,9 @@
 @model PageHeaderModel
 @{
     var temSetor = !string.IsNullOrWhiteSpace(Model.SetorSlug);
-    string? estilo = temSetor ? $"--sc-setor-hue:{SetorHue.From(Model.SetorSlug)}" : null;
+    string? matiz = temSetor ? SetorHue.Classe(Model.SetorSlug) : null;
 }
-<div class="sc-page-header" style="@estilo">
+<div class="sc-page-header @matiz">
     <div class="sc-page-header__text">
         <h1 class="sc-page-header__title">
             @if (temSetor)

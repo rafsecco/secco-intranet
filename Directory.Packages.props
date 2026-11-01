@@ -8,10 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup Label="Secco Platform (feed privado — versões conforme tags MinVer do monorepo)">
-    <PackageVersion Include="Secco.SharedKernel" Version="0.7.7" />
+    <PackageVersion Include="Secco.SharedKernel" Version="0.7.9" />
     <!-- 0.5.0 acrescenta SeccoAmbientContext (espelho AsyncLocal de tenant e correlação),
          que é o que permite um sink de log singleton enxergar o tenant da requisição. -->
-    <PackageVersion Include="Secco.SDK.AspNetCore" Version="0.9.9" />
+    <PackageVersion Include="Secco.SDK.AspNetCore" Version="0.10.1" />
     <PackageVersion Include="Secco.SDK.EntityFrameworkCore" Version="0.6.0" />
     <PackageVersion Include="Secco.SDK.ClientCredentials" Version="0.1.20" />
     <!-- Sink ILogger -> LogStream. NUNCA a 0.1.0: ela foi empacotada contra o LogStream.Client

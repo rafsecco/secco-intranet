@@ -10,21 +10,8 @@
     <title>@(string.IsNullOrWhiteSpace(titulo) ? "Secco Intranet" : titulo + " · Secco Intranet")</title>
 
     @* Aplica as preferencias antes da primeira pintura: sem isso a pagina pisca no modo
-       errado a cada carregamento. Precisa ser inline e vir antes do CSS. *@
-    <script>
-        (function () {
-            // Com JS os submenus viram painéis; sem ele ficam abertos e recuados (ver menu-arvore.js).
-            document.documentElement.classList.add('sc-js');
-            try {
-                var tema = localStorage.getItem('sc-theme');
-                if (tema === 'dark' || tema === 'light') {
-                    document.documentElement.setAttribute('data-bs-theme', tema);
-                }
-            } catch (erro) {
-                // Sem armazenamento: segue a preferencia do sistema operacional.
-            }
-        })();
-    </script>
+       errado a cada carregamento. Precisa vir antes do CSS, sincrono. *@
+    <script src="@Assets/js/preferencias.js" asp-append-version="true"></script>
 
     <link rel="icon" href="@Url.Content(Assets + "/favicon.svg")" type="image/svg+xml" />
     <link rel="stylesheet" href="@Assets/css/theme.css" asp-append-version="true" />

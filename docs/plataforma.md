@@ -17,7 +17,7 @@ Duas regras sustentam esta lista:
 
 | Demanda | O que trava | Issue |
 |---|---|---|
-| Cabeçalhos de segurança HTTP no `Secco.SDK.AspNetCore` (CSP com nonce, `Referrer-Policy`, `Permissions-Policy`, `frame-ancestors`) | A resposta da Intranet sai sem esses cabeçalhos; o produto não os implementa localmente (capacidade transversal). Item ⛔ no [`roadmap.md`](roadmap.md) | [#53](https://github.com/rafsecco/secco-platform/issues/53) |
+| _(nenhuma)_ | | |
 
 ## Descartadas
 
@@ -36,6 +36,7 @@ cada capacidade — informação que some se a linha for apagada.
 
 | Demanda | Entregue em | Issue |
 |---|---|---|
+| Cabeçalhos de segurança de resposta (CSP com nonce, `Referrer-Policy`, `Permissions-Policy`, `frame-ancestors`) | `Secco.SDK.AspNetCore` **0.10.1** (2026-11-01), ADR-0057 — `AddSeccoSecurityHeaders()`/`UseSeccoSecurityHeaders()`, nonce por requisição com o tag helper `secco-nonce`, `AllowStyleAttribute` por valor exato e modo `ReportOnly`. Puxou `Secco.SharedKernel` 0.7.9. Adotado sem `secco-nonce`: os temas trocaram o script inline por arquivo, para não dependerem do SDK, e a cor do setor virou classe. Começa em `ReportOnly` (`Intranet:Csp:Modo`) | [#53](https://github.com/rafsecco/secco-platform/issues/53) |
 | `Secco.SDK.Imaging`: processar a imagem inteira, mantendo a proporção (sem recorte) | `Secco.SDK.Imaging` **0.2.0** (2026-11-01) — `ImageCrop.Whole`; o recorte virou `ImageCrop` (`CenterSquare`, `Whole`, `Rectangle`). A imagem do Mural usa `Whole`; a foto do Diretório, `CenterSquare` ou `Rectangle`. Puxou `Secco.SharedKernel` 0.7.7 | [#52](https://github.com/rafsecco/secco-platform/issues/52) |
 | Perfil implícito do tenant: todo usuário ativo tem, sem atribuição | `Secco.SecureGate.Client` **0.24.0** (2026-10-31), ADR-0056 — perfil `tenant-member` em todo tenant, acrescentado pelo SecureGate aos papéis do token de toda pessoa ativa, inclusive quem entra depois. Permissões editáveis pelo admin; ninguém cria, atribui, retira nem exclui. A tela de Acesso mostra "Todos os membros". Cada instalação roda o `migrate` do SecureGate para criar o perfil nos tenants existentes | [#51](https://github.com/rafsecco/secco-platform/issues/51) |
 | Registrar `permissions:<produto>` para produto adotante (ADR-0039) | Serviço SecureGate (2026-10-22), commit `9b674ea`, sem pacote novo — `SecureGate:PermissionCatalog:Products: ["intranet"]` faz o seed de referência registrar `permissions:intranet`. Adotado no guia de deploy; a fumaça publica o catálogo e passou 14/14 | [#49](https://github.com/rafsecco/secco-platform/issues/49) |

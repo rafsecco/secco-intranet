@@ -9,8 +9,6 @@
         _ => null,
     };
 
-    string? estilo = Model.Variante == BadgeVariante.Setor
-        ? $"--sc-setor-hue:{SetorHue.From(Model.SetorSlug)}"
-        : null;
+    string? matiz = Model.Variante == BadgeVariante.Setor ? SetorHue.Classe(Model.SetorSlug) : null;
 }
-<span class="sc-badge @variante" style="@estilo">@Model.Texto</span>
+<span class="sc-badge @variante @matiz">@Model.Texto</span>

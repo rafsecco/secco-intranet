@@ -17,7 +17,7 @@
 
 <partial name="_PageHeader" model="cabecalho" />
 
-<div class="sc-panel" style="--sc-setor-hue:@SetorHue.From(pessoa.SetorSlug ?? pessoa.Nome)">
+<div class="sc-panel @SetorHue.Classe(pessoa.SetorSlug ?? pessoa.Nome)">
     <div class="d-flex gap-3 align-items-center mb-4">
         <partial name="_Avatar" model="@(new AvatarModel(Iniciais.De(pessoa.Nome), pessoa.TemFoto ? $"/diretorio/{pessoa.UsuarioId}/foto" : null, AvatarTamanho.Grande))" />
         <div>
