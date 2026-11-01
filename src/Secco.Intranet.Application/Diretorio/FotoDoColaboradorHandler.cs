@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Secco.Intranet.Application.Acesso;
@@ -115,10 +113,7 @@ public sealed class FotoDoColaboradorHandler(
 			return Result.Failure<FotoGuardada>(IntranetErrors.Diretorio.FotoNaoEncontrada);
 		}
 
-		// Cada upload gera um caminho novo, então o validador muda a cada versão da foto.
-		var hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(caminho)))[..16];
-
-		return Result.Success(new FotoGuardada(caminho, chave, $"\"{hash}\"", ContentTypeServido));
+		return Result.Success(new FotoGuardada(caminho, chave, ETagDeArquivo.De(caminho), ContentTypeServido));
 	}
 
 	private async Task RegistrarAsync(string verbo, Guid usuarioId, CancellationToken cancellationToken) =>

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Mvc;
+using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Application.Setores;
@@ -9,6 +10,7 @@ using Secco.Intranet.Web.Models.Mural;
 using Secco.Intranet.Web.Navigation;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SharedKernel.Pagination;
+using Secco.SharedKernel.Results;
 
 namespace Secco.Intranet.Web.Controllers;
 
@@ -28,13 +30,15 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
 /// <param name="environment">Ambiente de hospedagem — o modo aberto só vale em Development (ADR-0020).</param>
 /// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura/escrita (ADR-0021).</param>
+/// <param name="logger">Log.</param>
 public sealed class MuralController(
 	IServiceProvider serviceProvider,
 	ITenantContext tenantContext,
 	IRenderizadorMarkdown renderizador,
 	IConfiguration configuration,
 	IWebHostEnvironment environment,
-	IPermissoesDeSetor permissoesDeSetor) : Controller
+	IPermissoesDeSetor permissoesDeSetor,
+	ILogger<MuralController> logger) : Controller
 {
 	private const int LimiteSetoresConsultados = 200;
 
@@ -165,4 +169,89 @@ public sealed class MuralController(
 				publicacao.SetorSlug),
 			entrega));
 	}
+
+	/// <summary>
+	/// Entrega a imagem da publicação decifrada. <c>no-cache</c> + <c>ETag</c>: o navegador sempre
+	/// revalida e leva 304 enquanto a imagem não muda; <c>private</c> impede cache compartilhado de
+	/// um conteúdo autenticado. Fora do alcance, sem imagem e arquivo ausente respondem 404.
+	/// </summary>
+	/// <param name="id">Identificador da publicação.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpGet("/publicacoes/{id:guid}/imagem")]
+	public async Task<IActionResult> Imagem(Guid id, CancellationToken cancellationToken = default)
+	{
+		if (!tenantContext.IsResolved)
+		{
+			return NotFound();
+		}
+
+		var leitura = await SlugsComLeituraAsync(cancellationToken).ConfigureAwait(false);
+
+		// A escrita só é perguntada para o setor dono, que o handler descobre; aqui ela vale para os
+		// setores que o leitor já enxerga, e o handler a confere contra o slug da publicação.
+		var comEscrita = AcessoAdministrativo.ModoAbertoDeDev(environment, configuration)
+			? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+			: await permissoesDeSetor
+				.SlugsComPermissaoAsync(User, "write", leitura, cancellationToken)
+				.ConfigureAwait(false);
+
+		var resultado = await serviceProvider
+			.GetRequiredService<ObterImagemDaPublicacaoHandler>()
+			.HandleAsync(
+				new ObterImagemDaPublicacaoQuery(
+					id,
+					leitura,
+					comEscrita,
+					ExigirVisibilidade: !AcessoAdministrativo.ModoAbertoDeDev(environment, configuration)),
+				cancellationToken)
+			.ConfigureAwait(false);
+
+		if (resultado.IsFailure)
+		{
+			return resultado.Error.Type == ErrorType.NotFound ? NotFound() : StatusCode(StatusCodes.Status503ServiceUnavailable);
+		}
+
+		var imagem = resultado.Value;
+
+		Response.Headers.ETag = imagem.ETag;
+		Response.Headers.CacheControl = "private, no-cache";
+		Response.Headers.XContentTypeOptions = "nosniff";
+
+		if (Request.Headers.IfNoneMatch.Any(valor => ETagConfere(valor, imagem.ETag)))
+		{
+			return StatusCode(StatusCodes.Status304NotModified);
+		}
+
+		// Decifra antes de escrever o primeiro byte: arquivo ausente ou corrompido vira 404, não 500 com
+		// cabeçalhos pela metade. A imagem tem no máximo 2048 px em WebP, então cabe em memória.
+		using var conteudo = new MemoryStream();
+
+		try
+		{
+			await serviceProvider
+				.GetRequiredService<IArquivoStore>()
+				.EscreverEmAsync(imagem.CaminhoRelativo, imagem.ChaveEmbrulhada, conteudo, cancellationToken)
+				.ConfigureAwait(false);
+		}
+		catch (Exception falha) when (falha is not OperationCanceledException)
+		{
+			// Só o tipo da exceção: a mensagem de falhas de I/O costuma trazer o caminho absoluto.
+			logger.LogWarning("Não foi possível ler a imagem da publicação {PublicacaoId} do armazenamento ({TipoDaFalha}).", id, falha.GetType().Name);
+
+			Response.Headers.Remove("ETag");
+
+			return NotFound();
+		}
+
+		Response.ContentType = imagem.ContentType;
+		conteudo.Position = 0;
+		await conteudo.CopyToAsync(Response.Body, cancellationToken).ConfigureAwait(false);
+
+		return new EmptyResult();
+	}
+
+	// If-None-Match pode trazer uma lista de validadores, fracos (W/) ou "*".
+	private static bool ETagConfere(string? cabecalho, string etag) =>
+		cabecalho is not null
+		&& cabecalho.Split(',').Select(parte => parte.Trim()).Any(parte => parte == "*" || (parte.StartsWith("W/", StringComparison.Ordinal) ? parte[2..] : parte) == etag);
 }
