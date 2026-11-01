@@ -187,7 +187,72 @@ public sealed class Documento : BaseEntity
 
 	/// <summary>Troca quem enxerga o documento.</summary>
 	/// <param name="visibilidade">Nova visibilidade.</param>
-	public void AlterarVisibilidade(Visibilidade visibilidade) => Visibilidade = visibilidade;
+	/// <exception cref="DomainInvariantException">Se for um grupo e a visibilidade não for <see cref="Visibilidade.Setor"/>.</exception>
+	public void AlterarVisibilidade(Visibilidade visibilidade)
+	{
+		if (EhGrupo && visibilidade != Visibilidade.Setor)
+		{
+			throw new DomainInvariantException("Um grupo só pode ter visibilidade de setor.");
+		}
+
+		Visibilidade = visibilidade;
+	}
+
+	/// <summary>Edita os metadados de exibição, valendo para arquivo e grupo.</summary>
+	/// <param name="titulo">Novo título. Obrigatório.</param>
+	/// <param name="descricao">Nova descrição; vazia vira <c>null</c>.</param>
+	/// <exception cref="DomainInvariantException">Se o título estiver vazio.</exception>
+	public void Editar(string titulo, string? descricao)
+	{
+		if (string.IsNullOrWhiteSpace(titulo))
+		{
+			throw new DomainInvariantException("Um documento exige título não vazio.");
+		}
+
+		Titulo = titulo.Trim();
+		Descricao = string.IsNullOrWhiteSpace(descricao) ? null : descricao.Trim();
+	}
+
+	/// <summary>
+	/// Troca o arquivo do documento: nome, tipo, tamanho, endereço e chave mudam juntos.
+	/// </summary>
+	/// <param name="nomeArquivo">Nome original do novo arquivo. Obrigatório.</param>
+	/// <param name="contentType">Tipo apurado do novo conteúdo.</param>
+	/// <param name="tamanho">Tamanho em bytes do novo conteúdo.</param>
+	/// <param name="caminhoRelativo">Endereço do novo conteúdo no armazenamento.</param>
+	/// <param name="chaveEmbrulhada">Chave do novo arquivo, cifrada pela chave mestra.</param>
+	/// <returns>O <see cref="CaminhoRelativo"/> anterior, para o chamador remover o arquivo antigo.</returns>
+	/// <exception cref="DomainInvariantException">Se for um grupo, ou se algum campo obrigatório estiver vazio ou o tamanho não for positivo.</exception>
+	public string TrocarArquivo(string nomeArquivo, string contentType, long tamanho, string caminhoRelativo, string chaveEmbrulhada)
+	{
+		if (EhGrupo)
+		{
+			throw new DomainInvariantException("Um grupo não tem arquivo para trocar.");
+		}
+
+		if (string.IsNullOrWhiteSpace(nomeArquivo))
+		{
+			throw new DomainInvariantException("Um documento exige o nome do arquivo.");
+		}
+
+		if (string.IsNullOrWhiteSpace(caminhoRelativo) || string.IsNullOrWhiteSpace(chaveEmbrulhada))
+		{
+			throw new DomainInvariantException("Um documento exige o endereço e a chave do conteúdo gravado.");
+		}
+
+		if (tamanho <= 0)
+		{
+			throw new DomainInvariantException("Um documento exige tamanho positivo.");
+		}
+
+		var anterior = CaminhoRelativo!;
+		NomeArquivo = nomeArquivo;
+		ContentType = contentType;
+		Tamanho = tamanho;
+		CaminhoRelativo = caminhoRelativo;
+		ChaveEmbrulhada = chaveEmbrulhada;
+		return anterior;
+	}
 
 	/// <summary>Coloca o item em um pai e uma posição.</summary>
 	/// <param name="parentId">Novo pai; <c>null</c> para a raiz.</param>
