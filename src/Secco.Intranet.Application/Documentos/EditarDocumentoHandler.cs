@@ -145,7 +145,7 @@ public sealed class EditarDocumentoHandler(
 		if (gravado is not null)
 		{
 			caminhoAnterior = documento.TrocarArquivo(
-				Path.GetFileName(command.NomeArquivo!),
+				TiposDeArquivo.NomeSemCaminho(command.NomeArquivo!),
 				contentType!,
 				gravado.Tamanho,
 				gravado.CaminhoRelativo,

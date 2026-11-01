@@ -121,7 +121,7 @@ public sealed class PublicarDocumentoHandler(
 			setor.Id,
 			command.Titulo,
 			command.Descricao,
-			Path.GetFileName(command.NomeArquivo!),
+			TiposDeArquivo.NomeSemCaminho(command.NomeArquivo!),
 			contentType,
 			gravado.Tamanho,
 			command.Visibilidade,

@@ -107,6 +107,20 @@ public static class TiposDeArquivo
 		return Apurar(nomeArquivo, prefixo.AsSpan(0, lidos), extensoesPermitidas);
 	}
 
+	/// <summary>
+	/// Devolve só o nome do arquivo, descartando qualquer caminho. O navegador pode enviar o
+	/// caminho completo, e <see cref="Path.GetFileName(string)"/> só trata <c>\</c> como separador
+	/// no Windows — no Linux do servidor o caminho do cliente passaria inteiro. Aqui os dois
+	/// separadores valem em qualquer sistema operacional.
+	/// </summary>
+	/// <param name="nomeArquivo">Nome enviado pelo cliente.</param>
+	public static string NomeSemCaminho(string nomeArquivo)
+	{
+		ArgumentNullException.ThrowIfNull(nomeArquivo);
+
+		return nomeArquivo[(nomeArquivo.AsSpan().LastIndexOfAny('/', '\\') + 1)..];
+	}
+
 	/// <summary>Etiqueta curta da extensão, sem o ponto e em maiúsculas; <c>null</c> quando não há extensão.</summary>
 	/// <param name="nomeArquivo">Nome original do arquivo.</param>
 	public static string? Etiqueta(string? nomeArquivo)

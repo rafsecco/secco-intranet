@@ -208,6 +208,13 @@ public class EditarDocumentoHandlerTests
 		c.Documento.NomeArquivo.Should().Be("nova.pdf");
 	}
 
+	[Theory]
+	[InlineData("C:\\fakepath\\nova.pdf")]
+	[InlineData("../dir/nova.pdf")]
+	[InlineData("nova.pdf")]
+	public void NomeSemCaminho_DevolveSoONome(string entrada) =>
+		TiposDeArquivo.NomeSemCaminho(entrada).Should().Be("nova.pdf");
+
 	[Fact]
 	public async Task Editar_GrupoComArquivo_RecusaArquivoEmGrupo()
 	{
