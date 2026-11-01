@@ -778,11 +778,10 @@ html.sc-js .sc-nav__sub.is-open {
 .sc-list__miniatura {
   display: block;
   flex: 0 0 auto;
-  max-width: 72px;
-  max-height: 48px;
-  width: auto;
-  height: auto;
-  border-radius: .375rem;
+  // Mesma caixa do .sc-list__icon, para o título alinhar com as linhas sem imagem.
+  width: 36px;
+  height: 36px;
+  border-radius: var(--bs-border-radius);
   object-fit: cover;
 }
 

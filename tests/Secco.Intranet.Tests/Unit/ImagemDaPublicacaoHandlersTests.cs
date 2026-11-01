@@ -175,6 +175,50 @@ public class ImagemDaPublicacaoHandlersTests
 	}
 
 	[Fact]
+	public async Task Publicar_SalvarFalha_ApagaOArquivoNovoERelanca()
+	{
+		_repositorio.FalhaAoAdicionar = new InvalidOperationException("banco fora");
+
+		var acao = () => Publicador().HandleAsync(Publicar(imagem: Upload()));
+
+		await acao.Should().ThrowAsync<InvalidOperationException>();
+		_arquivos.Gravados.Should().ContainSingle();
+		_arquivos.Removidos.Should().ContainSingle().Which.Should().Be(_arquivos.Gravados[0].Caminho);
+		_trilha.Registros.Should().BeEmpty();
+	}
+
+	[Fact]
+	public async Task Editar_SalvarFalha_MantemOAnteriorEApagaONovo()
+	{
+		var publicacao = ComImagem();
+		_repositorio.FalhaAoSalvar = new InvalidOperationException("banco fora");
+
+		var acao = () => Editor().HandleAsync(Editar(publicacao, Upload()));
+
+		await acao.Should().ThrowAsync<InvalidOperationException>();
+		_arquivos.Gravados.Should().ContainSingle();
+		_arquivos.Removidos.Should().ContainSingle().Which.Should().Be(_arquivos.Gravados[0].Caminho);
+		_arquivos.Removidos.Should().NotContain("mural/imagens/antiga.bin");
+		_trilha.Registros.Should().BeEmpty();
+	}
+
+	[Fact]
+	public async Task ObterImagem_SlugDeEscritaComOutraCaixa_EntregaPublicacaoAgendada()
+	{
+		var publicacao = new Publicacao(Guid.NewGuid(), "Comunicado", "Texto", TipoPublicacao.Aviso,
+			Visibilidade.Setor, PrioridadePublicacao.Normal, DateTimeOffset.UtcNow.AddDays(1), null, "quem");
+
+		publicacao.DefinirImagem("mural/imagens/a.bin", "chave", null);
+		_repositorio.Existente = new PublicacaoComSetor(publicacao, "Financeiro", "financeiro");
+
+		var resultado = await new ObterImagemDaPublicacaoHandler(_repositorio).HandleAsync(
+			new ObterImagemDaPublicacaoQuery(
+				publicacao.Id, [], new HashSet<string>(["FINANCEIRO"], StringComparer.Ordinal), true));
+
+		resultado.IsSuccess.Should().BeTrue();
+	}
+
+	[Fact]
 	public async Task Editar_SemArquivoNovo_MantemImagemENaoApaga()
 	{
 		var publicacao = ComImagem();
@@ -335,8 +379,17 @@ public class ImagemDaPublicacaoHandlersTests
 
 		public int Salvou { get; private set; }
 
+		public Exception? FalhaAoAdicionar { get; set; }
+
+		public Exception? FalhaAoSalvar { get; set; }
+
 		public Task AddAsync(Publicacao publicacao, CancellationToken cancellationToken = default)
 		{
+			if (FalhaAoAdicionar is not null)
+			{
+				throw FalhaAoAdicionar;
+			}
+
 			Adicionadas.Add(publicacao);
 
 			return Task.CompletedTask;
@@ -344,6 +397,11 @@ public class ImagemDaPublicacaoHandlersTests
 
 		public Task SaveChangesAsync(CancellationToken cancellationToken = default)
 		{
+			if (FalhaAoSalvar is not null)
+			{
+				throw FalhaAoSalvar;
+			}
+
 			Salvou++;
 
 			return Task.CompletedTask;

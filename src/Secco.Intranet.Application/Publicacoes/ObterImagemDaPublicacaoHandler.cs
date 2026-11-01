@@ -48,7 +48,7 @@ public sealed class ObterImagemDaPublicacaoHandler(IPublicacaoRepository reposit
 		}
 
 		var pode = !query.ExigirVisibilidade
-			|| query.SetoresComEscrita.Contains(encontrada.SetorSlug)
+			|| query.SetoresComEscrita.Contains(encontrada.SetorSlug, StringComparer.OrdinalIgnoreCase)
 			|| (publicacao.EstaNoAr(DateTimeOffset.UtcNow)
 				&& (publicacao.Visibilidade == Visibilidade.Empresa
 					|| query.SetoresDoLeitor.Contains(encontrada.SetorSlug, StringComparer.OrdinalIgnoreCase)));

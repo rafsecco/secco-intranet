@@ -130,28 +130,27 @@ public sealed class PublicarPublicacaoHandler(
 			gravada = gravacao.Value;
 		}
 
-		var publicacao = new Publicacao(
-			setor.Id, command.Titulo!, command.Corpo, command.Tipo, command.Visibilidade,
-			command.Prioridade, command.PublicadoEm, command.ExpiraEm, command.CriadoPor);
+		var publicacao = await ImagemDaPublicacao
+			.PersistirOuDescartarAsync(
+				async () =>
+				{
+					var nova = new Publicacao(
+						setor.Id, command.Titulo!, command.Corpo, command.Tipo, command.Visibilidade,
+						command.Prioridade, command.PublicadoEm, command.ExpiraEm, command.CriadoPor);
 
-		if (gravada is not null)
-		{
-			publicacao.DefinirImagem(gravada.CaminhoRelativo, gravada.ChaveEmbrulhada, command.ImagemDescricao);
-		}
+					if (gravada is not null)
+					{
+						nova.DefinirImagem(gravada.CaminhoRelativo, gravada.ChaveEmbrulhada, command.ImagemDescricao);
+					}
 
-		try
-		{
-			await repository.AddAsync(publicacao, cancellationToken).ConfigureAwait(false);
-		}
-		catch
-		{
-			// A linha não foi gravada: o arquivo recém-guardado não tem a quem servir.
-			await ImagemDaPublicacao
-				.ApagarAsync(gravada?.CaminhoRelativo, arquivos, logger, CancellationToken.None)
-				.ConfigureAwait(false);
+					await repository.AddAsync(nova, cancellationToken).ConfigureAwait(false);
 
-			throw;
-		}
+					return nova;
+				},
+				gravada?.CaminhoRelativo,
+				arquivos,
+				logger)
+			.ConfigureAwait(false);
 
 		var dto = Projecao.De(new PublicacaoComSetor(publicacao, setor.Nome, setor.Slug));
 

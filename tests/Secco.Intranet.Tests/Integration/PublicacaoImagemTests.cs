@@ -351,4 +351,32 @@ public class PublicacaoImagemTests(IntranetWebFactory factory) : IClassFixture<I
 		html.Should().Contain("Escolha a imagem de novo.");
 		html.Should().Contain("Imagem ruim", "o resto do formulário volta preenchido");
 	}
+
+	[Fact]
+	public async Task Publicar_ErroSemArquivo_NaoPedeAImagemDeNovo()
+	{
+		var client = CriarClienteAdmin();
+		var slug = await NovoSetorAsync(client);
+
+		var resposta = await SalvarAvisoAsync(client, slug, "", "Texto", comArquivo: false);
+		var html = AuxiliaresDeHttp.Decodificar(await resposta.Content.ReadAsStringAsync());
+
+		html.Should().NotContain("Escolha a imagem de novo.");
+		html.Should().Contain("Texto", "o formulário volta com o erro de validação e o resto preenchido");
+	}
+
+	[Fact]
+	public async Task Avisos_EditarSemPermissao_NaoCarregaOForm()
+	{
+		var (id, slug) = await PublicarAsync(Visibilidade.Empresa, DateTimeOffset.UtcNow.AddMinutes(-5));
+		var leitor = $"leitor-{Guid.NewGuid():N}";
+		factory.ResolvedorDePermissoes = new PermissionResolverDeTeste().ComPermissao(leitor, IntranetPermissoes.Setor.Read(slug));
+
+		var resposta = await CriarCliente(leitor).GetAsync($"/{slug}/avisos?editar={id}");
+		var html = await resposta.Content.ReadAsStringAsync();
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK, "a aba abre para quem lê; só o formulário de edição fica de fora");
+		html.Should().NotContain("name=\"Form.RemoverImagem\"").And.NotContain($"value=\"{id}\"");
+		html.Should().NotContain("name=\"Form.Titulo\"");
+	}
 }

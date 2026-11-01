@@ -104,41 +104,40 @@ public sealed class EditarPublicacaoHandler(
 			gravada = gravacao.Value;
 		}
 
-		publicacao.Editar(
-			command.Titulo!, command.Corpo, command.Tipo, command.Visibilidade,
-			command.Prioridade, command.PublicadoEm, command.ExpiraEm);
+		var (anterior, acao) = await ImagemDaPublicacao
+			.PersistirOuDescartarAsync(
+				async () =>
+				{
+					publicacao.Editar(
+						command.Titulo!, command.Corpo, command.Tipo, command.Visibilidade,
+						command.Prioridade, command.PublicadoEm, command.ExpiraEm);
 
-		string? anterior = null;
-		var acao = "manter";
+					string? removida = null;
+					var resultado = "manter";
 
-		if (gravada is not null)
-		{
-			anterior = publicacao.DefinirImagem(gravada.CaminhoRelativo, gravada.ChaveEmbrulhada, command.ImagemDescricao);
-			acao = "trocar";
-		}
-		else if (command.RemoverImagem)
-		{
-			anterior = publicacao.RemoverImagem();
-			acao = anterior is null ? "manter" : "remover";
-		}
-		else if (publicacao.TemImagem && command.ImagemDescricao is not null)
-		{
-			publicacao.DescreverImagem(command.ImagemDescricao);
-		}
+					if (gravada is not null)
+					{
+						removida = publicacao.DefinirImagem(gravada.CaminhoRelativo, gravada.ChaveEmbrulhada, command.ImagemDescricao);
+						resultado = "trocar";
+					}
+					else if (command.RemoverImagem)
+					{
+						removida = publicacao.RemoverImagem();
+						resultado = removida is null ? "manter" : "remover";
+					}
+					else if (publicacao.TemImagem && command.ImagemDescricao is not null)
+					{
+						publicacao.DescreverImagem(command.ImagemDescricao);
+					}
 
-		try
-		{
-			await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-		}
-		catch
-		{
-			// Nada foi salvo: o arquivo recém-guardado não tem a quem servir.
-			await ImagemDaPublicacao
-				.ApagarAsync(gravada?.CaminhoRelativo, arquivos, logger, CancellationToken.None)
-				.ConfigureAwait(false);
+					await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-			throw;
-		}
+					return (removida, resultado);
+				},
+				gravada?.CaminhoRelativo,
+				arquivos,
+				logger)
+			.ConfigureAwait(false);
 
 		await ImagemDaPublicacao.ApagarAsync(anterior, arquivos, logger, cancellationToken).ConfigureAwait(false);
 

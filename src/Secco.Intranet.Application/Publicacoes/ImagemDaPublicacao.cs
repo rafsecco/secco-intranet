@@ -53,6 +53,33 @@ internal static class ImagemDaPublicacao
 			.ConfigureAwait(false));
 	}
 
+	/// <summary>
+	/// Executa a persistência e, se qualquer passo falhar, apaga o arquivo recém-guardado
+	/// (melhor esforço) e relança: sem a linha, o arquivo novo não tem a quem servir.
+	/// </summary>
+	/// <typeparam name="T">Resultado da persistência.</typeparam>
+	/// <param name="persistir">Passos que aplicam a imagem ao domínio e salvam.</param>
+	/// <param name="caminhoNovo">Caminho do arquivo recém-guardado, ou nulo se não houve.</param>
+	/// <param name="arquivos">Armazenamento cifrado.</param>
+	/// <param name="logger">Log.</param>
+	internal static async Task<T> PersistirOuDescartarAsync<T>(
+		Func<Task<T>> persistir,
+		string? caminhoNovo,
+		IArquivoStore arquivos,
+		ILogger logger)
+	{
+		try
+		{
+			return await persistir().ConfigureAwait(false);
+		}
+		catch
+		{
+			await ApagarAsync(caminhoNovo, arquivos, logger, CancellationToken.None).ConfigureAwait(false);
+
+			throw;
+		}
+	}
+
 	/// <summary>Apaga o arquivo anterior; falha vira aviso no log, nunca erro.</summary>
 	/// <param name="caminho">Caminho anterior, ou nulo.</param>
 	/// <param name="arquivos">Armazenamento cifrado.</param>
