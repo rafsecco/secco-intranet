@@ -113,6 +113,17 @@ baixou antes fica com a cópia que tem.
   atuais e com o nome do arquivo atual visível. O envio vai para
   `POST /{slug}/documentos/{id}/editar`, com antiforgery e o mesmo limite de requisição da
   publicação (64 MB). Para um grupo, o formulário mostra só título e descrição.
+- **Aviso antes de substituir:** se um arquivo novo foi escolhido, ao clicar em "Salvar" o usuário
+  confirma "O arquivo atual "{nome}" será substituído e apagado. Não dá para desfazer. Continuar?".
+  Cancelar não envia nada. Sem arquivo escolhido, não há pergunta: editar só título, descrição ou
+  visibilidade salva direto.
+- **Como o aviso funciona:** o contrato de tema já tem `<form data-confirmar="Pergunta?">`, que
+  pergunta sempre. Ele passa a valer também em `<input type="file" data-confirmar="Pergunta?">`:
+  o tema pergunta no envio do formulário só se esse campo tiver arquivo escolhido. Os temas
+  `Vertical` e `Horizontal` implementam, e `docs/temas.md` registra. Sem JavaScript o formulário
+  envia direto, como já acontece com o `data-confirmar` de hoje. *(decisão minha: reaproveita o
+  mecanismo de confirmação que o produto já usa em vez de uma tela intermediária, que obrigaria a
+  guardar o arquivo enviado enquanto o usuário decide.)*
 - **Erro de validação:** a página volta com os campos preenchidos e a mensagem.
 - **Sucesso:** volta para "Organizar documentos" com a mensagem de confirmação pelo `Feedback` do
   tema, como as outras ações da tela.
@@ -129,6 +140,7 @@ registro diz quem, quando e **quais campos mudaram**, nunca o conteúdo do arqui
 
 ### 7. Documentação
 
+- `docs/temas.md`: `data-confirmar` no campo de arquivo, no trecho que já descreve o atributo.
 - `docs/roadmap.md`: o item da hierarquia diz "faltam substituir arquivo com histórico e as
   bibliotecas". Passa a citar esta parte como entregue, sem o histórico.
 - Esta spec registra a mudança em relação à issue #4. Comentar na issue é decisão do dono do
@@ -144,6 +156,8 @@ registro diz quem, quando e **quais campos mudaram**, nunca o conteúdo do arqui
       a posição e os filhos.
 - [ ] Enviar arquivo novo troca o conteúdo baixado pelo mesmo link, com nome e tipo novos, e
       apaga o arquivo antigo do armazenamento.
+- [ ] Com arquivo novo escolhido, "Salvar" pede confirmação citando o arquivo atual, e cancelar não
+      envia. Sem arquivo escolhido, não pergunta. Vale nos temas `Vertical` e `Horizontal`.
 - [ ] Arquivo novo fora das regras (extensão, assinatura, tamanho) é recusado, e nada muda: nem o
       registro nem o arquivo atual.
 - [ ] Falha ao apagar o arquivo antigo não desfaz a edição e gera aviso no log sem o caminho.
