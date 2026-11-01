@@ -1,5 +1,8 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Secco.Intranet.Application.Auditoria;
+using Secco.Intranet.Application.Diretorio;
+using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Domain;
 using Secco.Intranet.Domain.Publicacoes;
 using Secco.SharedKernel.Results;
@@ -17,6 +20,11 @@ namespace Secco.Intranet.Application.Publicacoes;
 /// <param name="Prioridade">Nova urgência.</param>
 /// <param name="PublicadoEm">Nova entrada no ar.</param>
 /// <param name="ExpiraEm">Nova expiração.</param>
+/// <param name="Imagem">Imagem nova, ou nulo para manter a atual. O chamador fecha o fluxo.</param>
+/// <param name="ImagemDescricao">
+/// Descrição da imagem. Com imagem nova, vale para ela; sem, é aplicada à atual (se existir).
+/// </param>
+/// <param name="RemoverImagem">Tira a imagem atual. Ignorado quando há <paramref name="Imagem"/>.</param>
 public sealed record EditarPublicacaoCommand(
 	Guid PublicacaoId,
 	IReadOnlySet<string> SetoresAdministrados,
@@ -27,16 +35,25 @@ public sealed record EditarPublicacaoCommand(
 	Visibilidade Visibilidade,
 	PrioridadePublicacao Prioridade,
 	DateTimeOffset PublicadoEm,
-	DateTimeOffset? ExpiraEm);
+	DateTimeOffset? ExpiraEm,
+	ImagemEnviada? Imagem = null,
+	string? ImagemDescricao = null,
+	bool RemoverImagem = false);
 
 /// <summary>Altera conteúdo e agendamento de uma publicação existente.</summary>
 /// <param name="repository">Persistência de publicações.</param>
 /// <param name="limites">Limites de entrada do produto.</param>
 /// <param name="trilha">Trilha de auditoria.</param>
+/// <param name="imagens">Processamento da imagem enviada.</param>
+/// <param name="arquivos">Armazenamento cifrado.</param>
+/// <param name="logger">Log.</param>
 public sealed class EditarPublicacaoHandler(
 	IPublicacaoRepository repository,
 	IntranetOptions limites,
-	ITrilhaDeAuditoria trilha)
+	ITrilhaDeAuditoria trilha,
+	IProcessadorDeImagem imagens,
+	IArquivoStore arquivos,
+	ILogger<EditarPublicacaoHandler> logger)
 {
 	/// <summary>Executa o caso de uso.</summary>
 	/// <param name="command">Pedido.</param>
@@ -55,6 +72,13 @@ public sealed class EditarPublicacaoHandler(
 			return erro;
 		}
 
+		erro = ImagemDaPublicacao.ValidarDescricao(command.ImagemDescricao);
+
+		if (erro is not null)
+		{
+			return erro;
+		}
+
 		var encontrada = await repository.GetByIdAsync(command.PublicacaoId, cancellationToken).ConfigureAwait(false);
 
 		if (encontrada is null
@@ -63,11 +87,60 @@ public sealed class EditarPublicacaoHandler(
 			return IntranetErrors.Publicacoes.NotFound;
 		}
 
-		encontrada.Publicacao.Editar(
-			command.Titulo!, command.Corpo!, command.Tipo, command.Visibilidade,
+		var publicacao = encontrada.Publicacao;
+		ArquivoGravado? gravada = null;
+
+		if (command.Imagem is not null)
+		{
+			var gravacao = await ImagemDaPublicacao
+				.GravarAsync(command.Imagem, imagens, arquivos, cancellationToken)
+				.ConfigureAwait(false);
+
+			if (gravacao.IsFailure)
+			{
+				return gravacao.Error;
+			}
+
+			gravada = gravacao.Value;
+		}
+
+		publicacao.Editar(
+			command.Titulo!, command.Corpo, command.Tipo, command.Visibilidade,
 			command.Prioridade, command.PublicadoEm, command.ExpiraEm);
 
-		await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+		string? anterior = null;
+		var acao = "manter";
+
+		if (gravada is not null)
+		{
+			anterior = publicacao.DefinirImagem(gravada.CaminhoRelativo, gravada.ChaveEmbrulhada, command.ImagemDescricao);
+			acao = "trocar";
+		}
+		else if (command.RemoverImagem)
+		{
+			anterior = publicacao.RemoverImagem();
+			acao = anterior is null ? "manter" : "remover";
+		}
+		else if (publicacao.TemImagem && command.ImagemDescricao is not null)
+		{
+			publicacao.DescreverImagem(command.ImagemDescricao);
+		}
+
+		try
+		{
+			await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+		}
+		catch
+		{
+			// Nada foi salvo: o arquivo recém-guardado não tem a quem servir.
+			await ImagemDaPublicacao
+				.ApagarAsync(gravada?.CaminhoRelativo, arquivos, logger, CancellationToken.None)
+				.ConfigureAwait(false);
+
+			throw;
+		}
+
+		await ImagemDaPublicacao.ApagarAsync(anterior, arquivos, logger, cancellationToken).ConfigureAwait(false);
 
 		await trilha
 			.RegistrarAsync(
@@ -82,6 +155,8 @@ public sealed class EditarPublicacaoHandler(
 						visibilidade = encontrada.Publicacao.Visibilidade.ToString(),
 						prioridade = encontrada.Publicacao.Prioridade.ToString(),
 						setor = encontrada.SetorSlug,
+						imagem = publicacao.TemImagem,
+						imagemAcao = acao,
 					})),
 				cancellationToken)
 			.ConfigureAwait(false);

@@ -12,8 +12,11 @@ public static class PastasDeArquivo
 	/// <summary>Fotos dos colaboradores do Diretório.</summary>
 	public const string FotosDoDiretorio = "diretorio/fotos";
 
+	/// <summary>Imagens das publicações do Mural.</summary>
+	public const string ImagensDoMural = "mural/imagens";
+
 	/// <summary>Indica se a pasta é uma das conhecidas.</summary>
-	public static bool Contem(string pasta) => pasta is FotosDoDiretorio;
+	public static bool Contem(string pasta) => pasta is FotosDoDiretorio or ImagensDoMural;
 }
 
 /// <summary>

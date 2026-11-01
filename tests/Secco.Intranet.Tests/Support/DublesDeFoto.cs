@@ -30,9 +30,17 @@ public sealed class ArquivoStoreFalso : IArquivoStore
 	public Task<ArquivoGravado> GravarAsync(Stream conteudo, CancellationToken cancellationToken = default) =>
 		GravarAsync(conteudo, "documentos", cancellationToken);
 
+	/// <summary>Quando informada, <see cref="GravarAsync(Stream, string, CancellationToken)"/> a lança sem registrar nada.</summary>
+	public Exception? FalhaAoGravar { get; set; }
+
 	/// <inheritdoc />
 	public Task<ArquivoGravado> GravarAsync(Stream conteudo, string pastaLogica, CancellationToken cancellationToken = default)
 	{
+		if (FalhaAoGravar is not null)
+		{
+			throw FalhaAoGravar;
+		}
+
 		var caminho = $"{pastaLogica}/{Guid.NewGuid():N}.bin";
 
 		Gravados.Add((pastaLogica, caminho));
@@ -66,8 +74,18 @@ public sealed class ProcessadorDeImagemFalso : IProcessadorDeImagem
 	/// <summary>Quando não nulo, o processamento falha com este erro.</summary>
 	public Error? FalharCom { get; set; }
 
-	/// <summary>Quantas vezes foi chamado.</summary>
+	/// <summary>Quantas vezes foi chamado (foto e imagem de publicação).</summary>
 	public int Chamadas { get; private set; }
+
+	/// <inheritdoc />
+	public Task<Result<FotoProcessada>> ProcessarImagemDePublicacaoAsync(Stream upload, CancellationToken cancellationToken = default)
+	{
+		Chamadas++;
+
+		return Task.FromResult(FalharCom is null
+			? Result.Success(new FotoProcessada([1, 2, 3], "image/webp"))
+			: Result.Failure<FotoProcessada>(FalharCom));
+	}
 
 	/// <inheritdoc />
 	public Task<Result<FotoProcessada>> ProcessarFotoAsync(Stream upload, RecorteDaFoto? recorte, CancellationToken cancellationToken = default)

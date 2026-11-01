@@ -96,6 +96,73 @@ public class ProcessadorDeImagemDaSdkTests
 		resultado.Error.Should().Be(IntranetErrors.Diretorio.FotoFormatoNaoSuportado);
 	}
 
+	[Fact]
+	public async Task ImagemDePublicacao_Grande_Reduz2048()
+	{
+		var resultado = await CriarProcessador().ProcessarImagemDePublicacaoAsync(new MemoryStream(Png(3000, 1500)));
+
+		resultado.IsSuccess.Should().BeTrue();
+		resultado.Value.ContentType.Should().Be("image/webp");
+		var (largura, altura) = DimensoesWebp(resultado.Value.Conteudo);
+		largura.Should().Be(2048);
+		altura.Should().BeInRange(1023, 1025, "a proporção é preservada, sem recorte");
+	}
+
+	[Fact]
+	public async Task ImagemDePublicacao_Pequena_NaoAmplia()
+	{
+		var resultado = await CriarProcessador().ProcessarImagemDePublicacaoAsync(new MemoryStream(Png(300, 200)));
+
+		resultado.IsSuccess.Should().BeTrue();
+		DimensoesWebp(resultado.Value.Conteudo).Should().Be((300, 200));
+	}
+
+	[Fact]
+	public async Task ImagemDePublicacao_WebpRetangular_MantemOQuadroInteiro()
+	{
+		var processador = CriarProcessador();
+		var webp = (await processador.ProcessarImagemDePublicacaoAsync(new MemoryStream(Png(900, 300)))).Value.Conteudo;
+
+		var resultado = await processador.ProcessarImagemDePublicacaoAsync(new MemoryStream(webp));
+
+		resultado.IsSuccess.Should().BeTrue();
+		DimensoesWebp(resultado.Value.Conteudo).Should().Be((900, 300));
+	}
+
+	[Fact]
+	public async Task ImagemDePublicacao_FluxoSemBusca_MantemOQuadroInteiro()
+	{
+		var resultado = await CriarProcessador()
+			.ProcessarImagemDePublicacaoAsync(new FluxoSemBusca(Png(500, 250)));
+
+		resultado.IsSuccess.Should().BeTrue();
+		DimensoesWebp(resultado.Value.Conteudo).Should().Be((500, 250));
+	}
+
+	private sealed class FluxoSemBusca(byte[] bytes) : MemoryStream(bytes)
+	{
+		public override bool CanSeek => false;
+	}
+
+	[Fact]
+	public async Task ImagemDePublicacao_TextoQualquer_ImagemInvalida()
+	{
+		var resultado = await CriarProcessador()
+			.ProcessarImagemDePublicacaoAsync(new MemoryStream(System.Text.Encoding.UTF8.GetBytes("nao e imagem")));
+
+		resultado.Error.Should().Be(IntranetErrors.Publicacoes.ImagemInvalida);
+	}
+
+	[Fact]
+	public async Task ImagemDePublicacao_CabecalhoHeic_ImagemFormatoNaoSuportado()
+	{
+		byte[] heic = [0, 0, 0, 24, .. "ftypheic"u8.ToArray(), 0, 0, 0, 0, .. "mif1heic"u8.ToArray()];
+
+		var resultado = await CriarProcessador().ProcessarImagemDePublicacaoAsync(new MemoryStream(heic));
+
+		resultado.Error.Should().Be(IntranetErrors.Publicacoes.ImagemFormatoNaoSuportado);
+	}
+
 	/// <summary>Largura e altura de um WebP lido do cabeçalho (VP8, VP8L ou VP8X).</summary>
 	private static (int Largura, int Altura) DimensoesWebp(byte[] webp)
 	{

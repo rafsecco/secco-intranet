@@ -98,7 +98,7 @@ public class AuditoriaDoMuralTests
 		var trilha = new TrilhaFalsa();
 		var handler = new PublicarPublicacaoHandler(
 			new PublicacaoRepositorioFalso(null), new SetorRepositorioFalso(), new IntranetOptions(),
-			new DiretorioVazioFalso(), new NotificadorMudo(), new NotificacaoOptions(), trilha);
+			new DiretorioVazioFalso(), new NotificadorMudo(), new NotificacaoOptions(), trilha, new Secco.Intranet.Tests.Support.ProcessadorDeImagemFalso(), new Secco.Intranet.Tests.Support.ArquivoStoreFalso(), new Secco.Intranet.Tests.Support.LoggerCapturador<PublicarPublicacaoHandler>());
 
 		var resultado = await handler.HandleAsync(new PublicarPublicacaoCommand(
 			"financeiro", "Comunicado", "Corpo em **markdown**.", TipoPublicacao.Aviso,
@@ -117,7 +117,7 @@ public class AuditoriaDoMuralTests
 		var trilha = new TrilhaFalsa();
 		var handler = new PublicarPublicacaoHandler(
 			new PublicacaoRepositorioFalso(null), new SetorRepositorioFalso(), new IntranetOptions(),
-			new DiretorioVazioFalso(), new NotificadorMudo(), new NotificacaoOptions(), trilha);
+			new DiretorioVazioFalso(), new NotificadorMudo(), new NotificacaoOptions(), trilha, new Secco.Intranet.Tests.Support.ProcessadorDeImagemFalso(), new Secco.Intranet.Tests.Support.ArquivoStoreFalso(), new Secco.Intranet.Tests.Support.LoggerCapturador<PublicarPublicacaoHandler>());
 
 		await handler.HandleAsync(new PublicarPublicacaoCommand(
 			"financeiro", "Comunicado", "Segredo industrial em texto longo.", TipoPublicacao.Aviso,
@@ -138,7 +138,7 @@ public class AuditoriaDoMuralTests
 		var trilha = new TrilhaFalsa();
 		var encontrada = Existente();
 		var handler = new EditarPublicacaoHandler(
-			new PublicacaoRepositorioFalso(encontrada), new IntranetOptions(), trilha);
+			new PublicacaoRepositorioFalso(encontrada), new IntranetOptions(), trilha, new Secco.Intranet.Tests.Support.ProcessadorDeImagemFalso(), new Secco.Intranet.Tests.Support.ArquivoStoreFalso(), new Secco.Intranet.Tests.Support.LoggerCapturador<EditarPublicacaoHandler>());
 
 		await handler.HandleAsync(new EditarPublicacaoCommand(
 			encontrada.Publicacao.Id, new HashSet<string>(["financeiro"], StringComparer.OrdinalIgnoreCase),

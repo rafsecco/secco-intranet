@@ -28,4 +28,15 @@ public interface IProcessadorDeImagem
 		Stream upload,
 		RecorteDaFoto? recorte,
 		CancellationToken cancellationToken = default);
+
+	/// <summary>
+	/// Valida e normaliza a imagem de uma publicação: WebP, maior lado de 2048 px, sem ampliar nem
+	/// recortar. Falha do arquivo volta como <see cref="Result"/> com um erro de
+	/// <c>IntranetErrors.Publicacoes</c>.
+	/// </summary>
+	/// <param name="upload">Bytes enviados.</param>
+	/// <param name="cancellationToken">Cancelamento.</param>
+	Task<Result<FotoProcessada>> ProcessarImagemDePublicacaoAsync(
+		Stream upload,
+		CancellationToken cancellationToken = default);
 }

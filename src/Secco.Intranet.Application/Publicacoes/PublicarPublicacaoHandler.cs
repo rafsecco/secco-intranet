@@ -1,6 +1,9 @@
 using System.Text.Json;
 using Markdig;
+using Microsoft.Extensions.Logging;
 using Secco.Intranet.Application.Auditoria;
+using Secco.Intranet.Application.Diretorio;
+using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Publicacoes.Notificacao;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain;
@@ -12,7 +15,7 @@ namespace Secco.Intranet.Application.Publicacoes;
 /// <summary>Comando de publicação.</summary>
 /// <param name="SetorSlug">Slug do setor dono.</param>
 /// <param name="Titulo">Título.</param>
-/// <param name="Corpo">Corpo em Markdown.</param>
+/// <param name="Corpo">Corpo em Markdown; opcional.</param>
 /// <param name="Tipo">Natureza.</param>
 /// <param name="Visibilidade">Quem enxerga.</param>
 /// <param name="Prioridade">Urgência.</param>
@@ -24,6 +27,8 @@ namespace Secco.Intranet.Application.Publicacoes;
 /// nome de exibição com usuário seria frágil, e guardar o id exigiria migration sem uso —
 /// edição não re-notifica.
 /// </param>
+/// <param name="Imagem">Imagem enviada, ou nulo. O chamador fecha o fluxo.</param>
+/// <param name="ImagemDescricao">Descrição da imagem; sem imagem, é ignorada.</param>
 public sealed record PublicarPublicacaoCommand(
 	string? SetorSlug,
 	string? Titulo,
@@ -34,7 +39,9 @@ public sealed record PublicarPublicacaoCommand(
 	DateTimeOffset PublicadoEm,
 	DateTimeOffset? ExpiraEm,
 	string CriadoPor,
-	Guid? CriadoPorId = null);
+	Guid? CriadoPorId = null,
+	ImagemEnviada? Imagem = null,
+	string? ImagemDescricao = null);
 
 /// <summary>A publicação criada e o que aconteceu com o aviso dela.</summary>
 /// <param name="Publicacao">A publicação persistida.</param>
@@ -52,6 +59,9 @@ public sealed record PublicacaoPublicadaDto(PublicacaoDto Publicacao, RelatorioD
 /// <param name="notificador">Envio de avisos.</param>
 /// <param name="notificacaoOptions">Configuração do aviso.</param>
 /// <param name="trilha">Trilha de auditoria.</param>
+/// <param name="imagens">Processamento da imagem enviada.</param>
+/// <param name="arquivos">Armazenamento cifrado.</param>
+/// <param name="logger">Log.</param>
 public sealed class PublicarPublicacaoHandler(
 	IPublicacaoRepository repository,
 	ISetorRepository setorRepository,
@@ -59,7 +69,10 @@ public sealed class PublicarPublicacaoHandler(
 	IDiretorioDeUsuarios diretorio,
 	INotificadorDeMensagens notificador,
 	NotificacaoOptions notificacaoOptions,
-	ITrilhaDeAuditoria trilha)
+	ITrilhaDeAuditoria trilha,
+	IProcessadorDeImagem imagens,
+	IArquivoStore arquivos,
+	ILogger<PublicarPublicacaoHandler> logger)
 {
 	private static readonly MarkdownPipeline PipelineDeTexto = new MarkdownPipelineBuilder()
 		.DisableHtml()
@@ -82,6 +95,13 @@ public sealed class PublicarPublicacaoHandler(
 			return erro;
 		}
 
+		erro = ImagemDaPublicacao.ValidarDescricao(command.ImagemDescricao);
+
+		if (erro is not null)
+		{
+			return erro;
+		}
+
 		if (string.IsNullOrWhiteSpace(command.SetorSlug))
 		{
 			return IntranetErrors.Setores.NotFound;
@@ -94,11 +114,44 @@ public sealed class PublicarPublicacaoHandler(
 			return IntranetErrors.Setores.NotFound;
 		}
 
+		ArquivoGravado? gravada = null;
+
+		if (command.Imagem is not null)
+		{
+			var gravacao = await ImagemDaPublicacao
+				.GravarAsync(command.Imagem, imagens, arquivos, cancellationToken)
+				.ConfigureAwait(false);
+
+			if (gravacao.IsFailure)
+			{
+				return gravacao.Error;
+			}
+
+			gravada = gravacao.Value;
+		}
+
 		var publicacao = new Publicacao(
-			setor.Id, command.Titulo!, command.Corpo!, command.Tipo, command.Visibilidade,
+			setor.Id, command.Titulo!, command.Corpo, command.Tipo, command.Visibilidade,
 			command.Prioridade, command.PublicadoEm, command.ExpiraEm, command.CriadoPor);
 
-		await repository.AddAsync(publicacao, cancellationToken).ConfigureAwait(false);
+		if (gravada is not null)
+		{
+			publicacao.DefinirImagem(gravada.CaminhoRelativo, gravada.ChaveEmbrulhada, command.ImagemDescricao);
+		}
+
+		try
+		{
+			await repository.AddAsync(publicacao, cancellationToken).ConfigureAwait(false);
+		}
+		catch
+		{
+			// A linha não foi gravada: o arquivo recém-guardado não tem a quem servir.
+			await ImagemDaPublicacao
+				.ApagarAsync(gravada?.CaminhoRelativo, arquivos, logger, CancellationToken.None)
+				.ConfigureAwait(false);
+
+			throw;
+		}
 
 		var dto = Projecao.De(new PublicacaoComSetor(publicacao, setor.Nome, setor.Slug));
 
@@ -115,6 +168,7 @@ public sealed class PublicarPublicacaoHandler(
 						visibilidade = dto.Visibilidade.ToString(),
 						prioridade = dto.Prioridade.ToString(),
 						setor = dto.SetorSlug,
+						imagem = dto.TemImagem,
 					})),
 				cancellationToken)
 			.ConfigureAwait(false);
@@ -186,6 +240,12 @@ public sealed class PublicarPublicacaoHandler(
 		// Texto puro: o Hub tem um Message só, servindo sino e e-mail, e markdown cru
 		// apareceria literalmente no e-mail.
 		var texto = Markdown.ToPlainText(corpo, PipelineDeTexto).Replace('\n', ' ').Trim();
+
+		// O Hub recusa mensagem vazia: publicação só com imagem (ou sem texto) avisa com um convite.
+		if (texto.Length == 0)
+		{
+			return ImagemDaPublicacao.ResumoPadrao;
+		}
 
 		return texto.Length <= notificacaoOptions.TamanhoDoResumo
 			? texto
