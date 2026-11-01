@@ -167,3 +167,15 @@ Decisão já tomada (ruling do plano): a aba de avisos **não tinha entrada para
 - [ ] **Step 5: Conferência visual** (fica com o controller): publicar arte só-imagem, texto+imagem e só título; Mural, Detalhe e aba do setor nos dois temas, claro e escuro, e a 390 px.
 - [ ] **Step 6:** `docs/temas.md` (campo `Imagem` do `CardModel`, classe `sc-card__imagem`); spec com estado "aprovado, implementado".
 - [ ] **Step 7: Commit** `feat(mural): imagem no formulario do aviso e no card`.
+
+### Task 5: Adotar o modo sem recorte da SDK (aguarda secco-platform#52)
+
+Acrescentada durante a execução: a `Secco.SDK.Imaging` 0.1.0 só recorta o quadrado central. Até a entrega da #52, a imagem do Mural sai cortada; esta task fecha o recurso.
+
+**Files:** `Directory.Packages.props` (versão da SDK que trouxer o modo), `src/Secco.Intranet.Infrastructure/Diretorio/ProcessadorDeImagemDaSdk.cs`, `tests/Secco.Intranet.Tests/Unit/ProcessadorDeImagemDaSdkTests.cs`, `docs/plataforma.md` (demanda para "Atendidas").
+
+- [ ] **Step 1:** conferir no feed a versão publicada da SDK com o modo (issue fechada não é pacote publicado).
+- [ ] **Step 2:** atualizar a versão e usar o modo sem recorte em `ProcessarImagemDePublicacaoAsync`.
+- [ ] **Step 3:** tirar o `Skip` de `ImagemDePublicacao_Grande_Reduz2048` e `ImagemDePublicacao_Pequena_NaoAmplia`; rodar → verde.
+- [ ] **Step 4:** conferência visual de uma arte retangular (retrato e paisagem) no Mural.
+- [ ] **Step 5: Commit** `feat(mural): imagem inteira, sem recorte (secco-platform#52)`.

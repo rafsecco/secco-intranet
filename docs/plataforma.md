@@ -17,7 +17,7 @@ Duas regras sustentam esta lista:
 
 | Demanda | O que trava | Issue |
 |---|---|---|
-| _(nenhuma)_ | | |
+| `Secco.SDK.Imaging`: processar a imagem inteira, mantendo a proporção (sem recorte) | A imagem anexada à publicação do Mural ([spec](specs/2026-10-31-imagem-na-publicacao-design.md)) sai cortada no quadrado central até a entrega; o resto do recurso não espera | [#52](https://github.com/rafsecco/secco-platform/issues/52) |
 
 ## Descartadas
 
