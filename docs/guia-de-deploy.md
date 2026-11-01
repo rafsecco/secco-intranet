@@ -224,18 +224,22 @@ Convenção ASP.NET Core: `__` no nome da variável vira `:` na chave de configu
 
 | Variável | Obrigatória | Descrição |
 |---|---|---|
-| `ASPNETCORE_ENVIRONMENT` | Sim | `Production`. Nunca `Development` num host exposto — liga HSTS, exige HTTPS no cookie e no OIDC, desliga migration/seed automáticos. |
-| `Secco__SecureGate__Authority` | Sim | URL do SecureGate que emite os tokens. Sem ela, a aplicação sobe no "modo aberto" (sem autenticação) — nunca em produção (ADR-0020). |
+| `ASPNETCORE_ENVIRONMENT` | Sim | `Production`. `Development` é o **único** ambiente sem as travas de segurança: qualquer outro valor exige HTTPS no cookie e no OIDC, recusa subir sem as credenciais e a chave mestra abaixo e desliga migration/seed automáticos. Nunca `Development` num host exposto. |
+| `Secco__SecureGate__Authority` | Sim | URL do SecureGate que emite os tokens. Fora de `Development`, sem ela a aplicação recusa subir; só em `Development` há o "modo aberto" (sem autenticação) (ADR-0020). |
 | `Secco__SecureGate__BaseUrl` | Sim | URL da API do SecureGate, usada pelas chamadas de serviço (client administrativo, permissões, revogação de sessão). Em geral, a mesma da `Authority`. |
 | `Secco__SecureGate__ClientId` / `Secco__SecureGate__ClientSecret` | Sim | Client de **máquina de plataforma** (`ClientCredentials`): permissões, revogação de sessão, catálogo de permissões, LogStream e NotificationHub. Não serve para o login nem para a gestão do tenant — ver "SecureGate: três clients e o `migrate`". |
-| `Secco__SecureGate__TenantManagement__ClientId` / `Secco__SecureGate__TenantManagement__ClientSecret` | Sim | Client **de produto** da gestão do tenant (`securegate:tenant-manage`), criado pelo operador no tenant da Intranet. A `BaseUrl` vem de `Secco__SecureGate__BaseUrl`. Sem o `ClientId` e o `ClientSecret`, a aplicação não sobe em Production; sem o `ClientId`, a tela de acesso responde "não configurado". |
-| `Intranet__Login__ClientId` / `Intranet__Login__ClientSecret` | Sim | Client do **login interativo** (`AuthorizationCode`), separado do de máquina. Sem o `ClientId`, a aplicação não sobe em Production. |
+| `Secco__SecureGate__TenantManagement__ClientId` / `Secco__SecureGate__TenantManagement__ClientSecret` | Sim | Client **de produto** da gestão do tenant (`securegate:tenant-manage`), criado pelo operador no tenant da Intranet. A `BaseUrl` vem de `Secco__SecureGate__BaseUrl`. Sem o `ClientId` e o `ClientSecret`, a aplicação não sobe fora de Development; sem o `ClientId`, a tela de acesso responde "não configurado". |
+| `Intranet__Login__ClientId` / `Intranet__Login__ClientSecret` | Sim | Client do **login interativo** (`AuthorizationCode`), separado do de máquina. Sem o `ClientId`, a aplicação não sobe fora de Development. |
 | `Secco__Tenancy__Tenants__{tenantId}__ConnectionString` | Sim, uma por tenant | Connection string do banco daquele tenant. `{tenantId}` é o GUID do tenant, hífens inclusos. |
 | `Intranet__Database__Provider` | Não (padrão `SqlServer`) | `SqlServer` ou `PostgreSql`. |
 | `Secco__ReverseProxy__Habilitado` | Sim, se atrás de proxy | `true` para confiar em `X-Forwarded-For`/`X-Forwarded-Proto`. Só ligue se a porta do container for inalcançável por fora do proxy — ver "Topologia". |
 | `Intranet__Auditoria__LogStreamUrl` | Não | URL do `Secco.LogStream`. Vazia = trilha de auditoria não é gravada (modo silencioso, não é erro). |
 | `Intranet__Notificacao__HubUrl` | Não | URL do `Secco.NotificationHub`. Vazia = sino/e-mail de notificação não são enviados. |
 | `Intranet__Notificacao__UrlBase` | Recomendada se `HubUrl` estiver definida | URL pública da Intranet (ex.: `https://intranet.suaempresa.com`, sem barra final) — sem ela, o link da notificação por e-mail fica relativo e não abre fora do navegador já logado. |
+| `Intranet__Documentos__Chave__ChaveAtiva` | Sim, fora de Development | Chave mestra que embrulha as chaves dos documentos cifrados: base64 de 32 bytes, por exemplo `openssl rand -base64 32`. Sem ela a aplicação não sobe. **Perder a chave é perder todos os documentos**: guarde-a fora do host. A chave de desenvolvimento embutida só vale em `Development`. |
+| `Intranet__Documentos__Chave__ChavesAposentadas__0` (e `__1`, ...) | Não | Chaves mestras antigas (base64, 32 bytes), usadas só para decifrar durante a rotação. Mantenha-as até a chave ativa ter reembrulhado todos os documentos. |
+| `Intranet__Documentos__Armazenamento__Raiz` | Não (a imagem define `/var/lib/secco-intranet/documentos`) | Pasta onde ficam os arquivos cifrados dos documentos. Monte um volume nela: sem volume, recriar o container apaga os documentos. |
+| `Intranet__Documentos__TamanhoMaximoBytes` | Não (padrão 25 MB, `26214400`) | Tamanho máximo aceito por documento enviado. |
 | `Intranet__Imaging__MaxInputBytes` | Não (padrão 10 MB, `10485760`) | Tamanho máximo do arquivo de imagem aceito no envio da foto do colaborador (seção `Intranet:Imaging`, `Secco.SDK.Imaging`). O envio também é barrado em ~10 MB na própria rota (limite de requisição) e no texto da tela, então subir este valor acima disso não tem efeito. |
 | `Intranet__Imaging__MaxPixels` | Não (padrão 50 milhões) | Máximo de pixels da imagem de entrada; acima disso o envio é recusado. Cada decodificação pode usar ~4 bytes por pixel (50 milhões ≈ 200 MB), multiplicado por `MaxConcurrentOperations`: em host com pouca memória, baixe este valor (ex.: 25 milhões) ou o de `MaxConcurrentOperations`. |
 | `Intranet__Imaging__MaxConcurrentOperations` | Não (padrão = número de processadores) | Quantas imagens são processadas ao mesmo tempo. |
@@ -277,11 +281,14 @@ services:
       Secco__SecureGate__TenantManagement__ClientSecret: "${SECURE_GATE_TENANT_MANAGEMENT_CLIENT_SECRET}"
       Intranet__Login__ClientId: "${INTRANET_LOGIN_CLIENT_ID}"
       Intranet__Login__ClientSecret: "${INTRANET_LOGIN_CLIENT_SECRET}"
+      Intranet__Documentos__Chave__ChaveAtiva: "${INTRANET_DOCUMENTOS_CHAVE}"
       Secco__ReverseProxy__Habilitado: "true"
       Secco__Tenancy__Tenants__${TENANT_ID}__ConnectionString: "${TENANT_CONNECTION_STRING}"
     # Nenhuma porta publicada para o host — só o proxy alcança esta rede.
     networks:
       - interna
+    volumes:
+      - documentos:/var/lib/secco-intranet/documentos
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
       interval: 30s
@@ -307,6 +314,7 @@ networks:
 
 volumes:
   caddy-data:
+  documentos:
 ```
 
 `Caddyfile` mínimo (TLS automático via Let's Encrypt, só exige DNS apontando para o host):
@@ -347,24 +355,6 @@ Sem orquestrador com rolling update (é o caso de um host único), o corte é di
    e o banco não são afetados.
 4. Confirme `GET /health/ready` → `200` antes de considerar o deploy concluído.
 
-### Nota de upgrade: gestão do tenant sem `securegate:admin`
-
-Esta versão **quebra** a configuração anterior. A tela de acesso e o provisionamento de perfis de
-setor deixam de usar o client de máquina com `securegate:admin` e passam a usar um client de produto
-com `securegate:tenant-manage` (ADR-0052 da plataforma, `Secco.SecureGate.Client` 0.21.0). Antes de
-subir esta versão:
-
-1. Peça ao operador da instalação que crie o client de produto no tenant da Intranet
-   (`POST /api/v1/tenants/{id}/clients`, escopos `securegate:tenant-manage` e `directory:read`) e
-   guarde o secret devolvido.
-2. Configure `Secco__SecureGate__TenantManagement__ClientId` e `...__ClientSecret`. Sem eles, a
-   aplicação não sobe em Production.
-3. Garanta `SecureGate:Audit` configurada no SecureGate.
-4. Depois, retire `securegate:admin` do client de máquina em `SecureGate:PlatformClients`.
-
-Além disso, **a federação com o Entra ID saiu da Intranet**: a aba Federação de `/acesso` foi
-removida. A federação do tenant passa a ser configurada pelo operador da instalação, no AdminPortal.
-
 Não há mecanismo de rollback automático de migration — se precisar reverter, é
 `dotnet ef database update <migration-anterior>` manual, contra a connection string de cada
 tenant (`--project src/Secco.Intranet.Migrations.SqlServer` ou `.Postgres`).
@@ -379,7 +369,10 @@ tenant (`--project src/Secco.Intranet.Migrations.SqlServer` ou `.Postgres`).
 - [ ] `Intranet:Login:ClientId/ClientSecret` configurados com o client de login.
 - [ ] `Secco:SecureGate:TenantManagement:ClientId/ClientSecret` configurados com o client de produto
       criado pelo operador no tenant da Intranet (`securegate:tenant-manage` + `directory:read`).
-- [ ] `SecureGate:Audit` configurada no SecureGate (sem ela, as escritas da tela de acesso recebem `403`).
+- [ ] `Intranet:Documentos:Chave:ChaveAtiva` configurada (base64 de 32 bytes) e guardada fora do
+      host: sem ela a aplicação não sobe, e perdê-la é perder os documentos.
+- [ ] Volume montado em `/var/lib/secco-intranet/documentos`: sem ele, recriar o container apaga
+      os documentos.
 - [ ] Os dois clients de plataforma da Intranet declarados em `SecureGate:PlatformClients` e o
       `migrate` do SecureGate rodado antes de subir o SecureGate.
 - [ ] SecureGate com duas credenciais de banco: a de migração (dona) e a de runtime (sem posse).

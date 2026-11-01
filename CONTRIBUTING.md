@@ -25,6 +25,8 @@ também.
 | Saber o que este produto espera da plataforma | [`docs/plataforma.md`](docs/plataforma.md) |
 | Ver o desenho de um recurso antes de implementá-lo | [`docs/specs/`](docs/specs/) |
 
+Os planos em [`docs/plans/`](docs/plans/) são roteiro de execução: as caixas deles não são marcadas, e o estado de entrega vive no [`roadmap.md`](docs/roadmap.md).
+
 ## O que não se negocia
 
 Um resumo do que mais tropeça na prática. O detalhe está nas ADRs citadas.

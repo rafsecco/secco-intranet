@@ -17,7 +17,7 @@ Duas regras sustentam esta lista:
 
 | Demanda | O que trava | Issue |
 |---|---|---|
-| _(nenhuma)_ | | |
+| Cabeçalhos de segurança HTTP no `Secco.SDK.AspNetCore` (CSP com nonce, `Referrer-Policy`, `Permissions-Policy`, `frame-ancestors`) | A resposta da Intranet sai sem esses cabeçalhos; o produto não os implementa localmente (capacidade transversal). Item ⛔ no [`roadmap.md`](roadmap.md) | [#53](https://github.com/rafsecco/secco-platform/issues/53) |
 
 ## Descartadas
 
@@ -76,15 +76,15 @@ A auditoria ter vindo como recurso do LogStream, e não como um `Secco.Audit`, *
 aqui** — a [ADR-0006](adr/secco-intranet-adrs.md) já previa a bifurcação e registrou que este
 produto escolheu a origem da capacidade, não a implementação dela.
 
-Consumir o que chegou é trabalho próprio, ainda não feito: ver os itens correspondentes no
-[`roadmap.md`](roadmap.md).
+O que chegou e tem consumidor aqui já foi adotado; as linhas acima dizem onde. O que ficou sem
+consumidor está marcado nelas.
 
 ## Como registrar uma demanda nova
 
 1. Confirmar que é mesmo capacidade de plataforma, e não recurso deste produto. O critério
    prático: **outro adotante precisaria da mesma coisa?** Se sim, é da plataforma.
-2. Abrir issue no `secco-platform` com a label `adopter-demand`, na estrutura que as quatro
-   acima seguem: **lacuna · evidência · impacto aqui · workaround recusado**. Evidência é
+2. Abrir issue no `secco-platform` com a label `adopter-demand`, na estrutura das
+   issues já abertas: **lacuna · evidência · impacto aqui · workaround recusado**. Evidência é
    caminho de arquivo e trecho de ADR, não impressão.
 3. Registrar o desenho **só** quando ele já for decisão; caso contrário, descrever a lacuna e
    deixar a rodada de design acontecer lá.

@@ -168,7 +168,7 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [x] Gestão do tenant sem `securegate:admin` (ADR-0052 da plataforma, `Secco.SecureGate.Client`
       0.21.0): `AddSecureGateTenantManagementClient()` no lugar de `AddSecureGateAdminClient()`,
       credencial do client de produto em `Secco:SecureGate:TenantManagement` (exigida no startup
-      em Production) e federação Entra removida da Intranet. Nota de upgrade em
+      fora de Development) e federação Entra removida da Intranet. Credencial no
       [guia-de-deploy.md](guia-de-deploy.md)
 
 - [x] Menu principal extensível e ordenável: projeto `Secco.Intranet.Web.Extensibility` com
@@ -184,6 +184,16 @@ processos (maior risco técnico) só entra com a base já sólida.
       `_ListaDeDocumentos` — [spec](specs/2026-10-31-documentos-hierarquia-e-ordem-design.md), plano em
       [plans/2026-10-31-documentos-hierarquia-e-ordem.md](plans/2026-10-31-documentos-hierarquia-e-ordem.md).
       Issue #4, parte 1 de 3 (faltam substituir arquivo com histórico e as bibliotecas sem setor)
+- [x] Imagem na publicação do Mural: uma imagem opcional por aviso, enviada do computador,
+      processada pelo `Secco.SDK.Imaging` 0.2.0 com `ImageCrop.Whole` (inteira, sem recorte,
+      [secco-platform#52](https://github.com/rafsecco/secco-platform/issues/52)) e servida em
+      `/publicacoes/{id}/imagem` com a mesma regra de quem vê da publicação; só o título passa a
+      ser obrigatório — [spec](specs/2026-10-31-imagem-na-publicacao-design.md), plano em
+      [plans/2026-10-31-imagem-na-publicacao.md](plans/2026-10-31-imagem-na-publicacao.md)
+- [x] Perfil implícito `tenant-member` ("Todos os membros"): todo membro ativo o tem, sem
+      atribuição, e o `intranet-admin` edita as permissões dele na tela de Acesso —
+      `Secco.SecureGate.Client` 0.24.0, ADR-0056 da plataforma
+      ([secco-platform#51](https://github.com/rafsecco/secco-platform/issues/51))
 
 ## Fase 2 — Operacional
 
@@ -246,6 +256,9 @@ processos (maior risco técnico) só entra com a base já sólida.
       fora da rede da empresa — a restrição é de rede, não de código, e o produto não a
       implementa sozinho. A aplicação **tem** saída para a internet; o que não deve existir é
       entrada de fora
+- [ ] ⛔ Cabeçalhos de segurança HTTP (CSP com nonce, `Referrer-Policy`, `Permissions-Policy`,
+      `frame-ancestors`): pedido ao `Secco.SDK.AspNetCore`, o produto não os implementa
+      localmente — [secco-platform#53](https://github.com/rafsecco/secco-platform/issues/53)
 
 ## Fase 5 — Comunidade (pós-lançamento open source)
 

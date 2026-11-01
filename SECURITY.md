@@ -48,9 +48,10 @@ Interessa qualquer coisa que quebre uma destas garantias, que são as que este p
   detalhe de usabilidade.
 
 Fora de escopo: as credenciais de desenvolvimento versionadas no repositório. Elas são
-conhecidas de propósito — o `sa` do `docker-compose.yml` e a chave mestra de desenvolvimento
-embutida em `ChaveMestraOptions`. A guarda é o ambiente: em `Production`, a aplicação **falha o
-startup** se a chave mestra não for configurada.
+conhecidas de propósito — as senhas de exemplo do `.env.example` (o `docker-compose.yml` as lê do
+`.env`) e a chave mestra de desenvolvimento embutida em `ChaveMestraOptions`. A guarda é o
+ambiente: fora de `Development`, a aplicação **falha o startup** se a chave mestra não for
+configurada.
 
 ## Dependências
 

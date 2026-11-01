@@ -200,9 +200,10 @@ nenhuma API on-behalf-of do usuário hoje). Composição lazy por configuração
   `securegate:tenant-manage` (esse é do provisionamento automático de Roles via client
   credentials, ver abaixo) e sem `offline_access`/custódia de token.
 - **Modo aberto**: sem `Secco:SecureGate:Authority` configurada, nenhum middleware de
-  autenticação/autorização é registrado — modo válido apenas em DEV local (sem SecureGate
-  disponível) e no ambiente `Testing`. ADR-0020: produção exige a seção; o modo aberto não
-  deve chegar lá.
+  autenticação/autorização é registrado — modo válido apenas em `Development` (sem SecureGate
+  disponível). Em qualquer outro ambiente a aplicação recusa subir sem a seção (ADR-0020). Os
+  testes de integração desligam a guarda no próprio código de teste; o produto não tem exceção
+  por nome de ambiente.
 
 Separadamente, o cadastro de um setor (ADR-0001) provisiona automaticamente as Roles
 `{slug}-admin`/`{slug}-user` no tenant atual via `Secco.SecureGate.Client`, autenticado por
@@ -250,15 +251,17 @@ Desde a spec de 2026-09-27, autorização não é mais só nome de Role: cada Ro
 formato `recurso:acao` (ADR-0021 da plataforma), editáveis na tela de detalhe do perfil
 (`/acesso/perfil/{nome}`) — inclusive perfis de setor e do Diretório, sem trava. Isso resolve o que
 antes exigia atribuir `diretorio-user` (ou um `{slug}-user` por setor) usuário a usuário: o
-`intranet-admin` pode criar **um** perfil agrupador (por exemplo, `todos`) e marcar nele
-`diretorio:read` e a permissão global `setores:read` (lê **todo** setor, inclusive um criado depois)
-— um perfil em vez de vários por pessoa.
+`intranet-admin` marca as permissões que valem para todos no perfil implícito `tenant-member`, que
+a tela de Acesso mostra como "Todos os membros" (ADR-0056 da plataforma, `Secco.SecureGate.Client`
+0.24.0, [secco-platform#51](https://github.com/rafsecco/secco-platform/issues/51)). Todo membro
+ativo já o tem, inclusive quem entra depois; ninguém o cria, atribui, retira nem exclui, mas as
+permissões dele são editáveis. Marcar nele `diretorio:read` e a permissão global `setores:read`
+(lê **todo** setor, inclusive um criado depois) dá a todos o acesso de leitura — um perfil em vez
+de vários por pessoa.
 
-Setores criados antes desta versão não têm nenhuma permissão gravada até serem editados ou até
-alguém clicar em **Reconciliar permissões** (na tela de Perfis) — a ação garante `setor-{slug}:read`
-nas duas Roles de todo setor e, se existirem, `diretorio:read`/`diretorio:manage` em
-`diretorio-user`/`diretorio-admin`, sem apagar nenhuma permissão extra já atribuída à mão. Rode-a
-depois de atualizar para esta versão, ou sempre que um setor antigo parecer sem acesso.
+**Reconciliar permissões** (na tela de Perfis) garante `setor-{slug}:read` nas duas Roles de todo
+setor e, se existirem, `diretorio:read`/`diretorio:manage` em `diretorio-user`/`diretorio-admin`,
+sem apagar nenhuma permissão extra já atribuída à mão. Use quando um setor parecer sem acesso.
 
 ## Pós-geração (checklist)
 
@@ -274,8 +277,9 @@ depois de atualizar para esta versão, ou sempre que um setor antigo parecer sem
    `Secco.LogStream.Client`, `Secco.NotificationHub.Client` e `Secco.SharedKernel` são
    publicados pelo secco-platform — fonte `secco`, com `packageSourceMapping` prendendo o
    padrão `Secco.*` só a ela. Consumir exige token: ver [Pré-requisitos](#pré-requisitos).
-4. **CI**: workflow próprio deste repositório (não compartilha o `ci.yml` do monorepo).
-   **Pendente** — ainda não existe `.github/workflows/`.
+4. [feito] **CI**: workflow próprio deste repositório (não compartilha o `ci.yml` do monorepo),
+   em `.github/workflows/ci.yml` — build e testes a cada push e pull request, e um job que
+   reprova se os assets compilados dos temas divergirem do SCSS.
 5. [feito] **Projeto `Secco.Intranet.Web`** (MVC) — não vem do template original, é
    específico deste produto (ADR-0002). Os testes de integração (`tests/.../Integration`)
    foram reativados sobre o host real via `WebApplicationFactory<Program>`.
