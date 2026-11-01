@@ -49,58 +49,13 @@ internal sealed class ProcessadorDeImagemDaSdk(ISeccoImageProcessor imagens) : I
 		Stream upload,
 		CancellationToken cancellationToken = default)
 	{
-		// A SDK 0.1.0 não tem "sem recorte": o padrão é o quadrado central. O quadro inteiro é pedido
-		// como recorte explícito, com as medidas do cabeçalho.
-		var fluxo = upload;
+		// A SDK 0.1.0 só sabe recortar o quadrado central; o modo sem recorte vem em secco-platform#52.
+		var pedido = new ImageProcessingRequest(
+			Variants: [new ImageVariant(NomeDaVarianteDePublicacao, LadoMaximoDePublicacao)],
+			Crop: null,
+			Format: ImageOutputFormat.WebP);
 
-		if (!fluxo.CanSeek)
-		{
-			var copia = new MemoryStream();
-			await upload.CopyToAsync(copia, cancellationToken);
-			fluxo = copia;
-		}
-
-		try
-		{
-			return await ProcessarQuadroInteiroAsync(fluxo, cancellationToken);
-		}
-		finally
-		{
-			if (!ReferenceEquals(fluxo, upload))
-			{
-				await fluxo.DisposeAsync();
-			}
-		}
-	}
-
-	private async Task<Result<FotoProcessada>> ProcessarQuadroInteiroAsync(Stream fluxo, CancellationToken cancellationToken)
-	{
-		var medidas = DimensoesDaImagem.Ler(fluxo);
-		var variantes = new[] { new ImageVariant(NomeDaVarianteDePublicacao, LadoMaximoDePublicacao) };
-
-		if (medidas is null)
-		{
-			// Cabeçalho irreconhecível: a SDK dá o veredito certo (formato, tamanho, ilegível). Se ainda
-			// assim ela aceitar, o quadrado central não é o que a pessoa enviou, então recusa.
-			var veredito = await imagens.ProcessAsync(
-				fluxo, new ImageProcessingRequest(Variants: variantes, Format: ImageOutputFormat.WebP), cancellationToken);
-
-			return veredito.IsFailure
-				? Result.Failure<FotoProcessada>(TraduzirPublicacao(veredito.Error))
-				: Result.Failure<FotoProcessada>(IntranetErrors.Publicacoes.ImagemInvalida);
-		}
-
-		var (largura, altura) = medidas.Value;
-		var resultado = await ProcessarComRecorteAsync(fluxo, variantes, new CropRectangle(0, 0, largura, altura), cancellationToken);
-
-		// JPEG com orientação de EXIF de 90 graus: o quadro orientado tem as medidas trocadas.
-		if (resultado.IsFailure
-			&& resultado.Error.Code == SeccoImagingErrors.InvalidCrop.Code
-			&& largura != altura)
-		{
-			resultado = await ProcessarComRecorteAsync(fluxo, variantes, new CropRectangle(0, 0, altura, largura), cancellationToken);
-		}
-
+		var resultado = await imagens.ProcessAsync(upload, pedido, cancellationToken);
 		if (resultado.IsFailure)
 		{
 			return Result.Failure<FotoProcessada>(TraduzirPublicacao(resultado.Error));
@@ -108,20 +63,6 @@ internal sealed class ProcessadorDeImagemDaSdk(ISeccoImageProcessor imagens) : I
 
 		var saida = resultado.Value.Variants[NomeDaVarianteDePublicacao];
 		return Result.Success(new FotoProcessada(saida.Content, saida.ContentType));
-	}
-
-	private Task<Result<ProcessedImage>> ProcessarComRecorteAsync(
-		Stream fluxo,
-		ImageVariant[] variantes,
-		CropRectangle recorte,
-		CancellationToken cancellationToken)
-	{
-		fluxo.Position = 0;
-
-		return imagens.ProcessAsync(
-			fluxo,
-			new ImageProcessingRequest(Variants: variantes, Crop: recorte, Format: ImageOutputFormat.WebP),
-			cancellationToken);
 	}
 
 	private static Error TraduzirPublicacao(Error erro) => erro.Code switch
