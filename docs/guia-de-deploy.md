@@ -167,29 +167,33 @@ consultar, rode `EXEC sp_set_session_context N'secco_mode', N'platform'` (SQL Se
 
 ## Construir a imagem
 
-O `Dockerfile` já existe em `src/Secco.Intranet.Web/Dockerfile` e já documenta o bloqueio
-do feed privado no próprio arquivo. Build a partir da **raiz do repositório** (o
-Central Package Management exige os `.props`/`nuget.config` da raiz no contexto):
+O `Dockerfile` está em `src/Secco.Intranet.Web/Dockerfile`. Build a partir da **raiz do
+repositório** (o Central Package Management exige os `.props`/`nuget.config` da raiz no contexto),
+com BuildKit:
 
 ```bash
-export NUGET_PAT=ghp_xxx   # PAT com escopo read:packages, de uma conta com acesso ao feed "secco"
+export NUGET_PAT=ghp_xxx   # PAT com escopo read:packages (ou: export NUGET_PAT=$(gh auth token))
 
 docker build \
   -f src/Secco.Intranet.Web/Dockerfile \
-  -t secco-intranet-web:latest \
+  -t secco-intranet-web:<versao> \
   --secret id=nuget_pat,env=NUGET_PAT \
   .
 ```
 
-**A imagem precisa ser glibc, nunca Alpine.** O `Secco.SDK.Imaging` (foto do colaborador) traz um asset nativo compilado para glibc; numa base Alpine (musl) o processamento de imagem falha. A base de runtime atual, `mcr.microsoft.com/dotnet/aspnet:10.0`, é Debian e atende.
+O PAT entra como BuildKit secret e só existe no ambiente do comando de restore: não vai para
+arquivo, camada nem `docker history`. O usuário do feed é `secco-intranet` por padrão (o GitHub
+Packages aceita qualquer usuário não vazio com PAT); `--build-arg NUGET_USER=<usuario>` troca.
 
-O `Dockerfile` de hoje **não** injeta esse secret no `dotnet nuget update source` antes do
-restore — isso ainda precisa ser adicionado a ele (um passo de RUN com
-`--mount=type=secret,id=nuget_pat` lendo o PAT e chamando
-`dotnet nuget update source secco --username <user> --password $(cat /run/secrets/nuget_pat) --store-password-in-clear-text`
-antes do `dotnet restore`). Sem isso, o comando acima builda mas o restore falha do mesmo
-jeito. Trate isso como pré-requisito deste guia, não como algo já resolvido — é o próximo
-passo antes de um CI/CD real existir para este projeto.
+A imagem:
+
+- roda com o usuário não-root `app` (uid `1654`) da imagem base;
+- guarda os documentos em `/var/lib/secco-intranet/documentos`, declarado como `VOLUME`. Um volume
+  nomeado herda o dono certo na primeira criação; um bind mount do host precisa pertencer ao uid
+  `1654`;
+- não traz `curl` nem `wget`: o healthcheck do exemplo de compose abaixo usa o `bash` da imagem.
+
+**A imagem precisa ser glibc, nunca Alpine.** O `Secco.SDK.Imaging` (foto do colaborador) traz um asset nativo compilado para glibc; numa base Alpine (musl) o processamento de imagem falha. A base de runtime atual, `mcr.microsoft.com/dotnet/aspnet:10.0`, é Debian e atende.
 
 ## Banco de dados
 
@@ -290,7 +294,8 @@ services:
     volumes:
       - documentos:/var/lib/secco-intranet/documentos
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
+      # A imagem não tem curl/wget: o bash abre a conexão e confere o status 200.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /health/live HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && head -n1 <&3 | grep -q ' 200 '"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -361,8 +366,7 @@ tenant (`--project src/Secco.Intranet.Migrations.SqlServer` ou `.Postgres`).
 
 ## Checklist antes de ir ao ar
 
-- [ ] Imagem builda com o PAT do feed privado (mecanismo do secret ainda a adicionar ao
-      Dockerfile, ver "Construir a imagem").
+- [ ] Imagem construída com o PAT do feed privado como BuildKit secret (ver "Construir a imagem").
 - [ ] `ASPNETCORE_ENVIRONMENT=Production`.
 - [ ] `Secco:SecureGate:Authority/BaseUrl/ClientId/ClientSecret` configurados contra o
       SecureGate real (nunca o modo aberto).
