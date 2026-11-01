@@ -17,10 +17,25 @@ public sealed class PublicacaoFormViewModel
 	[StringLength(256)]
 	public string? Titulo { get; set; }
 
-	/// <summary>Corpo em Markdown.</summary>
-	[Required(ErrorMessage = "O corpo é obrigatório.")]
+	/// <summary>Corpo em Markdown; opcional (só o título é obrigatório).</summary>
 	[StringLength(4_000)]
 	public string? Corpo { get; set; }
+
+	/// <summary>Imagem enviada; vazia mantém a atual (edição) ou publica sem imagem (nova).</summary>
+	public IFormFile? Imagem { get; set; }
+
+	/// <summary>Descrição da imagem, para quem usa leitor de tela.</summary>
+	[StringLength(300, ErrorMessage = "A descrição da imagem passa de 300 caracteres.")]
+	public string? ImagemDescricao { get; set; }
+
+	/// <summary>Marca a remoção da imagem atual; só vale na edição e quando não há nova imagem.</summary>
+	public bool RemoverImagem { get; set; }
+
+	/// <summary>
+	/// Se a publicação em edição já tem imagem. Só de exibição: o controller o recalcula a partir
+	/// do que está guardado, nunca do que veio no formulário.
+	/// </summary>
+	public bool TemImagem { get; set; }
 
 	/// <summary>Natureza.</summary>
 	public TipoPublicacao Tipo { get; set; } = TipoPublicacao.Aviso;
@@ -61,6 +76,7 @@ public sealed class PublicacaoFormViewModel
 /// <param name="Agora">Instante usado para calcular a etiqueta de cada publicação.</param>
 /// <param name="Titulo">Nome do item da árvore que abriu a página.</param>
 /// <param name="Trilho">Setor e ancestrais do item ("Financeiro › Relatórios"), para o subtítulo.</param>
+/// <param name="Endereco">Endereço da própria aba, base do link "Editar" e do "Cancelar".</param>
 public sealed record SetorAvisosViewModel(
 	SetorDto Setor,
 	IReadOnlyList<PublicacaoDto> Publicacoes,
@@ -68,4 +84,5 @@ public sealed record SetorAvisosViewModel(
 	PublicacaoFormViewModel Form,
 	DateTimeOffset Agora,
 	string Titulo,
-	string Trilho);
+	string Trilho,
+	string Endereco);

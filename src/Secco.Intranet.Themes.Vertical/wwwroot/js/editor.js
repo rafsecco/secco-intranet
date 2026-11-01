@@ -23,7 +23,20 @@
       previewStyle: 'vertical',
       initialValue: area.value,
       usageStatistics: false,
-      language: 'pt-BR'
+      language: 'pt-BR',
+      // A imagem do aviso tem campo proprio no formulario: nada de imagem dentro do texto, nem
+      // pela barra nem colando da area de transferencia.
+      toolbarItems: [
+        ['heading', 'bold', 'italic', 'strike'],
+        ['hr', 'quote'],
+        ['ul', 'ol', 'task', 'indent', 'outdent'],
+        ['table', 'link'],
+        ['code', 'codeblock'],
+        ['scrollSync']
+      ],
+      hooks: {
+        addImageBlobHook: function () {}
+      }
     });
   } catch (erro) {
     // Desiste sem deixar rastro. Esconder o textarea ANTES de saber que o editor subiu

@@ -1,7 +1,7 @@
 # Imagem na publicação do Mural — desenho do recurso
 
 **Data:** 2026-10-31
-**Estado:** aprovado
+**Estado:** aprovado, implementado
 **Origem:** conversa de 2026-10-31, depois de publicar um aviso com imagem por endereço externo
 para ver como ficava
 

@@ -13,6 +13,7 @@ namespace Secco.Intranet.Web.Theming.Contracts;
 /// <param name="Href">Destino ao clicar no card, quando ele é navegável.</param>
 /// <param name="Texto">Corpo em texto simples.</param>
 /// <param name="Corpo">Corpo em HTML já sanitizado, quando o conteúdo é rico.</param>
+/// <param name="Imagem">Imagem do conteúdo; o tema a desenha depois do corpo, na largura do card.</param>
 public sealed record CardModel(
 	string Titulo,
 	string? Meta = null,
@@ -20,4 +21,10 @@ public sealed record CardModel(
 	string? SetorNome = null,
 	string? Href = null,
 	string? Texto = null,
-	IHtmlContent? Corpo = null);
+	IHtmlContent? Corpo = null,
+	CardImagemModel? Imagem = null);
+
+/// <summary>Imagem de um <see cref="CardModel"/>.</summary>
+/// <param name="Url">Endereço da imagem.</param>
+/// <param name="Descricao">Texto alternativo; vazio marca a imagem como decorativa.</param>
+public sealed record CardImagemModel(string Url, string? Descricao);

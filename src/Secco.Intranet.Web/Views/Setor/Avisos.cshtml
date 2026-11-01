@@ -15,6 +15,10 @@
             ? "Escreva o primeiro no formulário acima."
             : "Quando o setor publicar algum aviso, ele aparece aqui.");
 
+    var editando = Model.Form.Id != Guid.Empty;
+
+    string? urlDaImagem(Guid id) => Url.Action("Imagem", "Mural", new { id });
+
     BadgeModel Etiqueta(PublicacaoDto publicacao)
     {
         if (!publicacao.Ativo)
@@ -38,11 +42,11 @@
 @if (Model.PodePublicar)
 {
     <div class="sc-panel mb-3">
-        <h2 class="h6 mb-3">Publicar aviso</h2>
+        <h2 class="h6 mb-3">@(editando ? "Editar aviso" : "Publicar aviso")</h2>
 
         <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
 
-        <form method="post" asp-action="SalvarAviso" asp-route-slug="@Model.Setor.Slug">
+        <form method="post" enctype="multipart/form-data" asp-action="SalvarAviso" asp-route-slug="@Model.Setor.Slug">
             <input type="hidden" asp-for="Form.Id" />
 
             <div class="row g-3">
@@ -66,6 +70,38 @@
                     <textarea class="form-control" asp-for="Form.Corpo" rows="8" data-sc-editor-markdown></textarea>
                     <span class="text-danger" asp-validation-for="Form.Corpo"></span>
                 </div>
+
+                <div class="col-12">
+                    <label class="form-label" asp-for="Form.Imagem">Imagem</label>
+
+                    @if (editando && Model.Form.TemImagem)
+                    {
+                        <div class="mb-2">
+                            <img class="sc-list__miniatura" src="@urlDaImagem(Model.Form.Id)" alt="Imagem atual do aviso" />
+                        </div>
+                    }
+
+                    <input class="form-control" asp-for="Form.Imagem" type="file" accept="image/jpeg,image/png,image/webp" />
+                    <div class="form-text">PNG, JPG ou WebP, até 10 MB. Aparece no fim do aviso, na largura do card.</div>
+                    <span class="text-danger" asp-validation-for="Form.Imagem"></span>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label" asp-for="Form.ImagemDescricao">Descrição da imagem</label>
+                    <input class="form-control" asp-for="Form.ImagemDescricao" maxlength="300" autocomplete="off" />
+                    <div class="form-text">Para quem usa leitor de tela. Se a imagem é o aviso inteiro, escreva o que ela diz.</div>
+                    <span class="text-danger" asp-validation-for="Form.ImagemDescricao"></span>
+                </div>
+
+                @if (editando && Model.Form.TemImagem)
+                {
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" asp-for="Form.RemoverImagem" />
+                            <label class="form-check-label" asp-for="Form.RemoverImagem">Remover a imagem</label>
+                        </div>
+                    </div>
+                }
 
                 <div class="col-md-4">
                     <label class="form-label" asp-for="Form.Visibilidade">Quem pode ver</label>
@@ -110,6 +146,10 @@
 
             <div class="sc-form__actions">
                 <button class="btn btn-primary" type="submit">Salvar publicação</button>
+                @if (editando)
+                {
+                    <a class="btn btn-outline-secondary" href="@Model.Endereco">Cancelar</a>
+                }
             </div>
         </form>
     </div>
@@ -127,7 +167,14 @@ else
             var etiqueta = Etiqueta(publicacao);
 
             <li class="sc-list__item" style="--sc-setor-hue:@SetorHue.From(publicacao.SetorSlug)">
-                <span class="sc-list__icon" aria-hidden="true"><i class="bi bi-megaphone"></i></span>
+                @if (publicacao.TemImagem)
+                {
+                    <img class="sc-list__miniatura" src="@urlDaImagem(publicacao.Id)" alt="" loading="lazy" />
+                }
+                else
+                {
+                    <span class="sc-list__icon" aria-hidden="true"><i class="bi bi-megaphone"></i></span>
+                }
                 <div class="sc-list__text">
                     <p class="sc-list__title">@publicacao.Titulo</p>
                     <span class="sc-list__sub">
@@ -137,7 +184,14 @@ else
                 </div>
                 @if (Model.PodePublicar && publicacao.Ativo)
                 {
-                    <div class="sc-list__actions">
+                    <div class="sc-list__actions d-flex gap-1">
+                        <a class="btn btn-outline-secondary btn-sm"
+                           href="@Model.Endereco?editar=@publicacao.Id"
+                           title="Editar @publicacao.Titulo">
+                            <i class="bi bi-pencil" aria-hidden="true"></i>
+                            Editar
+                            <span class="visually-hidden">@publicacao.Titulo</span>
+                        </a>
                         <form method="post" asp-action="ArquivarAviso"
                               asp-route-slug="@Model.Setor.Slug" asp-route-id="@publicacao.Id">
                             <button class="btn btn-outline-secondary btn-sm" type="submit"

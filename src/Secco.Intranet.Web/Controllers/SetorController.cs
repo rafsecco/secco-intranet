@@ -98,7 +98,7 @@ public sealed class SetorController(
 				await MontarDocumentosAsync(setor.Value, resolvido.Value, new DocumentoFormViewModel(), cancellationToken).ConfigureAwait(false)),
 			TipoDeItemMenu.Avisos => View(
 				"Avisos",
-				await MontarAvisosAsync(setor.Value, resolvido.Value, new PublicacaoFormViewModel(), cancellationToken).ConfigureAwait(false)),
+				await MontarAvisosAsync(setor.Value, resolvido.Value, new PublicacaoFormViewModel(), cancellationToken, EditarSolicitado()).ConfigureAwait(false)),
 			TipoDeItemMenu.Vencimentos => View(
 				"Vencimentos",
 				await MontarVencimentosAsync(setor.Value, resolvido.Value, cancellationToken).ConfigureAwait(false)),
@@ -347,8 +347,14 @@ public sealed class SetorController(
 
 		if (!ModelState.IsValid)
 		{
+			PedirAImagemDeNovo(form);
+
 			return View("Avisos", await MontarAvisosAsync(setor, resolucao, form, cancellationToken).ConfigureAwait(false));
 		}
+
+		// O navegador manda um arquivo vazio quando nada foi escolhido: isso é "sem imagem".
+		await using var arquivo = form.Imagem is { Length: > 0 } ? form.Imagem.OpenReadStream() : null;
+		var imagem = arquivo is null ? null : new ImagemEnviada(arquivo);
 
 		var exigirVinculo = !AcessoAdministrativo.ModoAbertoDeDev(environment, configuration);
 		var publicadoEm = new DateTimeOffset(form.PublicadoEm, DateTimeOffset.Now.Offset);
@@ -366,7 +372,7 @@ public sealed class SetorController(
 			var publicado = await publicarPublicacaoHandler.HandleAsync(
 				new PublicarPublicacaoCommand(slug, form.Titulo, form.Corpo, form.Tipo, form.Visibilidade,
 					form.Prioridade, publicadoEm, expiraEm, User.Identity?.Name ?? "desconhecido",
-					IdDoUsuarioAtual()),
+					IdDoUsuarioAtual(), imagem, form.ImagemDescricao),
 				cancellationToken).ConfigureAwait(false);
 
 			if (publicado.IsFailure)
@@ -384,7 +390,7 @@ public sealed class SetorController(
 				new EditarPublicacaoCommand(
 					form.Id, await SlugsComEscritaAsync(cancellationToken).ConfigureAwait(false), exigirVinculo,
 					form.Titulo, form.Corpo, form.Tipo, form.Visibilidade, form.Prioridade,
-					publicadoEm, expiraEm),
+					publicadoEm, expiraEm, imagem, form.ImagemDescricao, form.RemoverImagem),
 				cancellationToken).ConfigureAwait(false);
 
 			if (editado.IsFailure)
@@ -472,6 +478,7 @@ public sealed class SetorController(
 		CancellationToken cancellationToken)
 	{
 		ModelState.AddModelError(string.Empty, mensagem);
+		PedirAImagemDeNovo(form);
 
 		return View("Avisos", await MontarAvisosAsync(setor, resolucao, form, cancellationToken).ConfigureAwait(false));
 	}
@@ -532,21 +539,67 @@ public sealed class SetorController(
 			form);
 	}
 
+	/// <summary>
+	/// O navegador não reenvia o arquivo quando o formulário volta com erro: se havia um escolhido,
+	/// avisa para escolher de novo, além do erro que já está no <c>ModelState</c>.
+	/// </summary>
+	private void PedirAImagemDeNovo(PublicacaoFormViewModel form)
+	{
+		if (form.Imagem is { Length: > 0 })
+		{
+			ModelState.AddModelError(string.Empty, "Escolha a imagem de novo.");
+		}
+	}
+
+	/// <summary>Identificador pedido em <c>?editar=</c>, quando válido.</summary>
+	private Guid? EditarSolicitado() =>
+		Guid.TryParse(Request.Query["editar"], out var id) && id != Guid.Empty ? id : null;
+
 	private async Task<SetorAvisosViewModel> MontarAvisosAsync(
-		SetorDto setor, ResultadoDaResolucao resolucao, PublicacaoFormViewModel form, CancellationToken cancellationToken)
+		SetorDto setor, ResultadoDaResolucao resolucao, PublicacaoFormViewModel form, CancellationToken cancellationToken,
+		Guid? editar = null)
 	{
 		var publicacoes = await listarPublicacoesDoSetorHandler
 			.HandleAsync(setor.Slug, cancellationToken)
 			.ConfigureAwait(false);
 
+		var lista = publicacoes.IsSuccess ? publicacoes.Value : [];
+		var podePublicar = await PodePublicarAsync(setor.Slug, cancellationToken).ConfigureAwait(false);
+
+		// Só a lista do próprio setor é consultada: id de outro setor ou inexistente cai no form vazio.
+		if (editar is not null && podePublicar)
+		{
+			var alvo = lista.FirstOrDefault(p => p.Id == editar && p.Ativo);
+
+			if (alvo is not null)
+			{
+				form = new PublicacaoFormViewModel
+				{
+					Id = alvo.Id,
+					Titulo = alvo.Titulo,
+					Corpo = alvo.Corpo,
+					Tipo = alvo.Tipo,
+					Visibilidade = alvo.Visibilidade,
+					Prioridade = alvo.Prioridade,
+					PublicadoEm = alvo.PublicadoEm.ToLocalTime().DateTime,
+					ExpiraEm = alvo.ExpiraEm?.ToLocalTime().DateTime,
+					ImagemDescricao = alvo.ImagemDescricao,
+				};
+			}
+		}
+
+		// Recalculado do que está guardado, nunca do que veio no formulário.
+		form.TemImagem = form.Id != Guid.Empty && lista.Any(p => p.Id == form.Id && p.TemImagem);
+
 		return new SetorAvisosViewModel(
 			setor,
-			publicacoes.IsSuccess ? publicacoes.Value : [],
-			await PodePublicarAsync(setor.Slug, cancellationToken).ConfigureAwait(false),
+			lista,
+			podePublicar,
 			form,
 			DateTimeOffset.UtcNow,
 			resolucao.No.Nome,
-			Trilho(setor, resolucao));
+			Trilho(setor, resolucao),
+			Url.Action(nameof(Resolver), new { slug = setor.Slug, caminho = string.Join('/', resolucao.CaminhoCompleto) })!);
 	}
 
 	private Task<bool> PodeLerAsync(string slug, CancellationToken cancellationToken) =>

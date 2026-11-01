@@ -123,4 +123,75 @@ public class PublicacaoFluxoTests(IntranetWebFactory factory) : IClassFixture<In
 		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
 		(await client.GetStringAsync("/")).Should().NotContain(titulo);
 	}
+
+	[Fact]
+	public async Task Publicar_SoTitulo_Aceita()
+	{
+		var client = CriarCliente();
+		var slug = $"avisos-{Guid.NewGuid():N}"[..20];
+		var titulo = $"So titulo {Guid.NewGuid():N}"[..24];
+		await CriarSetorAsync(client, slug);
+		var token = await TokenAsync(client, $"/{slug}/avisos");
+
+		var resposta = await client.PostAsync($"/{slug}/avisos", new FormUrlEncodedContent(
+		[
+			new KeyValuePair<string, string>("Form.Titulo", titulo),
+			new KeyValuePair<string, string>("Form.Tipo", "0"),
+			new KeyValuePair<string, string>("Form.Visibilidade", "1"),
+			new KeyValuePair<string, string>("Form.Prioridade", "0"),
+			new KeyValuePair<string, string>("Form.PublicadoEm", DateTime.Now.AddMinutes(-5).ToString("yyyy-MM-ddTHH:mm")),
+			new KeyValuePair<string, string>("__RequestVerificationToken", token),
+		]));
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+		(await client.GetStringAsync("/")).Should().Contain(titulo);
+	}
+
+	[Fact]
+	public async Task Publicar_SemTitulo_Recusa()
+	{
+		var client = CriarCliente();
+		var slug = $"avisos-{Guid.NewGuid():N}"[..20];
+		var corpo = $"Sem titulo {Guid.NewGuid():N}";
+		await CriarSetorAsync(client, slug);
+		var token = await TokenAsync(client, $"/{slug}/avisos");
+
+		var resposta = await client.PostAsync($"/{slug}/avisos", new FormUrlEncodedContent(
+		[
+			new KeyValuePair<string, string>("Form.Corpo", corpo),
+			new KeyValuePair<string, string>("Form.Tipo", "0"),
+			new KeyValuePair<string, string>("Form.Visibilidade", "1"),
+			new KeyValuePair<string, string>("Form.Prioridade", "0"),
+			new KeyValuePair<string, string>("Form.PublicadoEm", DateTime.Now.AddMinutes(-5).ToString("yyyy-MM-ddTHH:mm")),
+			new KeyValuePair<string, string>("__RequestVerificationToken", token),
+		]));
+
+		WebUtility.HtmlDecode(await resposta.Content.ReadAsStringAsync()).Should().Contain("O título é obrigatório.");
+		(await client.GetStringAsync("/")).Should().NotContain(corpo);
+	}
+
+	[Fact]
+	public async Task Mural_AvisoSemTexto_NaoDesenhaCorpoVazio()
+	{
+		var client = CriarCliente();
+		var slug = $"avisos-{Guid.NewGuid():N}"[..20];
+		var titulo = $"Sem texto {Guid.NewGuid():N}"[..24];
+		await CriarSetorAsync(client, slug);
+		var token = await TokenAsync(client, $"/{slug}/avisos");
+
+		await client.PostAsync($"/{slug}/avisos", new FormUrlEncodedContent(
+		[
+			new KeyValuePair<string, string>("Form.Titulo", titulo),
+			new KeyValuePair<string, string>("Form.Tipo", "0"),
+			new KeyValuePair<string, string>("Form.Visibilidade", "1"),
+			new KeyValuePair<string, string>("Form.Prioridade", "0"),
+			new KeyValuePair<string, string>("Form.PublicadoEm", DateTime.Now.AddMinutes(-5).ToString("yyyy-MM-ddTHH:mm")),
+			new KeyValuePair<string, string>("__RequestVerificationToken", token),
+		]));
+
+		var mural = await client.GetStringAsync("/");
+
+		mural.Should().Contain(titulo);
+		mural.Should().NotContain("<div class=\"sc-card__body\"></div>");
+	}
 }

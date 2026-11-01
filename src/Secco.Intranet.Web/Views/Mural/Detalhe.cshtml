@@ -36,7 +36,15 @@
 <article class="@classes" style="--sc-setor-hue:@SetorHue.From(publicacao.SetorSlug)">
     <partial name="_Badge" model="badgeDoSetor" />
 
-    <div class="sc-card__body mt-2">@publicacao.Corpo</div>
+    @if (publicacao.Corpo is not null)
+    {
+        <div class="sc-card__body mt-2">@publicacao.Corpo</div>
+    }
+
+    @if (publicacao.ImagemUrl is not null)
+    {
+        <img class="sc-card__imagem" src="@publicacao.ImagemUrl" alt="@(publicacao.ImagemDescricao ?? "")" loading="lazy" />
+    }
 </article>
 
 @if (Model.Entrega is not null)

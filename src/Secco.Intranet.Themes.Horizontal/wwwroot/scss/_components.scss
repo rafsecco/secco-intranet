@@ -713,6 +713,27 @@ html.sc-js .sc-nav__sub.is-open {
   }
 }
 
+// Imagem do aviso: depois do corpo, na largura do card, sem distorcer.
+.sc-card__imagem {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-top: .75rem;
+  border-radius: var(--bs-border-radius);
+}
+
+// Miniatura da imagem na lista de avisos do setor.
+.sc-list__miniatura {
+  display: block;
+  flex: 0 0 auto;
+  max-width: 72px;
+  max-height: 48px;
+  width: auto;
+  height: auto;
+  border-radius: .375rem;
+  object-fit: cover;
+}
+
 // Legenda da sintaxe de markdown, ao lado do editor.
 .sc-legenda {
   position: relative;

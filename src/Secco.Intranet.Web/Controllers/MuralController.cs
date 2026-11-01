@@ -100,15 +100,7 @@ public sealed class MuralController(
 		var pagina = resultado.Value;
 
 		var itens = pagina.Items
-			.Select(publicacao => new PublicacaoViewModel(
-				publicacao.Id,
-				publicacao.Titulo,
-				renderizador.Renderizar(publicacao.Corpo),
-				publicacao.Tipo,
-				publicacao.Prioridade,
-				publicacao.PublicadoEm,
-				publicacao.SetorNome,
-				publicacao.SetorSlug))
+			.Select(publicacao => ParaViewModel(publicacao))
 			.ToList();
 
 		return View(new MuralViewModel(
@@ -158,17 +150,23 @@ public sealed class MuralController(
 			: null;
 
 		return View(new PublicacaoDetalheViewModel(
-			new PublicacaoViewModel(
-				publicacao.Id,
-				publicacao.Titulo,
-				renderizador.Renderizar(publicacao.Corpo),
-				publicacao.Tipo,
-				publicacao.Prioridade,
-				publicacao.PublicadoEm,
-				publicacao.SetorNome,
-				publicacao.SetorSlug),
+			ParaViewModel(publicacao),
 			entrega));
 	}
+
+	// Corpo vazio vira nulo: o card não desenha um bloco de texto sem texto.
+	private PublicacaoViewModel ParaViewModel(PublicacaoDto publicacao) =>
+		new(
+			publicacao.Id,
+			publicacao.Titulo,
+			string.IsNullOrWhiteSpace(publicacao.Corpo) ? null : renderizador.Renderizar(publicacao.Corpo),
+			publicacao.Tipo,
+			publicacao.Prioridade,
+			publicacao.PublicadoEm,
+			publicacao.SetorNome,
+			publicacao.SetorSlug,
+			publicacao.TemImagem ? Url.Action(nameof(Imagem), "Mural", new { id = publicacao.Id }) : null,
+			publicacao.ImagemDescricao);
 
 	/// <summary>
 	/// Entrega a imagem da publicação decifrada. <c>no-cache</c> + <c>ETag</c>: o navegador sempre

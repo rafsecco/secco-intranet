@@ -67,6 +67,12 @@ Cada arquivo acima recebe um modelo de `Secco.Intranet.Web.Theming.Contracts`:
 | `Components/Notificacoes/Default.cshtml` | `NotificacoesModel` | Sino de notificações da barra superior |
 | `Components/Feedback/Default.cshtml` | `ToastModel` | Confirmação da ação que acabou de acontecer |
 
+O `CardModel` tem um campo `Imagem` (`CardImagemModel(Url, Descricao)`): o tema desenha
+`<img class="sc-card__imagem" src alt loading="lazy">` **depois** do corpo, na largura do card, e
+`alt` é a descrição ou `""` quando ela falta. O tema também estiliza `.sc-card__imagem` e a
+miniatura `.sc-list__miniatura` da lista de avisos do setor. Um card sem corpo e sem imagem
+continua válido: o tema não desenha bloco de texto vazio.
+
 O `Feedback` é invocado **uma vez pelo `_Layout`**, e não pelas views de página: o controller
 deixa a mensagem no `TempData` antes do redirect e o tema decide como ela aparece. Duas
 consequências para quem escreve um tema: o componente não renderiza nada quando não há

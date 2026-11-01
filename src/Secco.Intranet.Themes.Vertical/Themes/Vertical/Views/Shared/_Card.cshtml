@@ -45,4 +45,9 @@
     {
         <div class="sc-card__body">@Model.Texto</div>
     }
+
+    @if (Model.Imagem is not null)
+    {
+        <img class="sc-card__imagem" src="@Model.Imagem.Url" alt="@(Model.Imagem.Descricao ?? "")" loading="lazy" />
+    }
 </article>

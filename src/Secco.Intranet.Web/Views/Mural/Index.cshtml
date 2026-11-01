@@ -70,7 +70,10 @@ else
                 Meta: $"{Rotulo(publicacao.Tipo)} · {publicacao.PublicadoEm.ToLocalTime():dd/MM/yyyy}",
                 SetorSlug: publicacao.SetorSlug,
                 SetorNome: publicacao.SetorNome,
-                Corpo: publicacao.Corpo);
+                Corpo: publicacao.Corpo,
+                Imagem: publicacao.ImagemUrl is null
+                    ? null
+                    : new CardImagemModel(publicacao.ImagemUrl, publicacao.ImagemDescricao));
 
             if (urgente)
             {
