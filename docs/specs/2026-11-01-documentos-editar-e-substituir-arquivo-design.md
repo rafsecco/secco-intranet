@@ -1,7 +1,7 @@
 # Editar documento e substituir arquivo — desenho do recurso
 
 **Data:** 2026-11-01
-**Estado:** proposta, aguardando aprovação
+**Estado:** aprovado, implementado (parte 2)
 **Origem:** issue #4 ("Bibliotecas de documentos"), parte 2 de 3. A parte 1 (hierarquia e ordem
 manual) está em [2026-10-31-documentos-hierarquia-e-ordem-design.md](2026-10-31-documentos-hierarquia-e-ordem-design.md);
 a parte 3 são as bibliotecas (dono sem setor), que reaproveitam o que esta parte entrega.

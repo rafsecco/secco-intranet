@@ -28,6 +28,8 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="listarHandler">Listagem de documentos do setor.</param>
 /// <param name="publicarDocumentoHandler">Publicação de documento.</param>
 /// <param name="arquivarHandler">Arquivamento de documento.</param>
+/// <param name="obterParaEdicaoHandler">Leitura dos dados de um documento para o formulário de edição.</param>
+/// <param name="editarHandler">Edição de documento e troca de arquivo.</param>
 /// <param name="criarGrupoHandler">Criação de grupo de documentos.</param>
 /// <param name="moverHandler">Movimento de documento na lista do setor.</param>
 /// <param name="publicarPublicacaoHandler">Publicação de aviso.</param>
@@ -47,6 +49,8 @@ public sealed class SetorController(
 	ListarDocumentosHandler listarHandler,
 	PublicarDocumentoHandler publicarDocumentoHandler,
 	ArquivarDocumentoHandler arquivarHandler,
+	ObterDocumentoParaEdicaoHandler obterParaEdicaoHandler,
+	EditarDocumentoHandler editarHandler,
 	CriarGrupoDeDocumentosHandler criarGrupoHandler,
 	MoverDocumentoHandler moverHandler,
 	PublicarPublicacaoHandler publicarPublicacaoHandler,
@@ -197,6 +201,139 @@ public sealed class SetorController(
 			"OrganizarDocumentos",
 			await MontarOrganizarAsync(alvo.Value.Setor, alvo.Value.Resolucao, new GrupoFormViewModel(), cancellationToken)
 				.ConfigureAwait(false));
+	}
+
+	/// <summary>Formulário de edição de um documento ou grupo do setor.</summary>
+	/// <param name="slug">Slug do setor.</param>
+	/// <param name="id">Identificador do documento.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpGet("documentos/{id:guid}/editar")]
+	public async Task<IActionResult> EditarDocumento(string slug, Guid id, CancellationToken cancellationToken = default)
+	{
+		var alvo = await ResolverEscritaAsync(slug, cancellationToken).ConfigureAwait(false);
+
+		if (alvo is null)
+		{
+			return NotFound();
+		}
+
+		var documento = await obterParaEdicaoHandler.HandleAsync(
+			new ObterDocumentoParaEdicaoQuery(
+				id,
+				slug,
+				await SlugsComEscritaAsync(cancellationToken).ConfigureAwait(false),
+				ExigirVinculo: !AcessoAdministrativo.ModoAbertoDeDev(environment, configuration)),
+			cancellationToken).ConfigureAwait(false);
+
+		if (documento.IsFailure)
+		{
+			return NotFound();
+		}
+
+		var dto = documento.Value;
+
+		return View(
+			"EditarDocumento",
+			MontarEdicao(
+				alvo.Value.Setor,
+				alvo.Value.Resolucao,
+				dto.Id,
+				dto.EhGrupo,
+				dto.NomeArquivo,
+				new EditarDocumentoFormViewModel
+				{
+					Titulo = dto.Titulo,
+					Descricao = dto.Descricao,
+					Visibilidade = dto.Visibilidade,
+				}));
+	}
+
+	/// <summary>Salva a edição de um documento ou grupo, trocando o arquivo quando um novo é enviado.</summary>
+	/// <param name="slug">Slug do setor.</param>
+	/// <param name="id">Identificador do documento.</param>
+	/// <param name="form">Dados do formulário.</param>
+	/// <param name="arquivo">Arquivo novo; vazio ou ausente mantém o atual.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost("documentos/{id:guid}/editar")]
+	[ValidateAntiForgeryToken]
+	[RequestSizeLimit(64L * 1024 * 1024)]
+	public async Task<IActionResult> EditarDocumento(
+		string slug,
+		Guid id,
+		EditarDocumentoFormViewModel form,
+		IFormFile? arquivo,
+		CancellationToken cancellationToken = default)
+	{
+		ArgumentNullException.ThrowIfNull(form);
+
+		if (!await PodePublicarAsync(slug, cancellationToken).ConfigureAwait(false))
+		{
+			return NotFound();
+		}
+
+		var alvo = await ResolverTipoAsync(slug, TipoDeItemMenu.Documentos, cancellationToken).ConfigureAwait(false);
+
+		if (alvo is null)
+		{
+			return NotFound();
+		}
+
+		var administrados = await SlugsComEscritaAsync(cancellationToken).ConfigureAwait(false);
+		var exigirVinculo = !AcessoAdministrativo.ModoAbertoDeDev(environment, configuration);
+
+		// O formulário precisa do nome do arquivo atual e de saber se é grupo, que não vêm do POST.
+		var atual = await obterParaEdicaoHandler.HandleAsync(
+			new ObterDocumentoParaEdicaoQuery(id, slug, administrados, exigirVinculo),
+			cancellationToken).ConfigureAwait(false);
+
+		if (atual.IsFailure)
+		{
+			return NotFound();
+		}
+
+		var (setor, resolucao) = alvo.Value;
+
+		IActionResult ComErro() => View(
+			"EditarDocumento",
+			MontarEdicao(setor, resolucao, id, atual.Value.EhGrupo, atual.Value.NomeArquivo, form));
+
+		if (!ModelState.IsValid)
+		{
+			return ComErro();
+		}
+
+		var enviado = arquivo is { Length: > 0 };
+		await using var conteudo = enviado ? arquivo!.OpenReadStream() : null;
+
+		var resultado = await editarHandler.HandleAsync(
+			new EditarDocumentoCommand(
+				id,
+				slug,
+				form.Titulo,
+				form.Descricao,
+				form.Visibilidade,
+				enviado ? arquivo!.FileName : null,
+				enviado ? arquivo!.Length : 0,
+				conteudo,
+				administrados,
+				exigirVinculo),
+			cancellationToken).ConfigureAwait(false);
+
+		if (resultado.IsFailure)
+		{
+			if (resultado.Error == IntranetErrors.Documentos.NotFound)
+			{
+				return NotFound();
+			}
+
+			ModelState.AddModelError(string.Empty, resultado.Error.Description);
+
+			return ComErro();
+		}
+
+		TempData[FeedbackViewComponent.ChaveDaMensagem] = "Documento atualizado.";
+
+		return RedirectToAction(nameof(Organizar), new { slug });
 	}
 
 	/// <summary>Muda um documento de lugar: sobe, desce, recua ou volta para a raiz.</summary>
@@ -520,6 +657,11 @@ public sealed class SetorController(
 		await PodePublicarAsync(slug, cancellationToken).ConfigureAwait(false)
 			? await ResolverTipoAsync(slug, TipoDeItemMenu.Documentos, cancellationToken).ConfigureAwait(false)
 			: null;
+
+	private EditarDocumentoViewModel MontarEdicao(
+		SetorDto setor, ResultadoDaResolucao resolucao, Guid id, bool ehGrupo, string? nomeArquivo,
+		EditarDocumentoFormViewModel form) =>
+		new(setor, id, ehGrupo, nomeArquivo, form, Url.Action(nameof(Organizar), new { slug = setor.Slug })!);
 
 	private async Task<OrganizarDocumentosViewModel> MontarOrganizarAsync(
 		SetorDto setor, ResultadoDaResolucao resolucao, GrupoFormViewModel form, CancellationToken cancellationToken)

@@ -36,6 +36,7 @@
                             @botao(linha.Id, MovimentoDeDocumento.Descer, "Descer", "↓", linha.Titulo, linha.PodeDescer)(null)
                             @botao(linha.Id, MovimentoDeDocumento.Recuar, "Recuar", "→", linha.Titulo, linha.PodeRecuar)(null)
                             @botao(linha.Id, MovimentoDeDocumento.Desrecuar, "Desrecuar", "←", linha.Titulo, linha.PodeDesrecuar)(null)
+                            <a class="btn btn-sm btn-outline-secondary" asp-action="EditarDocumento" asp-route-slug="@Model.Setor.Slug" asp-route-id="@linha.Id" aria-label="Editar @linha.Titulo">Editar</a>
                             <form method="post" asp-action="Arquivar" asp-route-slug="@Model.Setor.Slug" asp-route-id="@linha.Id" class="d-inline"
                                   data-confirmar="Arquivar &quot;@linha.Titulo&quot;? O documento sai da lista, mas o registro e o arquivo são preservados.">
                                 <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Arquivar @linha.Titulo" disabled="@(!linha.PodeArquivar)">Arquivar</button>

@@ -183,7 +183,9 @@ processos (maior risco técnico) só entra com a base já sólida.
       outro (um nível), tela de organizar (subir, descer, recuar, desrecuar) e parcial de tema
       `_ListaDeDocumentos` — [spec](specs/2026-10-31-documentos-hierarquia-e-ordem-design.md), plano em
       [plans/2026-10-31-documentos-hierarquia-e-ordem.md](plans/2026-10-31-documentos-hierarquia-e-ordem.md).
-      Issue #4, parte 1 de 3 (faltam substituir arquivo com histórico e as bibliotecas sem setor)
+      Issue #4, parte 1 de 3; a parte 2, editar documento e substituir arquivo, entrou em 2026-11-01
+      sem histórico de versões ([spec](specs/2026-11-01-documentos-editar-e-substituir-arquivo-design.md));
+      falta a parte 3, as bibliotecas sem setor
 - [x] Imagem na publicação do Mural: uma imagem opcional por aviso, enviada do computador,
       processada pelo `Secco.SDK.Imaging` 0.2.0 com `ImageCrop.Whole` (inteira, sem recorte,
       [secco-platform#52](https://github.com/rafsecco/secco-platform/issues/52)) e servida em
