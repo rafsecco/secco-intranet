@@ -34,12 +34,7 @@ internal static class ValidacaoDePublicacao
 			return IntranetErrors.Publicacoes.TituloTooLong(limiteDoTitulo);
 		}
 
-		if (string.IsNullOrWhiteSpace(corpo))
-		{
-			return IntranetErrors.Publicacoes.CorpoRequired;
-		}
-
-		if (corpo.Length > LimiteDoCorpo)
+		if (corpo is not null && corpo.Length > LimiteDoCorpo)
 		{
 			return IntranetErrors.Publicacoes.CorpoTooLong;
 		}

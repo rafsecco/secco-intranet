@@ -82,7 +82,9 @@ internal sealed class PublicacaoRepository(IntranetDbContext context) : IPublica
 				par.Setor.Id,
 				par.Setor.Nome,
 				par.Setor.Slug,
-				par.Publicacao.CriadoPor))
+				par.Publicacao.CriadoPor,
+				par.Publicacao.ImagemCaminhoRelativo != null,
+				par.Publicacao.ImagemDescricao))
 			.ToListAsync(cancellationToken)
 			.ConfigureAwait(false);
 
@@ -113,7 +115,9 @@ internal sealed class PublicacaoRepository(IntranetDbContext context) : IPublica
 				par.Setor.Id,
 				par.Setor.Nome,
 				par.Setor.Slug,
-				par.Publicacao.CriadoPor))
+				par.Publicacao.CriadoPor,
+				par.Publicacao.ImagemCaminhoRelativo != null,
+				par.Publicacao.ImagemDescricao))
 			.ToListAsync(cancellationToken)
 			.ConfigureAwait(false);
 }

@@ -123,13 +123,25 @@ public static class IntranetErrors
 		public static Error TituloTooLong(int limit) =>
 			Error.Validation("Intranet.Publicacao.TituloTooLong", $"O título excede o limite de {limit} caracteres.");
 
-		/// <summary>Corpo ausente ou vazio.</summary>
-		public static readonly Error CorpoRequired =
-			Error.Validation("Intranet.Publicacao.CorpoRequired", "O corpo é obrigatório.");
-
 		/// <summary>Corpo acima do limite da coluna.</summary>
 		public static readonly Error CorpoTooLong =
 			Error.Validation("Intranet.Publicacao.CorpoTooLong", "O corpo excede o limite de 4000 caracteres.");
+
+		/// <summary>Imagem acima do limite de tamanho.</summary>
+		public static readonly Error ImagemGrandeDemais =
+			Error.Validation("Intranet.Publicacao.ImagemGrandeDemais", "A imagem passa de 10 MB.");
+
+		/// <summary>Imagem em formato que o processamento não aceita.</summary>
+		public static readonly Error ImagemFormatoNaoSuportado =
+			Error.Validation("Intranet.Publicacao.ImagemFormatoNaoSuportado", "Envie a imagem em PNG, JPG ou WebP.");
+
+		/// <summary>Imagem que não pôde ser decodificada.</summary>
+		public static readonly Error ImagemInvalida =
+			Error.Validation("Intranet.Publicacao.ImagemInvalida", "Não foi possível ler esta imagem.");
+
+		/// <summary>Descrição da imagem acima do limite.</summary>
+		public static readonly Error ImagemDescricaoTooLong =
+			Error.Validation("Intranet.Publicacao.ImagemDescricaoTooLong", "A descrição da imagem passa de 300 caracteres.");
 
 		/// <summary>Expiração anterior ou igual à entrada no ar.</summary>
 		public static readonly Error ExpiracaoInvalida =

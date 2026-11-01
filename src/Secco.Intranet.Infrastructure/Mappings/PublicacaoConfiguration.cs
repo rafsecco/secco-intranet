@@ -28,6 +28,10 @@ internal sealed class PublicacaoConfiguration : IEntityTypeConfiguration<Publica
 		builder.Property(publicacao => publicacao.Corpo).HasMaxLength(4_000);
 		builder.Property(publicacao => publicacao.CriadoPor).HasMaxLength(256);
 
+		builder.Property(publicacao => publicacao.ImagemCaminhoRelativo).HasMaxLength(256);
+		builder.Property(publicacao => publicacao.ImagemChaveEmbrulhada).HasMaxLength(256);
+		builder.Property(publicacao => publicacao.ImagemDescricao).HasMaxLength(Publicacao.LimiteDaDescricaoDaImagem);
+
 		builder.HasIndex(publicacao => publicacao.SetorId);
 
 		// A consulta do mural filtra por ativo e ordena por data de publicação.

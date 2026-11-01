@@ -32,12 +32,81 @@ public class PublicacaoTests
 		criar.Should().Throw<DomainInvariantException>();
 	}
 
-	[Fact]
-	public void Construtor_SemCorpo_Recusa()
+	[Theory]
+	[InlineData("")]
+	[InlineData("   ")]
+	public void Criar_SemCorpo_Aceita(string corpo)
 	{
-		var criar = () => Criar(corpo: "   ");
+		var publicacao = Criar(corpo: corpo);
+
+		publicacao.Corpo.Should().BeEmpty();
+	}
+
+	[Fact]
+	public void Criar_SemTitulo_ContinuaRecusando()
+	{
+		var criar = () => Criar(titulo: "  ");
 
 		criar.Should().Throw<DomainInvariantException>();
+	}
+
+	[Fact]
+	public void DefinirImagem_GuardaEDevolveOAnterior()
+	{
+		var publicacao = Criar();
+
+		publicacao.DefinirImagem("mural/imagens/a.bin", "chave-a", "Cartaz").Should().BeNull();
+		publicacao.DefinirImagem("mural/imagens/b.bin", "chave-b", null).Should().Be("mural/imagens/a.bin");
+
+		publicacao.TemImagem.Should().BeTrue();
+		publicacao.ImagemCaminhoRelativo.Should().Be("mural/imagens/b.bin");
+		publicacao.ImagemChaveEmbrulhada.Should().Be("chave-b");
+		publicacao.ImagemDescricao.Should().BeNull();
+	}
+
+	[Fact]
+	public void RemoverImagem_LimpaOsTresCampos()
+	{
+		var publicacao = Criar();
+		publicacao.DefinirImagem("mural/imagens/a.bin", "chave-a", "Cartaz");
+
+		publicacao.RemoverImagem().Should().Be("mural/imagens/a.bin");
+
+		publicacao.TemImagem.Should().BeFalse();
+		publicacao.ImagemCaminhoRelativo.Should().BeNull();
+		publicacao.ImagemChaveEmbrulhada.Should().BeNull();
+		publicacao.ImagemDescricao.Should().BeNull();
+	}
+
+	[Fact]
+	public void DefinirImagem_DescricaoAcimaDe300_Recusa()
+	{
+		var publicacao = Criar();
+
+		var definir = () => publicacao.DefinirImagem("c", "k", new string('x', 301));
+
+		definir.Should().Throw<DomainInvariantException>();
+	}
+
+	[Fact]
+	public void DescreverImagem_SemImagem_Recusa()
+	{
+		var publicacao = Criar();
+
+		var descrever = () => publicacao.DescreverImagem("texto");
+
+		descrever.Should().Throw<DomainInvariantException>();
+	}
+
+	[Fact]
+	public void DescreverImagem_EmBranco_ViraNula()
+	{
+		var publicacao = Criar();
+		publicacao.DefinirImagem("c", "k", "antes");
+
+		publicacao.DescreverImagem("   ");
+
+		publicacao.ImagemDescricao.Should().BeNull();
 	}
 
 	[Fact]

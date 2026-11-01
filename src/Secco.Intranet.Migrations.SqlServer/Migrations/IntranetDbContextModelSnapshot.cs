@@ -379,6 +379,21 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
                         .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_expira_em");
 
+                    b.Property<string>("ImagemCaminhoRelativo")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("ds_imagem_caminho_relativo");
+
+                    b.Property<string>("ImagemChaveEmbrulhada")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("ds_imagem_chave_embrulhada");
+
+                    b.Property<string>("ImagemDescricao")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)")
+                        .HasColumnName("ds_imagem_descricao");
+
                     b.Property<int>("Prioridade")
                         .HasColumnType("int")
                         .HasColumnName("ie_prioridade");

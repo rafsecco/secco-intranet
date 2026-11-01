@@ -20,6 +20,8 @@ namespace Secco.Intranet.Application.Publicacoes;
 /// <param name="SetorNome">Nome do setor dono.</param>
 /// <param name="SetorSlug">Slug do setor dono.</param>
 /// <param name="CriadoPor">Quem publicou.</param>
+/// <param name="TemImagem">Se a publicação tem imagem.</param>
+/// <param name="ImagemDescricao">Descrição da imagem para leitor de tela, quando informada.</param>
 public sealed record PublicacaoDto(
 	Guid Id,
 	string Titulo,
@@ -33,7 +35,9 @@ public sealed record PublicacaoDto(
 	Guid SetorId,
 	string SetorNome,
 	string SetorSlug,
-	string CriadoPor)
+	string CriadoPor,
+	bool TemImagem,
+	string? ImagemDescricao)
 {
 	/// <summary>Se está no ar no instante informado — mesma regra do agregado.</summary>
 	/// <param name="agora">Instante de referência.</param>

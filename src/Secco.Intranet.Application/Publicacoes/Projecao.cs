@@ -18,5 +18,7 @@ internal static class Projecao
 			encontrada.Publicacao.SetorId,
 			encontrada.SetorNome,
 			encontrada.SetorSlug,
-			encontrada.Publicacao.CriadoPor);
+			encontrada.Publicacao.CriadoPor,
+			encontrada.Publicacao.TemImagem,
+			encontrada.Publicacao.ImagemDescricao);
 }
