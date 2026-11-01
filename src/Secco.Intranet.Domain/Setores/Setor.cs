@@ -1,5 +1,4 @@
-﻿using System.Text.RegularExpressions;
-using Secco.SharedKernel.Entities;
+﻿using Secco.SharedKernel.Entities;
 using Secco.SharedKernel.Exceptions;
 
 namespace Secco.Intranet.Domain.Setores;
@@ -60,34 +59,17 @@ public sealed class Setor : BaseEntity
 	public const string IconePadrao = "bi-diagram-3";
 
 	/// <summary>
-	/// Só o formato do Bootstrap Icons entra. A validação existe porque o valor vai direto
-	/// para o atributo <c>class</c> do item de menu: sem ela, qualquer texto viraria classe
-	/// CSS arbitrária, e um <c>d-none</c> digitado por engano sumiria com o próprio item.
-	/// </summary>
-	private static readonly Regex FormatoDoIcone = new("^bi-[a-z0-9-]+$", RegexOptions.Compiled);
-
-	/// <summary>
 	/// Indica se o ícone informado é aceitável. Existe para a camada de aplicação decidir sem
 	/// provocar exceção — entrada de usuário vira <c>Result</c> (ADR-0004).
 	/// </summary>
-	/// <param name="icone">Classe informada; vazio é válido e cai no padrão.</param>
-	public static bool IconeEhValido(string? icone) =>
-		string.IsNullOrWhiteSpace(icone) || FormatoDoIcone.IsMatch(icone.Trim().ToLowerInvariant());
+	/// <param name="icone">Ícone informado (ver <see cref="IconeBootstrap"/>); vazio é válido e cai no padrão.</param>
+	public static bool IconeEhValido(string? icone) => IconeBootstrap.TentarNormalizar(icone, out _);
 
-	private static string NormalizarIcone(string? icone)
-	{
-		if (string.IsNullOrWhiteSpace(icone))
-		{
-			return IconePadrao;
-		}
-
-		var normalizado = icone.Trim().ToLowerInvariant();
-
-		return FormatoDoIcone.IsMatch(normalizado)
-			? normalizado
+	private static string NormalizarIcone(string? icone) =>
+		IconeBootstrap.TentarNormalizar(icone, out var normalizado)
+			? normalizado ?? IconePadrao
 			: throw new DomainInvariantException(
 				"O ícone precisa ser uma classe do Bootstrap Icons, como 'bi-cash-coin'.");
-	}
 
 	/// <summary>Nome de exibição (coluna <c>ds_nome</c>).</summary>
 	public string Nome { get; private set; }

@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Secco.SharedKernel.Entities;
 using Secco.SharedKernel.Exceptions;
 
@@ -31,8 +30,6 @@ public enum TipoDeItemMenu
 /// </summary>
 public sealed class ItemMenu : BaseEntity
 {
-	private static readonly Regex FormatoDoIcone = new("^bi-[a-z0-9-]+$", RegexOptions.Compiled);
-
 	private ItemMenu()
 	{
 		// Construtor de rehidratação do EF Core
@@ -63,7 +60,7 @@ public sealed class ItemMenu : BaseEntity
 			throw new DomainInvariantException("Um item de menu exige slug não vazio.");
 		}
 
-		if (!IconeEhValido(icone))
+		if (!IconeBootstrap.TentarNormalizar(icone, out var iconeNormalizado))
 		{
 			throw new DomainInvariantException("O ícone precisa ser uma classe do Bootstrap Icons, como 'bi-cash-coin'.");
 		}
@@ -74,7 +71,7 @@ public sealed class ItemMenu : BaseEntity
 		Slug = slug.Trim().ToLowerInvariant();
 		Tipo = tipo;
 		Rota = string.IsNullOrWhiteSpace(rota) ? null : rota.Trim();
-		Icone = string.IsNullOrWhiteSpace(icone) ? null : icone.Trim().ToLowerInvariant();
+		Icone = iconeNormalizado;
 		Ordem = ordem;
 		Ativo = true;
 		CreatedAt = DateTimeOffset.UtcNow;
@@ -111,9 +108,8 @@ public sealed class ItemMenu : BaseEntity
 	public DateTimeOffset CreatedAt { get; private set; }
 
 	/// <summary>Indica se o ícone informado é aceitável — vazio é válido (sem ícone).</summary>
-	/// <param name="icone">Classe informada.</param>
-	public static bool IconeEhValido(string? icone) =>
-		string.IsNullOrWhiteSpace(icone) || FormatoDoIcone.IsMatch(icone.Trim().ToLowerInvariant());
+	/// <param name="icone">Ícone informado (ver <see cref="IconeBootstrap"/>).</param>
+	public static bool IconeEhValido(string? icone) => IconeBootstrap.TentarNormalizar(icone, out _);
 
 	/// <summary>Desativa o item — some da árvore, sem apagar.</summary>
 	public void Desativar() => Ativo = false;

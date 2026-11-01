@@ -100,7 +100,7 @@ public class EditarSetorHandlerTests
 		var repositorio = new RepositorioFalso(new Setor("Financeiro", "financeiro"));
 		var handler = new EditarSetorHandler(repositorio, new IntranetOptions(), new TrilhaFalsa());
 
-		var resultado = await handler.HandleAsync(Comando(icone: "d-none"));
+		var resultado = await handler.HandleAsync(Comando(icone: "d-none text-danger"));
 
 		resultado.IsFailure.Should().BeTrue();
 		resultado.Error.Should().Be(IntranetErrors.Setores.IconeInvalido);

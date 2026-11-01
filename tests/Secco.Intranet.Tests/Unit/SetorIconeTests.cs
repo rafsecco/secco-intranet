@@ -54,10 +54,31 @@ public class SetorIconeTests
 	}
 
 	[Theory]
-	[InlineData("d-none")]
-	[InlineData("cash-coin")]
-	[InlineData("bi bi-cash-coin")]
+	// O nome, a classe e o trecho <i> são as formas que o site do Bootstrap Icons mostra.
+	[InlineData("person-lines-fill")]
+	[InlineData("bi bi-person-lines-fill")]
+	[InlineData("<i class=\"bi bi-person-lines-fill\"></i>")]
+	[InlineData("  BI-Person-Lines-Fill ")]
+	public void IconeCopiadoDoSite_ENormalizado(string icone)
+	{
+		var setor = new Setor("Financeiro", "financeiro", icone: icone);
+
+		setor.Icone.Should().Be("bi-person-lines-fill");
+	}
+
+	[Fact]
+	public void ClasseUtilitaria_ViraIconeInexistente_NaoAClasse()
+	{
+		var setor = new Setor("Financeiro", "financeiro", icone: "d-none");
+
+		setor.Icone.Should().Be("bi-d-none", "com o prefixo ela deixa de ser a classe que esconde o item");
+	}
+
+	[Theory]
+	[InlineData("d-none text-danger")]
+	[InlineData("bi-a bi-b")]
 	[InlineData("bi-cash coin")]
+	[InlineData("bi--cash")]
 	[InlineData("bi-cash\"onload=x")]
 	public void IconeForaDoPadrao_Recusa(string icone)
 	{

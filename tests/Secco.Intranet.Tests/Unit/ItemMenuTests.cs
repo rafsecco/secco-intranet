@@ -47,9 +47,18 @@ public class ItemMenuTests
 	[Fact]
 	public void Criar_ComIconeInvalido_Recusa()
 	{
-		var acao = () => new ItemMenu(SetorId, null, "Nome", "slug", TipoDeItemMenu.Personalizado, null, "nao-e-bootstrap", 0);
+		var acao = () => new ItemMenu(SetorId, null, "Nome", "slug", TipoDeItemMenu.Personalizado, null, "bi-a bi-b", 0);
 
 		acao.Should().Throw<DomainInvariantException>();
+	}
+
+	[Fact]
+	public void Criar_IconeCopiadoDoSite_FicaNormalizado()
+	{
+		var item = new ItemMenu(
+			SetorId, null, "Nome", "slug", TipoDeItemMenu.Personalizado, null, "<i class=\"bi bi-person-lines-fill\"></i>", 0);
+
+		item.Icone.Should().Be("bi-person-lines-fill");
 	}
 
 	[Fact]

@@ -24,10 +24,7 @@ public sealed class SetorFormViewModel
 	/// Classe do Bootstrap Icons exibida no menu, como <c>bi-cash-coin</c>. Em branco usa o
 	/// ícone padrão.
 	/// </summary>
-	[StringLength(64)]
-	[RegularExpression(
-		"^bi-[a-z0-9-]+$",
-		ErrorMessage = "O ícone precisa ser uma classe do Bootstrap Icons, como 'bi-cash-coin'.")]
+	[StringLength(128)]
 	public string? Icone { get; set; }
 
 	/// <summary>Se o setor nasce como fixo do sistema (não pode ser desativado/excluído).</summary>
