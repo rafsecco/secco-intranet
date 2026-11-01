@@ -71,16 +71,21 @@ public class EnvelopeCipherTests
 		return false;
 	}
 
-	[Fact]
-	public void Embrulhar_SemChaveConfiguradaEmProduction_Falha()
+	// A chave embutida é pública (está no repositório): só Development pode usá-la. Um Staging ou
+	// Testing com dado real cifrado por ela estaria cifrado para qualquer um.
+	[Theory]
+	[InlineData("Production")]
+	[InlineData("Staging")]
+	[InlineData("Testing")]
+	public void Embrulhar_SemChaveConfiguradaForaDeDevelopment_Falha(string ambiente)
 	{
-		var criar = () => Criar(new ChaveMestraOptions(), ambiente: "Production");
+		var criar = () => Criar(new ChaveMestraOptions(), ambiente);
 
-		criar.Should().Throw<ChaveMestraException>("uma chave ausente em produção precisa impedir a aplicação de subir");
+		criar.Should().Throw<ChaveMestraException>("uma chave ausente fora de Development precisa impedir a aplicação de subir");
 	}
 
 	[Fact]
-	public void Embrulhar_SemChaveConfiguradaForaDeProduction_UsaChaveDeDesenvolvimento()
+	public void Embrulhar_SemChaveConfiguradaEmDevelopment_UsaChaveDeDesenvolvimento()
 	{
 		var cipher = Criar(new ChaveMestraOptions());
 

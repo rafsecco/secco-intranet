@@ -1,6 +1,9 @@
 using AwesomeAssertions;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Secco.Intranet.Web.Authentication;
 using Xunit;
 
 namespace Secco.Intranet.Tests.Integration;
@@ -23,6 +26,10 @@ public class StartupSecureGateTests(IntranetWebFactory factory) : IClassFixture<
 
 	public Task DisposeAsync() => Task.CompletedTask;
 
+	// A IntranetWebFactory tira a guarda de todo host de teste; aqui ela volta, porque é ela o alvo.
+	private static void DevolverAGuarda(IServiceCollection services) =>
+		services.AddHostedService<ValidacaoSecureGateHostedService>();
+
 	private static IEnumerable<string> Mensagens(Exception excecao)
 	{
 		for (var atual = excecao; atual is not null; atual = atual.InnerException)
@@ -37,6 +44,7 @@ public class StartupSecureGateTests(IntranetWebFactory factory) : IClassFixture<
 		using var producao = factory.WithWebHostBuilder(builder =>
 		{
 			builder.UseEnvironment("Production");
+			builder.ConfigureTestServices(DevolverAGuarda);
 			builder.ConfigureAppConfiguration((_, configuration) =>
 				configuration.AddInMemoryCollection(new Dictionary<string, string?>
 				{
@@ -60,6 +68,7 @@ public class StartupSecureGateTests(IntranetWebFactory factory) : IClassFixture<
 		using var producao = factory.WithWebHostBuilder(builder =>
 		{
 			builder.UseEnvironment("Production");
+			builder.ConfigureTestServices(DevolverAGuarda);
 			builder.ConfigureAppConfiguration((_, configuration) =>
 				configuration.AddInMemoryCollection(new Dictionary<string, string?>
 				{
@@ -82,6 +91,7 @@ public class StartupSecureGateTests(IntranetWebFactory factory) : IClassFixture<
 		using var producao = factory.WithWebHostBuilder(builder =>
 		{
 			builder.UseEnvironment("Production");
+			builder.ConfigureTestServices(DevolverAGuarda);
 			builder.ConfigureAppConfiguration((_, configuration) =>
 				configuration.AddInMemoryCollection(new Dictionary<string, string?>
 				{
@@ -109,6 +119,7 @@ public class StartupSecureGateTests(IntranetWebFactory factory) : IClassFixture<
 		using var producao = factory.WithWebHostBuilder(builder =>
 		{
 			builder.UseEnvironment("Production");
+			builder.ConfigureTestServices(DevolverAGuarda);
 			builder.ConfigureAppConfiguration((_, configuration) =>
 			{
 				var valores = new Dictionary<string, string?>

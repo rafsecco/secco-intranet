@@ -21,11 +21,11 @@ public sealed class ChaveMestraOptions
 
 	/// <summary>
 	/// Chave de desenvolvimento embutida (base64 de 32 bytes), usada quando
-	/// <see cref="ChaveAtiva"/> está ausente <b>fora de Production</b>. Proibida em Production.
+	/// <see cref="ChaveAtiva"/> está ausente <b>em Development</b>. Recusada em qualquer outro ambiente.
 	/// </summary>
 	public const string ChaveDesenvolvimento = "c2VjY28taW50cmFuZXQtZGV2LWRvY3VtZW50by1rZXk=";
 
-	/// <summary>Chave mestra ativa (base64, 32 bytes). Obrigatória em Production.</summary>
+	/// <summary>Chave mestra ativa (base64, 32 bytes). Obrigatória fora de Development.</summary>
 	public string? ChaveAtiva { get; set; }
 
 	/// <summary>

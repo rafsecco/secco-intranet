@@ -27,4 +27,10 @@
     <ProjectReference Include="..\Secco.Intranet.Migrations.Postgres\Secco.Intranet.Migrations.Postgres.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- A fábrica de testes tira a guarda do SecureGate pelo tipo, no código de teste: o produto não
+         tem exceção por nome de ambiente. -->
+    <InternalsVisibleTo Include="Secco.Intranet.Tests" />
+  </ItemGroup>
+
 </Project>

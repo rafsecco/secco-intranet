@@ -9,6 +9,7 @@ using Secco.Intranet.Infrastructure.Access;
 using Secco.Intranet.Infrastructure.Armazenamento;
 using Secco.Intranet.Infrastructure.Diretorio;
 using Secco.Intranet.Tests.Integration.TestAuthentication;
+using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Tests.Support;
 using Secco.SDK.AspNetCore.Authorization;
 using Secco.SDK.EntityFrameworkCore.Migrations;
@@ -44,6 +45,13 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 	/// </summary>
 	private readonly string _raizDeArquivos = Path.Combine(
 		Path.GetTempPath(), "secco-intranet-testes", Guid.NewGuid().ToString("N"));
+
+	/// <summary>
+	/// Chave mestra desta instância. Fora de Development a chave embutida é recusada, e o ambiente
+	/// Testing não é exceção: a fábrica configura uma chave como faria um deploy.
+	/// </summary>
+	private readonly string _chaveMestra = Convert.ToBase64String(
+		System.Security.Cryptography.RandomNumberGenerator.GetBytes(ChaveMestraOptions.TamanhoEmBytes));
 
 	/// <summary>Identificador do tenant "Alfa" usado nos testes.</summary>
 	public Guid TenantAlfa { get; } = Guid.NewGuid();
@@ -120,11 +128,21 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 		AddTenant(settings, TenantBeta, GetConnectionStringFor("secco_intranet_beta"));
 
 		settings["Intranet:Documentos:Armazenamento:Raiz"] = _raizDeArquivos;
+		settings["Intranet:Documentos:Chave:ChaveAtiva"] = _chaveMestra;
 	}
 
 	/// <inheritdoc />
 	protected override void ConfigureTestServices(IServiceCollection services)
 	{
+		// O host de testes roda sem SecureGate de propósito (autorização real sobre claims falsas), e
+		// fora de Development a guarda recusaria subir assim. Ela sai aqui, no código de teste, e não
+		// por uma exceção de ambiente no produto; StartupSecureGateTests a devolve para testá-la.
+		foreach (var guarda in services.Where(descritor => descritor.ImplementationType == typeof(ValidacaoSecureGateHostedService)).ToList())
+		{
+			services.Remove(guarda);
+		}
+
+
 		services.AddSingleton<IStartupFilter, RolesDeTesteStartupFilter>();
 		// É assim que o "projeto externo" é simulado: o assembly de testes entra como application part,
 		// e os IItemDeMenuPrincipal públicos dele são descobertos pelo catálogo como seriam os de um

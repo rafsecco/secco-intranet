@@ -55,8 +55,8 @@ public static class IntranetAuthenticationExtensions
 	/// Registra cookie + OpenIdConnect e o <c>FallbackPolicy</c> de autenticação obrigatória —
 	/// só quando <see cref="IsConfigured"/> for <c>true</c> (seção <c>Secco:SecureGate</c>). Sem
 	/// Authority configurada, não registra nada: é o modo aberto de DEV local (sem SecureGate
-	/// disponível) e do ambiente Testing. ADR-0020: produção exige a seção — o modo aberto
-	/// nunca deve chegar lá.
+	/// disponível) e do host de testes. ADR-0020: fora de Development a seção é exigida no startup
+	/// (<see cref="ValidacaoSecureGateHostedService"/>) — o modo aberto nunca chega a um host exposto.
 	/// </summary>
 	/// <param name="services">Coleção de serviços da aplicação.</param>
 	/// <param name="configuration">Configuração do host (seção <c>Secco:SecureGate</c>).</param>
@@ -86,8 +86,8 @@ public static class IntranetAuthenticationExtensions
 				options.Cookie.HttpOnly = true;
 				options.Cookie.SameSite = SameSiteMode.Lax;
 
-				// Só Production força HTTPS — hosts locais/TestServer normalmente são HTTP puro.
-				options.Cookie.SecurePolicy = environment.IsProduction()
+				// Só Development aceita HTTP: é o host local. Um Staging exposto leva o mesmo cookie.
+				options.Cookie.SecurePolicy = !environment.IsDevelopment()
 					? CookieSecurePolicy.Always
 					: CookieSecurePolicy.SameAsRequest;
 
@@ -113,8 +113,8 @@ public static class IntranetAuthenticationExtensions
 				options.TokenValidationParameters.NameClaimType = "name";
 				options.TokenValidationParameters.RoleClaimType = SeccoClaims.Role;
 
-				// Fora de Production o discovery pode ser HTTP (dev local)
-				options.RequireHttpsMetadata = environment.IsProduction();
+				// Só em Development o discovery pode ser HTTP (SecureGate local)
+				options.RequireHttpsMetadata = !environment.IsDevelopment();
 
 				options.Scope.Clear();
 				foreach (var scope in Scopes)

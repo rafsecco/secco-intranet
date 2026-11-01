@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -81,6 +82,33 @@ public class IntranetAuthenticationExtensionsTests
 		// AuthorizationCode e o de Secco:SecureGate é ClientCredentials — não são o mesmo.
 		oidc.ClientId.Should().Be("intranet-login");
 		oidc.ClientSecret.Should().Be("segredo-login");
+	}
+
+	// Development é o único ambiente sem trava: um Staging ou um Testing exposto não pode mandar o
+	// cookie de sessão por HTTP nem aceitar o metadata do OIDC sem TLS.
+	[Theory]
+	[InlineData("Production", true)]
+	[InlineData("Staging", true)]
+	[InlineData("Testing", true)]
+	[InlineData("Development", false)]
+	public async Task AddIntranetAuthentication_ExigeHttpsForaDeDevelopment(string ambiente, bool exigeHttps)
+	{
+		var configuration = BuildConfiguration(withAuthority: true);
+		var services = new ServiceCollection();
+		services.AddSingleton(configuration);
+		services.AddLogging();
+
+		services.AddIntranetAuthentication(configuration, new FakeHostEnvironment { EnvironmentName = ambiente });
+
+		await using var provider = services.BuildServiceProvider();
+
+		var cookie = provider.GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>()
+			.Get(CookieAuthenticationDefaults.AuthenticationScheme);
+		var oidc = provider.GetRequiredService<IOptionsMonitor<OpenIdConnectOptions>>()
+			.Get(OpenIdConnectDefaults.AuthenticationScheme);
+
+		cookie.Cookie.SecurePolicy.Should().Be(exigeHttps ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest);
+		oidc.RequireHttpsMetadata.Should().Be(exigeHttps);
 	}
 
 	[Fact]

@@ -25,15 +25,27 @@ public class StartupChaveMestraTests(IntranetWebFactory factory) : IClassFixture
 		}
 	}
 
-	[Fact]
-	public void Startup_EmProductionSemChaveMestra_DerrubaAAplicacao()
+	[Theory]
+	[InlineData("Production")]
+	[InlineData("Staging")]
+	[InlineData("Testing")]
+	public void Startup_ForaDeDevelopmentSemChaveMestra_DerrubaAAplicacao(string ambiente)
 	{
-		using var producao = factory.WithWebHostBuilder(builder => builder.UseEnvironment("Production"));
+		using var host = factory.WithWebHostBuilder(builder =>
+		{
+			builder.UseEnvironment(ambiente);
+			builder.ConfigureAppConfiguration((_, configuration) =>
+				configuration.AddInMemoryCollection(new Dictionary<string, string?>
+				{
+					// A fábrica configura uma chave para todo host de teste; aqui ela some.
+					["Intranet:Documentos:Chave:ChaveAtiva"] = "",
+				}));
+		});
 
-		var subir = () => producao.CreateClient();
+		var subir = () => host.CreateClient();
 
 		var excecao = subir.Should().Throw<Exception>(
-			"Production sem chave mestra precisa impedir a aplicação de subir").Which;
+			"fora de Development, sem chave mestra a aplicação não pode subir com a chave pública embutida").Which;
 
 		Mensagens(excecao).Should().Contain(
 			mensagem => mensagem.Contains("Chave mestra", StringComparison.OrdinalIgnoreCase),

@@ -44,18 +44,18 @@ internal sealed class EnvelopeCipher
 	/// <summary>Compõe o cifrador a partir da configuração.</summary>
 	/// <param name="options">Chave mestra ativa e aposentadas.</param>
 	/// <param name="environment">Ambiente de hospedagem.</param>
-	/// <exception cref="ChaveMestraException">Se a chave for inválida, ou ausente em Production.</exception>
+	/// <exception cref="ChaveMestraException">Se a chave for inválida, ou ausente fora de Development.</exception>
 	public EnvelopeCipher(ChaveMestraOptions options, IHostEnvironment environment)
 	{
 		ArgumentNullException.ThrowIfNull(options);
 		ArgumentNullException.ThrowIfNull(environment);
 
+		// A chave embutida está no repositório: cifrar com ela fora do host local é não cifrar.
 		var ativa = !string.IsNullOrWhiteSpace(options.ChaveAtiva)
 			? options.ChaveAtiva
-			: environment.IsProduction()
-				// Inalcançável na prática: o validador derruba o startup antes. Defesa em profundidade.
-				? throw new ChaveMestraException("Chave mestra de documentos ausente em Production.")
-				: ChaveMestraOptions.ChaveDesenvolvimento;
+			: environment.IsDevelopment()
+				? ChaveMestraOptions.ChaveDesenvolvimento
+				: throw new ChaveMestraException("Chave mestra de documentos ausente fora de Development.");
 
 		_chaveAtiva = DecodificarChave(ativa);
 		_chavesAposentadas = [.. options.ChavesAposentadas.Select(DecodificarChave)];
