@@ -3,3 +3,9 @@
 **/.git/
 **/.vs/
 **/TestResults/
+**/node_modules/
+**/.vscode/
+**/.idea/
+.env
+.env.*
+!.env.example
