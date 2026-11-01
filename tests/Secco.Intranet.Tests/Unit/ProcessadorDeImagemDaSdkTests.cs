@@ -96,7 +96,7 @@ public class ProcessadorDeImagemDaSdkTests
 		resultado.Error.Should().Be(IntranetErrors.Diretorio.FotoFormatoNaoSuportado);
 	}
 
-	[Fact(Skip = "Aguarda o modo sem recorte da Secco.SDK.Imaging (secco-platform#52).")]
+	[Fact]
 	public async Task ImagemDePublicacao_Grande_Reduz2048()
 	{
 		var resultado = await CriarProcessador().ProcessarImagemDePublicacaoAsync(new MemoryStream(Png(3000, 1500)));
@@ -108,7 +108,7 @@ public class ProcessadorDeImagemDaSdkTests
 		altura.Should().BeInRange(1023, 1025, "a proporção é preservada, sem recorte");
 	}
 
-	[Fact(Skip = "Aguarda o modo sem recorte da Secco.SDK.Imaging (secco-platform#52).")]
+	[Fact]
 	public async Task ImagemDePublicacao_Pequena_NaoAmplia()
 	{
 		var resultado = await CriarProcessador().ProcessarImagemDePublicacaoAsync(new MemoryStream(Png(300, 200)));

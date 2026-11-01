@@ -17,7 +17,7 @@ Duas regras sustentam esta lista:
 
 | Demanda | O que trava | Issue |
 |---|---|---|
-| `Secco.SDK.Imaging`: processar a imagem inteira, mantendo a proporção (sem recorte) | A imagem anexada à publicação do Mural ([spec](specs/2026-10-31-imagem-na-publicacao-design.md)) sai cortada no quadrado central até a entrega; o resto do recurso não espera | [#52](https://github.com/rafsecco/secco-platform/issues/52) |
+| _(nenhuma)_ | | |
 
 ## Descartadas
 
@@ -36,6 +36,7 @@ cada capacidade — informação que some se a linha for apagada.
 
 | Demanda | Entregue em | Issue |
 |---|---|---|
+| `Secco.SDK.Imaging`: processar a imagem inteira, mantendo a proporção (sem recorte) | `Secco.SDK.Imaging` **0.2.0** (2026-11-01) — `ImageCrop.Whole`; o recorte virou `ImageCrop` (`CenterSquare`, `Whole`, `Rectangle`). A imagem do Mural usa `Whole`; a foto do Diretório, `CenterSquare` ou `Rectangle`. Puxou `Secco.SharedKernel` 0.7.7 | [#52](https://github.com/rafsecco/secco-platform/issues/52) |
 | Perfil implícito do tenant: todo usuário ativo tem, sem atribuição | `Secco.SecureGate.Client` **0.24.0** (2026-10-31), ADR-0056 — perfil `tenant-member` em todo tenant, acrescentado pelo SecureGate aos papéis do token de toda pessoa ativa, inclusive quem entra depois. Permissões editáveis pelo admin; ninguém cria, atribui, retira nem exclui. A tela de Acesso mostra "Todos os membros". Cada instalação roda o `migrate` do SecureGate para criar o perfil nos tenants existentes | [#51](https://github.com/rafsecco/secco-platform/issues/51) |
 | Registrar `permissions:<produto>` para produto adotante (ADR-0039) | Serviço SecureGate (2026-10-22), commit `9b674ea`, sem pacote novo — `SecureGate:PermissionCatalog:Products: ["intranet"]` faz o seed de referência registrar `permissions:intranet`. Adotado no guia de deploy; a fumaça publica o catálogo e passou 14/14 | [#49](https://github.com/rafsecco/secco-platform/issues/49) |
 | Trilha de `securegate:tenant-manage` (ADR-0052) sem depender do LogStream | `Secco.SecureGate.Client` **0.22.0** (2026-10-22), ADR-0054 — a trilha da gestão do próprio tenant fica no banco do SecureGate, síncrona e fail-closed, sem `SecureGate:Audit` nem LogStream. Só o operador lê (`GET /api/v1/tenants/{id}/audit-entries` e o AdminPortal). Retenção opcional por `SecureGate:Audit:RetentionDays`. O LogStream volta a ser opcional | [#48](https://github.com/rafsecco/secco-platform/issues/48) |

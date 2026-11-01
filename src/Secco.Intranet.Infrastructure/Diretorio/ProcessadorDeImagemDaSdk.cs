@@ -31,7 +31,7 @@ internal sealed class ProcessadorDeImagemDaSdk(ISeccoImageProcessor imagens) : I
 
 		var pedido = new ImageProcessingRequest(
 			Variants: [new ImageVariant(NomeDaVariante, LadoMaximo)],
-			Crop: recorte is null ? null : new CropRectangle(recorte.X, recorte.Y, recorte.Largura, recorte.Altura),
+			Crop: recorte is null ? ImageCrop.CenterSquare : ImageCrop.Rectangle(recorte.X, recorte.Y, recorte.Largura, recorte.Altura),
 			Format: ImageOutputFormat.WebP);
 
 		var resultado = await imagens.ProcessAsync(upload, pedido, cancellationToken);
@@ -49,10 +49,10 @@ internal sealed class ProcessadorDeImagemDaSdk(ISeccoImageProcessor imagens) : I
 		Stream upload,
 		CancellationToken cancellationToken = default)
 	{
-		// A SDK 0.1.0 só sabe recortar o quadrado central; o modo sem recorte vem em secco-platform#52.
+		// A arte é o aviso: inteira, só reduzida, nunca recortada.
 		var pedido = new ImageProcessingRequest(
 			Variants: [new ImageVariant(NomeDaVarianteDePublicacao, LadoMaximoDePublicacao)],
-			Crop: null,
+			Crop: ImageCrop.Whole,
 			Format: ImageOutputFormat.WebP);
 
 		var resultado = await imagens.ProcessAsync(upload, pedido, cancellationToken);

@@ -168,7 +168,7 @@ Decisão já tomada (ruling do plano): a aba de avisos **não tinha entrada para
 - [ ] **Step 6:** `docs/temas.md` (campo `Imagem` do `CardModel`, classe `sc-card__imagem`); spec com estado "aprovado, implementado".
 - [ ] **Step 7: Commit** `feat(mural): imagem no formulario do aviso e no card`.
 
-### Task 5: Adotar o modo sem recorte da SDK (aguarda secco-platform#52)
+### Task 5: Adotar o modo sem recorte da SDK (secco-platform#52, entregue na 0.2.0)
 
 Acrescentada durante a execução: a `Secco.SDK.Imaging` 0.1.0 só recorta o quadrado central. Até a entrega da #52, a imagem do Mural sai cortada; esta task fecha o recurso.
 
