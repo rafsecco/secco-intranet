@@ -80,6 +80,33 @@ public static class TiposDeArquivo
 		return null;
 	}
 
+	/// <summary>
+	/// Lê os primeiros bytes do fluxo, devolve-o ao início quando posicionável e apura o tipo.
+	/// </summary>
+	/// <param name="conteudo">Fluxo do arquivo.</param>
+	/// <param name="nomeArquivo">Nome original do arquivo.</param>
+	/// <param name="extensoesPermitidas">Extensões aceitas pela configuração.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	public static async Task<string?> ApurarAsync(
+		Stream conteudo,
+		string? nomeArquivo,
+		IEnumerable<string> extensoesPermitidas,
+		CancellationToken cancellationToken = default)
+	{
+		ArgumentNullException.ThrowIfNull(conteudo);
+
+		var prefixo = new byte[BytesDeAssinatura];
+		var lidos = await conteudo.ReadAtLeastAsync(
+			prefixo, prefixo.Length, throwOnEndOfStream: false, cancellationToken).ConfigureAwait(false);
+
+		if (conteudo.CanSeek)
+		{
+			conteudo.Seek(0, SeekOrigin.Begin);
+		}
+
+		return Apurar(nomeArquivo, prefixo.AsSpan(0, lidos), extensoesPermitidas);
+	}
+
 	/// <summary>Etiqueta curta da extensão, sem o ponto e em maiúsculas; <c>null</c> quando não há extensão.</summary>
 	/// <param name="nomeArquivo">Nome original do arquivo.</param>
 	public static string? Etiqueta(string? nomeArquivo)

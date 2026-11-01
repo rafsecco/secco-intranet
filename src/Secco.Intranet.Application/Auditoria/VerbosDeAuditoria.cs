@@ -24,6 +24,9 @@ public static class VerbosDeAuditoria
 	/// <summary>Documento movido na lista do setor (subir, descer, recuar ou desrecuar).</summary>
 	public const string DocumentoMover = "documento.mover";
 
+	/// <summary>Metadados, visibilidade ou arquivo de um documento alterados.</summary>
+	public const string DocumentoEditar = "documento.editar";
+
 	/// <summary>Documento tirado de circulação.</summary>
 	public const string DocumentoArquivar = "documento.arquivar";
 

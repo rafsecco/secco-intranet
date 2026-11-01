@@ -87,7 +87,9 @@ public sealed class PublicarDocumentoHandler(
 			return IntranetErrors.Documentos.ArquivoMuitoGrande(options.TamanhoMaximoBytes);
 		}
 
-		var contentType = await ApurarContentTypeAsync(command, cancellationToken).ConfigureAwait(false);
+		var contentType = await TiposDeArquivo
+			.ApurarAsync(command.Conteudo, command.NomeArquivo, options.ExtensoesPermitidas, cancellationToken)
+			.ConfigureAwait(false);
 
 		if (contentType is null)
 		{
@@ -165,21 +167,5 @@ public sealed class PublicarDocumentoHandler(
 			documento.Tipo,
 			documento.ParentId,
 			documento.Ordem);
-	}
-
-	private async Task<string?> ApurarContentTypeAsync(
-		PublicarDocumentoCommand command,
-		CancellationToken cancellationToken)
-	{
-		var prefixo = new byte[TiposDeArquivo.BytesDeAssinatura];
-		var lidos = await command.Conteudo.ReadAtLeastAsync(
-			prefixo, prefixo.Length, throwOnEndOfStream: false, cancellationToken).ConfigureAwait(false);
-
-		if (command.Conteudo.CanSeek)
-		{
-			command.Conteudo.Seek(0, SeekOrigin.Begin);
-		}
-
-		return TiposDeArquivo.Apurar(command.NomeArquivo, prefixo.AsSpan(0, lidos), options.ExtensoesPermitidas);
 	}
 }

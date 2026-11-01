@@ -65,6 +65,14 @@ public static class IntranetErrors
 		public static Error TituloTooLong(int limit) =>
 			Error.Validation("Intranet.Documento.TituloTooLong", $"O título excede o limite de {limit} caracteres.");
 
+		/// <summary>Descrição acima do limite configurado.</summary>
+		public static Error DescricaoTooLong(int limit) =>
+			Error.Validation("Intranet.Documento.DescricaoTooLong", $"A descrição excede o limite de {limit} caracteres.");
+
+		/// <summary>Tentativa de anexar arquivo a um grupo.</summary>
+		public static readonly Error ArquivoEmGrupo =
+			Error.Validation("Intranet.Documento.ArquivoEmGrupo", "Um grupo não tem arquivo.");
+
 		/// <summary>Nenhum arquivo enviado, ou arquivo sem conteúdo.</summary>
 		public static readonly Error ArquivoRequired =
 			Error.Validation("Intranet.Documento.ArquivoRequired", "Escolha um arquivo para publicar.");
