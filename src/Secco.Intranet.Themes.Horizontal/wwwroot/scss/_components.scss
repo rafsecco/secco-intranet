@@ -702,6 +702,15 @@ html.sc-js .sc-nav__sub.is-open {
   ol:not(.sc-list) {
     padding-left: 1.25rem;
   }
+
+  // Imagem do markdown vem no tamanho original: cabe na largura do card, sem distorcer.
+  img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: .75rem 0;
+    border-radius: var(--bs-border-radius);
+  }
 }
 
 // Legenda da sintaxe de markdown, ao lado do editor.
