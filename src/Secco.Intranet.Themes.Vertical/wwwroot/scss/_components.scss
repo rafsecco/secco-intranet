@@ -749,8 +749,9 @@ html.sc-js .sc-nav__sub.is-open {
     margin-bottom: 0;
   }
 
-  ul,
-  ol {
+  // So a lista do markdown: a sc-list do contrato traz o proprio espacamento.
+  ul:not(.sc-list),
+  ol:not(.sc-list) {
     padding-left: 1.25rem;
   }
 }
