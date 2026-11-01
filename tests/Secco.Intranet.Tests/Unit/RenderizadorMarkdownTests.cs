@@ -49,6 +49,46 @@ public class RenderizadorMarkdownTests
 		html.Trim().Should().Be("<p>&lt;img src=x onerror=alert(1)&gt;</p>");
 	}
 
+	// Desligar o HTML bruto não fecha o destino do link: o Markdig emite o href/src como veio, e um
+	// `javascript:` vira script na sessão de quem clicar. Cada linha é uma forma de chegar lá.
+	[Theory]
+	[InlineData("[clique](javascript:alert(document.cookie))")]
+	[InlineData("[clique](JaVaScRiPt:alert(1))")]
+	[InlineData("[clique](jav&#x61;script:alert(1))")]
+	[InlineData("[clique](java&#9;script:alert(1))")]
+	[InlineData("[clique]( javascript:alert(1) )")]
+	[InlineData("[clique](vbscript:msgbox(1))")]
+	[InlineData("[clique](data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==)")]
+	[InlineData("[clique][ref]\n\n[ref]: javascript:alert(1)")]
+	[InlineData("![clique](javascript:alert(1))")]
+	[InlineData("<javascript:alert(1)>")]
+	public void Renderizar_ComDestinoDeEsquemaNaoPermitido_NaoGeraLinkNemImagem(string markdown)
+	{
+		var html = Renderizar(markdown);
+
+		html.Should().NotContain("<a ", "um destino fora da lista de esquemas não pode virar link");
+		html.Should().NotContain("<img", "nem imagem");
+	}
+
+	[Theory]
+	[InlineData("[clique](javascript:alert(1))", "clique")]
+	[InlineData("![cartaz da festa](javascript:alert(1))", "cartaz da festa")]
+	public void Renderizar_ComDestinoDeEsquemaNaoPermitido_MantemOTextoVisivel(string markdown, string texto) =>
+		Renderizar(markdown).Should().Contain(texto, "quem lê ainda vê o texto do link ou a descrição da imagem");
+
+	[Theory]
+	[InlineData("[site](https://exemplo.com/a)", "href=\"https://exemplo.com/a\"")]
+	[InlineData("[site](http://exemplo.com/a)", "href=\"http://exemplo.com/a\"")]
+	[InlineData("[e-mail](mailto:rh@exemplo.com)", "href=\"mailto:rh@exemplo.com\"")]
+	[InlineData("[ramal](tel:+551130000000)", "href=\"tel:+551130000000\"")]
+	[InlineData("[manual](/documentos/1)", "href=\"/documentos/1\"")]
+	[InlineData("[abaixo](#prazos)", "href=\"#prazos\"")]
+	[InlineData("[relativo](anexo/regras)", "href=\"anexo/regras\"")]
+	[InlineData("![logo](https://exemplo.com/logo.png)", "src=\"https://exemplo.com/logo.png\"")]
+	[InlineData("Veja www.exemplo.com hoje.", "href=\"http://www.exemplo.com\"")]
+	public void Renderizar_ComDestinoPermitido_MantemOLink(string markdown, string atributo) =>
+		Renderizar(markdown).Should().Contain(atributo);
+
 	[Theory]
 	[InlineData(null)]
 	[InlineData("")]
