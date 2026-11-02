@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Secco.Intranet.Domain.Bibliotecas;
 using Secco.Intranet.Domain.Documentos;
 using Secco.Intranet.Domain.Setores;
 
@@ -20,11 +21,23 @@ internal sealed class DocumentoConfiguration : IEntityTypeConfiguration<Document
 			.HasOne<Setor>()
 			.WithMany()
 			.HasForeignKey(documento => documento.SetorId)
-			.IsRequired()
+			.IsRequired(false)
 			.OnDelete(DeleteBehavior.Restrict);
 
-		// A coluna da biblioteca chega com a migration da Task 2; até lá a propriedade fica fora do modelo.
-		builder.Ignore(documento => documento.BibliotecaId);
+		// O dono é exatamente um entre setor e biblioteca (ck_documentos_dono, abaixo); por isso as duas
+		// chaves estrangeiras são opcionais.
+		builder
+			.HasOne<Biblioteca>()
+			.WithMany()
+			.HasForeignKey(documento => documento.BibliotecaId)
+			.HasConstraintName("fk_documentos_biblioteca")
+			.IsRequired(false)
+			.OnDelete(DeleteBehavior.Restrict);
+
+		// SQL que vale nos dois engines (SQL Server e PostgreSQL).
+		builder.ToTable(tabela => tabela.HasCheckConstraint(
+			"ck_documentos_dono",
+			"(id_fk_setor IS NOT NULL AND id_fk_biblioteca IS NULL) OR (id_fk_setor IS NULL AND id_fk_biblioteca IS NOT NULL)"));
 
 		builder
 			.HasOne<Documento>()
@@ -44,6 +57,9 @@ internal sealed class DocumentoConfiguration : IEntityTypeConfiguration<Document
 		builder.Property(documento => documento.CriadoPor).HasMaxLength(256);
 
 		builder.HasIndex(documento => new { documento.SetorId, documento.ParentId, documento.Ordem });
+		builder
+			.HasIndex(documento => new { documento.BibliotecaId, documento.ParentId, documento.Ordem })
+			.HasDatabaseName("idx_documentos_id_fk_biblioteca_id_fk_parent_nr_ordem");
 		builder.HasIndex(documento => documento.Ativo);
 		builder.HasIndex(documento => documento.CreatedAt);
 	}

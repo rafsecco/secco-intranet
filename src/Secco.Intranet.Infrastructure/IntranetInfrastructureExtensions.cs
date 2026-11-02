@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Secco.Intranet.Application;
 using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Auditoria;
+using Secco.Intranet.Application.Bibliotecas;
 using Secco.Intranet.Application.Diretorio;
 using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Inventario;
@@ -107,6 +108,7 @@ public static class IntranetInfrastructureExtensions
 		});
 
 		services.AddScoped<ISetorRepository, SetorRepository>();
+		services.AddScoped<IBibliotecaRepository, BibliotecaRepository>();
 		services.AddScoped<IItemMenuRepository, ItemMenuRepository>();
 		services.AddScoped<IPosicaoMenuRepository, PosicaoMenuRepository>();
 		services.AddScoped<IDocumentoRepository, DocumentoRepository>();

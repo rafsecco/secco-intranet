@@ -17,10 +17,53 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.13")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Bibliotecas.Biblioteca", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id_pk_biblioteca");
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean")
+                        .HasColumnName("fl_ativo");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dt_created_at");
+
+                    b.Property<string>("Icone")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("ds_icone");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("ds_nome");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(53)
+                        .HasColumnType("character varying(53)")
+                        .HasColumnName("ds_slug");
+
+                    b.HasKey("Id")
+                        .HasName("pk_bibliotecas");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("uk_bibliotecas_ds_slug");
+
+                    b.ToTable("tb_bibliotecas");
+                });
 
             modelBuilder.Entity("Secco.Intranet.Domain.Diretorio.PerfilColaborador", b =>
                 {
@@ -101,6 +144,10 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("fl_ativo");
 
+                    b.Property<Guid?>("BibliotecaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id_fk_biblioteca");
+
                     b.Property<string>("CaminhoRelativo")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
@@ -144,7 +191,7 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id_fk_parent");
 
-                    b.Property<Guid>("SetorId")
+                    b.Property<Guid?>("SetorId")
                         .HasColumnType("uuid")
                         .HasColumnName("id_fk_setor");
 
@@ -178,10 +225,16 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                     b.HasIndex("ParentId")
                         .HasDatabaseName("idx_documentos_id_fk_parent");
 
+                    b.HasIndex("BibliotecaId", "ParentId", "Ordem")
+                        .HasDatabaseName("idx_documentos_id_fk_biblioteca_id_fk_parent_nr_ordem");
+
                     b.HasIndex("SetorId", "ParentId", "Ordem")
                         .HasDatabaseName("idx_documentos_id_fk_setor_id_fk_parent_nr_ordem");
 
-                    b.ToTable("tb_documentos");
+                    b.ToTable("tb_documentos", t =>
+                        {
+                            t.HasCheckConstraint("ck_documentos_dono", "(id_fk_setor IS NOT NULL AND id_fk_biblioteca IS NULL) OR (id_fk_setor IS NULL AND id_fk_biblioteca IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("Secco.Intranet.Domain.Inventario.ItemInventario", b =>
@@ -644,6 +697,12 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
 
             modelBuilder.Entity("Secco.Intranet.Domain.Documentos.Documento", b =>
                 {
+                    b.HasOne("Secco.Intranet.Domain.Bibliotecas.Biblioteca", null)
+                        .WithMany()
+                        .HasForeignKey("BibliotecaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_documentos_biblioteca");
+
                     b.HasOne("Secco.Intranet.Domain.Documentos.Documento", null)
                         .WithMany()
                         .HasForeignKey("ParentId")
@@ -654,7 +713,6 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .WithMany()
                         .HasForeignKey("SetorId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
                         .HasConstraintName("fk_documentos_setor");
                 });
 

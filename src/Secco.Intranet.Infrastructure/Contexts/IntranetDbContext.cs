@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Secco.Intranet.Domain.Bibliotecas;
 using Secco.Intranet.Domain.Diretorio;
 using Secco.Intranet.Domain.Documentos;
 using Secco.Intranet.Domain.Inventario;
@@ -21,7 +22,10 @@ public sealed class IntranetDbContext(DbContextOptions<IntranetDbContext> option
 	/// <summary>Setores/departamentos (tabela <c>tb_setores</c>).</summary>
 	public DbSet<Setor> Setores => Set<Setor>();
 
-	/// <summary>Documentos publicados por setor (tabela <c>tb_documentos</c>).</summary>
+	/// <summary>Bibliotecas de documentos, sem setor dono (tabela <c>tb_bibliotecas</c>).</summary>
+	public DbSet<Biblioteca> Bibliotecas => Set<Biblioteca>();
+
+	/// <summary>Documentos publicados por setor ou biblioteca (tabela <c>tb_documentos</c>).</summary>
 	public DbSet<Documento> Documentos => Set<Documento>();
 
 	/// <summary>Publicações do mural (tabela <c>tb_publicacoes</c>).</summary>
