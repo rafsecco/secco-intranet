@@ -57,7 +57,7 @@ public sealed class MoverDocumentoHandler(IDocumentoRepository repository, ITril
 		var de = documento.Ordem;
 
 		var irmaos = await repository
-			.ListarIrmaosAsync(documento.SetorId, paiDe, cancellationToken)
+			.ListarIrmaosAsync(documento.SetorId!.Value, paiDe, cancellationToken)
 			.ConfigureAwait(false);
 		var indice = IndexOf(irmaos, documento.Id);
 
@@ -100,7 +100,7 @@ public sealed class MoverDocumentoHandler(IDocumentoRepository repository, ITril
 
 				var acima = irmaos[indice - 1];
 				var filhos = await repository
-					.ListarIrmaosAsync(documento.SetorId, acima.Id, cancellationToken)
+					.ListarIrmaosAsync(documento.SetorId!.Value, acima.Id, cancellationToken)
 					.ConfigureAwait(false);
 
 				paiPara = acima.Id;
@@ -119,7 +119,7 @@ public sealed class MoverDocumentoHandler(IDocumentoRepository repository, ITril
 				}
 
 				var raiz = (await repository
-					.ListarIrmaosAsync(documento.SetorId, null, cancellationToken)
+					.ListarIrmaosAsync(documento.SetorId!.Value, null, cancellationToken)
 					.ConfigureAwait(false)).ToList();
 				var posicaoDoPai = IndexOf(raiz, paiDe.Value);
 

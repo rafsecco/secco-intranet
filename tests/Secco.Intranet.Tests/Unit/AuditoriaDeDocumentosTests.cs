@@ -58,7 +58,7 @@ public class AuditoriaDeDocumentosTests
 	private static DocumentoComSetor Existente()
 	{
 		var documento = new Documento(
-			Guid.NewGuid(),
+			DonoDeDocumento.DoSetor(Guid.NewGuid()),
 			"Política interna",
 			descricao: null,
 			"politica.pdf",
@@ -153,7 +153,7 @@ public class AuditoriaDeDocumentosTests
 
 	private static Documento ArquivoEm(Setor setor, string titulo, Guid? parentId, int ordem) =>
 		new(
-			setor.Id,
+			DonoDeDocumento.DoSetor(setor.Id),
 			titulo,
 			null,
 			"a.pdf",
@@ -193,7 +193,7 @@ public class AuditoriaDeDocumentosTests
 		var setor = new Setor("Financeiro", "financeiro");
 		var repositorio = new Support.DocumentoRepositorioEmMemoria();
 		repositorio.RegistrarSetor(setor);
-		var grupo = Documento.CriarGrupo(setor.Id, "Grupo", null, "alguem");
+		var grupo = Documento.CriarGrupo(DonoDeDocumento.DoSetor(setor.Id), "Grupo", null, "alguem");
 		repositorio.Documentos.Add(grupo);
 		var trilha = new TrilhaFalsa();
 		var handler = new ArquivarDocumentoHandler(repositorio, trilha);

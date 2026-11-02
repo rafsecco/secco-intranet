@@ -10,7 +10,7 @@ namespace Secco.Intranet.Tests.Unit;
 public class DocumentoEdicaoTests
 {
 	private static Documento NovoArquivo() => new(
-		Guid.NewGuid(),
+		DonoDeDocumento.DoSetor(Guid.NewGuid()),
 		"Política",
 		"Descrição",
 		"politica.pdf",
@@ -92,7 +92,7 @@ public class DocumentoEdicaoTests
 	[Fact]
 	public void TrocarArquivo_EmGrupo_Lanca()
 	{
-		var grupo = Documento.CriarGrupo(Guid.NewGuid(), "Políticas", null, "quem.criou");
+		var grupo = Documento.CriarGrupo(DonoDeDocumento.DoSetor(Guid.NewGuid()), "Políticas", null, "quem.criou");
 
 		var trocar = () => grupo.TrocarArquivo("nova.docx", "application/msword", 10, "caminho/novo", "secco-enc:v1:nova");
 
@@ -102,7 +102,7 @@ public class DocumentoEdicaoTests
 	[Fact]
 	public void AlterarVisibilidade_GrupoParaEmpresa_Lanca()
 	{
-		var grupo = Documento.CriarGrupo(Guid.NewGuid(), "Políticas", null, "quem.criou");
+		var grupo = Documento.CriarGrupo(DonoDeDocumento.DoSetor(Guid.NewGuid()), "Políticas", null, "quem.criou");
 
 		var alterar = () => grupo.AlterarVisibilidade(Visibilidade.Empresa);
 
@@ -112,7 +112,7 @@ public class DocumentoEdicaoTests
 	[Fact]
 	public void AlterarVisibilidade_GrupoParaSetor_NaoLanca()
 	{
-		var grupo = Documento.CriarGrupo(Guid.NewGuid(), "Políticas", null, "quem.criou");
+		var grupo = Documento.CriarGrupo(DonoDeDocumento.DoSetor(Guid.NewGuid()), "Políticas", null, "quem.criou");
 
 		var alterar = () => grupo.AlterarVisibilidade(Visibilidade.Setor);
 

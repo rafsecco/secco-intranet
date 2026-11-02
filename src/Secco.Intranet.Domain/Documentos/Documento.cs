@@ -14,7 +14,7 @@ public enum TipoDeDocumento
 }
 
 /// <summary>
-/// Documento publicado por um setor, ou grupo que reúne documentos. Para um arquivo, a entidade
+/// Documento publicado por um setor ou biblioteca, ou grupo que reúne documentos. Para um arquivo, a entidade
 /// guarda apenas os metadados; os bytes ficam no <c>IArquivoStore</c>, cifrados, endereçados por
 /// <see cref="CaminhoRelativo"/> e destrancados pela <see cref="ChaveEmbrulhada"/>. Um grupo não
 /// tem arquivo, então esses campos são nulos.
@@ -29,7 +29,7 @@ public sealed class Documento : BaseEntity
 	}
 
 	/// <summary>Cria um documento (arquivo) já gravado no armazenamento.</summary>
-	/// <param name="setorId">Setor dono. Obrigatório.</param>
+	/// <param name="dono">Dono: setor ou biblioteca. Obrigatório.</param>
 	/// <param name="titulo">Título de exibição. Obrigatório.</param>
 	/// <param name="descricao">Descrição livre. Opcional.</param>
 	/// <param name="nomeArquivo">Nome original do arquivo enviado. Obrigatório.</param>
@@ -43,7 +43,7 @@ public sealed class Documento : BaseEntity
 	/// <param name="ordem">Posição entre os irmãos, a partir de zero.</param>
 	/// <exception cref="DomainInvariantException">Se algum campo obrigatório estiver vazio ou o tamanho não for positivo.</exception>
 	public Documento(
-		Guid setorId,
+		DonoDeDocumento dono,
 		string titulo,
 		string? descricao,
 		string nomeArquivo,
@@ -56,10 +56,7 @@ public sealed class Documento : BaseEntity
 		Guid? parentId = null,
 		int ordem = 0)
 	{
-		if (setorId == Guid.Empty)
-		{
-			throw new DomainInvariantException("Um documento exige um setor dono.");
-		}
+		ExigirDonoValido(dono);
 
 		if (string.IsNullOrWhiteSpace(titulo))
 		{
@@ -84,7 +81,8 @@ public sealed class Documento : BaseEntity
 		Tipo = TipoDeDocumento.Arquivo;
 		ParentId = parentId;
 		Ordem = ordem;
-		SetorId = setorId;
+		SetorId = dono.SetorId;
+		BibliotecaId = dono.BibliotecaId;
 		Titulo = titulo.Trim();
 		Descricao = string.IsNullOrWhiteSpace(descricao) ? null : descricao.Trim();
 		NomeArquivo = nomeArquivo;
@@ -102,18 +100,15 @@ public sealed class Documento : BaseEntity
 	/// Cria um grupo: item sem arquivo que apenas agrupa documentos abaixo dele. A visibilidade é
 	/// sempre <see cref="Visibilidade.Setor"/>, pois não há conteúdo a proteger.
 	/// </summary>
-	/// <param name="setorId">Setor dono. Obrigatório.</param>
+	/// <param name="dono">Dono: setor ou biblioteca. Obrigatório.</param>
 	/// <param name="titulo">Título de exibição. Obrigatório.</param>
 	/// <param name="descricao">Descrição livre. Opcional.</param>
 	/// <param name="criadoPor">Identificação de quem criou.</param>
 	/// <returns>O grupo, ativo, na raiz e na posição zero.</returns>
-	/// <exception cref="DomainInvariantException">Se o setor ou o título estiverem vazios.</exception>
-	public static Documento CriarGrupo(Guid setorId, string titulo, string? descricao, string criadoPor)
+	/// <exception cref="DomainInvariantException">Se o dono for inválido ou o título estiver vazio.</exception>
+	public static Documento CriarGrupo(DonoDeDocumento dono, string titulo, string? descricao, string criadoPor)
 	{
-		if (setorId == Guid.Empty)
-		{
-			throw new DomainInvariantException("Um grupo exige um setor dono.");
-		}
+		ExigirDonoValido(dono);
 
 		if (string.IsNullOrWhiteSpace(titulo))
 		{
@@ -123,7 +118,8 @@ public sealed class Documento : BaseEntity
 		return new Documento
 		{
 			Tipo = TipoDeDocumento.Grupo,
-			SetorId = setorId,
+			SetorId = dono.SetorId,
+			BibliotecaId = dono.BibliotecaId,
 			Titulo = titulo.Trim(),
 			Descricao = string.IsNullOrWhiteSpace(descricao) ? null : descricao.Trim(),
 			Visibilidade = Visibilidade.Setor,
@@ -131,6 +127,14 @@ public sealed class Documento : BaseEntity
 			Ativo = true,
 			CreatedAt = DateTimeOffset.UtcNow,
 		};
+	}
+
+	private static void ExigirDonoValido(DonoDeDocumento dono)
+	{
+		if (!dono.EhValido)
+		{
+			throw new DomainInvariantException("Um documento exige exatamente um dono: setor ou biblioteca.");
+		}
 	}
 
 	/// <summary>Arquivo ou grupo (coluna <c>ie_tipo</c>).</summary>
@@ -145,8 +149,14 @@ public sealed class Documento : BaseEntity
 	/// <summary>Indica se o item é um grupo, sem arquivo.</summary>
 	public bool EhGrupo => Tipo == TipoDeDocumento.Grupo;
 
-	/// <summary>Setor dono (coluna <c>id_fk_setor</c>).</summary>
-	public Guid SetorId { get; private set; }
+	/// <summary>Setor dono; nulo quando o dono é uma biblioteca (coluna <c>id_fk_setor</c>).</summary>
+	public Guid? SetorId { get; private set; }
+
+	/// <summary>Biblioteca dona; nula quando o dono é um setor (coluna <c>id_fk_biblioteca</c>).</summary>
+	public Guid? BibliotecaId { get; private set; }
+
+	/// <summary>Dono do documento: setor ou biblioteca.</summary>
+	public DonoDeDocumento Dono => new(SetorId, BibliotecaId);
 
 	/// <summary>Título de exibição (coluna <c>ds_titulo</c>).</summary>
 	public string Titulo { get; private set; }

@@ -118,7 +118,7 @@ public sealed class PublicarDocumentoHandler(
 			.ConfigureAwait(false);
 
 		var documento = new Documento(
-			setor.Id,
+			DonoDeDocumento.DoSetor(setor.Id),
 			command.Titulo,
 			command.Descricao,
 			TiposDeArquivo.NomeSemCaminho(command.NomeArquivo!),

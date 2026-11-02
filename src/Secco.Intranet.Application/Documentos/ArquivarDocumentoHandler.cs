@@ -55,7 +55,7 @@ public sealed class ArquivarDocumentoHandler(IDocumentoRepository repository, IT
 		}
 
 		var irmaos = await repository
-			.ListarIrmaosAsync(encontrado.Documento.SetorId, encontrado.Documento.ParentId, cancellationToken)
+			.ListarIrmaosAsync(encontrado.Documento.SetorId!.Value, encontrado.Documento.ParentId, cancellationToken)
 			.ConfigureAwait(false);
 
 		encontrado.Documento.Arquivar();

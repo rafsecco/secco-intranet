@@ -32,15 +32,15 @@ public class DocumentoRepositoryHierarquiaTests(IntranetWebFactory factory) : IC
 	}
 
 	private static Documento Arquivo(Guid setorId, string titulo, Guid? parentId, int ordem) =>
-		new(setorId, titulo, null, "a.pdf", "application/pdf", 10, Visibilidade.Setor, $"t/{Guid.NewGuid():N}", "secco-enc:v1:x", "quem", parentId, ordem);
+		new(DonoDeDocumento.DoSetor(setorId), titulo, null, "a.pdf", "application/pdf", 10, Visibilidade.Setor, $"t/{Guid.NewGuid():N}", "secco-enc:v1:x", "quem", parentId, ordem);
 
 	[Fact]
 	public async Task ListarIrmaos_SoAtivosDoPaiNaOrdem()
 	{
 		var (escopo, repositorio, setor) = await CriarAsync();
 		await using var _ = escopo;
-		var pai = Documento.CriarGrupo(setor.Id, "Pai", null, "quem");
-		var outroPai = Documento.CriarGrupo(setor.Id, "Outro", null, "quem");
+		var pai = Documento.CriarGrupo(DonoDeDocumento.DoSetor(setor.Id), "Pai", null, "quem");
+		var outroPai = Documento.CriarGrupo(DonoDeDocumento.DoSetor(setor.Id), "Outro", null, "quem");
 		await repositorio.AddAsync(pai);
 		await repositorio.AddAsync(outroPai);
 		var segundo = Arquivo(setor.Id, "Segundo", pai.Id, 1);
@@ -63,7 +63,7 @@ public class DocumentoRepositoryHierarquiaTests(IntranetWebFactory factory) : IC
 	{
 		var (escopo, repositorio, setor) = await CriarAsync();
 		await using var _ = escopo;
-		var pai = Documento.CriarGrupo(setor.Id, "Pai", null, "quem");
+		var pai = Documento.CriarGrupo(DonoDeDocumento.DoSetor(setor.Id), "Pai", null, "quem");
 		await repositorio.AddAsync(pai);
 		var filho = Arquivo(setor.Id, "Filho", pai.Id, 0);
 		await repositorio.AddAsync(filho);

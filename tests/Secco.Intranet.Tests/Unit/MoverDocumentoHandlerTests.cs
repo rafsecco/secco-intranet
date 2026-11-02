@@ -47,7 +47,7 @@ public class MoverDocumentoHandlerTests
 		public Documento Arquivo(string titulo, Guid? parentId = null, int ordem = 0, Setor? setor = null)
 		{
 			var documento = new Documento(
-				(setor ?? Setor).Id,
+				DonoDeDocumento.DoSetor((setor ?? Setor).Id),
 				titulo,
 				null,
 				"a.pdf",
@@ -66,7 +66,7 @@ public class MoverDocumentoHandlerTests
 
 		public Documento Grupo(string titulo, int ordem = 0)
 		{
-			var grupo = Documento.CriarGrupo(Setor.Id, titulo, null, "alguem");
+			var grupo = Documento.CriarGrupo(DonoDeDocumento.DoSetor(Setor.Id), titulo, null, "alguem");
 			grupo.Posicionar(null, ordem);
 			Repositorio.Documentos.Add(grupo);
 

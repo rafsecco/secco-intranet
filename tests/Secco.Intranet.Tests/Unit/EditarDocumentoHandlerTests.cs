@@ -69,7 +69,7 @@ public class EditarDocumentoHandlerTests
 		public Documento Novo(string titulo, string? descricao = null)
 		{
 			var documento = new Documento(
-				Setor.Id,
+				DonoDeDocumento.DoSetor(Setor.Id),
 				titulo,
 				descricao,
 				"a.pdf",
@@ -219,7 +219,7 @@ public class EditarDocumentoHandlerTests
 	public async Task Editar_GrupoComArquivo_RecusaArquivoEmGrupo()
 	{
 		var c = new Cenario();
-		var grupo = Documento.CriarGrupo(c.Setor.Id, "Grupo", null, "alguem");
+		var grupo = Documento.CriarGrupo(DonoDeDocumento.DoSetor(c.Setor.Id), "Grupo", null, "alguem");
 		c.Repositorio.Documentos.Add(grupo);
 		using var fluxo = Fluxo(Pdf);
 
@@ -236,7 +236,7 @@ public class EditarDocumentoHandlerTests
 	public async Task Editar_GrupoComVisibilidadeEmpresa_IgnoraEMantemSetor()
 	{
 		var c = new Cenario();
-		var grupo = Documento.CriarGrupo(c.Setor.Id, "Grupo", null, "alguem");
+		var grupo = Documento.CriarGrupo(DonoDeDocumento.DoSetor(c.Setor.Id), "Grupo", null, "alguem");
 		c.Repositorio.Documentos.Add(grupo);
 
 		var resultado = await c.Editar.HandleAsync(

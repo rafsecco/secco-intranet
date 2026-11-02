@@ -69,7 +69,7 @@ public class BaixarDocumentoHandlerTests
 	private static DocumentoComSetor Documento(Visibilidade visibilidade, bool ativo = true)
 	{
 		var documento = new Documento(
-			Guid.NewGuid(),
+			DonoDeDocumento.DoSetor(Guid.NewGuid()),
 			"Política interna",
 			descricao: null,
 			"politica.pdf",
@@ -153,7 +153,7 @@ public class BaixarDocumentoHandlerTests
 	[Fact]
 	public async Task Baixar_Grupo_NaoEncontrado()
 	{
-		var grupo = Domain.Documentos.Documento.CriarGrupo(Guid.NewGuid(), "Políticas", null, "quem.criou");
+		var grupo = Domain.Documentos.Documento.CriarGrupo(DonoDeDocumento.DoSetor(Guid.NewGuid()), "Políticas", null, "quem.criou");
 		var handler = new BaixarDocumentoHandler(
 			new RepositorioFalso(new DocumentoComSetor(grupo, "Financeiro", "financeiro")), new StoreFalso());
 

@@ -12,7 +12,7 @@ public class DocumentoHierarquiaTests
 	[Fact]
 	public void CriarGrupo_SemArquivo_TipoGrupoEVisibilidadeSetor()
 	{
-		var grupo = Documento.CriarGrupo(Guid.NewGuid(), "Políticas", "Tudo sobre políticas", "quem.criou");
+		var grupo = Documento.CriarGrupo(DonoDeDocumento.DoSetor(Guid.NewGuid()), "Políticas", "Tudo sobre políticas", "quem.criou");
 
 		grupo.Tipo.Should().Be(TipoDeDocumento.Grupo);
 		grupo.EhGrupo.Should().BeTrue();
@@ -28,7 +28,7 @@ public class DocumentoHierarquiaTests
 	[Fact]
 	public void CriarGrupo_TituloVazio_Lanca()
 	{
-		var criar = () => Documento.CriarGrupo(Guid.NewGuid(), "  ", null, "quem.criou");
+		var criar = () => Documento.CriarGrupo(DonoDeDocumento.DoSetor(Guid.NewGuid()), "  ", null, "quem.criou");
 
 		criar.Should().Throw<DomainInvariantException>();
 	}
@@ -37,7 +37,7 @@ public class DocumentoHierarquiaTests
 	public void Arquivo_ContinuaExigindoArquivo()
 	{
 		var criar = () => new Documento(
-			Guid.NewGuid(),
+			DonoDeDocumento.DoSetor(Guid.NewGuid()),
 			"Política",
 			null,
 			"politica.pdf",
@@ -54,7 +54,7 @@ public class DocumentoHierarquiaTests
 	[Fact]
 	public void Posicionar_TrocaPaiEOrdem()
 	{
-		var grupo = Documento.CriarGrupo(Guid.NewGuid(), "Políticas", null, "quem.criou");
+		var grupo = Documento.CriarGrupo(DonoDeDocumento.DoSetor(Guid.NewGuid()), "Políticas", null, "quem.criou");
 		var pai = Guid.NewGuid();
 
 		grupo.Posicionar(pai, 3);

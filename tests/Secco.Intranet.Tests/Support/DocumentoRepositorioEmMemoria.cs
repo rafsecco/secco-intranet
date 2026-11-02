@@ -46,7 +46,7 @@ public sealed class DocumentoRepositorioEmMemoria : IDocumentoRepository
 			return Task.FromResult<DocumentoComSetor?>(null);
 		}
 
-		var setor = _setores[documento.SetorId];
+		var setor = _setores[documento.SetorId!.Value];
 
 		return Task.FromResult<DocumentoComSetor?>(new DocumentoComSetor(documento, setor.Nome, setor.Slug));
 	}
@@ -55,10 +55,10 @@ public sealed class DocumentoRepositorioEmMemoria : IDocumentoRepository
 		string setorSlug,
 		CancellationToken cancellationToken = default)
 	{
-		var lista = Ordenar(Documentos.Where(item => item.Ativo && _setores[item.SetorId].Slug == setorSlug))
+		var lista = Ordenar(Documentos.Where(item => item.Ativo && _setores[item.SetorId!.Value].Slug == setorSlug))
 			.Select(item =>
 			{
-				var setor = _setores[item.SetorId];
+				var setor = _setores[item.SetorId!.Value];
 
 				return new DocumentoDto(
 					item.Id,

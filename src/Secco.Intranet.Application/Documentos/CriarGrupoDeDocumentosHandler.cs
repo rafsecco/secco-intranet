@@ -66,7 +66,7 @@ public sealed class CriarGrupoDeDocumentosHandler(
 			.AbrirLugarAsync(repository, setor.Id, parentId: null, cancellationToken)
 			.ConfigureAwait(false);
 
-		var grupo = Documento.CriarGrupo(setor.Id, command.Titulo, command.Descricao, command.CriadoPor);
+		var grupo = Documento.CriarGrupo(DonoDeDocumento.DoSetor(setor.Id), command.Titulo, command.Descricao, command.CriadoPor);
 		grupo.Posicionar(null, ordem);
 
 		await repository.AddAsync(grupo, cancellationToken).ConfigureAwait(false);

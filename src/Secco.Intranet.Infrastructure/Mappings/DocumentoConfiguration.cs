@@ -20,7 +20,11 @@ internal sealed class DocumentoConfiguration : IEntityTypeConfiguration<Document
 			.HasOne<Setor>()
 			.WithMany()
 			.HasForeignKey(documento => documento.SetorId)
+			.IsRequired()
 			.OnDelete(DeleteBehavior.Restrict);
+
+		// A coluna da biblioteca chega com a migration da Task 2; até lá a propriedade fica fora do modelo.
+		builder.Ignore(documento => documento.BibliotecaId);
 
 		builder
 			.HasOne<Documento>()
