@@ -1,7 +1,7 @@
 # Bibliotecas de documentos — desenho do recurso
 
 **Data:** 2026-11-02
-**Estado:** aprovado
+**Estado:** aprovado, implementado (parte 3)
 **Origem:** issue #4 ("Bibliotecas de documentos"), parte 3 de 3. A parte 1 deu hierarquia e ordem
 manual ao Documentos do setor ([spec](2026-10-31-documentos-hierarquia-e-ordem-design.md)); a parte 2,
 editar documento e substituir arquivo ([spec](2026-11-01-documentos-editar-e-substituir-arquivo-design.md)).

@@ -99,7 +99,9 @@ acesso administra pessoas e perfis (ADR-0052 da plataforma).
 O client de máquina de plataforma **não carrega mais `securegate:admin`**: o secret dele deixou de
 alcançar a instalação inteira. O client do navegador também não o carrega. Sem `permissions:intranet`, o `migrate` da
 Intranet falha com `403` ao publicar o catálogo de permissões (ADR-0039 da plataforma), e o SecureGate
-passa a recusar as permissões novas dela. `logstream` e `notificationhub` só são
+passa a recusar as permissões novas dela. O catálogo publicado leva as famílias por instância
+`setor-{id}:read`/`write` e `biblioteca-{id}:read`/`write` (o `{id}` é o slug), e as de biblioteca
+entram pelo mesmo `migrate`, sem passo extra. `logstream` e `notificationhub` só são
 necessários se a Intranet usar esses serviços.
 
 O client de gestão **não** entra em `SecureGate:PlatformClients`: quem o cria é o operador da

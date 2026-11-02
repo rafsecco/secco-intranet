@@ -569,3 +569,67 @@ pedido: o admin da instalação precisa decidir a ordem do menu, que era fixa no
 - O grupo Administração continua fixo, e item extra não muda de grupo nem tem filhos.
 - A primeira parte da `Url` de um item extra não deve coincidir com o slug de um setor, porque a rota
   da RCL e a página do setor disputariam o caminho.
+
+---
+
+## ADR-0012: Bibliotecas: documentos sem setor dono
+
+**Status:** Aceita
+**Data:** 2026-11-02
+
+### Contexto
+Todo documento da Intranet pertencia a um setor. Ficavam de fora as páginas de documentos que são da
+empresa: "Manuais", "Códigos e Políticas Internas". Todos leem, escreve quem o admin delegar (a TI em
+"Manuais", o Compliance em "Políticas"), e a ordem manual e a revisão periódica são as mesmas do
+Documentos do setor. A única saída era criar um setor de mentira para hospedar a lista, com os perfis
+`{slug}-admin`/`{slug}-user`, a árvore de menu e os avisos que uma biblioteca não precisa, e com a
+escrita presa ao perfil desse setor, não ao de quem cuida dos documentos (issue #4, parte 3 de 3).
+
+### Decisão
+1. **Biblioteca é uma entidade própria** (`tb_bibliotecas`), cadastrada pelo `intranet-admin` em
+   `/bibliotecas`, com slug imutável (`[a-z0-9-]`, de 1 a 53 caracteres, porque a chave do item de
+   menu é `biblioteca-{slug}` e aceita até 64). Não se exclui: desativa e reativa, como o setor.
+2. **Todo documento tem exatamente um dono, setor ou biblioteca.** A entidade garante nos dois
+   caminhos de criação e o banco garante de novo com a check constraint `ck_documentos_dono`. O dono
+   não muda depois de criado, e a hierarquia (grupo e documento abaixo dele) não cruza donos. Os casos
+   de uso de Documentos servem os dois donos; resolver o dono e responder "não encontrado" acontece
+   num lugar só.
+3. **Permissão por biblioteca, nos perfis que já existem.** O catálogo (ADR-0039 da plataforma) ganha
+   as famílias `biblioteca-{id}:read` e `biblioteca-{id}:write`, no molde de `setor-{id}:*`
+   (ADR-0043 da plataforma), com o slug no `{id}`. A tela de qualquer perfil em `/acesso` oferece
+   "Ler" e "Alterar" por biblioteca ativa. "Alterar" inclui "Ler": o servidor acrescenta o `read` a
+   todo `write` ao salvar. O `intranet-admin` lê e escreve em todas.
+4. **Não há perfil por biblioteca.** A ADR-0001 cria `{slug}-admin`/`{slug}-user` para cada setor
+   porque setor é estrutura da empresa: tem membros, árvore de menu e avisos. Biblioteca é conteúdo.
+   A delegação é dar a biblioteca a um perfil que o admin já tem ("Todos os membros" lê, `ti-admin`
+   escreve em Manuais), e um perfil por biblioteca só multiplicaria Roles para administrar.
+5. **"Todos os membros leem" usa o `tenant-member`** (ADR-0056 da plataforma). A caixa vem marcada
+   no cadastro e, marcada, garante `biblioteca-{slug}:read` no perfil implícito, por mescla, que
+   nunca remove. Isso acontece **antes** de gravar a biblioteca, na mesma ordem da ADR-0001: uma
+   permissão órfã no SecureGate é inofensiva e repetir a operação não duplica nada, enquanto uma
+   biblioteca gravada que todos deveriam ler e ninguém lê seria pior. Se o SecureGate falhar, a
+   criação falha e nada é gravado. Desmarcada, a biblioteca só é visível ao `intranet-admin` até
+   alguém conceder leitura.
+6. **Documento de biblioteca grava a visibilidade `Setor`**, valor que ninguém lê para esse dono.
+   Quem tem leitura da biblioteca vê tudo. A escolha é a favor do fechamento: `Empresa` libera o
+   download a qualquer pessoa autenticada sem olhar o dono, e gravá-la faria uma checagem esquecida
+   abrir o arquivo para todos. Gravando `Setor`, sem setor, o esquecimento cai em "não encontrado".
+7. **O menu trata cada biblioteca ativa que a pessoa lê como item do grupo principal**, com chave
+   `biblioteca-{slug}`, ordenável em `/menu`. O prefixo `biblioteca-` fica reservado no
+   `CatalogoDeItensDoMenuPrincipal`, como `mural` e `diretorio` (ADR-0011).
+8. **Este desenho substitui o de Coleções** (spec de 2026-09-07), que nunca foi implementado.
+
+### Consequências
+- Biblioteca inexistente, inativa ou sem leitura é indistinguível: o mesmo 404 na página e no
+  download. O download continua só em `/documentos/{id}/download` (ADR-0005) e, para biblioteca,
+  exige leitura dela.
+- `bibliotecas` passa a ser slug reservado de setor, porque a lista de reservados sai das rotas
+  registradas.
+- Conceder escrita é passo manual em `/acesso`: o cadastro não escolhe quem escreve, e a tela lembra
+  disso ao criar.
+- Permissão concedida a uma biblioteca inativa se mantém e volta a valer ao reativar, e aparece como
+  "extra" em `/acesso` para que salvar o formulário não a apague sem o admin ver.
+- Avisos e vencimentos não existem em biblioteca; é só de documentos.
+- Mover documento entre donos, excluir biblioteca e trocar o slug ficam fora.
+- Mudar o dono nos casos de uso exige tocar um ponto só, mas toda checagem nova de documento precisa
+  olhar o dono, não só o setor.

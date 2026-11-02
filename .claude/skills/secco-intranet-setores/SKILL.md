@@ -55,6 +55,12 @@ para derivar. Ele ganha uma Role tenant-scoped própria (ex.: `inventario-admin`
 atribuível a qualquer usuário do tenant via `UserRole`, do mesmo jeito que qualquer
 outra Role do SecureGate — só que sem vínculo com a estrutura de setores.
 
+A **biblioteca de documentos** (ADR-0012) é o outro dono possível de um documento, no lugar do
+setor, mas com permissão **por instância**, ao contrário do Inventário: `biblioteca-{slug}:read`/
+`write` (o slug é o `{id}`), concedidas a qualquer perfil em `/acesso`, sem perfil
+`{slug}-admin`/`{slug}-user` por biblioteca. "Todos os membros leem" é a leitura dada ao
+`tenant-member`. Não confunda com setor: não há árvore de menu nem Role por biblioteca.
+
 ## Ao adicionar um novo recurso habilitável por setor
 
 Todo novo módulo que **pertence a um setor** (Documentos, Avisos, Vencimentos, Processos...)

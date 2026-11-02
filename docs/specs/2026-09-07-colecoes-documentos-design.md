@@ -1,7 +1,7 @@
 # Coleções de Documentos — desenho do recurso
 
 **Data:** 2026-09-07
-**Estado:** aprovado em chat, aguardando revisão da spec escrita
+**Estado:** substituída pela ADR-0012 e pela [spec das bibliotecas](2026-11-02-bibliotecas-de-documentos-design.md)
 
 ## Problema
 
