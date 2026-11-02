@@ -151,10 +151,10 @@ public class NavegacaoETemaTests
 
 		var administracao = menu.Grupos.Single(grupo => grupo.Titulo == "Administração").Itens;
 
-		administracao.Select(item => item.Texto).Should().Equal("Setores", "Acesso", "Menu");
-		administracao[2].Url.Should().Be("/menu");
-		administracao[2].Icone.Should().Be("bi-list-ol");
-		administracao[2].Ativo.Should().BeTrue();
+		administracao.Select(item => item.Texto).Should().Equal("Setores", "Bibliotecas", "Acesso", "Menu");
+		administracao[3].Url.Should().Be("/menu");
+		administracao[3].Icone.Should().Be("bi-list-ol");
+		administracao[3].Ativo.Should().BeTrue();
 	}
 
 	[Fact]
@@ -274,7 +274,7 @@ public class NavegacaoETemaTests
 
 		menu.Grupos.Single(grupo => grupo.Titulo is null).Itens.Should().NotContain(item => item.Texto == "Inventário");
 		menu.Grupos.Single(grupo => grupo.Titulo == "Administração").Itens.Select(item => item.Texto)
-			.Should().Equal("Setores", "Acesso", "Menu", "Inventário");
+			.Should().Equal("Setores", "Bibliotecas", "Acesso", "Menu", "Inventário");
 	}
 
 	[Fact]

@@ -2,6 +2,7 @@ using AwesomeAssertions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Secco.Intranet.Application.Bibliotecas;
 using Secco.Intranet.Application.Setores;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SharedKernel.Constants;
@@ -55,6 +56,13 @@ public class SlugsReservadosTests(IntranetWebFactory factory) : IClassFixture<In
 	[InlineData("signin-oidc")]
 	[InlineData("signout-callback-oidc")]
 	public void CaminhosForaDasRotas_ContinuamReservados(string slug) => Reservados.Contem(slug).Should().BeTrue();
+
+	[Fact]
+	public void Bibliotecas_e_slug_reservado_para_setor() => Reservados.Contem("bibliotecas").Should().BeTrue();
+
+	[Fact]
+	public void Nova_e_slug_reservado_para_biblioteca() =>
+		factory.Services.GetRequiredService<ISlugsReservadosDeBiblioteca>().Contem("nova").Should().BeTrue();
 
 	[Fact]
 	public void SlugComum_NaoEReservado() => Reservados.Contem("financeiro").Should().BeFalse();

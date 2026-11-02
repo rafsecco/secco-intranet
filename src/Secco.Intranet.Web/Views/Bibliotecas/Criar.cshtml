@@ -1,0 +1,52 @@
+@using Secco.Intranet.Web.Models.Bibliotecas
+@model BibliotecaFormViewModel
+@{
+    ViewData["Title"] = "Nova biblioteca";
+
+    var cabecalho = new PageHeaderModel(
+        "Nova biblioteca",
+        "O slug vira o endereço da biblioteca e a base das permissões dela.");
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel sc-form">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <form method="post" asp-action="Criar">
+        <div class="sc-form__field">
+            <label class="form-label" asp-for="Nome">Nome</label>
+            <input class="form-control" asp-for="Nome" autocomplete="off" />
+            <span class="text-danger" asp-validation-for="Nome"></span>
+        </div>
+
+        <div class="sc-form__field">
+            <label class="form-label" asp-for="Slug">Slug</label>
+            <input class="form-control font-monospace" asp-for="Slug" autocomplete="off" />
+            <div class="form-text">De 1 a 53 caracteres: letras minúsculas, números e hífen. Não muda depois.</div>
+            <span class="text-danger" asp-validation-for="Slug"></span>
+        </div>
+
+        <div class="sc-form__field">
+            <label class="form-label" asp-for="Icone">Ícone</label>
+            <input class="form-control font-monospace" asp-for="Icone" autocomplete="off"
+                   placeholder="bi-journal-text" />
+            <div class="form-text">
+                Classe do <a href="https://icons.getbootstrap.com/" target="_blank" rel="noopener">Bootstrap Icons</a>,
+                como <code>bi-journal-text</code>. Em branco usa o ícone padrão.
+            </div>
+            <span class="text-danger" asp-validation-for="Icone"></span>
+        </div>
+
+        <div class="form-check">
+            <input class="form-check-input" asp-for="TodosLeem" />
+            <label class="form-check-label" asp-for="TodosLeem">Todos os membros leem</label>
+            <div class="form-text">Dá a leitura a todo membro da empresa. Desmarcada, só quem receber a permissão em Acesso lê.</div>
+        </div>
+
+        <div class="sc-form__actions">
+            <button class="btn btn-primary" type="submit">Cadastrar biblioteca</button>
+            <a class="btn btn-outline-secondary" href="/bibliotecas">Cancelar</a>
+        </div>
+    </form>
+</div>

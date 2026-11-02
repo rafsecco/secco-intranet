@@ -1,0 +1,50 @@
+@using Secco.Intranet.Application.Bibliotecas
+@model IReadOnlyList<BibliotecaDto>
+@{
+    ViewData["Title"] = "Bibliotecas";
+
+    var nova = new PageActionModel("Nova biblioteca", Url.Action("Criar")!, "bi-plus-lg", Primaria: true);
+
+    var cabecalho = new PageHeaderModel(
+        "Bibliotecas",
+        "Acervos de documentos que não pertencem a um setor.",
+        Acoes: new[] { nova });
+
+    var vazio = new EmptyStateModel(
+        "bi-journal-text",
+        "Nenhuma biblioteca cadastrada",
+        "Cadastre a primeira biblioteca para reunir documentos que servem a vários setores.",
+        nova);
+
+    var badgeInativa = new BadgeModel("Inativa", BadgeVariante.Aviso);
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+@if (Model.Count == 0)
+{
+    <partial name="_EmptyState" model="vazio" />
+}
+else
+{
+    <ul class="sc-list">
+        @foreach (var biblioteca in Model)
+        {
+            <li class="sc-list__item">
+                <span class="sc-list__icon" aria-hidden="true"><i class="bi @biblioteca.Icone"></i></span>
+                <div class="sc-list__text">
+                    <p class="sc-list__title">
+                        <a class="text-reset text-decoration-none" href="/bibliotecas/@biblioteca.Id/editar">@biblioteca.Nome</a>
+                    </p>
+                    <span class="sc-list__sub">
+                        <span class="sc-meta">@biblioteca.Slug</span>
+                        @if (!biblioteca.Ativo)
+                        {
+                            <partial name="_Badge" model="badgeInativa" />
+                        }
+                    </span>
+                </div>
+            </li>
+        }
+    </ul>
+}

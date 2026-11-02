@@ -72,6 +72,7 @@ public static class IntranetNavigation
 		if (request.MostrarAdministracao)
 		{
 			administracao.Add(new NavigationItemModel("Setores", "bi-sliders", "/setores", Corresponde(caminho, "/setores")));
+			administracao.Add(new NavigationItemModel("Bibliotecas", "bi-journal-text", "/bibliotecas", Corresponde(caminho, "/bibliotecas")));
 			administracao.Add(new NavigationItemModel("Acesso", "bi-shield-lock", "/acesso", Corresponde(caminho, "/acesso")));
 			administracao.Add(new NavigationItemModel("Menu", "bi-list-ol", "/menu", Corresponde(caminho, "/menu")));
 		}
