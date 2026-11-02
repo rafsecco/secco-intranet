@@ -43,6 +43,8 @@ public class TrilhaDeAuditoriaTests
 		public Task<LogEntryAcceptedResponse> CreateLogProcessDetailAsync(Guid processId, CreateLogProcessDetailRequest body, CancellationToken cancellationToken) => throw new NotImplementedException();
 		public Task<LogEntryBatchAcceptedResponse> CreateLogProcessDetailBatchAsync(Guid processId, IEnumerable<CreateLogProcessDetailRequest> body) => throw new NotImplementedException();
 		public Task<LogEntryBatchAcceptedResponse> CreateLogProcessDetailBatchAsync(Guid processId, IEnumerable<CreateLogProcessDetailRequest> body, CancellationToken cancellationToken) => throw new NotImplementedException();
+		public Task<FileResponse> ExportAuditEntriesAsync(string format, DateTimeOffset? from, DateTimeOffset? to, string actorId, string action, string resourceType, string resourceId, Guid? correlationId, string timeZone) => throw new NotImplementedException();
+		public Task<FileResponse> ExportAuditEntriesAsync(string format, DateTimeOffset? from, DateTimeOffset? to, string actorId, string action, string resourceType, string resourceId, Guid? correlationId, string timeZone, CancellationToken cancellationToken) => throw new NotImplementedException();
 		public Task<ApiCallLogDto> GetApiCallLogAsync(Guid id) => throw new NotImplementedException();
 		public Task<ApiCallLogDto> GetApiCallLogAsync(Guid id, CancellationToken cancellationToken) => throw new NotImplementedException();
 		public Task<AuditEntryDto> GetAuditEntryAsync(Guid id) => throw new NotImplementedException();
@@ -85,6 +87,8 @@ public class TrilhaDeAuditoriaTests
 		public Task<LogEntryAcceptedResponse> CreateLogProcessDetailAsync(Guid processId, CreateLogProcessDetailRequest body, CancellationToken cancellationToken) => throw new NotImplementedException();
 		public Task<LogEntryBatchAcceptedResponse> CreateLogProcessDetailBatchAsync(Guid processId, IEnumerable<CreateLogProcessDetailRequest> body) => throw new NotImplementedException();
 		public Task<LogEntryBatchAcceptedResponse> CreateLogProcessDetailBatchAsync(Guid processId, IEnumerable<CreateLogProcessDetailRequest> body, CancellationToken cancellationToken) => throw new NotImplementedException();
+		public Task<FileResponse> ExportAuditEntriesAsync(string format, DateTimeOffset? from, DateTimeOffset? to, string actorId, string action, string resourceType, string resourceId, Guid? correlationId, string timeZone) => throw new NotImplementedException();
+		public Task<FileResponse> ExportAuditEntriesAsync(string format, DateTimeOffset? from, DateTimeOffset? to, string actorId, string action, string resourceType, string resourceId, Guid? correlationId, string timeZone, CancellationToken cancellationToken) => throw new NotImplementedException();
 		public Task<ApiCallLogDto> GetApiCallLogAsync(Guid id) => throw new NotImplementedException();
 		public Task<ApiCallLogDto> GetApiCallLogAsync(Guid id, CancellationToken cancellationToken) => throw new NotImplementedException();
 		public Task<AuditEntryDto> GetAuditEntryAsync(Guid id) => throw new NotImplementedException();
@@ -127,6 +131,8 @@ public class TrilhaDeAuditoriaTests
 		public Task<LogEntryAcceptedResponse> CreateLogProcessDetailAsync(Guid processId, CreateLogProcessDetailRequest body, CancellationToken cancellationToken) => throw new NotImplementedException();
 		public Task<LogEntryBatchAcceptedResponse> CreateLogProcessDetailBatchAsync(Guid processId, IEnumerable<CreateLogProcessDetailRequest> body) => throw new NotImplementedException();
 		public Task<LogEntryBatchAcceptedResponse> CreateLogProcessDetailBatchAsync(Guid processId, IEnumerable<CreateLogProcessDetailRequest> body, CancellationToken cancellationToken) => throw new NotImplementedException();
+		public Task<FileResponse> ExportAuditEntriesAsync(string format, DateTimeOffset? from, DateTimeOffset? to, string actorId, string action, string resourceType, string resourceId, Guid? correlationId, string timeZone) => throw new NotImplementedException();
+		public Task<FileResponse> ExportAuditEntriesAsync(string format, DateTimeOffset? from, DateTimeOffset? to, string actorId, string action, string resourceType, string resourceId, Guid? correlationId, string timeZone, CancellationToken cancellationToken) => throw new NotImplementedException();
 		public Task<ApiCallLogDto> GetApiCallLogAsync(Guid id) => throw new NotImplementedException();
 		public Task<ApiCallLogDto> GetApiCallLogAsync(Guid id, CancellationToken cancellationToken) => throw new NotImplementedException();
 		public Task<AuditEntryDto> GetAuditEntryAsync(Guid id) => throw new NotImplementedException();
