@@ -84,10 +84,29 @@ public class RenderizadorMarkdownTests
 	[InlineData("[manual](/documentos/1)", "href=\"/documentos/1\"")]
 	[InlineData("[abaixo](#prazos)", "href=\"#prazos\"")]
 	[InlineData("[relativo](anexo/regras)", "href=\"anexo/regras\"")]
-	[InlineData("![logo](https://exemplo.com/logo.png)", "src=\"https://exemplo.com/logo.png\"")]
 	[InlineData("Veja www.exemplo.com hoje.", "href=\"http://www.exemplo.com\"")]
 	public void Renderizar_ComDestinoPermitido_MantemOLink(string markdown, string atributo) =>
 		Renderizar(markdown).Should().Contain(atributo);
+
+	[Theory]
+	[InlineData("![logo](/publicacoes/1/imagem)", "src=\"/publicacoes/1/imagem\"")]
+	[InlineData("![logo](anexo/logo.png)", "src=\"anexo/logo.png\"")]
+	public void Renderizar_ImagemDaPropriaIntranet_MantemAImagem(string markdown, string atributo) =>
+		Renderizar(markdown).Should().Contain("<img").And.Contain(atributo);
+
+	// Imagem de fora não carrega: a CSP só aceita imagem da própria origem, e nenhum terceiro deve ver
+	// quem lê o Mural. Vira link, com a descrição como texto, para quem quiser abrir por conta própria.
+	[Theory]
+	[InlineData("![cartaz da festa](https://exemplo.com/cartaz.png)", "href=\"https://exemplo.com/cartaz.png\"", "cartaz da festa")]
+	[InlineData("![](http://exemplo.com/cartaz.png)", "href=\"http://exemplo.com/cartaz.png\"", "http://exemplo.com/cartaz.png")]
+	[InlineData("![cartaz](//exemplo.com/cartaz.png)", "href=\"//exemplo.com/cartaz.png\"", "cartaz")]
+	public void Renderizar_ImagemExterna_ViraLinkSemImagem(string markdown, string atributo, string texto)
+	{
+		var html = Renderizar(markdown);
+
+		html.Should().NotContain("<img", "imagem externa não carrega dentro da Intranet");
+		html.Should().Contain("<a ").And.Contain(atributo).And.Contain($">{texto}</a>");
+	}
 
 	[Theory]
 	[InlineData(null)]

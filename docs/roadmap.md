@@ -264,10 +264,11 @@ processos (maior risco técnico) só entra com a base já sólida.
       com a origem do SecureGate. Para a CSP não abrir exceção, os temas deixaram o script inline
       (`preferencias.js`) e o `style` da cor do setor (classes `sc-hue-{matiz}`); os únicos `style`
       liberados, por hash, são quatro valores exatos do editor Toast UI e do
-      `asp-validation-summary`. Começa em `Intranet:Csp:Modo=ReportOnly`
-- [ ] CSP em `Enforce` por padrão. Navegando em Enforce (2026-11-01) só sobrou bloqueada a imagem
-      externa num aviso em Markdown (`![](https://...)`, `img-src 'self' data:`); falta decidir o
-      que o Mural faz com ela e acompanhar os relatórios antes de virar o padrão
+      `asp-validation-summary`
+- [x] CSP em `Enforce` por padrão (2026-11-02; `Intranet:Csp:Modo=ReportOnly` para investigar).
+      Navegando em Enforce só sobrava bloqueada a imagem externa num aviso em Markdown: o Mural
+      passou a mostrar só imagem da própria Intranet, e `![](https://...)` vira link para o
+      endereço, com a descrição como texto
 
 ## Fase 5 — Comunidade (pós-lançamento open source)
 

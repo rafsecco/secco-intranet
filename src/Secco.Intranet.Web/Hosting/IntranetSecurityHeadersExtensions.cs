@@ -18,7 +18,7 @@ namespace Secco.Intranet.Web.Hosting;
 /// </remarks>
 public static class IntranetSecurityHeadersExtensions
 {
-	/// <summary>Modo da CSP: <c>ReportOnly</c> (padrão por enquanto) ou <c>Enforce</c>.</summary>
+	/// <summary>Modo da CSP: <c>Enforce</c> (padrão) ou <c>ReportOnly</c>, para investigar uma violação nova.</summary>
 	public const string ChaveDoModo = "Intranet:Csp:Modo";
 
 	/// <summary>Coletor externo de relatórios de violação, HTTPS. Opcional.</summary>
@@ -29,8 +29,8 @@ public static class IntranetSecurityHeadersExtensions
 		["display: none", "display: block", "display:none", "null"];
 
 	/// <summary>
-	/// Registra a política. O modo começa em <c>ReportOnly</c> até os relatórios mostrarem que nada
-	/// legítimo é bloqueado; valor desconhecido derruba a subida em vez de cair num modo por engano.
+	/// Registra a política. O padrão é <c>Enforce</c>: navegando a Intranet nesse modo (2026-11-01), nada
+	/// legítimo ficou bloqueado. Valor desconhecido derruba a subida em vez de cair num modo por engano.
 	/// </summary>
 	/// <param name="services">Coleção de serviços da aplicação.</param>
 	public static IServiceCollection AddIntranetSecurityHeaders(this IServiceCollection services)
@@ -57,7 +57,7 @@ public static class IntranetSecurityHeadersExtensions
 			var modo = configuration[ChaveDoModo];
 
 			options.Mode = string.IsNullOrWhiteSpace(modo)
-				? SeccoCspMode.ReportOnly
+				? SeccoCspMode.Enforce
 				: Enum.TryParse<SeccoCspMode>(modo, ignoreCase: true, out var lido) && Enum.IsDefined(lido)
 					? lido
 					: throw new InvalidOperationException($"{ChaveDoModo} aceita ReportOnly ou Enforce.");

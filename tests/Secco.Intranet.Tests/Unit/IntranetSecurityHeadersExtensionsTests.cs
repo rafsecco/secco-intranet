@@ -27,11 +27,11 @@ public class IntranetSecurityHeadersExtensionsTests
 	}
 
 	[Fact]
-	public void SemConfiguracao_ComecaEmReportOnlySemFormAction()
+	public void SemConfiguracao_BloqueiaSemFormAction()
 	{
 		var opcoes = Opcoes();
 
-		opcoes.Mode.Should().Be(SeccoCspMode.ReportOnly);
+		opcoes.Mode.Should().Be(SeccoCspMode.Enforce);
 		opcoes.FormActions.Should().BeEmpty("sem SecureGate HTTPS não há origem para declarar");
 		opcoes.ReportUri.Should().BeNull();
 	}

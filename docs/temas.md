@@ -199,10 +199,10 @@ para alguns valores exatos de bibliotecas de terceiros. Um tema precisa respeita
 - **Nada de `style="..."`** nas views. O que variar por item vira classe no CSS do tema.
 - Estilo aplicado **por JavaScript** (`elemento.style.x = ...`) continua permitido.
 
-Na Intranet, a política começa em modo de relato (`Intranet:Csp:Modo`, ver o
-[guia de deploy](guia-de-deploy.md)). Um tema que a desrespeite funciona até o modo virar
-`Enforce`, e aí quebra. Os testes de integração reprovam qualquer página dos temas publicados
-que emita script ou estilo inline.
+Na Intranet, a política bloqueia por padrão (`Intranet:Csp:Modo`, ver o
+[guia de deploy](guia-de-deploy.md)): um tema que a desrespeite quebra. Para investigar, o modo
+`ReportOnly` só relata as violações no console do navegador. Os testes de integração reprovam
+qualquer página dos temas publicados que emita script ou estilo inline.
 
 ## A cor do setor
 

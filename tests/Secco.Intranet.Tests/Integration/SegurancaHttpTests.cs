@@ -55,7 +55,7 @@ public partial class SegurancaHttpTests(IntranetWebFactory factory) : IClassFixt
 	}
 
 	[Fact]
-	public async Task Pagina_SaiComOsCabecalhosEACspEmReportOnlyPorPadrao()
+	public async Task Pagina_SaiComOsCabecalhosEACspBloqueandoPorPadrao()
 	{
 		var resposta = await CriarCliente().GetAsync("/Setores");
 
@@ -64,28 +64,28 @@ public partial class SegurancaHttpTests(IntranetWebFactory factory) : IClassFixt
 		resposta.Headers.GetValues("Referrer-Policy").Should().ContainSingle().Which.Should().Be("strict-origin-when-cross-origin");
 		resposta.Headers.Contains("Permissions-Policy").Should().BeTrue();
 
-		var csp = resposta.Headers.GetValues("Content-Security-Policy-Report-Only").Should().ContainSingle().Subject;
+		var csp = resposta.Headers.GetValues("Content-Security-Policy").Should().ContainSingle().Subject;
 
 		csp.Should().Contain("script-src 'self' 'nonce-");
 		csp.Should().Contain("style-src-attr 'unsafe-hashes' 'sha256-", "só os valores exatos de terceiros são liberados, pelo hash");
 		csp.Should().NotContain("'unsafe-inline'");
 		csp.Should().Contain("object-src 'none'");
-		resposta.Headers.Contains("Content-Security-Policy").Should().BeFalse("o modo padrão por enquanto é só relatar");
+		resposta.Headers.Contains("Content-Security-Policy-Report-Only").Should().BeFalse("o padrão bloqueia, não só relata");
 	}
 
 	[Fact]
-	public async Task Pagina_ComModoEnforce_BloqueiaEmVezDeRelatar()
+	public async Task Pagina_ComModoReportOnly_RelataEmVezDeBloquear()
 	{
 		var client = factory
-			.WithWebHostBuilder(builder => builder.UseSetting("Intranet:Csp:Modo", "Enforce"))
+			.WithWebHostBuilder(builder => builder.UseSetting("Intranet:Csp:Modo", "ReportOnly"))
 			.CreateClient();
 		client.DefaultRequestHeaders.Add(SeccoHeaders.TenantId, factory.TenantAlfa.ToString());
 		client.DefaultRequestHeaders.Add(RolesDeTesteMiddleware.Header, "intranet-admin");
 
 		var resposta = await client.GetAsync("/Setores");
 
-		resposta.Headers.Contains("Content-Security-Policy").Should().BeTrue();
-		resposta.Headers.Contains("Content-Security-Policy-Report-Only").Should().BeFalse();
+		resposta.Headers.Contains("Content-Security-Policy-Report-Only").Should().BeTrue();
+		resposta.Headers.Contains("Content-Security-Policy").Should().BeFalse();
 	}
 
 	[Theory]

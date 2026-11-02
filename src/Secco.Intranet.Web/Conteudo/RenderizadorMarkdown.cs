@@ -57,6 +57,10 @@ public sealed class RenderizadorMarkdown : IRenderizadorMarkdown
 			{
 				DesembrulharTexto(link);
 			}
+			else if (link.IsImage && !DaPropriaOrigem(link.Url))
+			{
+				TrocarImagemPorLink(link);
+			}
 		}
 
 		foreach (var autolink in documento.Descendants<AutolinkInline>().ToList())
@@ -80,6 +84,36 @@ public sealed class RenderizadorMarkdown : IRenderizadorMarkdown
 		link.Remove();
 	}
 
+	// Imagem de fora não carrega: a CSP só aceita imagem da própria origem, e nenhum terceiro deve ver
+	// quem lê o Mural. Vira link para o mesmo endereço, com a descrição (ou o endereço) como texto.
+	private static void TrocarImagemPorLink(LinkInline imagem)
+	{
+		imagem.IsImage = false;
+
+		if (imagem.FirstChild is null)
+		{
+			imagem.AppendChild(new LiteralInline(imagem.Url ?? string.Empty));
+		}
+	}
+
+	/// <summary>
+	/// Caminho relativo à própria Intranet: sem esquema e sem começar por duas barras, que o
+	/// navegador lê como outro host (<c>//exemplo.com</c>, inclusive com <c>\</c> no lugar de <c>/</c>).
+	/// </summary>
+	private static bool DaPropriaOrigem(string? url)
+	{
+		var normalizado = Normalizar(url);
+
+		if (normalizado.Length >= 2 && normalizado[0] is '/' or '\\' && normalizado[1] is '/' or '\\')
+		{
+			return false;
+		}
+
+		var fimDoEsquema = normalizado.IndexOfAny([':', '/', '?', '#']);
+
+		return fimDoEsquema < 0 || normalizado[fimDoEsquema] != ':';
+	}
+
 	/// <summary>
 	/// Relativo (sem esquema) ou com esquema da lista. O navegador ignora espaço e caractere de
 	/// controle dentro do esquema (<c>java&#9;script:</c> executa), então eles saem antes de ler.
@@ -91,11 +125,14 @@ public sealed class RenderizadorMarkdown : IRenderizadorMarkdown
 			return true;
 		}
 
-		var normalizado = new string([.. url.Where(caractere => !char.IsWhiteSpace(caractere) && !char.IsControl(caractere))]);
+		var normalizado = Normalizar(url);
 		var fimDoEsquema = normalizado.IndexOfAny([':', '/', '?', '#']);
 
 		return fimDoEsquema < 0
 			|| normalizado[fimDoEsquema] != ':'
 			|| EsquemasPermitidos.Contains(normalizado[..fimDoEsquema]);
 	}
+
+	private static string Normalizar(string? url) =>
+		new([.. (url ?? string.Empty).Where(caractere => !char.IsWhiteSpace(caractere) && !char.IsControl(caractere))]);
 }
