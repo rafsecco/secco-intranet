@@ -631,24 +631,25 @@ public sealed class SetorController(
 	private static string Trilho(SetorDto setor, ResultadoDaResolucao resolucao) =>
 		AcessoAoRecursoDoSetor.Trilho(setor, resolucao);
 
-	private async Task<SetorDocumentosViewModel> MontarDocumentosAsync(
+	private static DonoDaPaginaDeDocumentos Dono(SetorDto setor) =>
+		new(setor.Nome, setor.Slug, setor.Icone, MostraVisibilidade: true);
+
+	private async Task<DocumentosViewModel> MontarDocumentosAsync(
 		SetorDto setor, ResultadoDaResolucao resolucao, DocumentoFormViewModel form, CancellationToken cancellationToken)
 	{
 		var documentos = await listarHandler
 			.HandleAsync(new ListarDocumentosQuery(ReferenciaDeDono.DoSetor(setor.Slug)), cancellationToken)
 			.ConfigureAwait(false);
 
-		IReadOnlyList<NoDeDocumentoDto> nos = documentos.IsSuccess ? documentos.Value : [];
-
-		return new SetorDocumentosViewModel(
-			setor,
-			ListaDeDocumentosFactory.Montar(nos, id => Url.Action("Download", "Documentos", new { id })!),
+		return DocumentosViewModel.Montar(
+			Dono(setor),
+			documentos.IsSuccess ? documentos.Value : [],
+			id => Url.Action("Download", "Documentos", new { id })!,
 			await PodePublicarAsync(setor.Slug, cancellationToken).ConfigureAwait(false),
 			form,
 			documentoOptions.TamanhoMaximoBytes,
 			resolucao.No.Nome,
-			Trilho(setor, resolucao),
-			[.. nos.Select(no => new OpcaoAbaixoDe(no.Documento.Id, no.Documento.Titulo))]);
+			Trilho(setor, resolucao));
 	}
 
 	/// <summary>Setor e item de Documentos, só para quem escreve; quem não pode recebe o mesmo que setor inexistente.</summary>
@@ -661,7 +662,7 @@ public sealed class SetorController(
 	private EditarDocumentoViewModel MontarEdicao(
 		SetorDto setor, ResultadoDaResolucao resolucao, Guid id, bool ehGrupo, string? nomeArquivo,
 		EditarDocumentoFormViewModel form) =>
-		new(setor, id, ehGrupo, nomeArquivo, form, Url.Action(nameof(Organizar), new { slug = setor.Slug })!);
+		new(Dono(setor), id, ehGrupo, nomeArquivo, form, Url.Action(nameof(Organizar), new { slug = setor.Slug })!);
 
 	private async Task<OrganizarDocumentosViewModel> MontarOrganizarAsync(
 		SetorDto setor, ResultadoDaResolucao resolucao, GrupoFormViewModel form, CancellationToken cancellationToken)
@@ -673,7 +674,7 @@ public sealed class SetorController(
 		IReadOnlyList<NoDeDocumentoDto> nos = documentos.IsSuccess ? documentos.Value : [];
 
 		return new OrganizarDocumentosViewModel(
-			setor,
+			Dono(setor),
 			resolucao.No.Nome,
 			Trilho(setor, resolucao),
 			Url.Action(nameof(Resolver), new { slug = setor.Slug, caminho = string.Join('/', resolucao.CaminhoCompleto) })!,

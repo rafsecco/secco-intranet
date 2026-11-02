@@ -2,12 +2,12 @@
 @using Secco.Intranet.Web.Models.Documentos
 @model EditarDocumentoViewModel
 @{
-	ViewData["Title"] = $"Editar · {Model.Form.Titulo} · {Model.Setor.Nome}";
+	ViewData["Title"] = $"Editar · {Model.Form.Titulo} · {Model.Dono.Nome}";
 
 	var cabecalho = new PageHeaderModel(
 		Model.EhGrupo ? "Editar grupo" : "Editar documento",
 		"Altere os dados" + (Model.EhGrupo ? string.Empty : " ou troque o arquivo") + ". A posição na lista não muda.",
-		Model.Setor.Slug,
+		Model.Dono.Slug,
 		new[] { new PageActionModel("Voltar", Model.UrlDeVolta, "bi-arrow-left") });
 }
 
@@ -16,7 +16,7 @@
 <div class="sc-panel mb-3">
 	<div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
 
-	<form method="post" asp-action="EditarDocumento" asp-route-slug="@Model.Setor.Slug" asp-route-id="@Model.Id" enctype="multipart/form-data">
+	<form method="post" asp-action="EditarDocumento" asp-route-slug="@Model.Dono.Slug" asp-route-id="@Model.Id" enctype="multipart/form-data">
 		<div class="row g-3">
 			<div class="col-md-6">
 				<label class="form-label" asp-for="Form.Titulo">Título</label>
@@ -31,13 +31,16 @@
 
 			@if (!Model.EhGrupo)
 			{
-				<div class="col-md-6">
-					<label class="form-label" asp-for="Form.Visibilidade">Quem pode ver</label>
-					<select class="form-select" asp-for="Form.Visibilidade">
-						<option value="@((int)Visibilidade.Setor)">Somente este setor</option>
-						<option value="@((int)Visibilidade.Empresa)">Toda a empresa</option>
-					</select>
-				</div>
+				@if (Model.Dono.MostraVisibilidade)
+				{
+					<div class="col-md-6">
+						<label class="form-label" asp-for="Form.Visibilidade">Quem pode ver</label>
+						<select class="form-select" asp-for="Form.Visibilidade">
+							<option value="@((int)Visibilidade.Setor)">Somente este setor</option>
+							<option value="@((int)Visibilidade.Empresa)">Toda a empresa</option>
+						</select>
+					</div>
+				}
 
 				<div class="col-md-6">
 					<label class="form-label" for="arquivo">Novo arquivo</label>

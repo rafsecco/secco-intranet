@@ -17,13 +17,15 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="environment">Ambiente de hospedagem — o modo aberto só vale em Development (ADR-0020).</param>
 /// <param name="searchSetores">Busca de setores, para saber o universo de slugs a checar.</param>
 /// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura (ADR-0021).</param>
+/// <param name="acessoABiblioteca">Em quais bibliotecas o usuário tem leitura.</param>
 [Route("documentos")]
 public sealed class DocumentosController(
 	BaixarDocumentoHandler handler,
 	IConfiguration configuration,
 	IWebHostEnvironment environment,
 	SearchSetoresHandler searchSetores,
-	IPermissoesDeSetor permissoesDeSetor) : Controller
+	IPermissoesDeSetor permissoesDeSetor,
+	AcessoABiblioteca acessoABiblioteca) : Controller
 {
 	private const int LimiteSetoresConsultados = 200;
 
@@ -91,7 +93,9 @@ public sealed class DocumentosController(
 			.SlugsComPermissaoAsync(User, "read", slugs, cancellationToken)
 			.ConfigureAwait(false);
 
-		// As bibliotecas entram neste conjunto na Task 6.
-		return comLeitura.Select(ReferenciaDeDono.DoSetor).ToHashSet();
+		var donos = comLeitura.Select(ReferenciaDeDono.DoSetor).ToHashSet();
+		donos.UnionWith(await acessoABiblioteca.DonosComLeituraAsync(User, cancellationToken).ConfigureAwait(false));
+
+		return donos;
 	}
 }

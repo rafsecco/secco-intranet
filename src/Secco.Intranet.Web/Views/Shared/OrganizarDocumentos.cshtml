@@ -2,21 +2,21 @@
 @using Secco.Intranet.Web.Models.Documentos
 @model OrganizarDocumentosViewModel
 @{
-    ViewData["Title"] = $"Organizar · {Model.Titulo} · {Model.Setor.Nome}";
+    ViewData["Title"] = $"Organizar · {Model.Titulo} · {Model.Dono.Nome}";
 
     var cabecalho = new PageHeaderModel(
         $"Organizar {Model.Titulo}",
         "Mude a ordem dos documentos, recue um item para dentro do anterior ou arquive. Só existe um nível abaixo da raiz, e grupo não vira filho.",
-        Model.Setor.Slug,
+        Model.Dono.Slug,
         new[] { new PageActionModel("Voltar", Model.UrlDaPagina, "bi-arrow-left") });
 
     var vazio = new EmptyStateModel(
         "bi-folder2-open",
-        "Nenhum documento neste setor",
+        "Nenhum documento por aqui",
         "Publique um documento na página ou crie um grupo no formulário abaixo.");
 
     Func<object?, Microsoft.AspNetCore.Html.IHtmlContent> botao(Guid id, MovimentoDeDocumento acao, string rotulo, string simbolo, string titulo, bool habilitado) =>
-        @<form method="post" asp-action="MoverDocumento" asp-route-slug="@Model.Setor.Slug" asp-route-id="@id" class="d-inline">
+        @<form method="post" asp-action="MoverDocumento" asp-route-slug="@Model.Dono.Slug" asp-route-id="@id" class="d-inline">
             <input type="hidden" name="acao" value="@((int)acao)" />
             <button class="btn btn-sm btn-outline-secondary" type="submit" aria-label="@rotulo @titulo" title="@rotulo" disabled="@(!habilitado)">@simbolo</button>
         </form>;
@@ -36,8 +36,8 @@
                             @botao(linha.Id, MovimentoDeDocumento.Descer, "Descer", "↓", linha.Titulo, linha.PodeDescer)(null)
                             @botao(linha.Id, MovimentoDeDocumento.Recuar, "Recuar", "→", linha.Titulo, linha.PodeRecuar)(null)
                             @botao(linha.Id, MovimentoDeDocumento.Desrecuar, "Desrecuar", "←", linha.Titulo, linha.PodeDesrecuar)(null)
-                            <a class="btn btn-sm btn-outline-secondary" asp-action="EditarDocumento" asp-route-slug="@Model.Setor.Slug" asp-route-id="@linha.Id" aria-label="Editar @linha.Titulo">Editar</a>
-                            <form method="post" asp-action="Arquivar" asp-route-slug="@Model.Setor.Slug" asp-route-id="@linha.Id" class="d-inline"
+                            <a class="btn btn-sm btn-outline-secondary" asp-action="EditarDocumento" asp-route-slug="@Model.Dono.Slug" asp-route-id="@linha.Id" aria-label="Editar @linha.Titulo">Editar</a>
+                            <form method="post" asp-action="Arquivar" asp-route-slug="@Model.Dono.Slug" asp-route-id="@linha.Id" class="d-inline"
                                   data-confirmar="Arquivar &quot;@linha.Titulo&quot;? O documento sai da lista, mas o registro e o arquivo são preservados.">
                                 <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Arquivar @linha.Titulo" disabled="@(!linha.PodeArquivar)">Arquivar</button>
                             </form>
@@ -51,7 +51,7 @@
     Func<object?, Microsoft.AspNetCore.Html.IHtmlContent> novoGrupo = @<text>
         <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
 
-        <form method="post" asp-action="CriarGrupo" asp-route-slug="@Model.Setor.Slug">
+        <form method="post" asp-action="CriarGrupo" asp-route-slug="@Model.Dono.Slug">
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label" asp-for="Form.Titulo">Título</label>

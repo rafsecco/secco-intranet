@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using Secco.Intranet.Application.Documentos;
-using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Documentos;
 
 namespace Secco.Intranet.Web.Models.Documentos;
@@ -39,15 +38,15 @@ public sealed record LinhaDeOrganizacao(
 	bool PodeDesrecuar,
 	bool PodeArquivar);
 
-/// <summary>Tela de organizar os documentos de um setor.</summary>
-/// <param name="Setor">Setor da página.</param>
+/// <summary>Tela de organizar os documentos de um setor ou biblioteca.</summary>
+/// <param name="Dono">Setor ou biblioteca da página.</param>
 /// <param name="Titulo">Nome do item da árvore de menu que abriu a página de documentos.</param>
 /// <param name="Trilho">Setor e ancestrais do item, para o subtítulo.</param>
 /// <param name="UrlDaPagina">Endereço da página de leitura, para o "Voltar".</param>
 /// <param name="Linhas">Itens ativos na ordem da árvore: cada item da raiz seguido dos filhos.</param>
 /// <param name="Form">Dados do formulário "Novo grupo".</param>
 public sealed record OrganizarDocumentosViewModel(
-	SetorDto Setor,
+	DonoDaPaginaDeDocumentos Dono,
 	string Titulo,
 	string Trilho,
 	string UrlDaPagina,
