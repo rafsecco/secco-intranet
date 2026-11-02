@@ -159,7 +159,10 @@ A tela de **todo perfil**, inclusive o implícito "Todos os membros" (`tenant-me
 plataforma), ganha a seção **"Bibliotecas"**:
 
 - Uma linha por biblioteca **ativa**, em ordem de nome, com duas caixas: "Ler" e "Alterar".
-- Marcar "Alterar" marca "Ler" também. Desmarcar "Ler" desmarca "Alterar". *(minha decisão)*
+- **"Alterar" inclui "Ler".** Ao salvar, o caso de uso acrescenta `biblioteca-{slug}:read` a todo
+  `biblioteca-{slug}:write` da lista. O rótulo diz isso: "Alterar (inclui ler)". A regra fica no
+  servidor, e não em script, porque a tela de Acesso não carrega script próprio e a CSP não aceita
+  script inline. *(minha decisão)*
 - Salvar usa o mesmo envio de hoje (`EditarPermissoes`, que define a lista inteira do perfil).
 - Permissão de biblioteca inativa que o perfil já tem continua aparecendo como "extra", pela regra
   que a tela já tem para permissão fora do catálogo. Assim, salvar o formulário não a apaga sem o
