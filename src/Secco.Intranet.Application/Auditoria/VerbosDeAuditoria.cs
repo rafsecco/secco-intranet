@@ -42,6 +42,18 @@ public static class VerbosDeAuditoria
 	/// <summary>Setor voltou a ativo.</summary>
 	public const string SetorReativar = "setor.reativar";
 
+	/// <summary>Biblioteca de documentos criada.</summary>
+	public const string BibliotecaCriar = "biblioteca.criar";
+
+	/// <summary>Nome ou ícone da biblioteca alterados.</summary>
+	public const string BibliotecaEditar = "biblioteca.editar";
+
+	/// <summary>Biblioteca passou a inativa — some para quem lê.</summary>
+	public const string BibliotecaDesativar = "biblioteca.desativar";
+
+	/// <summary>Biblioteca voltou a ativa.</summary>
+	public const string BibliotecaReativar = "biblioteca.reativar";
+
 	/// <summary>Item criado na árvore de menu de um setor.</summary>
 	public const string MenuItemCriar = "menu.item-criar";
 
@@ -147,6 +159,9 @@ public static class RecursosDeAuditoria
 
 	/// <summary>Setor.</summary>
 	public const string Setor = "setor";
+
+	/// <summary>Biblioteca de documentos.</summary>
+	public const string Biblioteca = "biblioteca";
 
 	/// <summary>Item da árvore de menu de um setor.</summary>
 	public const string Menu = "menu";

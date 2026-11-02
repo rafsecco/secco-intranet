@@ -34,6 +34,24 @@ public static class IntranetPermissoes
 		public const string ReadGlobal = "setores:read";
 	}
 
+	/// <summary>Permissões de biblioteca de documentos — só por slug, publicadas como famílias.</summary>
+	public static class Biblioteca
+	{
+		/// <summary>Família da leitura por biblioteca (ADR-0043 da plataforma).</summary>
+		public const string FamiliaRead = "biblioteca-{id}:read";
+
+		/// <summary>Família da escrita por biblioteca (ver <see cref="FamiliaRead"/>).</summary>
+		public const string FamiliaWrite = "biblioteca-{id}:write";
+
+		/// <summary>Permissão de leitura de uma biblioteca específica.</summary>
+		/// <param name="slug">Slug da biblioteca, já normalizado (minúsculo).</param>
+		public static string Read(string slug) => SeccoPermissions.FromFamily(FamiliaRead, slug);
+
+		/// <summary>Permissão de escrita de uma biblioteca específica.</summary>
+		/// <param name="slug">Slug da biblioteca, já normalizado (minúsculo).</param>
+		public static string Write(string slug) => SeccoPermissions.FromFamily(FamiliaWrite, slug);
+	}
+
 	/// <summary>Permissões do Diretório organizacional — nomes já fixados na spec de 2026-09-24.</summary>
 	public static class Diretorio
 	{
@@ -68,6 +86,8 @@ public static class IntranetPermissoes
 		new(Inventario.Read, "Consultar o inventário"),
 		new(Setor.FamiliaRead, "Ler um setor específico"),
 		new(Setor.FamiliaWrite, "Alterar um setor específico: publicações, documentos, vencimentos e menu"),
+		new(Biblioteca.FamiliaRead, "Ler uma biblioteca de documentos específica"),
+		new(Biblioteca.FamiliaWrite, "Alterar uma biblioteca de documentos específica: publicar, organizar, editar e arquivar"),
 	];
 
 	/// <summary>

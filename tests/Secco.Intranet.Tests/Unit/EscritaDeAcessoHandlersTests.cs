@@ -445,4 +445,29 @@ public class EscritaDeAcessoHandlersTests
 		resultado.Error.Should().Be(IntranetErrors.Acesso.PermissaoInvalida);
 		gestao.Chamadas.Should().BeEmpty();
 	}
+
+	[Fact]
+	public async Task EditarPermissoesDoPerfil_acrescenta_read_a_todo_write_de_biblioteca()
+	{
+		var gestao = Cenario();
+
+		var resultado = await new EditarPermissoesDoPerfilHandler(gestao, new TrilhaDeAcessoFalsa())
+			.HandleAsync("marketing-admin", ["biblioteca-manuais:write"]);
+
+		resultado.IsSuccess.Should().BeTrue();
+		gestao.Chamadas.Should().Contain("permissoes-definir:marketing-admin:biblioteca-manuais:write,biblioteca-manuais:read");
+	}
+
+	[Fact]
+	public async Task EditarPermissoesDoPerfil_nao_duplica_read_ja_presente_nem_toca_outras_permissoes()
+	{
+		var gestao = Cenario();
+
+		var resultado = await new EditarPermissoesDoPerfilHandler(gestao, new TrilhaDeAcessoFalsa())
+			.HandleAsync("marketing-admin", ["setor-marketing:write", "biblioteca-manuais:read", "biblioteca-manuais:write"]);
+
+		resultado.IsSuccess.Should().BeTrue();
+		gestao.Chamadas.Should().Contain(
+			"permissoes-definir:marketing-admin:setor-marketing:write,biblioteca-manuais:read,biblioteca-manuais:write");
+	}
 }

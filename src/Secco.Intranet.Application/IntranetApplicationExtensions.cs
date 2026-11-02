@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Secco.Intranet.Application.Acesso;
+using Secco.Intranet.Application.Bibliotecas;
 using Secco.Intranet.Application.Diretorio;
 using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Inventario;
@@ -28,6 +29,11 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<GetSetorByIdHandler>();
 		services.AddScoped<GetSetorBySlugHandler>();
 		services.AddScoped<SearchSetoresHandler>();
+
+		services.AddScoped<CriarBibliotecaHandler>();
+		services.AddScoped<EditarBibliotecaHandler>();
+		services.AddScoped<ListarBibliotecasHandler>();
+		services.AddScoped<ObterBibliotecaPorSlugHandler>();
 
 		services.AddScoped<ResolvedorDeDono>();
 		services.AddScoped<PublicarDocumentoHandler>();

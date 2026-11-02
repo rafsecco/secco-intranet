@@ -1,5 +1,6 @@
 ﻿using Secco.Intranet.Application;
 using Secco.Intranet.Application.Auditoria;
+using Secco.Intranet.Application.Bibliotecas;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Infrastructure;
 using Secco.Intranet.Web;
@@ -30,6 +31,7 @@ builder.Services.AddControllersWithViews();
 // A página do setor mora na raiz (/{slug}/…): a restrição recusa os slugs reservados, que vêm
 // das rotas registradas — uma RCL referenciada reserva os dela sem editar o core.
 builder.Services.AddSingleton<ISlugsReservados, SlugsReservadosDasRotas>();
+builder.Services.AddSingleton<ISlugsReservadosDeBiblioteca, SlugsReservadosDeBibliotecaDasRotas>();
 builder.Services.Configure<RouteOptions>(opcoes =>
 	opcoes.ConstraintMap[SlugDeSetorRouteConstraint.Nome] = typeof(SlugDeSetorRouteConstraint));
 

@@ -11,6 +11,38 @@ public static class IntranetErrors
 		/// <summary>Registro não encontrado, inativo ou fora do alcance do usuário (404 indistinto, ADR-0005).</summary>
 		public static readonly Error NotFound =
 			Error.NotFound("Intranet.Biblioteca.NotFound", "Biblioteca não encontrada.");
+
+		/// <summary>Nome ausente ou vazio.</summary>
+		public static readonly Error NomeRequired =
+			Error.Validation("Intranet.Biblioteca.NomeRequired", "O nome é obrigatório.");
+
+		/// <summary>Nome acima do limite configurado.</summary>
+		public static Error NomeTooLong(int limit) =>
+			Error.Validation("Intranet.Biblioteca.NomeTooLong", $"O nome excede o limite de {limit} caracteres.");
+
+		/// <summary>Slug ausente ou vazio.</summary>
+		public static readonly Error SlugRequired =
+			Error.Validation("Intranet.Biblioteca.SlugRequired", "O slug é obrigatório.");
+
+		/// <summary>Slug fora do formato: de 1 a 53 caracteres entre a-z, 0-9 e hífen.</summary>
+		public static readonly Error SlugInvalido =
+			Error.Validation(
+				"Intranet.Biblioteca.SlugInvalido",
+				"O slug deve ter de 1 a 53 caracteres, só com letras minúsculas, números e hífen.");
+
+		/// <summary>Já existe uma biblioteca com esse slug no tenant atual.</summary>
+		public static Error SlugAlreadyExists(string slug) =>
+			Error.Conflict("Intranet.Biblioteca.SlugAlreadyExists", $"Já existe uma biblioteca com o slug '{slug}'.");
+
+		/// <summary>Slug que colide com uma rota fixa de <c>/bibliotecas</c>.</summary>
+		public static Error SlugReservado(string slug) =>
+			Error.Validation("Intranet.Biblioteca.SlugReservado", $"O slug '{slug}' é usado pelo próprio sistema. Escolha outro.");
+
+		/// <summary>Ícone fora do formato do Bootstrap Icons.</summary>
+		public static readonly Error IconeInvalido =
+			Error.Validation(
+				"Intranet.Biblioteca.IconeInvalido",
+				"O ícone precisa ser uma classe do Bootstrap Icons, como 'bi-journal-text'.");
 	}
 
 	/// <summary>Erros do recurso Setor.</summary>

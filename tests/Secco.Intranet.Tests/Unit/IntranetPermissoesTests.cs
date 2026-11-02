@@ -109,4 +109,18 @@ public class IntranetPermissoesTests
 		SeccoPermissions.MatchesFamily(IntranetPermissoes.Setor.FamiliaRead, IntranetPermissoes.Setor.Read(slug)).Should().BeTrue();
 		SeccoPermissions.MatchesFamily(IntranetPermissoes.Setor.FamiliaWrite, IntranetPermissoes.Setor.Write(slug)).Should().BeTrue();
 	}
+
+	[Fact]
+	public void Biblioteca_ReadEWrite_ComponhamEEstaoNoCatalogoComDescricao()
+	{
+		IntranetPermissoes.Biblioteca.Read("manuais").Should().Be("biblioteca-manuais:read");
+		IntranetPermissoes.Biblioteca.Write("manuais").Should().Be("biblioteca-manuais:write");
+
+		IntranetPermissoes.Catalog.Should().Contain(p =>
+			p.Name == "biblioteca-{id}:read" && p.Description == "Ler uma biblioteca de documentos específica");
+		IntranetPermissoes.Catalog.Should().Contain(p =>
+			p.Name == "biblioteca-{id}:write"
+			&& p.Description == "Alterar uma biblioteca de documentos específica: publicar, organizar, editar e arquivar");
+		IntranetPermissoes.Catalogo.Should().NotContain(nome => nome.StartsWith("biblioteca-", StringComparison.Ordinal));
+	}
 }
