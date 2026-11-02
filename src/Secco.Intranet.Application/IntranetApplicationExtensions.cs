@@ -29,6 +29,7 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<GetSetorBySlugHandler>();
 		services.AddScoped<SearchSetoresHandler>();
 
+		services.AddScoped<ResolvedorDeDono>();
 		services.AddScoped<PublicarDocumentoHandler>();
 		services.AddScoped<CriarGrupoDeDocumentosHandler>();
 		services.AddScoped<ListarDocumentosHandler>();

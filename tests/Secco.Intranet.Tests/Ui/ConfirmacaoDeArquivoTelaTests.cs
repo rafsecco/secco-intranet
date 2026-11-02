@@ -123,7 +123,7 @@ public sealed class ConfirmacaoDeArquivoFixture : IAsyncLifetime
 		using var escopo = _fabrica.Services.CreateScope();
 		escopo.ServiceProvider.SetTenant(_fabrica.TenantAlfa);
 		var nos = await escopo.ServiceProvider.GetRequiredService<ListarDocumentosHandler>()
-			.HandleAsync(new ListarDocumentosQuery(Slug), CancellationToken.None);
+			.HandleAsync(new ListarDocumentosQuery(ReferenciaDeDono.DoSetor(Slug)), CancellationToken.None);
 		DocumentoId = nos.Value.Select(no => no.Documento).Single(d => d.Titulo == "Manual").Id;
 	}
 

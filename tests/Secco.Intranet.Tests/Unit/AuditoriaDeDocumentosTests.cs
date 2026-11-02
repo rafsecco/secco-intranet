@@ -30,23 +30,23 @@ public class AuditoriaDeDocumentosTests
 		}
 	}
 
-	private sealed class RepositorioFalso(DocumentoComSetor? resultado) : IDocumentoRepository
+	private sealed class RepositorioFalso(DocumentoComDono? resultado) : IDocumentoRepository
 	{
 		public Task AddAsync(Documento documento, CancellationToken cancellationToken = default) =>
 			Task.CompletedTask;
 
 		public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
-		public Task<DocumentoComSetor?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+		public Task<DocumentoComDono?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
 			Task.FromResult(resultado);
 
-		public Task<IReadOnlyList<DocumentoDto>> ListarPorSetorAsync(
-			string setorSlug,
+		public Task<IReadOnlyList<DocumentoDto>> ListarPorDonoAsync(
+			ReferenciaDeDono dono,
 			CancellationToken cancellationToken = default) =>
 			Task.FromResult<IReadOnlyList<DocumentoDto>>([]);
 
 		public Task<IReadOnlyList<Documento>> ListarIrmaosAsync(
-			Guid setorId,
+			DonoDeDocumento dono,
 			Guid? parentId,
 			CancellationToken cancellationToken = default) =>
 			Task.FromResult<IReadOnlyList<Documento>>([]);
@@ -55,7 +55,7 @@ public class AuditoriaDeDocumentosTests
 			Task.FromResult(false);
 	}
 
-	private static DocumentoComSetor Existente()
+	private static DocumentoComDono Existente()
 	{
 		var documento = new Documento(
 			DonoDeDocumento.DoSetor(Guid.NewGuid()),
@@ -69,11 +69,11 @@ public class AuditoriaDeDocumentosTests
 			"secco-enc:v1:x",
 			"quem.publicou");
 
-		return new DocumentoComSetor(documento, "Financeiro", "financeiro");
+		return new DocumentoComDono(documento, ReferenciaDeDono.DoSetor("financeiro"), "Financeiro", true);
 	}
 
-	private static HashSet<string> Setores(params string[] slugs) =>
-		new(slugs, StringComparer.OrdinalIgnoreCase);
+	private static HashSet<ReferenciaDeDono> Setores(params string[] slugs) =>
+		[.. slugs.Select(ReferenciaDeDono.DoSetor)];
 
 	private sealed class SetorRepositorioFalso(Setor setor) : ISetorRepository
 	{
@@ -234,7 +234,7 @@ public class AuditoriaDeDocumentosTests
 		var setor = new Setor("Financeiro", "financeiro");
 		var handler = new PublicarDocumentoHandler(
 			new RepositorioFalso(resultado: null),
-			new SetorRepositorioFalso(setor),
+			new ResolvedorDeDono(new SetorRepositorioFalso(setor), new Support.BibliotecaRepositorioFalso()),
 			new StoreFalso(),
 			new DocumentoOptions(),
 			new IntranetOptions(),
@@ -245,7 +245,7 @@ public class AuditoriaDeDocumentosTests
 		using var conteudo = new MemoryStream([0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34]);
 
 		var resultado = await handler.HandleAsync(new PublicarDocumentoCommand(
-			"financeiro",
+			ReferenciaDeDono.DoSetor("financeiro"),
 			"Política interna",
 			null,
 			"politica.pdf",

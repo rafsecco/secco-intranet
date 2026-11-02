@@ -1,14 +1,12 @@
-using System.Text.Json;
 using Secco.Intranet.Application.Auditoria;
-using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain;
 using Secco.Intranet.Domain.Documentos;
 using Secco.SharedKernel.Results;
 
 namespace Secco.Intranet.Application.Documentos;
 
-/// <summary>Comando de publicação de um documento em um setor.</summary>
-/// <param name="SetorSlug">Slug do setor dono.</param>
+/// <summary>Comando de publicação de um documento em um setor ou numa biblioteca.</summary>
+/// <param name="Dono">Referência ao dono: setor ou biblioteca.</param>
 /// <param name="Titulo">Título de exibição.</param>
 /// <param name="Descricao">Descrição livre. Opcional.</param>
 /// <param name="NomeArquivo">Nome original do arquivo enviado.</param>
@@ -18,7 +16,7 @@ namespace Secco.Intranet.Application.Documentos;
 /// <param name="CriadoPor">Identificação de quem publica.</param>
 /// <param name="ParentId">Item da raiz sob o qual publicar; <c>null</c> publica na raiz.</param>
 public sealed record PublicarDocumentoCommand(
-	string? SetorSlug,
+	ReferenciaDeDono? Dono,
 	string? Titulo,
 	string? Descricao,
 	string? NomeArquivo,
@@ -29,18 +27,18 @@ public sealed record PublicarDocumentoCommand(
 	Guid? ParentId = null);
 
 /// <summary>
-/// Caso de uso de publicação: valida o setor e o arquivo, grava o conteúdo cifrado e só
+/// Caso de uso de publicação: valida o dono e o arquivo, grava o conteúdo cifrado e só
 /// então persiste os metadados. Erros de negócio fluem por <see cref="Result{T}"/> (ADR-0004).
 /// </summary>
 /// <param name="repository">Persistência de documentos.</param>
-/// <param name="setorRepository">Consulta de setores.</param>
+/// <param name="resolvedor">Resolução do dono (setor ou biblioteca).</param>
 /// <param name="store">Armazenamento de arquivos.</param>
 /// <param name="options">Limites de upload.</param>
 /// <param name="limites">Limites gerais de entrada do produto.</param>
 /// <param name="trilha">Trilha de auditoria.</param>
 public sealed class PublicarDocumentoHandler(
 	IDocumentoRepository repository,
-	ISetorRepository setorRepository,
+	ResolvedorDeDono resolvedor,
 	IArquivoStore store,
 	DocumentoOptions options,
 	IntranetOptions limites,
@@ -65,16 +63,11 @@ public sealed class PublicarDocumentoHandler(
 			return IntranetErrors.Documentos.TituloTooLong(limites.MaxNameLength);
 		}
 
-		if (string.IsNullOrWhiteSpace(command.SetorSlug))
-		{
-			return IntranetErrors.Setores.NotFound;
-		}
+		var dono = await resolvedor.ResolverAsync(command.Dono, cancellationToken).ConfigureAwait(false);
 
-		var setor = await setorRepository.GetBySlugAsync(command.SetorSlug, cancellationToken).ConfigureAwait(false);
-
-		if (setor is null || !setor.Ativo)
+		if (dono is null)
 		{
-			return IntranetErrors.Setores.NotFound;
+			return ResolvedorDeDono.NaoEncontrado(command.Dono);
 		}
 
 		if (command.Tamanho <= 0)
@@ -101,7 +94,7 @@ public sealed class PublicarDocumentoHandler(
 		{
 			var pai = await repository.GetByIdAsync(parentId, cancellationToken).ConfigureAwait(false);
 
-			if (!PosicaoDeDocumentos.PodeSerPai(pai, setor.Slug))
+			if (!PosicaoDeDocumentos.PodeSerPai(pai, dono.Referencia))
 			{
 				return IntranetErrors.Documentos.ParentInvalido;
 			}
@@ -114,17 +107,18 @@ public sealed class PublicarDocumentoHandler(
 		var gravado = await store.GravarAsync(command.Conteudo, cancellationToken).ConfigureAwait(false);
 
 		var ordem = await PosicaoDeDocumentos
-			.AbrirLugarAsync(repository, setor.Id, command.ParentId, cancellationToken)
+			.AbrirLugarAsync(repository, dono.Dono, command.ParentId, cancellationToken)
 			.ConfigureAwait(false);
 
 		var documento = new Documento(
-			DonoDeDocumento.DoSetor(setor.Id),
+			dono.Dono,
 			command.Titulo,
 			command.Descricao,
 			TiposDeArquivo.NomeSemCaminho(command.NomeArquivo!),
 			contentType,
 			gravado.Tamanho,
-			command.Visibilidade,
+			// Documento de biblioteca grava sempre Setor: a visibilidade só existe para o setor.
+			dono.Referencia.Tipo == TipoDeDono.Biblioteca ? Visibilidade.Setor : command.Visibilidade,
 			gravado.CaminhoRelativo,
 			gravado.ChaveEmbrulhada,
 			command.CriadoPor,
@@ -139,15 +133,15 @@ public sealed class PublicarDocumentoHandler(
 					VerbosDeAuditoria.DocumentoPublicar,
 					RecursosDeAuditoria.Documento,
 					documento.Id.ToString(),
-					JsonSerializer.Serialize(new
-					{
-						titulo = documento.Titulo,
-						arquivo = documento.NomeArquivo,
-						visibilidade = documento.Visibilidade.ToString(),
-						tamanho = documento.Tamanho,
-						setor = setor.Slug,
-						pai = documento.ParentId?.ToString(),
-					})),
+					TrilhaDeDono.Serializar(
+						dono.Referencia,
+						[
+							("titulo", documento.Titulo),
+							("arquivo", documento.NomeArquivo),
+							("visibilidade", documento.Visibilidade.ToString()),
+							("tamanho", documento.Tamanho),
+						],
+						[("pai", documento.ParentId?.ToString())])),
 				cancellationToken)
 			.ConfigureAwait(false);
 
@@ -159,9 +153,8 @@ public sealed class PublicarDocumentoHandler(
 			documento.ContentType,
 			documento.Tamanho,
 			documento.Visibilidade,
-			setor.Id,
-			setor.Nome,
-			setor.Slug,
+			dono.Referencia,
+			dono.Nome,
 			documento.CriadoPor,
 			documento.CreatedAt,
 			documento.Tipo,

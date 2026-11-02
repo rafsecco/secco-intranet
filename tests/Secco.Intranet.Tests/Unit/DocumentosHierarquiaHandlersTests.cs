@@ -88,14 +88,14 @@ public class DocumentosHierarquiaHandlersTests
 			Repositorio.RegistrarSetor(Setor);
 			Publicar = new PublicarDocumentoHandler(
 				Repositorio,
-				new SetorRepositorioFalso(Setor),
+				new ResolvedorDeDono(new SetorRepositorioFalso(Setor), new BibliotecaRepositorioFalso()),
 				Store,
 				new DocumentoOptions(),
 				new IntranetOptions(),
 				Trilha);
 			CriarGrupo = new CriarGrupoDeDocumentosHandler(
 				Repositorio,
-				new SetorRepositorioFalso(Setor),
+				new ResolvedorDeDono(new SetorRepositorioFalso(Setor), new BibliotecaRepositorioFalso()),
 				new IntranetOptions(),
 				Trilha);
 			Listar = new ListarDocumentosHandler(Repositorio);
@@ -149,7 +149,7 @@ public class DocumentosHierarquiaHandlersTests
 			var conteudo = new MemoryStream([0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34]);
 
 			return Publicar.HandleAsync(new PublicarDocumentoCommand(
-				"financeiro",
+				ReferenciaDeDono.DoSetor("financeiro"),
 				titulo,
 				null,
 				"a.pdf",
@@ -293,7 +293,7 @@ public class DocumentosHierarquiaHandlersTests
 		var a = cenario.Arquivo("A", ordem: 0);
 
 		var resultado = await cenario.CriarGrupo.HandleAsync(
-			new CriarGrupoDeDocumentosCommand("financeiro", "Políticas", "Regras", "quem.criou"));
+			new CriarGrupoDeDocumentosCommand(ReferenciaDeDono.DoSetor("financeiro"), "Políticas", "Regras", "quem.criou"));
 
 		resultado.IsSuccess.Should().BeTrue();
 		resultado.Value.Tipo.Should().Be(TipoDeDocumento.Grupo);
@@ -319,9 +319,9 @@ public class DocumentosHierarquiaHandlersTests
 		var limite = new IntranetOptions().MaxNameLength;
 
 		var vazio = await cenario.CriarGrupo.HandleAsync(
-			new CriarGrupoDeDocumentosCommand("financeiro", "  ", null, "x"));
+			new CriarGrupoDeDocumentosCommand(ReferenciaDeDono.DoSetor("financeiro"), "  ", null, "x"));
 		var longo = await cenario.CriarGrupo.HandleAsync(
-			new CriarGrupoDeDocumentosCommand("financeiro", new string('a', limite + 1), null, "x"));
+			new CriarGrupoDeDocumentosCommand(ReferenciaDeDono.DoSetor("financeiro"), new string('a', limite + 1), null, "x"));
 
 		vazio.Error.Should().Be(IntranetErrors.Documentos.TituloRequired);
 		longo.Error.Should().Be(IntranetErrors.Documentos.TituloTooLong(limite));
@@ -335,7 +335,7 @@ public class DocumentosHierarquiaHandlersTests
 		var cenario = new Cenario();
 
 		var resultado = await cenario.CriarGrupo.HandleAsync(
-			new CriarGrupoDeDocumentosCommand("nao-existe", "Grupo", null, "x"));
+			new CriarGrupoDeDocumentosCommand(ReferenciaDeDono.DoSetor("nao-existe"), "Grupo", null, "x"));
 
 		resultado.Error.Should().Be(IntranetErrors.Setores.NotFound);
 	}
@@ -354,7 +354,7 @@ public class DocumentosHierarquiaHandlersTests
 		orfao.Arquivar();
 		cenario.Arquivo("Filho do arquivado", orfao.Id, 0);
 
-		var resultado = await cenario.Listar.HandleAsync(new ListarDocumentosQuery("financeiro"));
+		var resultado = await cenario.Listar.HandleAsync(new ListarDocumentosQuery(ReferenciaDeDono.DoSetor("financeiro")));
 
 		resultado.IsSuccess.Should().BeTrue();
 		resultado.Value.Select(no => no.Documento.Titulo).Should().Equal("Grupo", "Segundo");
@@ -369,7 +369,7 @@ public class DocumentosHierarquiaHandlersTests
 		var cenario = new Cenario();
 		cenario.Grupo("Vazio");
 
-		var resultado = await cenario.Listar.HandleAsync(new ListarDocumentosQuery("financeiro"));
+		var resultado = await cenario.Listar.HandleAsync(new ListarDocumentosQuery(ReferenciaDeDono.DoSetor("financeiro")));
 
 		var no = resultado.Value.Should().ContainSingle().Subject;
 		no.Documento.Tipo.Should().Be(TipoDeDocumento.Grupo);

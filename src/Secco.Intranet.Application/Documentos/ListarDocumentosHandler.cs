@@ -2,9 +2,9 @@ using Secco.SharedKernel.Results;
 
 namespace Secco.Intranet.Application.Documentos;
 
-/// <summary>Consulta dos documentos de um setor.</summary>
-/// <param name="SetorSlug">Slug do setor.</param>
-public sealed record ListarDocumentosQuery(string? SetorSlug);
+/// <summary>Consulta dos documentos de um setor ou de uma biblioteca.</summary>
+/// <param name="Dono">Referência ao dono.</param>
+public sealed record ListarDocumentosQuery(ReferenciaDeDono? Dono);
 
 /// <summary>Item da raiz com os documentos abaixo dele.</summary>
 /// <param name="Documento">Item da raiz: arquivo ou grupo.</param>
@@ -12,7 +12,7 @@ public sealed record ListarDocumentosQuery(string? SetorSlug);
 public sealed record NoDeDocumentoDto(DocumentoDto Documento, IReadOnlyList<DocumentoDto> Filhos);
 
 /// <summary>
-/// Lista os documentos ativos de um setor como árvore de dois níveis, por <c>Ordem</c>. Grupo
+/// Lista os documentos ativos de um dono como árvore de dois níveis, por <c>Ordem</c>. Grupo
 /// vazio permanece no resultado; esconder é decisão da página de leitura.
 /// </summary>
 /// <param name="repository">Persistência de documentos.</param>
@@ -27,13 +27,13 @@ public sealed class ListarDocumentosHandler(IDocumentoRepository repository)
 	{
 		ArgumentNullException.ThrowIfNull(query);
 
-		if (string.IsNullOrWhiteSpace(query.SetorSlug))
+		if (query.Dono is null || string.IsNullOrWhiteSpace(query.Dono.Slug))
 		{
-			return IntranetErrors.Setores.NotFound;
+			return ResolvedorDeDono.NaoEncontrado(query.Dono);
 		}
 
 		var documentos = await repository
-			.ListarPorSetorAsync(query.SetorSlug, cancellationToken)
+			.ListarPorDonoAsync(query.Dono, cancellationToken)
 			.ConfigureAwait(false);
 
 		var filhosPorPai = documentos

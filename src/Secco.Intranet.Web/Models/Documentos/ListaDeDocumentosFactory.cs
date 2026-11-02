@@ -46,9 +46,12 @@ public static class ListaDeDocumentosFactory
 				documento.Titulo, documento.Descricao, true, null, null, null, null, null, filhos);
 		}
 
-		var badge = documento.Visibilidade == Visibilidade.Empresa
-			? new BadgeModel("Toda a empresa", BadgeVariante.Neutro)
-			: new BadgeModel(documento.SetorNome, BadgeVariante.Setor, documento.SetorSlug);
+		// Documento de biblioteca não tem badge: a visibilidade só existe para o setor.
+		var badge = documento.Dono.Tipo == TipoDeDono.Biblioteca
+			? null
+			: documento.Visibilidade == Visibilidade.Empresa
+				? new BadgeModel("Toda a empresa", BadgeVariante.Neutro)
+				: new BadgeModel(documento.DonoNome, BadgeVariante.Setor, documento.Dono.Slug);
 
 		return new ItemDaListaDeDocumentosModel(
 			documento.Titulo,

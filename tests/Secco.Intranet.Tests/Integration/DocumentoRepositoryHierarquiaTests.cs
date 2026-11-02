@@ -53,7 +53,7 @@ public class DocumentoRepositoryHierarquiaTests(IntranetWebFactory factory) : IC
 			await repositorio.AddAsync(documento);
 		}
 
-		var irmaos = await repositorio.ListarIrmaosAsync(setor.Id, pai.Id);
+		var irmaos = await repositorio.ListarIrmaosAsync(DonoDeDocumento.DoSetor(setor.Id), pai.Id);
 
 		irmaos.Select(d => d.Titulo).Should().Equal("Primeiro", "Segundo");
 	}
@@ -85,7 +85,7 @@ public class DocumentoRepositoryHierarquiaTests(IntranetWebFactory factory) : IC
 		await repositorio.AddAsync(Arquivo(setor.Id, "Primeiro", null, 0));
 		await repositorio.AddAsync(Arquivo(setor.Id, "Segundo", null, 1));
 
-		var lista = await repositorio.ListarPorSetorAsync(setor.Slug);
+		var lista = await repositorio.ListarPorDonoAsync(ReferenciaDeDono.DoSetor(setor.Slug));
 
 		lista.Select(d => d.Titulo).Should().Equal("Primeiro", "Segundo", "Terceiro");
 		lista.Should().OnlyContain(d => d.Tipo == TipoDeDocumento.Arquivo);

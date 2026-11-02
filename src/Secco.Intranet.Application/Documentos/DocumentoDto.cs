@@ -14,9 +14,8 @@ namespace Secco.Intranet.Application.Documentos;
 /// <param name="ContentType">Tipo apurado do conteúdo; nulo no grupo.</param>
 /// <param name="Tamanho">Tamanho em bytes; nulo no grupo.</param>
 /// <param name="Visibilidade">Quem enxerga o documento.</param>
-/// <param name="SetorId">Identificador do setor dono.</param>
-/// <param name="SetorNome">Nome do setor dono.</param>
-/// <param name="SetorSlug">Slug do setor dono.</param>
+/// <param name="Dono">Referência ao dono: setor ou biblioteca.</param>
+/// <param name="DonoNome">Nome do dono.</param>
 /// <param name="CriadoPor">Quem publicou.</param>
 /// <param name="CreatedAt">Momento da publicação.</param>
 /// <param name="Tipo">Arquivo ou grupo.</param>
@@ -30,9 +29,8 @@ public sealed record DocumentoDto(
 	string? ContentType,
 	long? Tamanho,
 	Visibilidade Visibilidade,
-	Guid SetorId,
-	string SetorNome,
-	string SetorSlug,
+	ReferenciaDeDono Dono,
+	string DonoNome,
 	string CriadoPor,
 	DateTimeOffset CreatedAt,
 	TipoDeDocumento Tipo = TipoDeDocumento.Arquivo,

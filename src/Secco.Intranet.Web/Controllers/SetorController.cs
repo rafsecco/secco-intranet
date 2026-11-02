@@ -161,7 +161,7 @@ public sealed class SetorController(
 
 		var resultado = await publicarDocumentoHandler.HandleAsync(
 			new PublicarDocumentoCommand(
-				slug,
+				ReferenciaDeDono.DoSetor(slug),
 				form.Titulo,
 				form.Descricao,
 				arquivo.FileName,
@@ -220,8 +220,8 @@ public sealed class SetorController(
 		var documento = await obterParaEdicaoHandler.HandleAsync(
 			new ObterDocumentoParaEdicaoQuery(
 				id,
-				slug,
-				await SlugsComEscritaAsync(cancellationToken).ConfigureAwait(false),
+				ReferenciaDeDono.DoSetor(slug),
+				await DonosComEscritaAsync(cancellationToken).ConfigureAwait(false),
 				ExigirVinculo: !AcessoAdministrativo.ModoAbertoDeDev(environment, configuration)),
 			cancellationToken).ConfigureAwait(false);
 
@@ -278,12 +278,12 @@ public sealed class SetorController(
 			return NotFound();
 		}
 
-		var administrados = await SlugsComEscritaAsync(cancellationToken).ConfigureAwait(false);
+		var administrados = await DonosComEscritaAsync(cancellationToken).ConfigureAwait(false);
 		var exigirVinculo = !AcessoAdministrativo.ModoAbertoDeDev(environment, configuration);
 
 		// O formulário precisa do nome do arquivo atual e de saber se é grupo, que não vêm do POST.
 		var atual = await obterParaEdicaoHandler.HandleAsync(
-			new ObterDocumentoParaEdicaoQuery(id, slug, administrados, exigirVinculo),
+			new ObterDocumentoParaEdicaoQuery(id, ReferenciaDeDono.DoSetor(slug), administrados, exigirVinculo),
 			cancellationToken).ConfigureAwait(false);
 
 		if (atual.IsFailure)
@@ -308,7 +308,7 @@ public sealed class SetorController(
 		var resultado = await editarHandler.HandleAsync(
 			new EditarDocumentoCommand(
 				id,
-				slug,
+				ReferenciaDeDono.DoSetor(slug),
 				form.Titulo,
 				form.Descricao,
 				form.Visibilidade,
@@ -354,7 +354,7 @@ public sealed class SetorController(
 		}
 
 		var resultado = await moverHandler
-			.HandleAsync(new MoverDocumentoCommand(slug, id, acao), cancellationToken)
+			.HandleAsync(new MoverDocumentoCommand(ReferenciaDeDono.DoSetor(slug), id, acao), cancellationToken)
 			.ConfigureAwait(false);
 
 		if (resultado.IsFailure)
@@ -394,7 +394,7 @@ public sealed class SetorController(
 		{
 			var resultado = await criarGrupoHandler
 				.HandleAsync(
-					new CriarGrupoDeDocumentosCommand(slug, form.Titulo, form.Descricao, User.Identity?.Name ?? "desconhecido"),
+					new CriarGrupoDeDocumentosCommand(ReferenciaDeDono.DoSetor(slug), form.Titulo, form.Descricao, User.Identity?.Name ?? "desconhecido"),
 					cancellationToken)
 				.ConfigureAwait(false);
 
@@ -434,7 +434,7 @@ public sealed class SetorController(
 		var resultado = await arquivarHandler.HandleAsync(
 			new ArquivarDocumentoCommand(
 				id,
-				await SlugsComEscritaAsync(cancellationToken).ConfigureAwait(false),
+				await DonosComEscritaAsync(cancellationToken).ConfigureAwait(false),
 				ExigirVinculo: !AcessoAdministrativo.ModoAbertoDeDev(environment, configuration)),
 			cancellationToken).ConfigureAwait(false);
 
@@ -635,7 +635,7 @@ public sealed class SetorController(
 		SetorDto setor, ResultadoDaResolucao resolucao, DocumentoFormViewModel form, CancellationToken cancellationToken)
 	{
 		var documentos = await listarHandler
-			.HandleAsync(new ListarDocumentosQuery(setor.Slug), cancellationToken)
+			.HandleAsync(new ListarDocumentosQuery(ReferenciaDeDono.DoSetor(setor.Slug)), cancellationToken)
 			.ConfigureAwait(false);
 
 		IReadOnlyList<NoDeDocumentoDto> nos = documentos.IsSuccess ? documentos.Value : [];
@@ -667,7 +667,7 @@ public sealed class SetorController(
 		SetorDto setor, ResultadoDaResolucao resolucao, GrupoFormViewModel form, CancellationToken cancellationToken)
 	{
 		var documentos = await listarHandler
-			.HandleAsync(new ListarDocumentosQuery(setor.Slug), cancellationToken)
+			.HandleAsync(new ListarDocumentosQuery(ReferenciaDeDono.DoSetor(setor.Slug)), cancellationToken)
 			.ConfigureAwait(false);
 
 		IReadOnlyList<NoDeDocumentoDto> nos = documentos.IsSuccess ? documentos.Value : [];
@@ -752,4 +752,11 @@ public sealed class SetorController(
 
 	private Task<IReadOnlySet<string>> SlugsComEscritaAsync(CancellationToken cancellationToken) =>
 		acesso.SlugsComEscritaAsync(User, cancellationToken);
+
+	private async Task<IReadOnlySet<ReferenciaDeDono>> DonosComEscritaAsync(CancellationToken cancellationToken)
+	{
+		var slugs = await SlugsComEscritaAsync(cancellationToken).ConfigureAwait(false);
+
+		return slugs.Select(ReferenciaDeDono.DoSetor).ToHashSet();
+	}
 }

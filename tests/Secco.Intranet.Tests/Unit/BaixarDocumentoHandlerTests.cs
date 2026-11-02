@@ -13,23 +13,23 @@ namespace Secco.Intranet.Tests.Unit;
 /// </summary>
 public class BaixarDocumentoHandlerTests
 {
-	private sealed class RepositorioFalso(DocumentoComSetor? resultado) : IDocumentoRepository
+	private sealed class RepositorioFalso(DocumentoComDono? resultado) : IDocumentoRepository
 	{
 		public Task AddAsync(Documento documento, CancellationToken cancellationToken = default) =>
 			Task.CompletedTask;
 
 		public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
-		public Task<DocumentoComSetor?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+		public Task<DocumentoComDono?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
 			Task.FromResult(resultado);
 
-		public Task<IReadOnlyList<DocumentoDto>> ListarPorSetorAsync(
-			string setorSlug,
+		public Task<IReadOnlyList<DocumentoDto>> ListarPorDonoAsync(
+			ReferenciaDeDono dono,
 			CancellationToken cancellationToken = default) =>
 			Task.FromResult<IReadOnlyList<DocumentoDto>>([]);
 
 		public Task<IReadOnlyList<Documento>> ListarIrmaosAsync(
-			Guid setorId,
+			DonoDeDocumento dono,
 			Guid? parentId,
 			CancellationToken cancellationToken = default) =>
 			throw new NotImplementedException();
@@ -66,7 +66,7 @@ public class BaixarDocumentoHandlerTests
 			Task.CompletedTask;
 	}
 
-	private static DocumentoComSetor Documento(Visibilidade visibilidade, bool ativo = true)
+	private static DocumentoComDono Documento(Visibilidade visibilidade, bool ativo = true)
 	{
 		var documento = new Documento(
 			DonoDeDocumento.DoSetor(Guid.NewGuid()),
@@ -85,11 +85,11 @@ public class BaixarDocumentoHandlerTests
 			documento.Arquivar();
 		}
 
-		return new DocumentoComSetor(documento, "Financeiro", "financeiro");
+		return new DocumentoComDono(documento, ReferenciaDeDono.DoSetor("financeiro"), "Financeiro", true);
 	}
 
 	private static async Task<bool> LiberouAsync(
-		DocumentoComSetor? encontrado,
+		DocumentoComDono? encontrado,
 		bool exigirVinculo,
 		params string[] slugs)
 	{
@@ -97,7 +97,7 @@ public class BaixarDocumentoHandlerTests
 
 		var resultado = await handler.HandleAsync(new BaixarDocumentoQuery(
 			Guid.NewGuid(),
-			new HashSet<string>(slugs, StringComparer.OrdinalIgnoreCase),
+			slugs.Select(ReferenciaDeDono.DoSetor).ToHashSet(),
 			exigirVinculo));
 
 		return resultado.IsSuccess;
@@ -139,11 +139,11 @@ public class BaixarDocumentoHandlerTests
 			new RepositorioFalso(Documento(Visibilidade.Setor)), new StoreFalso());
 
 		var negado = await handler.HandleAsync(new BaixarDocumentoQuery(
-			Guid.NewGuid(), new HashSet<string>(StringComparer.OrdinalIgnoreCase), ExigirVinculo: true));
+			Guid.NewGuid(), new HashSet<ReferenciaDeDono>(), ExigirVinculo: true));
 
 		var inexistente = await new BaixarDocumentoHandler(new RepositorioFalso(null), new StoreFalso())
 			.HandleAsync(new BaixarDocumentoQuery(
-				Guid.NewGuid(), new HashSet<string>(StringComparer.OrdinalIgnoreCase), ExigirVinculo: true));
+				Guid.NewGuid(), new HashSet<ReferenciaDeDono>(), ExigirVinculo: true));
 
 		negado.Error.Code.Should().Be(
 			inexistente.Error.Code,
@@ -155,10 +155,10 @@ public class BaixarDocumentoHandlerTests
 	{
 		var grupo = Domain.Documentos.Documento.CriarGrupo(DonoDeDocumento.DoSetor(Guid.NewGuid()), "Políticas", null, "quem.criou");
 		var handler = new BaixarDocumentoHandler(
-			new RepositorioFalso(new DocumentoComSetor(grupo, "Financeiro", "financeiro")), new StoreFalso());
+			new RepositorioFalso(new DocumentoComDono(grupo, ReferenciaDeDono.DoSetor("financeiro"), "Financeiro", true)), new StoreFalso());
 
 		var resultado = await handler.HandleAsync(new BaixarDocumentoQuery(
-			Guid.NewGuid(), new HashSet<string>(StringComparer.OrdinalIgnoreCase), ExigirVinculo: false));
+			Guid.NewGuid(), new HashSet<ReferenciaDeDono>(), ExigirVinculo: false));
 
 		resultado.IsFailure.Should().BeTrue();
 		resultado.Error.Should().Be(IntranetErrors.Documentos.NotFound);

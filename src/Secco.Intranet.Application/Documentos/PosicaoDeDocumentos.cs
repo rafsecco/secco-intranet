@@ -11,17 +11,17 @@ internal static class PosicaoDeDocumentos
 	/// gravação.
 	/// </summary>
 	/// <param name="repository">Persistência de documentos.</param>
-	/// <param name="setorId">Setor dono.</param>
+	/// <param name="dono">Dono dos itens.</param>
 	/// <param name="parentId">Pai do item novo; <c>null</c> na raiz.</param>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
 	/// <returns>Zero na raiz (o novo entra no topo e os demais descem); o fim dos filhos abaixo de um pai.</returns>
 	public static async Task<int> AbrirLugarAsync(
 		IDocumentoRepository repository,
-		Guid setorId,
+		DonoDeDocumento dono,
 		Guid? parentId,
 		CancellationToken cancellationToken)
 	{
-		var irmaos = await repository.ListarIrmaosAsync(setorId, parentId, cancellationToken).ConfigureAwait(false);
+		var irmaos = await repository.ListarIrmaosAsync(dono, parentId, cancellationToken).ConfigureAwait(false);
 		var noTopo = parentId is null;
 
 		for (var indice = 0; indice < irmaos.Count; indice++)
@@ -43,12 +43,12 @@ internal static class PosicaoDeDocumentos
 		}
 	}
 
-	/// <summary>Indica se o documento pode ser pai: ativo, da raiz e do setor informado.</summary>
-	/// <param name="pai">Candidato a pai, com o setor dono.</param>
-	/// <param name="setorSlug">Slug do setor onde o item novo será criado.</param>
-	public static bool PodeSerPai(DocumentoComSetor? pai, string setorSlug) =>
+	/// <summary>Indica se o documento pode ser pai: ativo, da raiz e do dono informado.</summary>
+	/// <param name="pai">Candidato a pai, com o dono.</param>
+	/// <param name="dono">Dono onde o item novo será criado.</param>
+	public static bool PodeSerPai(DocumentoComDono? pai, ReferenciaDeDono dono) =>
 		pai is not null
 		&& pai.Documento.Ativo
 		&& pai.Documento.ParentId is null
-		&& string.Equals(pai.SetorSlug, setorSlug, StringComparison.OrdinalIgnoreCase);
+		&& pai.Dono == dono;
 }

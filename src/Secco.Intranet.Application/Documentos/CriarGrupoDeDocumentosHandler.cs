@@ -1,18 +1,16 @@
-using System.Text.Json;
 using Secco.Intranet.Application.Auditoria;
-using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Documentos;
 using Secco.SharedKernel.Results;
 
 namespace Secco.Intranet.Application.Documentos;
 
-/// <summary>Comando de criação de um grupo de documentos em um setor.</summary>
-/// <param name="SetorSlug">Slug do setor dono.</param>
+/// <summary>Comando de criação de um grupo de documentos em um setor ou numa biblioteca.</summary>
+/// <param name="Dono">Referência ao dono: setor ou biblioteca.</param>
 /// <param name="Titulo">Título de exibição.</param>
 /// <param name="Descricao">Descrição livre. Opcional.</param>
 /// <param name="CriadoPor">Identificação de quem cria.</param>
 public sealed record CriarGrupoDeDocumentosCommand(
-	string? SetorSlug,
+	ReferenciaDeDono? Dono,
 	string? Titulo,
 	string? Descricao,
 	string CriadoPor);
@@ -22,12 +20,12 @@ public sealed record CriarGrupoDeDocumentosCommand(
 /// topo da raiz e os demais itens da raiz descem uma posição.
 /// </summary>
 /// <param name="repository">Persistência de documentos.</param>
-/// <param name="setorRepository">Consulta de setores.</param>
+/// <param name="resolvedor">Resolução do dono (setor ou biblioteca).</param>
 /// <param name="limites">Limites gerais de entrada do produto.</param>
 /// <param name="trilha">Trilha de auditoria.</param>
 public sealed class CriarGrupoDeDocumentosHandler(
 	IDocumentoRepository repository,
-	ISetorRepository setorRepository,
+	ResolvedorDeDono resolvedor,
 	IntranetOptions limites,
 	ITrilhaDeAuditoria trilha)
 {
@@ -50,23 +48,18 @@ public sealed class CriarGrupoDeDocumentosHandler(
 			return IntranetErrors.Documentos.TituloTooLong(limites.MaxNameLength);
 		}
 
-		if (string.IsNullOrWhiteSpace(command.SetorSlug))
-		{
-			return IntranetErrors.Setores.NotFound;
-		}
+		var dono = await resolvedor.ResolverAsync(command.Dono, cancellationToken).ConfigureAwait(false);
 
-		var setor = await setorRepository.GetBySlugAsync(command.SetorSlug, cancellationToken).ConfigureAwait(false);
-
-		if (setor is null || !setor.Ativo)
+		if (dono is null)
 		{
-			return IntranetErrors.Setores.NotFound;
+			return ResolvedorDeDono.NaoEncontrado(command.Dono);
 		}
 
 		var ordem = await PosicaoDeDocumentos
-			.AbrirLugarAsync(repository, setor.Id, parentId: null, cancellationToken)
+			.AbrirLugarAsync(repository, dono.Dono, parentId: null, cancellationToken)
 			.ConfigureAwait(false);
 
-		var grupo = Documento.CriarGrupo(DonoDeDocumento.DoSetor(setor.Id), command.Titulo, command.Descricao, command.CriadoPor);
+		var grupo = Documento.CriarGrupo(dono.Dono, command.Titulo, command.Descricao, command.CriadoPor);
 		grupo.Posicionar(null, ordem);
 
 		await repository.AddAsync(grupo, cancellationToken).ConfigureAwait(false);
@@ -77,11 +70,7 @@ public sealed class CriarGrupoDeDocumentosHandler(
 					VerbosDeAuditoria.DocumentoGrupoCriar,
 					RecursosDeAuditoria.Documento,
 					grupo.Id.ToString(),
-					JsonSerializer.Serialize(new
-					{
-						setor = setor.Slug,
-						titulo = grupo.Titulo,
-					})),
+					TrilhaDeDono.Serializar(dono.Referencia, [], [("titulo", grupo.Titulo)])),
 				cancellationToken)
 			.ConfigureAwait(false);
 
@@ -93,9 +82,8 @@ public sealed class CriarGrupoDeDocumentosHandler(
 			grupo.ContentType,
 			grupo.Tamanho,
 			grupo.Visibilidade,
-			setor.Id,
-			setor.Nome,
-			setor.Slug,
+			dono.Referencia,
+			dono.Nome,
 			grupo.CriadoPor,
 			grupo.CreatedAt,
 			grupo.Tipo,

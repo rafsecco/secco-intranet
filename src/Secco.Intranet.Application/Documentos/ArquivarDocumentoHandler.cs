@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Secco.Intranet.Application.Auditoria;
 using Secco.SharedKernel.Results;
 
@@ -6,14 +5,14 @@ namespace Secco.Intranet.Application.Documentos;
 
 /// <summary>Pedido de arquivamento de um documento.</summary>
 /// <param name="DocumentoId">Identificador do documento.</param>
-/// <param name="SetoresAdministrados">Setores que o usuário administra (Role <c>{slug}-admin</c>).</param>
+/// <param name="DonosAdministrados">Setores e bibliotecas que o usuário administra.</param>
 /// <param name="ExigirVinculo">
 /// Quando <c>false</c>, dispensa a checagem — é o modo aberto de DEV, sem SecureGate para
 /// emitir roles. Em produção é sempre <c>true</c>.
 /// </param>
 public sealed record ArquivarDocumentoCommand(
 	Guid DocumentoId,
-	IReadOnlySet<string> SetoresAdministrados,
+	IReadOnlySet<ReferenciaDeDono> DonosAdministrados,
 	bool ExigirVinculo);
 
 /// <summary>
@@ -36,9 +35,9 @@ public sealed class ArquivarDocumentoHandler(IDocumentoRepository repository, IT
 		var encontrado = await repository.GetByIdAsync(command.DocumentoId, cancellationToken).ConfigureAwait(false);
 
 		// Mesmo erro para inexistente e para fora do alcance, pelo mesmo motivo do download:
-		// distinguir revelaria a existência do documento a quem não administra o setor.
+		// distinguir revelaria a existência do documento a quem não administra o dono.
 		if (encontrado is null
-			|| (command.ExigirVinculo && !command.SetoresAdministrados.Contains(encontrado.SetorSlug)))
+			|| (command.ExigirVinculo && !command.DonosAdministrados.Contains(encontrado.Dono)))
 		{
 			return IntranetErrors.Documentos.NotFound;
 		}
@@ -55,7 +54,7 @@ public sealed class ArquivarDocumentoHandler(IDocumentoRepository repository, IT
 		}
 
 		var irmaos = await repository
-			.ListarIrmaosAsync(encontrado.Documento.SetorId!.Value, encontrado.Documento.ParentId, cancellationToken)
+			.ListarIrmaosAsync(encontrado.Documento.Dono, encontrado.Documento.ParentId, cancellationToken)
 			.ConfigureAwait(false);
 
 		encontrado.Documento.Arquivar();
@@ -71,11 +70,7 @@ public sealed class ArquivarDocumentoHandler(IDocumentoRepository repository, IT
 					VerbosDeAuditoria.DocumentoArquivar,
 					RecursosDeAuditoria.Documento,
 					encontrado.Documento.Id.ToString(),
-					JsonSerializer.Serialize(new
-					{
-						titulo = encontrado.Documento.Titulo,
-						setor = encontrado.SetorSlug,
-					})),
+					TrilhaDeDono.Serializar(encontrado.Dono, [("titulo", encontrado.Documento.Titulo)], [])),
 				cancellationToken)
 			.ConfigureAwait(false);
 

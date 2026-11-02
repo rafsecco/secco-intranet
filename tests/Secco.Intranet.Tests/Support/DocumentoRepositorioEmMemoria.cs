@@ -1,4 +1,5 @@
 using Secco.Intranet.Application.Documentos;
+using Secco.Intranet.Domain.Bibliotecas;
 using Secco.Intranet.Domain.Documentos;
 using Secco.Intranet.Domain.Setores;
 
@@ -11,6 +12,7 @@ namespace Secco.Intranet.Tests.Support;
 public sealed class DocumentoRepositorioEmMemoria : IDocumentoRepository
 {
 	private readonly Dictionary<Guid, Setor> _setores = [];
+	private readonly Dictionary<Guid, Biblioteca> _bibliotecas = [];
 
 	/// <summary>Documentos existentes — os testes montam o cenário mexendo aqui direto.</summary>
 	public List<Documento> Documentos { get; } = [];
@@ -21,6 +23,10 @@ public sealed class DocumentoRepositorioEmMemoria : IDocumentoRepository
 	/// <summary>Registra o setor que os documentos referenciam.</summary>
 	/// <param name="setor">Setor dono.</param>
 	public void RegistrarSetor(Setor setor) => _setores[setor.Id] = setor;
+
+	/// <summary>Registra a biblioteca que os documentos referenciam.</summary>
+	/// <param name="biblioteca">Biblioteca dona.</param>
+	public void RegistrarBiblioteca(Biblioteca biblioteca) => _bibliotecas[biblioteca.Id] = biblioteca;
 
 	public Task AddAsync(Documento documento, CancellationToken cancellationToken = default)
 	{
@@ -37,28 +43,28 @@ public sealed class DocumentoRepositorioEmMemoria : IDocumentoRepository
 		return Task.CompletedTask;
 	}
 
-	public Task<DocumentoComSetor?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+	public Task<DocumentoComDono?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
 	{
 		var documento = Documentos.FirstOrDefault(item => item.Id == id);
 
 		if (documento is null)
 		{
-			return Task.FromResult<DocumentoComSetor?>(null);
+			return Task.FromResult<DocumentoComDono?>(null);
 		}
 
-		var setor = _setores[documento.SetorId!.Value];
+		var (referencia, nome, ativo) = Dono(documento);
 
-		return Task.FromResult<DocumentoComSetor?>(new DocumentoComSetor(documento, setor.Nome, setor.Slug));
+		return Task.FromResult<DocumentoComDono?>(new DocumentoComDono(documento, referencia, nome, ativo));
 	}
 
-	public Task<IReadOnlyList<DocumentoDto>> ListarPorSetorAsync(
-		string setorSlug,
+	public Task<IReadOnlyList<DocumentoDto>> ListarPorDonoAsync(
+		ReferenciaDeDono dono,
 		CancellationToken cancellationToken = default)
 	{
-		var lista = Ordenar(Documentos.Where(item => item.Ativo && _setores[item.SetorId!.Value].Slug == setorSlug))
+		var lista = Ordenar(Documentos.Where(item => item.Ativo && Dono(item).Referencia == dono))
 			.Select(item =>
 			{
-				var setor = _setores[item.SetorId!.Value];
+				var (referencia, nome, _) = Dono(item);
 
 				return new DocumentoDto(
 					item.Id,
@@ -68,9 +74,8 @@ public sealed class DocumentoRepositorioEmMemoria : IDocumentoRepository
 					item.ContentType,
 					item.Tamanho,
 					item.Visibilidade,
-					setor.Id,
-					setor.Nome,
-					setor.Slug,
+					referencia,
+					nome,
 					item.CriadoPor,
 					item.CreatedAt,
 					item.Tipo,
@@ -83,14 +88,28 @@ public sealed class DocumentoRepositorioEmMemoria : IDocumentoRepository
 	}
 
 	public Task<IReadOnlyList<Documento>> ListarIrmaosAsync(
-		Guid setorId,
+		DonoDeDocumento dono,
 		Guid? parentId,
 		CancellationToken cancellationToken = default) =>
 		Task.FromResult<IReadOnlyList<Documento>>(
-			[.. Ordenar(Documentos.Where(item => item.SetorId == setorId && item.ParentId == parentId && item.Ativo))]);
+			[.. Ordenar(Documentos.Where(item => item.Dono == dono && item.ParentId == parentId && item.Ativo))]);
 
 	public Task<bool> TemFilhosAtivosAsync(Guid documentoId, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Documentos.Any(item => item.ParentId == documentoId && item.Ativo));
+
+	private (ReferenciaDeDono Referencia, string Nome, bool Ativo) Dono(Documento documento)
+	{
+		if (documento.BibliotecaId is { } bibliotecaId)
+		{
+			var biblioteca = _bibliotecas[bibliotecaId];
+
+			return (ReferenciaDeDono.DaBiblioteca(biblioteca.Slug), biblioteca.Nome, biblioteca.Ativo);
+		}
+
+		var setor = _setores[documento.SetorId!.Value];
+
+		return (ReferenciaDeDono.DoSetor(setor.Slug), setor.Nome, setor.Ativo);
+	}
 
 	private static IOrderedEnumerable<Documento> Ordenar(IEnumerable<Documento> origem) =>
 		origem.OrderBy(item => item.Ordem).ThenByDescending(item => item.CreatedAt).ThenBy(item => item.Id);

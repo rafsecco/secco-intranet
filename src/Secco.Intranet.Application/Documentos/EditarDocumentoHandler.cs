@@ -9,27 +9,27 @@ namespace Secco.Intranet.Application.Documentos;
 
 /// <summary>Pedido de edição de um documento: metadados e, opcionalmente, troca do arquivo.</summary>
 /// <param name="DocumentoId">Identificador do documento.</param>
-/// <param name="SetorSlug">Slug do setor da rota; precisa ser o do dono do documento.</param>
+/// <param name="Dono">Dono da rota; precisa ser o dono do documento.</param>
 /// <param name="Titulo">Novo título.</param>
 /// <param name="Descricao">Nova descrição; vazia limpa.</param>
-/// <param name="Visibilidade">Nova visibilidade. Ignorada em grupo, que é sempre do setor.</param>
+/// <param name="Visibilidade">Nova visibilidade. Ignorada em grupo e em biblioteca, que são sempre do setor.</param>
 /// <param name="NomeArquivo">Nome original do novo arquivo, quando há troca.</param>
 /// <param name="Tamanho">Tamanho informado pelo transporte, em bytes.</param>
 /// <param name="Conteudo">Fluxo do novo arquivo; <c>null</c> mantém o arquivo atual.</param>
-/// <param name="SetoresAdministrados">Setores que o usuário administra (Role <c>{slug}-admin</c>).</param>
+/// <param name="DonosAdministrados">Setores e bibliotecas que o usuário administra.</param>
 /// <param name="ExigirVinculo">
 /// Quando <c>false</c>, dispensa a checagem de vínculo — modo aberto de DEV. Em produção é sempre <c>true</c>.
 /// </param>
 public sealed record EditarDocumentoCommand(
 	Guid DocumentoId,
-	string SetorSlug,
+	ReferenciaDeDono Dono,
 	string? Titulo,
 	string? Descricao,
 	Visibilidade Visibilidade,
 	string? NomeArquivo,
 	long Tamanho,
 	Stream? Conteudo,
-	IReadOnlySet<string> SetoresAdministrados,
+	IReadOnlySet<ReferenciaDeDono> DonosAdministrados,
 	bool ExigirVinculo);
 
 /// <summary>
@@ -68,7 +68,7 @@ public sealed class EditarDocumentoHandler(
 		var encontrado = await repository.GetByIdAsync(command.DocumentoId, cancellationToken).ConfigureAwait(false);
 
 		if (!ObterDocumentoParaEdicaoHandler.Alcanca(
-			encontrado, command.SetorSlug, command.SetoresAdministrados, command.ExigirVinculo))
+			encontrado, command.Dono, command.DonosAdministrados, command.ExigirVinculo))
 		{
 			return IntranetErrors.Documentos.NotFound;
 		}
@@ -135,7 +135,7 @@ public sealed class EditarDocumentoHandler(
 
 		documento.Editar(command.Titulo, command.Descricao);
 
-		if (!documento.EhGrupo)
+		if (!documento.EhGrupo && encontrado.Dono.Tipo == TipoDeDono.Setor)
 		{
 			documento.AlterarVisibilidade(command.Visibilidade);
 		}
@@ -164,7 +164,8 @@ public sealed class EditarDocumentoHandler(
 		await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
 		var detalhes = new DetalhesDaEdicao(
-			encontrado.SetorSlug,
+			encontrado.Dono.Tipo == TipoDeDono.Setor ? encontrado.Dono.Slug : null,
+			encontrado.Dono.Tipo == TipoDeDono.Biblioteca ? encontrado.Dono.Slug : null,
 			tituloMudou ? new Mudanca<string>(tituloAntes, documento.Titulo) : null,
 			visibilidadeMudou
 				? new Mudanca<string>(visibilidadeAntes.ToString(), documento.Visibilidade.ToString())
@@ -217,7 +218,8 @@ public sealed class EditarDocumentoHandler(
 		[property: JsonPropertyName("tamanho")] long? Tamanho);
 
 	private sealed record DetalhesDaEdicao(
-		[property: JsonPropertyName("setor")] string Setor,
+		[property: JsonPropertyName("setor")] string? Setor,
+		[property: JsonPropertyName("biblioteca")] string? Biblioteca,
 		[property: JsonPropertyName("titulo")] Mudanca<string>? Titulo,
 		[property: JsonPropertyName("visibilidade")] Mudanca<string>? Visibilidade,
 		[property: JsonPropertyName("descricaoAlterada")] bool? DescricaoAlterada,

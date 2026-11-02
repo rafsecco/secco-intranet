@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Domain.Documentos;
 using Secco.SharedKernel.Results;
@@ -22,14 +21,14 @@ public enum MovimentoDeDocumento
 }
 
 /// <summary>Pedido de movimento de um documento.</summary>
-/// <param name="SetorSlug">Slug do setor da rota; o documento precisa ser dele.</param>
+/// <param name="Dono">Dono da rota (setor ou biblioteca); o documento precisa ser dele.</param>
 /// <param name="DocumentoId">Identificador do documento.</param>
 /// <param name="Acao">Movimento pedido.</param>
-public sealed record MoverDocumentoCommand(string SetorSlug, Guid DocumentoId, MovimentoDeDocumento Acao);
+public sealed record MoverDocumentoCommand(ReferenciaDeDono Dono, Guid DocumentoId, MovimentoDeDocumento Acao);
 
 /// <summary>
-/// Muda um item de lugar na lista do setor. A permissão de escrita é conferida pelo controller;
-/// aqui só se garante que o documento é do setor da rota e que o movimento respeita a hierarquia
+/// Muda um item de lugar na lista do dono. A permissão de escrita é conferida pelo controller;
+/// aqui só se garante que o documento é do dono da rota e que o movimento respeita a hierarquia
 /// de dois níveis. Cada movimento grava uma única vez, renumerando os irmãos afetados de zero a n-1.
 /// </summary>
 /// <param name="repository">Persistência de documentos.</param>
@@ -47,7 +46,7 @@ public sealed class MoverDocumentoHandler(IDocumentoRepository repository, ITril
 
 		if (encontrado is null
 			|| !encontrado.Documento.Ativo
-			|| !string.Equals(encontrado.SetorSlug, command.SetorSlug, StringComparison.OrdinalIgnoreCase))
+			|| encontrado.Dono != command.Dono)
 		{
 			return Result.Failure(IntranetErrors.Documentos.NotFound);
 		}
@@ -57,7 +56,7 @@ public sealed class MoverDocumentoHandler(IDocumentoRepository repository, ITril
 		var de = documento.Ordem;
 
 		var irmaos = await repository
-			.ListarIrmaosAsync(documento.SetorId!.Value, paiDe, cancellationToken)
+			.ListarIrmaosAsync(documento.Dono, paiDe, cancellationToken)
 			.ConfigureAwait(false);
 		var indice = IndexOf(irmaos, documento.Id);
 
@@ -100,7 +99,7 @@ public sealed class MoverDocumentoHandler(IDocumentoRepository repository, ITril
 
 				var acima = irmaos[indice - 1];
 				var filhos = await repository
-					.ListarIrmaosAsync(documento.SetorId!.Value, acima.Id, cancellationToken)
+					.ListarIrmaosAsync(documento.Dono, acima.Id, cancellationToken)
 					.ConfigureAwait(false);
 
 				paiPara = acima.Id;
@@ -119,7 +118,7 @@ public sealed class MoverDocumentoHandler(IDocumentoRepository repository, ITril
 				}
 
 				var raiz = (await repository
-					.ListarIrmaosAsync(documento.SetorId!.Value, null, cancellationToken)
+					.ListarIrmaosAsync(documento.Dono, null, cancellationToken)
 					.ConfigureAwait(false)).ToList();
 				var posicaoDoPai = IndexOf(raiz, paiDe.Value);
 
@@ -150,16 +149,17 @@ public sealed class MoverDocumentoHandler(IDocumentoRepository repository, ITril
 					VerbosDeAuditoria.DocumentoMover,
 					RecursosDeAuditoria.Documento,
 					documento.Id.ToString(),
-					JsonSerializer.Serialize(new
-					{
-						setor = encontrado.SetorSlug,
-						documento = documento.Id.ToString(),
-						acao = command.Acao.ToString().ToLowerInvariant(),
-						paiDe = paiDe?.ToString(),
-						paiPara = paiPara?.ToString(),
-						de,
-						para = documento.Ordem,
-					})),
+					TrilhaDeDono.Serializar(
+						encontrado.Dono,
+						[],
+						[
+							("documento", documento.Id.ToString()),
+							("acao", command.Acao.ToString().ToLowerInvariant()),
+							("paiDe", paiDe?.ToString()),
+							("paiPara", paiPara?.ToString()),
+							("de", de),
+							("para", documento.Ordem),
+						])),
 				cancellationToken)
 			.ConfigureAwait(false);
 

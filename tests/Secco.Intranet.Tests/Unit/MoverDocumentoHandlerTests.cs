@@ -74,7 +74,7 @@ public class MoverDocumentoHandlerTests
 		}
 
 		public Task<Result> MoverAsync(Documento documento, MovimentoDeDocumento acao, string setor = "financeiro") =>
-			Handler.HandleAsync(new MoverDocumentoCommand(setor, documento.Id, acao));
+			Handler.HandleAsync(new MoverDocumentoCommand(ReferenciaDeDono.DoSetor(setor), documento.Id, acao));
 
 		public int OrdemDe(Documento documento) => documento.Ordem;
 
@@ -335,7 +335,7 @@ public class MoverDocumentoHandlerTests
 		var cenario = new Cenario();
 
 		var resultado = await cenario.Handler.HandleAsync(
-			new MoverDocumentoCommand("financeiro", Guid.NewGuid(), MovimentoDeDocumento.Subir));
+			new MoverDocumentoCommand(ReferenciaDeDono.DoSetor("financeiro"), Guid.NewGuid(), MovimentoDeDocumento.Subir));
 
 		resultado.Error.Should().Be(IntranetErrors.Documentos.NotFound);
 	}

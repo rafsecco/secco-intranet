@@ -89,7 +89,7 @@ public class DocumentoEdicaoTelaTests(IntranetWebFactory factory) : IClassFixtur
 		escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
 
 		var resultado = await escopo.ServiceProvider.GetRequiredService<CriarGrupoDeDocumentosHandler>()
-			.HandleAsync(new CriarGrupoDeDocumentosCommand(slug, titulo, null, "teste"), CancellationToken.None);
+			.HandleAsync(new CriarGrupoDeDocumentosCommand(ReferenciaDeDono.DoSetor(slug), titulo, null, "teste"), CancellationToken.None);
 
 		resultado.IsSuccess.Should().BeTrue();
 
@@ -118,7 +118,7 @@ public class DocumentoEdicaoTelaTests(IntranetWebFactory factory) : IClassFixtur
 		escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
 
 		var nos = await escopo.ServiceProvider.GetRequiredService<ListarDocumentosHandler>()
-			.HandleAsync(new ListarDocumentosQuery(slug), CancellationToken.None);
+			.HandleAsync(new ListarDocumentosQuery(ReferenciaDeDono.DoSetor(slug)), CancellationToken.None);
 
 		return nos.Value.Select(no => no.Documento).Single(documento => documento.Titulo == titulo).Id;
 	}

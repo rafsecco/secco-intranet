@@ -93,18 +93,18 @@ public class EditarDocumentoHandlerTests
 			long tamanho = 0,
 			Stream? conteudo = null,
 			string setorSlug = "rh",
-			IReadOnlySet<string>? administrados = null,
+			IReadOnlySet<ReferenciaDeDono>? administrados = null,
 			bool exigirVinculo = true) =>
 			new(
 				(alvo ?? Documento).Id,
-				setorSlug,
+				ReferenciaDeDono.DoSetor(setorSlug),
 				titulo,
 				descricao,
 				visibilidade,
 				nomeArquivo,
 				tamanho,
 				conteudo,
-				administrados ?? new HashSet<string> { "rh" },
+				administrados ?? new HashSet<ReferenciaDeDono> { ReferenciaDeDono.DoSetor("rh") },
 				exigirVinculo);
 	}
 
@@ -274,7 +274,7 @@ public class EditarDocumentoHandlerTests
 		switch (caso)
 		{
 			case "semPermissao":
-				comando = c.Comando(titulo: "Novo", administrados: new HashSet<string>());
+				comando = c.Comando(titulo: "Novo", administrados: new HashSet<ReferenciaDeDono>());
 				break;
 			case "arquivado":
 				c.Documento.Arquivar();
@@ -283,7 +283,7 @@ public class EditarDocumentoHandlerTests
 				comando = comando with { DocumentoId = Guid.NewGuid() };
 				break;
 			case "outroSetor":
-				comando = c.Comando(titulo: "Novo", setorSlug: "ti", administrados: new HashSet<string> { "rh", "ti" });
+				comando = c.Comando(titulo: "Novo", setorSlug: "ti", administrados: new HashSet<ReferenciaDeDono> { ReferenciaDeDono.DoSetor("rh"), ReferenciaDeDono.DoSetor("ti") });
 				break;
 		}
 
@@ -353,7 +353,7 @@ public class EditarDocumentoHandlerTests
 		var arquivo = c.Novo("Contrato", "texto");
 
 		var resultado = await c.Obter.HandleAsync(
-			new ObterDocumentoParaEdicaoQuery(arquivo.Id, "rh", new HashSet<string> { "rh" }, true),
+			new ObterDocumentoParaEdicaoQuery(arquivo.Id, ReferenciaDeDono.DoSetor("rh"), new HashSet<ReferenciaDeDono> { ReferenciaDeDono.DoSetor("rh") }, true),
 			CancellationToken.None);
 
 		resultado.IsSuccess.Should().BeTrue();
@@ -367,7 +367,7 @@ public class EditarDocumentoHandlerTests
 		var c = new Cenario();
 
 		var resultado = await c.Obter.HandleAsync(
-			new ObterDocumentoParaEdicaoQuery(c.Documento.Id, "rh", new HashSet<string>(), true),
+			new ObterDocumentoParaEdicaoQuery(c.Documento.Id, ReferenciaDeDono.DoSetor("rh"), new HashSet<ReferenciaDeDono>(), true),
 			CancellationToken.None);
 
 		resultado.IsFailure.Should().BeTrue();

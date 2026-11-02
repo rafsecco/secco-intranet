@@ -5,6 +5,14 @@ namespace Secco.Intranet.Application;
 /// <summary>Erros de negócio do produto (ADR-0004): códigos estáveis <c>Intranet.*</c>.</summary>
 public static class IntranetErrors
 {
+	/// <summary>Erros do recurso Biblioteca de documentos.</summary>
+	public static class Bibliotecas
+	{
+		/// <summary>Registro não encontrado, inativo ou fora do alcance do usuário (404 indistinto, ADR-0005).</summary>
+		public static readonly Error NotFound =
+			Error.NotFound("Intranet.Biblioteca.NotFound", "Biblioteca não encontrada.");
+	}
+
 	/// <summary>Erros do recurso Setor.</summary>
 	public static class Setores
 	{

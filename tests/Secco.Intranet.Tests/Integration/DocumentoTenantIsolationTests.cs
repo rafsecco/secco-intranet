@@ -38,7 +38,7 @@ public class DocumentoTenantIsolationTests(IntranetWebFactory factory)
 		var publicar = escopo.ServiceProvider.GetRequiredService<PublicarDocumentoHandler>();
 
 		var publicado = await publicar.HandleAsync(new PublicarDocumentoCommand(
-			slug,
+			ReferenciaDeDono.DoSetor(slug),
 			"Política do Alfa",
 			Descricao: null,
 			"politica.pdf",
@@ -66,7 +66,7 @@ public class DocumentoTenantIsolationTests(IntranetWebFactory factory)
 
 		var resultado = await baixar.HandleAsync(new BaixarDocumentoQuery(
 			documentoId,
-			new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+			new HashSet<ReferenciaDeDono>(),
 			ExigirVinculo: false));
 
 		resultado.IsFailure.Should().BeTrue(
@@ -86,7 +86,7 @@ public class DocumentoTenantIsolationTests(IntranetWebFactory factory)
 
 		var resultado = await baixar.HandleAsync(new BaixarDocumentoQuery(
 			documentoId,
-			new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+			new HashSet<ReferenciaDeDono>(),
 			ExigirVinculo: false));
 
 		resultado.IsSuccess.Should().BeTrue("sem esta metade, o teste acima passaria mesmo com o recurso quebrado");
@@ -108,13 +108,13 @@ public class DocumentoTenantIsolationTests(IntranetWebFactory factory)
 		var listar = escopo.ServiceProvider.GetRequiredService<ListarDocumentosHandler>();
 		var arquivar = escopo.ServiceProvider.GetRequiredService<ArquivarDocumentoHandler>();
 
-		(await listar.HandleAsync(new ListarDocumentosQuery(slug))).Value.Should().ContainSingle();
+		(await listar.HandleAsync(new ListarDocumentosQuery(ReferenciaDeDono.DoSetor(slug)))).Value.Should().ContainSingle();
 
 		var arquivado = await arquivar.HandleAsync(new ArquivarDocumentoCommand(
-			documentoId, new HashSet<string>(StringComparer.OrdinalIgnoreCase), ExigirVinculo: false));
+			documentoId, new HashSet<ReferenciaDeDono>(), ExigirVinculo: false));
 
 		arquivado.IsSuccess.Should().BeTrue();
-		(await listar.HandleAsync(new ListarDocumentosQuery(slug))).Value.Should().BeEmpty();
+		(await listar.HandleAsync(new ListarDocumentosQuery(ReferenciaDeDono.DoSetor(slug)))).Value.Should().BeEmpty();
 	}
 
 	[Fact]
@@ -129,10 +129,10 @@ public class DocumentoTenantIsolationTests(IntranetWebFactory factory)
 		var baixar = escopo.ServiceProvider.GetRequiredService<BaixarDocumentoHandler>();
 
 		await arquivar.HandleAsync(new ArquivarDocumentoCommand(
-			documentoId, new HashSet<string>(StringComparer.OrdinalIgnoreCase), ExigirVinculo: false));
+			documentoId, new HashSet<ReferenciaDeDono>(), ExigirVinculo: false));
 
 		var resultado = await baixar.HandleAsync(new BaixarDocumentoQuery(
-			documentoId, new HashSet<string>(StringComparer.OrdinalIgnoreCase), ExigirVinculo: false));
+			documentoId, new HashSet<ReferenciaDeDono>(), ExigirVinculo: false));
 
 		resultado.IsFailure.Should().BeTrue("arquivar tira o documento de circulação, não só da listagem");
 	}

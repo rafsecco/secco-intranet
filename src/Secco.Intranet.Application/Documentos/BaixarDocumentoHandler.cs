@@ -6,14 +6,14 @@ namespace Secco.Intranet.Application.Documentos;
 
 /// <summary>Pedido de download de um documento.</summary>
 /// <param name="DocumentoId">Identificador do documento.</param>
-/// <param name="SlugsDoUsuario">Setores aos quais o usuário está vinculado (ADR-0001).</param>
+/// <param name="DonosComLeitura">Setores e bibliotecas que o usuário pode ler (ADR-0001).</param>
 /// <param name="ExigirVinculo">
 /// Quando <c>false</c>, dispensa a checagem de vínculo — é o modo aberto de DEV, sem
 /// SecureGate para emitir roles. Em produção é sempre <c>true</c>.
 /// </param>
 public sealed record BaixarDocumentoQuery(
 	Guid DocumentoId,
-	IReadOnlySet<string> SlugsDoUsuario,
+	IReadOnlySet<ReferenciaDeDono> DonosComLeitura,
 	bool ExigirVinculo);
 
 /// <summary>Documento liberado para entrega.</summary>
@@ -67,8 +67,18 @@ public sealed class BaixarDocumentoHandler(IDocumentoRepository repository, IArq
 				documento.CaminhoRelativo!, documento.ChaveEmbrulhada!, destino, token));
 	}
 
-	private static bool PodeLer(DocumentoComSetor encontrado, BaixarDocumentoQuery query) =>
-		encontrado.Documento.Visibilidade == Visibilidade.Empresa
-		|| !query.ExigirVinculo
-		|| query.SlugsDoUsuario.Contains(encontrado.SetorSlug);
+	private static bool PodeLer(DocumentoComDono encontrado, BaixarDocumentoQuery query)
+	{
+		// Biblioteca: ninguém olha a visibilidade (grava sempre Setor); vale a permissão de leitura
+		// e a biblioteca precisa estar ativa.
+		if (encontrado.Dono.Tipo == TipoDeDono.Biblioteca)
+		{
+			return encontrado.DonoAtivo
+				&& (!query.ExigirVinculo || query.DonosComLeitura.Contains(encontrado.Dono));
+		}
+
+		return encontrado.Documento.Visibilidade == Visibilidade.Empresa
+			|| !query.ExigirVinculo
+			|| query.DonosComLeitura.Contains(encontrado.Dono);
+	}
 }

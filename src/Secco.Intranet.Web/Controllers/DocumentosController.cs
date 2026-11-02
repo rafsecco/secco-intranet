@@ -35,7 +35,7 @@ public sealed class DocumentosController(
 	{
 		var query = new BaixarDocumentoQuery(
 			id,
-			await SlugsComLeituraAsync(cancellationToken).ConfigureAwait(false),
+			await DonosComLeituraAsync(cancellationToken).ConfigureAwait(false),
 			ExigirVinculo: !AcessoAdministrativo.ModoAbertoDeDev(environment, configuration));
 
 		var resultado = await handler.HandleAsync(query, cancellationToken).ConfigureAwait(false);
@@ -69,11 +69,11 @@ public sealed class DocumentosController(
 	/// sem autenticação configurada), quando o handler ignora o filtro por completo
 	/// (<c>ExigirVinculo: false</c>). Fora do Development a lista vem sempre da permissão real.
 	/// </summary>
-	private async Task<IReadOnlySet<string>> SlugsComLeituraAsync(CancellationToken cancellationToken)
+	private async Task<IReadOnlySet<ReferenciaDeDono>> DonosComLeituraAsync(CancellationToken cancellationToken)
 	{
 		if (AcessoAdministrativo.ModoAbertoDeDev(environment, configuration))
 		{
-			return new HashSet<string>();
+			return new HashSet<ReferenciaDeDono>();
 		}
 
 		var setores = await searchSetores
@@ -82,11 +82,16 @@ public sealed class DocumentosController(
 
 		if (setores.IsFailure)
 		{
-			return new HashSet<string>();
+			return new HashSet<ReferenciaDeDono>();
 		}
 
 		var slugs = setores.Value.Items.Select(s => s.Slug).ToList();
 
-		return await permissoesDeSetor.SlugsComPermissaoAsync(User, "read", slugs, cancellationToken).ConfigureAwait(false);
+		var comLeitura = await permissoesDeSetor
+			.SlugsComPermissaoAsync(User, "read", slugs, cancellationToken)
+			.ConfigureAwait(false);
+
+		// As bibliotecas entram neste conjunto na Task 6.
+		return comLeitura.Select(ReferenciaDeDono.DoSetor).ToHashSet();
 	}
 }
