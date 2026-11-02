@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using AwesomeAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Acesso;
+using Secco.Intranet.Application.Bibliotecas;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Tests.Integration.TestAuthentication;
 using Secco.Intranet.Tests.Support;
@@ -338,6 +339,88 @@ public class AcessoTelasTests(IntranetWebFactory factory) : IClassFixture<Intran
 		var html = await CriarClienteAdmin(CenarioDePerfil()).GetStringAsync("/Acesso/Perfil?nome=intranet-admin");
 
 		html.Should().NotContain("Excluir perfil");
+	}
+
+	private async Task<string> CriarBibliotecaAsync(string nome, bool ativa = true)
+	{
+		var slug = $"bib-{Guid.NewGuid():N}"[..16];
+
+		using var escopo = factory.Services.CreateScope();
+		escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
+
+		var criada = await escopo.ServiceProvider
+			.GetRequiredService<CriarBibliotecaHandler>()
+			.HandleAsync(new CriarBibliotecaCommand(nome, slug, null, TodosLeem: false));
+
+		criada.IsSuccess.Should().BeTrue();
+
+		if (!ativa)
+		{
+			var editada = await escopo.ServiceProvider
+				.GetRequiredService<EditarBibliotecaHandler>()
+				.HandleAsync(new EditarBibliotecaCommand(criada.Value.Id, nome, null, Ativo: false));
+
+			editada.IsSuccess.Should().BeTrue();
+		}
+
+		return slug;
+	}
+
+	private static int Ocorrencias(string html, string trecho) => Regex.Count(html, Regex.Escape(trecho));
+
+	[Fact]
+	public async Task Perfil_comum_e_todos_os_membros_mostram_ler_e_alterar_de_cada_biblioteca_ativa()
+	{
+		var slug = await CriarBibliotecaAsync("Manuais do teste");
+		var gestao = CenarioDePerfil().ComPerfilImplicito(IntranetPermissoes.Biblioteca.Read(slug));
+		var client = CriarClienteAdmin(gestao);
+
+		foreach (var perfil in new[] { "gerente-de-compras", "tenant-member" })
+		{
+			var html = Decodificar(await client.GetStringAsync($"/Acesso/Perfil?nome={perfil}"));
+
+			html.Should().Contain("Bibliotecas").And.Contain("Manuais do teste");
+			html.Should().Contain($"value=\"biblioteca-{slug}:read\"").And.Contain($"value=\"biblioteca-{slug}:write\"");
+			html.Should().Contain("Alterar (inclui ler)");
+		}
+	}
+
+	[Fact]
+	public async Task Biblioteca_inativa_nao_entra_na_secao()
+	{
+		var slug = await CriarBibliotecaAsync("Arquivada do teste", ativa: false);
+
+		var html = Decodificar(await CriarClienteAdmin(CenarioDePerfil()).GetStringAsync("/Acesso/Perfil?nome=gerente-de-compras"));
+
+		html.Should().NotContain($"biblioteca-{slug}:");
+	}
+
+	[Fact]
+	public async Task Permissao_de_biblioteca_inativa_continua_como_extra_e_aparece_uma_vez()
+	{
+		var inativa = await CriarBibliotecaAsync("Velha do teste", ativa: false);
+		var ativa = await CriarBibliotecaAsync("Viva do teste");
+		var gestao = new GestaoDeAcessoFalsa().ComPerfil(
+			"gerente-de-compras", reservado: false,
+			IntranetPermissoes.Biblioteca.Read(inativa), IntranetPermissoes.Biblioteca.Read(ativa));
+
+		var html = await CriarClienteAdmin(gestao).GetStringAsync("/Acesso/Perfil?nome=gerente-de-compras");
+
+		Ocorrencias(html, $"value=\"biblioteca-{inativa}:read\"").Should().Be(1, "a permissão da inativa segue como extra");
+		Ocorrencias(html, $"value=\"biblioteca-{ativa}:read\"").Should().Be(1, "a da ativa aparece só na seção");
+		Ocorrencias(html, $"value=\"biblioteca-{ativa}:write\"").Should().Be(1);
+		Regex.IsMatch(html, $"value=\"biblioteca-{ativa}:read\"[^>]*checked").Should().BeTrue("o perfil já tem a leitura");
+	}
+
+	[Fact]
+	public async Task Perfil_reservado_nao_mostra_a_secao()
+	{
+		var slug = await CriarBibliotecaAsync("Qualquer do teste");
+		var gestao = new GestaoDeAcessoFalsa().ComPerfil("tenant-owner", reservado: true);
+
+		var html = Decodificar(await CriarClienteAdmin(gestao).GetStringAsync("/Acesso/Perfil?nome=tenant-owner"));
+
+		html.Should().Contain("Perfil reservado").And.NotContain("Alterar (inclui ler)").And.NotContain($"biblioteca-{slug}:");
 	}
 
 	private static GestaoDeAcessoFalsa CenarioDeUsuario() => new GestaoDeAcessoFalsa()

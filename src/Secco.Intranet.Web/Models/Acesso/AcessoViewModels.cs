@@ -1,4 +1,5 @@
 using Secco.Intranet.Application.Acesso;
+using Secco.Intranet.Application.Bibliotecas;
 using Secco.SharedKernel.Pagination;
 
 namespace Secco.Intranet.Web.Models.Acesso;
@@ -23,7 +24,8 @@ public sealed record AcessoIndexViewModel(
 
 /// <summary>Modelo do detalhe de um perfil.</summary>
 /// <param name="Tela">Perfil, membros da página e candidatos a membro.</param>
-public sealed record PerfilViewModel(PerfilTelaDto Tela);
+/// <param name="Bibliotecas">Bibliotecas ativas, cada uma com suas permissões de ler e alterar.</param>
+public sealed record PerfilViewModel(PerfilTelaDto Tela, IReadOnlyList<BibliotecaDto> Bibliotecas);
 
 /// <summary>Modelo do detalhe de um usuário.</summary>
 /// <param name="Tela">Usuário, perfis agrupados por setor e o que ainda pode ser atribuído.</param>

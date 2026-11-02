@@ -23,7 +23,13 @@
 
     // Uma permissão que o perfil já tem e não está no catálogo (legado, ou atribuída fora desta
     // tela) precisa continuar aparecendo — senão salvar o formulário a apagaria sem o admin ver.
-    foreach (var extra in perfil.Permissoes.Where(p => !catalogoDePermissoes.Contains(p)))
+    // As das bibliotecas ativas já saem na seção própria, então não repetem aqui; as das inativas
+    // seguem como extras.
+    var mostradasNaSecao = Model.Bibliotecas
+        .SelectMany(b => new[] { IntranetPermissoes.Biblioteca.Read(b.Slug), IntranetPermissoes.Biblioteca.Write(b.Slug) })
+        .ToHashSet(StringComparer.Ordinal);
+
+    foreach (var extra in perfil.Permissoes.Where(p => !catalogoDePermissoes.Contains(p) && !mostradasNaSecao.Contains(p)))
     {
         catalogoDePermissoes.Add(extra);
     }
@@ -68,6 +74,26 @@
                     <input class="form-check-input" type="checkbox" name="permissoes" value="@permissao" id="perm-@permissao" checked="@permissoesAtuais.Contains(permissao)" />
                     <label class="form-check-label" for="perm-@permissao">@descricoes.GetValueOrDefault(permissao) <span class="sc-meta">@permissao</span></label>
                 </div>
+            }
+            @if (Model.Bibliotecas.Count > 0)
+            {
+                <h3 class="h6 mt-3">Bibliotecas</h3>
+                @foreach (var biblioteca in Model.Bibliotecas)
+                {
+                    var ler = IntranetPermissoes.Biblioteca.Read(biblioteca.Slug);
+                    var alterar = IntranetPermissoes.Biblioteca.Write(biblioteca.Slug);
+                    <div class="mb-2">
+                        <div>@biblioteca.Nome <span class="sc-meta">@biblioteca.Slug</span></div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="permissoes" value="@ler" id="perm-@ler" checked="@permissoesAtuais.Contains(ler)" />
+                            <label class="form-check-label" for="perm-@ler">Ler</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="permissoes" value="@alterar" id="perm-@alterar" checked="@permissoesAtuais.Contains(alterar)" />
+                            <label class="form-check-label" for="perm-@alterar">Alterar (inclui ler)</label>
+                        </div>
+                    </div>
+                }
             }
             <button class="btn btn-outline-primary mt-2" type="submit">Salvar permissões</button>
         </form>

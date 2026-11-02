@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Secco.Intranet.Application.Acesso;
+using Secco.Intranet.Application.Bibliotecas;
 using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Models.Acesso;
 using Secco.Intranet.Web.ViewComponents;
@@ -25,6 +26,7 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="encerrarSessoes">Encerramento de sessões.</param>
 /// <param name="editarPermissoes">Edição das permissões de um perfil.</param>
 /// <param name="reconciliarPermissoes">Reconciliação em lote de permissões de setor e do Diretório.</param>
+/// <param name="listarBibliotecas">Lista de bibliotecas, para as permissões por biblioteca no perfil.</param>
 [SomenteIntranetAdmin]
 public sealed class AcessoController(
 	ListarPerfisHandler listarPerfis,
@@ -39,7 +41,8 @@ public sealed class AcessoController(
 	ReativarUsuarioHandler reativarUsuario,
 	EncerrarSessoesHandler encerrarSessoes,
 	EditarPermissoesDoPerfilHandler editarPermissoes,
-	ReconciliarPermissoesHandler reconciliarPermissoes) : Controller
+	ReconciliarPermissoesHandler reconciliarPermissoes,
+	ListarBibliotecasHandler listarBibliotecas) : Controller
 {
 	/// <summary>Tela inicial, com as abas Perfis e Usuários.</summary>
 	/// <param name="aba"><c>usuarios</c> abre a aba de usuários; qualquer outro valor, a de perfis.</param>
@@ -86,7 +89,16 @@ public sealed class AcessoController(
 	{
 		var tela = await obterPerfil.HandleAsync(new ObterPerfilQuery(nome ?? string.Empty, page), cancellationToken);
 
-		return tela.IsFailure ? Falha(tela.Error) : View(new PerfilViewModel(tela.Value));
+		if (tela.IsFailure)
+		{
+			return Falha(tela.Error);
+		}
+
+		// Sem a lista a tela abre sem a seção; as permissões de biblioteca que o perfil já tem
+		// continuam aparecendo como extras, então salvar não as apaga.
+		var bibliotecas = await listarBibliotecas.HandleAsync(new ListarBibliotecasQuery(SomenteAtivas: true), cancellationToken);
+
+		return View(new PerfilViewModel(tela.Value, bibliotecas.IsSuccess ? bibliotecas.Value : []));
 	}
 
 	/// <summary>Exclui um perfil comum sem membros.</summary>
