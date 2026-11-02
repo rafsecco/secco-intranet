@@ -18,6 +18,9 @@ public sealed partial class CatalogoDeItensDoMenuPrincipal
 	/// <summary>Chave reservada ao item fixo Diretório.</summary>
 	public const string ChaveDiretorio = "diretorio";
 
+	/// <summary>Prefixo das chaves das bibliotecas no menu; extra nenhum pode usá-lo.</summary>
+	public const string PrefixoDeBiblioteca = "biblioteca-";
+
 	private readonly Lazy<IReadOnlyList<Type>> _tipos;
 	private readonly ILogger<CatalogoDeItensDoMenuPrincipal> _logger;
 	private readonly ConcurrentDictionary<Type, bool> _avisados = new();
@@ -36,6 +39,10 @@ public sealed partial class CatalogoDeItensDoMenuPrincipal
 		_logger = logger;
 		_tipos = new Lazy<IReadOnlyList<Type>>(() => DescobrirTipos(partManager, registros));
 	}
+
+	/// <summary>Chave de uma biblioteca no menu principal.</summary>
+	/// <param name="slug">Slug da biblioteca.</param>
+	public static string ChaveDeBiblioteca(string slug) => PrefixoDeBiblioteca + slug;
 
 	/// <summary>
 	/// Instancia os itens no escopo dado (<see cref="ActivatorUtilities"/>) e devolve só os válidos
@@ -121,6 +128,11 @@ public sealed partial class CatalogoDeItensDoMenuPrincipal
 		if (chave is ChaveMural or ChaveDiretorio)
 		{
 			return $"a chave '{chave}' é reservada aos itens fixos";
+		}
+
+		if (chave.StartsWith(PrefixoDeBiblioteca, StringComparison.Ordinal))
+		{
+			return $"o prefixo '{PrefixoDeBiblioteca}' é reservado às bibliotecas";
 		}
 
 		if (string.IsNullOrWhiteSpace(item.Rotulo))

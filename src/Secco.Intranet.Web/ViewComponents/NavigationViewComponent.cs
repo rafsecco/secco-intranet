@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Application.Acesso;
+using Secco.Intranet.Application.Bibliotecas;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Web.Navigation;
@@ -27,6 +28,7 @@ namespace Secco.Intranet.Web.ViewComponents;
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
 /// <param name="environment">Ambiente de hospedagem, para o modo aberto de DEV.</param>
 /// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura (ADR-0021).</param>
+/// <param name="permissoesDeBiblioteca">Em quais bibliotecas o usuário tem leitura (ADR-0021).</param>
 /// <param name="catalogo">Catálogo dos itens extras de projetos externos.</param>
 /// <param name="authorizationService">Serviço de autorização do framework, para o nível do Diretório.</param>
 /// <param name="slugsReservados">Slugs que as rotas fixas ocupam; setor com um deles sai do menu.</param>
@@ -37,6 +39,7 @@ public sealed class NavigationViewComponent(
 	IConfiguration configuration,
 	IWebHostEnvironment environment,
 	IPermissoesDeSetor permissoesDeSetor,
+	IPermissoesDeBiblioteca permissoesDeBiblioteca,
 	CatalogoDeItensDoMenuPrincipal catalogo,
 	IAuthorizationService authorizationService,
 	ISlugsReservados slugsReservados,
@@ -78,9 +81,53 @@ public sealed class NavigationViewComponent(
 				.FiltrarAsync(catalogo.Criar(serviceProvider), HttpContext.User, modoAberto, logger, HttpContext.RequestAborted)
 				.ConfigureAwait(false),
 			Posicoes: await CarregarPosicoesAsync().ConfigureAwait(false),
-			SlugsReservados: slugsReservados);
+			SlugsReservados: slugsReservados,
+			Bibliotecas: await CarregarBibliotecasAsync(HttpContext.User, exigirPermissao: !modoAberto).ConfigureAwait(false));
 
 		return View(IntranetNavigation.Build(request));
+	}
+
+	private async Task<IReadOnlyList<BibliotecaDto>> CarregarBibliotecasAsync(
+		System.Security.Claims.ClaimsPrincipal usuario,
+		bool exigirPermissao)
+	{
+		if (!tenantContext.IsResolved)
+		{
+			return [];
+		}
+
+		try
+		{
+			var resultado = await serviceProvider
+				.GetRequiredService<ListarBibliotecasHandler>()
+				.HandleAsync(new ListarBibliotecasQuery(SomenteAtivas: true), HttpContext.RequestAborted)
+				.ConfigureAwait(false);
+
+			if (resultado.IsFailure)
+			{
+				return [];
+			}
+
+			var ativas = resultado.Value;
+
+			if (!exigirPermissao)
+			{
+				return ativas;
+			}
+
+			var slugsComLeitura = await permissoesDeBiblioteca
+				.SlugsComPermissaoAsync(usuario, "read", [.. ativas.Select(b => b.Slug)], HttpContext.RequestAborted)
+				.ConfigureAwait(false);
+
+			return [.. ativas.Where(biblioteca => slugsComLeitura.Contains(biblioteca.Slug))];
+		}
+#pragma warning disable CA1031 // O menu está no layout: uma falha aqui derrubaria até a própria página de erro.
+		catch (Exception exception)
+#pragma warning restore CA1031
+		{
+			logger.LogWarning(exception, "Não foi possível carregar as bibliotecas do menu; exibindo o menu sem elas.");
+			return [];
+		}
 	}
 
 	private async Task<PosicoesDoMenuDto> CarregarPosicoesAsync()

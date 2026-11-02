@@ -72,6 +72,19 @@ public class CatalogoDeItensDoMenuPrincipalTests
 	}
 
 	[Fact]
+	public void Extra_com_prefixo_biblioteca_fica_fora_com_aviso()
+	{
+		var log = new LoggerCapturador<CatalogoDeItensDoMenuPrincipal>();
+
+		Catalogo(log: log).Criar(Provider()).Select(i => i.GetType()).Should().NotContain(typeof(ItemChavePrefixoBiblioteca));
+
+		log.Entradas.Where(e => e.Nivel == LogLevel.Warning && e.Mensagem.Contains(nameof(ItemChavePrefixoBiblioteca), StringComparison.Ordinal))
+			.Should().ContainSingle()
+			.Which.Mensagem.Should().Contain("o prefixo 'biblioteca-' é reservado às bibliotecas");
+		CatalogoDeItensDoMenuPrincipal.ChaveDeBiblioteca("ti").Should().Be("biblioteca-ti");
+	}
+
+	[Fact]
 	public void Criar_IgnoraUrlNaoLocal()
 	{
 		var tipos = Catalogo().Criar(Provider()).Select(i => i.GetType()).ToList();
@@ -221,6 +234,11 @@ public class CatalogoDeItensDoMenuPrincipalTests
 		public const string ChaveUsada = "mural";
 
 		public override string Chave => ChaveUsada;
+	}
+
+	public sealed class ItemChavePrefixoBiblioteca : ItemBase
+	{
+		public override string Chave => "biblioteca-x";
 	}
 
 	public sealed class ItemUrlAbsoluta : ItemBase

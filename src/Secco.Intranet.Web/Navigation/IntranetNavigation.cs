@@ -1,4 +1,5 @@
-﻿using Secco.Intranet.Application.Menu;
+﻿using Secco.Intranet.Application.Bibliotecas;
+using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Web.Theming.Contracts;
@@ -15,6 +16,7 @@ namespace Secco.Intranet.Web.Navigation;
 /// <param name="ItensExtras">Itens extras de projetos externos que o usuário pode ver.</param>
 /// <param name="Posicoes">Posições salvas do menu do tenant; nulo = ordem padrão.</param>
 /// <param name="SlugsReservados">Slugs que as rotas fixas ocupam; setor com um deles fica fora do menu. Nulo = nenhum.</param>
+/// <param name="Bibliotecas">Bibliotecas ativas que o usuário pode ler; viram itens do grupo principal. Nulo = nenhuma.</param>
 public sealed record NavigationRequest(
 	IReadOnlyList<SetorDto> Setores,
 	string CaminhoAtual,
@@ -24,7 +26,8 @@ public sealed record NavigationRequest(
 	IReadOnlyDictionary<Guid, IReadOnlyList<ItemMenuDto>>? Arvores = null,
 	IReadOnlyList<ItemExtraDoMenu>? ItensExtras = null,
 	PosicoesDoMenuDto? Posicoes = null,
-	ISlugsReservados? SlugsReservados = null);
+	ISlugsReservados? SlugsReservados = null,
+	IReadOnlyList<BibliotecaDto>? Bibliotecas = null);
 
 /// <summary>
 /// Montagem do menu. O Mural é o único item fixo que fala com a empresa toda; a seção Setores
@@ -40,7 +43,7 @@ public static class IntranetNavigation
 
 		var caminho = string.IsNullOrWhiteSpace(request.CaminhoAtual) ? "/" : request.CaminhoAtual;
 
-		var padrao = PrincipalNaOrdemPadrao(request.MostrarDiretorio, request.ItensExtras ?? []);
+		var padrao = PrincipalNaOrdemPadrao(request.MostrarDiretorio, request.ItensExtras ?? [], request.Bibliotecas);
 
 		var principais = OrdemDoMenu.Ordenar(padrao, entrada => entrada.Chave, request.Posicoes?.Principal)
 			.Select(entrada => new NavigationItemModel(
@@ -92,12 +95,14 @@ public static class IntranetNavigation
 	}
 
 	/// <summary>
-	/// Entradas do grupo principal na ordem padrão: Mural, Diretório (se pedido) e os extras por
-	/// <see cref="ItemExtraDoMenu.Ordem"/> e depois <see cref="ItemExtraDoMenu.Rotulo"/>.
+	/// Entradas do grupo principal na ordem padrão: Mural, Diretório (se pedido), as bibliotecas por
+	/// nome e os extras por <see cref="ItemExtraDoMenu.Ordem"/> e depois <see cref="ItemExtraDoMenu.Rotulo"/>.
 	/// </summary>
 	/// <param name="incluirDiretorio">Se o Diretório entra.</param>
 	/// <param name="extras">Itens extras visíveis.</param>
-	public static IReadOnlyList<EntradaDoMenuPrincipal> PrincipalNaOrdemPadrao(bool incluirDiretorio, IEnumerable<ItemExtraDoMenu> extras)
+	/// <param name="bibliotecas">Bibliotecas que entram no menu; nulo = nenhuma.</param>
+	public static IReadOnlyList<EntradaDoMenuPrincipal> PrincipalNaOrdemPadrao(
+		bool incluirDiretorio, IEnumerable<ItemExtraDoMenu> extras, IEnumerable<BibliotecaDto>? bibliotecas = null)
 	{
 		ArgumentNullException.ThrowIfNull(extras);
 
@@ -110,6 +115,14 @@ public static class IntranetNavigation
 		{
 			entradas.Add(new EntradaDoMenuPrincipal(CatalogoDeItensDoMenuPrincipal.ChaveDiretorio, "Diretório", "bi-people", "/diretorio"));
 		}
+
+		entradas.AddRange((bibliotecas ?? [])
+			.OrderBy(biblioteca => biblioteca.Nome, StringComparer.OrdinalIgnoreCase)
+			.Select(biblioteca => new EntradaDoMenuPrincipal(
+				CatalogoDeItensDoMenuPrincipal.ChaveDeBiblioteca(biblioteca.Slug),
+				biblioteca.Nome,
+				biblioteca.Icone,
+				$"/bibliotecas/{biblioteca.Slug}")));
 
 		entradas.AddRange(extras
 			.OrderBy(extra => extra.Ordem)

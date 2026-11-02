@@ -1,6 +1,7 @@
 using AwesomeAssertions;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Secco.Intranet;
+using Secco.Intranet.Application.Bibliotecas;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Menu;
@@ -417,5 +418,31 @@ public class NavegacaoETemaTests
 		var entradas = IntranetNavigation.PrincipalNaOrdemPadrao(true, [Extra("x", "X")]);
 
 		entradas.Select(e => e.Chave).Should().Equal("mural", "diretorio", "x");
+	}
+
+	private static BibliotecaDto Biblioteca(string nome, string slug) =>
+		new(Guid.NewGuid(), nome, slug, "bi-journal-text", true, DateTimeOffset.UnixEpoch);
+
+	[Fact]
+	public void Bibliotecas_entram_depois_do_diretorio_e_antes_dos_extras()
+	{
+		var entradas = IntranetNavigation.PrincipalNaOrdemPadrao(
+			true, [Extra("x", "X")], [Biblioteca("Zeta", "zeta"), Biblioteca("alfa", "alfa")]);
+
+		entradas.Select(e => e.Chave).Should().Equal("mural", "diretorio", "biblioteca-alfa", "biblioteca-zeta", "x");
+		entradas.Single(e => e.Chave == "biblioteca-alfa").Url.Should().Be("/bibliotecas/alfa");
+	}
+
+	[Fact]
+	public void Build_biblioteca_fica_ativa_so_no_proprio_caminho()
+	{
+		var bibliotecas = new[] { Biblioteca("TI", "ti"), Biblioteca("TIC", "tic") };
+
+		var menu = IntranetNavigation.Build(new NavigationRequest(
+			[], "/bibliotecas/tic/documentos", false, false, false, Bibliotecas: bibliotecas));
+		var itens = menu.Grupos.SelectMany(grupo => grupo.Itens).ToList();
+
+		itens.Single(item => item.Texto == "TIC").Ativo.Should().BeTrue();
+		itens.Single(item => item.Texto == "TI").Ativo.Should().BeFalse();
 	}
 }

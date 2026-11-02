@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Secco.Intranet.Application.Bibliotecas;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Menu;
@@ -22,13 +23,15 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="restaurarOrdem">Volta um grupo à ordem padrão.</param>
 /// <param name="buscarSetores">Setores ativos do tenant.</param>
 /// <param name="catalogo">Itens extras registrados pelos projetos externos.</param>
+/// <param name="listarBibliotecas">Bibliotecas do tenant.</param>
 [SomenteIntranetAdmin]
 public sealed class MenuController(
 	ObterPosicoesDoMenuHandler obterPosicoes,
 	MoverPosicaoNoMenuHandler moverPosicao,
 	RestaurarOrdemDoMenuHandler restaurarOrdem,
 	SearchSetoresHandler buscarSetores,
-	CatalogoDeItensDoMenuPrincipal catalogo) : Controller
+	CatalogoDeItensDoMenuPrincipal catalogo,
+	ListarBibliotecasHandler listarBibliotecas) : Controller
 {
 	/// <summary>As duas listas na ordem efetiva.</summary>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
@@ -111,7 +114,9 @@ public sealed class MenuController(
 		}
 
 		var extras = catalogo.Criar(HttpContext.RequestServices).Select(ItemExtraDoMenu.De);
-		var principal = IntranetNavigation.PrincipalNaOrdemPadrao(incluirDiretorio: true, extras);
+		var bibliotecas = await listarBibliotecas.HandleAsync(new ListarBibliotecasQuery(SomenteAtivas: true), cancellationToken);
+		var principal = IntranetNavigation.PrincipalNaOrdemPadrao(
+			incluirDiretorio: true, extras, bibliotecas.IsSuccess ? bibliotecas.Value : null);
 
 		return [.. OrdemDoMenu.Ordenar(principal, entrada => entrada.Chave, posicoes.Principal)
 			.Select(entrada => new LinhaDaOrdem(entrada.Chave, entrada.Rotulo, entrada.Icone))];
