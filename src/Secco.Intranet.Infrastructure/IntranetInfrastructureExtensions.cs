@@ -202,6 +202,18 @@ public static class IntranetInfrastructureExtensions
 				? ActivatorUtilities.CreateInstance<TrilhaSilenciosa>(serviceProvider)
 				: ActivatorUtilities.CreateInstance<LogStreamTrilhaDeAuditoria>(serviceProvider));
 
+		// Trilha fail-closed da exportação (ADR-0013): escolhe também pelo ambiente, ao contrário da
+		// de cima. Não unificar os dois critérios.
+		services.AddScoped<ITrilhaObrigatoria>(serviceProvider =>
+			EscolhaDaTrilhaObrigatoria.Para(
+				serviceProvider.GetRequiredService<AuditoriaOptions>().LogStreamUrl,
+				serviceProvider.GetRequiredService<IHostEnvironment>()) switch
+			{
+				ModoDaTrilhaObrigatoria.LogStream => ActivatorUtilities.CreateInstance<LogStreamTrilhaObrigatoria>(serviceProvider),
+				ModoDaTrilhaObrigatoria.Desenvolvimento => ActivatorUtilities.CreateInstance<TrilhaObrigatoriaDeDesenvolvimento>(serviceProvider),
+				_ => ActivatorUtilities.CreateInstance<TrilhaObrigatoriaIndisponivel>(serviceProvider),
+			});
+
 		return services;
 	}
 

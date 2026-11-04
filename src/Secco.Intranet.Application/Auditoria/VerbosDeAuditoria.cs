@@ -146,6 +146,12 @@ public static class VerbosDeAuditoria
 
 	/// <summary>Vencimento encerrado voltou a ser acompanhado.</summary>
 	public const string VencimentoReativar = "vencimento.reativar";
+
+	/// <summary>
+	/// Listagem exportada em Excel ou PDF, registrada antes do envio (ADR-0013). Um verbo só para
+	/// todo relatório: o <c>RecursoId</c> diz qual foi.
+	/// </summary>
+	public const string ExportacaoGerar = "exportacao.gerar";
 }
 
 /// <summary>Tipos de recurso da trilha.</summary>
@@ -177,4 +183,7 @@ public static class RecursosDeAuditoria
 
 	/// <summary>Item de vencimento de um setor.</summary>
 	public const string Vencimento = "vencimento";
+
+	/// <summary>Exportação de uma listagem; o <c>RecursoId</c> é a chave do relatório.</summary>
+	public const string Exportacao = "exportacao";
 }

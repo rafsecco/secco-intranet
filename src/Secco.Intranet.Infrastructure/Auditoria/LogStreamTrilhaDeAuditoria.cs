@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Secco.Intranet.Application.Auditoria;
 using Secco.LogStream.Client;
-using Secco.SDK.AspNetCore.Ambient;
 
 namespace Secco.Intranet.Infrastructure.Auditoria;
 
@@ -35,18 +34,7 @@ public sealed class LogStreamTrilhaDeAuditoria(
 			return;
 		}
 
-		var request = new CreateAuditEntryRequest
-		{
-			ActorId = quem.Id,
-			ActorName = quem.Nome,
-			ActorType = ActorType.User,
-			Action = registro.Verbo,
-			ResourceType = registro.Recurso,
-			ResourceId = registro.RecursoId,
-			Metadata = registro.Metadata,
-			CorrelationId = Guid.TryParse(SeccoAmbientContext.CorrelationId, out var correlacao) ? correlacao : null,
-			OccurredAt = DateTimeOffset.UtcNow,
-		};
+		var request = RegistroParaLogStream.Montar(registro, quem);
 
 		try
 		{

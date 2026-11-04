@@ -5,6 +5,19 @@ namespace Secco.Intranet.Application;
 /// <summary>Erros de negócio do produto (ADR-0004): códigos estáveis <c>Intranet.*</c>.</summary>
 public static class IntranetErrors
 {
+	/// <summary>Erros da trilha de auditoria obrigatória.</summary>
+	public static class Auditoria
+	{
+		/// <summary>
+		/// A trilha obrigatória não registrou a ação, e por isso ela não acontece (ADR-0013).
+		/// Mensagem sem detalhe interno (ADR-0020).
+		/// </summary>
+		public static readonly Error TrilhaIndisponivel =
+			Error.Failure(
+				"Intranet.Auditoria.TrilhaIndisponivel",
+				"Não foi possível exportar agora. Tente de novo em alguns minutos.");
+	}
+
 	/// <summary>Erros do recurso Biblioteca de documentos.</summary>
 	public static class Bibliotecas
 	{
