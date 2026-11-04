@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Contrato de extensão do menu principal (mesmo raciocínio da ADR-0004 para o Theming): o
-       único projeto que uma RCL externa precisa referenciar para acrescentar itens ao menu.
+  <!-- Contrato de extensão para RCLs externas (mesmo raciocínio da ADR-0004 para o Theming): o
+       único projeto do produto que uma RCL precisa referenciar para acrescentar itens ao menu
+       (ADR-0011) ou exportar Excel/PDF (ADR-0013).
        Deliberadamente sem dependência de Secco.Intranet.Web nem de nenhum outro projeto do
        produto — é o que quebra o ciclo, já que a Web referencia as RCLs externas. Depende só
        do framework compartilhado do ASP.NET Core (DependencyInjection.Abstractions vem nele) e de
