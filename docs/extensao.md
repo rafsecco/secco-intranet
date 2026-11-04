@@ -203,6 +203,7 @@ O tema ainda não tem parcial para esses botões: use as classes do tema ativo.
 
 ```csharp
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Secco.Intranet.Web.Extensibility;
@@ -210,7 +211,8 @@ using Secco.SDK.Documents;
 
 public sealed class RelatorioController(
 	ISeccoDocumentExporter exportador,
-	ITrilhaDeExportacao trilha) : Controller
+	ITrilhaDeExportacao trilha,
+	IAuthorizationService autorizacao) : Controller
 {
 	private const string Recurso = "relatorio-de-inscritos";
 
@@ -220,9 +222,14 @@ public sealed class RelatorioController(
 	[HttpPost("/relatorio/exportar")]
 	[ValidateAntiForgeryToken]
 	[EnableRateLimiting(PoliticaDeExportacao.Nome)]
-	[Authorize(Policy = "relatorio:export")] // permissão da própria RCL
 	public async Task<IResult> Exportar(string formato, DateOnly? de, DateOnly? ate)
 	{
+		// Permissão da própria RCL, separada da de ver a listagem.
+		if (!(await autorizacao.AuthorizeAsync(User, "relatorio:export")).Succeeded)
+		{
+			return Results.StatusCode(StatusCodes.Status403Forbidden);
+		}
+
 		var filtros = new List<ExportFilter>
 		{
 			new("De", de?.ToString("dd/MM/yyyy") ?? "—"),
@@ -287,8 +294,13 @@ mesmo caminho das outras ações: `TempData` antes do redirect, mostrada pelo te
 devolve `IResult`, porque é isso que o `ToHttpResult()` do SDK entrega; o MVC executa o `IResult`
 normalmente, inclusive o `TempData` do redirect.
 
-O exemplo completo e testado é o `ExportacaoDeTesteController`, em
-`tests/Secco.Intranet.Tests/Integration/Exportacao`.
+A permissão é verificada com o `IAuthorizationService`, e não com `[Authorize(Policy = ...)]`: no
+modo aberto de DEV não há esquema de autenticação registrado, e o atributo falharia ao tentar o
+desafio. É o mesmo padrão do gate do item de menu.
+
+A ordem gerar → trilha → enviar, com o descarte na recusa e o `TempData` no redirect, está coberta
+pelos testes de integração do produto, no `ExportacaoDeTesteController`
+(`tests/Secco.Intranet.Tests/Integration/Exportacao`).
 
 ### Regras
 
