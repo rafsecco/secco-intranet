@@ -7,6 +7,7 @@ using Secco.Intranet.Web;
 using Secco.Intranet.Web.Auditoria;
 using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Conteudo;
+using Secco.Intranet.Web.Exportacao;
 using Secco.Intranet.Web.Hosting;
 using Secco.Intranet.Web.Navigation;
 using Secco.Intranet.Web.Tenancy;
@@ -72,6 +73,8 @@ builder.Services.AddLogStream(opcoes =>
 
 builder.Services.AddIntranetApplication();
 builder.Services.AddIntranetInfrastructure(builder.Configuration);
+// Exportação Excel/PDF para RCLs (ADR-0013): SDK, trilha fail-closed e limite por pessoa.
+builder.Services.AddIntranetExportacao();
 builder.Services.AddIntranetAuthentication(builder.Configuration, builder.Environment);
 
 // Secco:SecureGate:Authority ausente derruba o startup em Production, nao so deixa os

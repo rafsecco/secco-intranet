@@ -19,6 +19,8 @@
          entao o sintoma e log que simplesmente nao chega. -->
     <PackageVersion Include="Secco.SDK.Logging" Version="0.2.0" />
     <PackageVersion Include="Secco.SDK.Imaging" Version="0.2.0" />
+    <!-- Exportacao Excel/PDF (ADR-0058 da plataforma, ADR-0013): gravadores proprios, sem dependencia de terceiros. -->
+    <PackageVersion Include="Secco.SDK.Documents" Version="0.1.0" />
     <PackageVersion Include="Secco.SecureGate.Client" Version="0.24.0" />
     <!-- 0.5.0: SearchNotifications (relatorio de entrega numa chamada) e ScheduledFor
          (entrega na entrada no ar, segurando e-mail E item do sino). -->
