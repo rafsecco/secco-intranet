@@ -24,6 +24,7 @@ public static class ExportacaoServiceCollectionExtensions
 
 		services.AddSeccoDocuments(SectionKey);
 		services.AddScoped<ITrilhaDeExportacao, TrilhaDeExportacao>();
+		services.AddLimiteDeExportacao();
 
 		return services;
 	}

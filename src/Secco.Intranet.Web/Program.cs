@@ -147,6 +147,10 @@ if (IntranetAuthenticationExtensions.IsConfigured(app.Configuration))
 	app.UseAuthorization();
 }
 
+// Limite de exportação por pessoa (ADR-0013): depois da autenticação e da tenancy, para a partição
+// enxergar o sub. Só age nas rotas com [EnableRateLimiting(PoliticaDeExportacao.Nome)].
+app.UseRateLimiter();
+
 app.MapSeccoHealthChecks();
 
 // O navegador pede /favicon.ico na raiz quando a resposta não declara ícone (a foto servida
