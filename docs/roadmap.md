@@ -189,6 +189,14 @@ processos (maior risco técnico) só entra com a base já sólida.
       biblioteca nos perfis existentes ([ADR-0012](adr/secco-intranet-adrs.md),
       [spec](specs/2026-11-02-bibliotecas-de-documentos-design.md), plano em
       [plans/2026-11-02-bibliotecas-de-documentos.md](plans/2026-11-02-bibliotecas-de-documentos.md))
+- [x] Exportação Excel/PDF para RCLs: o host registra o `Secco.SDK.Documents` 0.1.0 (ADR-0058 da
+      plataforma) e oferece no `Extensibility` a trilha de exportação, fail-closed, e a política de
+      limite por pessoa, para uma RCL externa exportar só injetando. Sem LogStream, a exportação segue
+      em Development/Testing e é recusada nos outros ambientes. Seção `Intranet:Exportacao` —
+      [ADR-0013](adr/secco-intranet-adrs.md), [guia](extensao.md#exportando-excel-e-pdf),
+      [spec](specs/2026-11-04-exportacao-de-documentos-design.md), plano em
+      [plans/2026-11-04-exportacao-de-documentos.md](plans/2026-11-04-exportacao-de-documentos.md).
+      Issue #5. As listagens do core ainda não exportam
 - [x] Imagem na publicação do Mural: uma imagem opcional por aviso, enviada do computador,
       processada pelo `Secco.SDK.Imaging` 0.2.0 com `ImageCrop.Whole` (inteira, sem recorte,
       [secco-platform#52](https://github.com/rafsecco/secco-platform/issues/52)) e servida em

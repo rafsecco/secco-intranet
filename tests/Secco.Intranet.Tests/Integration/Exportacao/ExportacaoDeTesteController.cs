@@ -27,9 +27,22 @@ public sealed class ExportacaoDeTesteController(
 	/// <summary>Caminho do GET (token) e do POST (exportação).</summary>
 	public const string Caminho = "/exportacao-de-teste";
 
+	/// <summary>
+	/// Chave do <c>TempData</c> que o tema mostra como erro; a mesma do
+	/// <c>FeedbackViewComponent.ChaveDaMensagemDeErro</c>, que a RCL não enxerga.
+	/// </summary>
+	public const string ChaveDaMensagemDeErro = "MensagemDeErro";
+
+	/// <summary>Mensagem genérica de recusa.</summary>
+	public const string MensagemDeRecusa = "Não foi possível exportar agora. Tente de novo em alguns minutos.";
+
 	/// <summary>No lugar da tela com o formulário: devolve o token antiforgery e grava o cookie.</summary>
 	[HttpGet(Caminho)]
 	public IActionResult Token() => Content(antiforgery.GetAndStoreTokens(HttpContext).RequestToken!);
+
+	/// <summary>No lugar do tema: devolve a mensagem de erro deixada no <c>TempData</c>.</summary>
+	[HttpGet(Caminho + "/mensagem")]
+	public IActionResult Mensagem() => Content(TempData[ChaveDaMensagemDeErro] as string ?? string.Empty);
 
 	/// <summary>Exporta três linhas fixas.</summary>
 	/// <param name="formato"><c>xlsx</c> ou <c>pdf</c>.</param>
@@ -74,6 +87,7 @@ public sealed class ExportacaoDeTesteController(
 			if (!registrado)
 			{
 				await documento.DisposeAsync();
+				TempData[ChaveDaMensagemDeErro] = MensagemDeRecusa;
 
 				return Results.Redirect(Caminho);
 			}

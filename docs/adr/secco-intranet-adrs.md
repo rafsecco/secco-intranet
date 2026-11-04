@@ -5,7 +5,7 @@
 > Para mudar uma decisão, cria-se uma nova ADR que **substitui** a anterior — ADRs nunca são editadas retroativamente nem apagadas.
 > Decisões da plataforma (multi-tenancy, `Result<T>`, nomenclatura de banco...) estão em `secco-platform/docs/adr/secco-platform-adrs.md` — este documento cobre apenas decisões específicas deste produto.
 
-**Última atualização:** 2026-10-29 (ADR-0011 adicionada)
+**Última atualização:** 2026-11-04 (ADR-0013 adicionada)
 
 ---
 
@@ -633,3 +633,62 @@ escrita presa ao perfil desse setor, não ao de quem cuida dos documentos (issue
 - Mover documento entre donos, excluir biblioteca e trocar o slug ficam fora.
 - Mudar o dono nos casos de uso exige tocar um ponto só, mas toda checagem nova de documento precisa
   olhar o dono, não só o setor.
+
+---
+
+## ADR-0013: Exportação: trilha fail-closed ao lado da fail-open, e o `Extensibility` além do menu
+
+**Status:** Aceita
+**Data:** 2026-11-04
+
+### Contexto
+A plataforma entregou o `Secco.SDK.Documents` (ADR-0058 da plataforma) para exportar listagens em
+Excel e PDF no servidor. A ADR-0058 deixa com o produto três obrigações: registrar o exportador,
+gravar a trilha **antes** do envio e não enviar se ela falhar, e limitar a taxa por pessoa (`sub`).
+O primeiro consumidor é uma RCL externa de um fork corporativo, com dados pessoais, que não tem onde
+registrar serviços (ADR-0011) nem deve depender do core do produto (issue #5).
+
+A trilha que existe, `ITrilhaDeAuditoria`, é fail-open de propósito: a ação do usuário já aconteceu, e
+desfazê-la por causa do registro seria pior que o buraco na trilha. Ela escolhe o adapter só pela URL
+do LogStream, então uma instalação sem a URL simplesmente não audita. Para exportação, as duas
+coisas estão erradas: o arquivo ainda não saiu, e sair sem trilha é o que a ADR-0058 proíbe.
+
+### Decisão
+1. **Porta separada, `ITrilhaObrigatoria`**, que devolve `Result` em vez de engolir a falha. A
+   `ITrilhaDeAuditoria` e os handlers que a usam não mudam.
+2. **A escolha do adapter olha a URL e o nome do ambiente** (`IHostEnvironment`):
+   - com `Intranet:Auditoria:LogStreamUrl`, o LogStream, em qualquer ambiente, e recusa, rede ou
+     timeout viram falha;
+   - sem a URL, em `Development` ou `Testing`, aceita com log `Warning` de que não auditou, no
+     critério do modo aberto do SecureGate, estendido ao `Testing` porque o host dos testes de
+     integração roda nele;
+   - sem a URL, em qualquer outro ambiente, recusa.
+
+   Um HML com a URL esquecida cai na recusa. **Os critérios das duas trilhas são diferentes de
+   propósito e não devem ser unificados.**
+3. **O contrato para RCL fica no `Secco.Intranet.Web.Extensibility`**: `ITrilhaDeExportacao`,
+   `ExportacaoParaAuditar`, `FiltroDeExportacao` e `PoliticaDeExportacao.Nome`. O projeto passa a
+   cobrir mais que o menu (ADR-0011) e continua sem referência a projeto do produto ou a pacote: os
+   tipos são próprios e primitivos, não os do SDK nem o `Result` do SharedKernel. A RCL referencia
+   o `Extensibility` e o `Secco.SDK.Documents`, e só injeta.
+4. **A trilha registra** o verbo `exportacao.gerar`, o recurso `exportacao` e, no id, a chave fixa
+   do relatório. O metadata leva formato, linhas e filtros, com cada valor cortado em 200
+   caracteres. Nunca o conteúdo.
+5. **Limite por pessoa numa política nomeada** (`"exportacao"`), janela fixa de 1 minuto, partição
+   pelo `sub`, `429` acima do limite. Contador por instância, como no LogStream.
+6. **Uma seção de configuração só, `Intranet:Exportacao`**, com as chaves do SDK e o
+   `PorPessoaPorMinuto`. `Intranet:Documents`, o nome da issue, ficaria colado em
+   `Intranet:Documentos`.
+7. **Sem parcial de tema para os botões** por enquanto: a RCL usa um formulário `POST` comum com
+   antiforgery. Um parcial novo obrigaria todo tema, inclusive os de adotantes, a implementá-lo antes
+   de existir um caso que mostre o formato do botão.
+
+### Consequências
+- Fora de Development, exportar **exige** o LogStream configurado, ao contrário do resto da
+  auditoria. O guia de deploy diz isso na linha da URL.
+- Mudar `ITrilhaDeExportacao` ou os records dela quebra quem estende, como na ADR-0011.
+- O core ainda não exporta nenhuma listagem. Quando exportar, cada uma ganha uma permissão própria
+  `<recurso>:export` no catálogo (ADR-0058), e não a de leitura.
+- Com N réplicas, o limite efetivo por pessoa é N vezes o configurado.
+- A `429` sai pela página de status padrão do host. Uma tela amigável fica junto com o parcial de
+  tema.

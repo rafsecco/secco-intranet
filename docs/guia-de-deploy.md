@@ -239,7 +239,12 @@ Convenção ASP.NET Core: `__` no nome da variável vira `:` na chave de configu
 | `Secco__Tenancy__Tenants__{tenantId}__ConnectionString` | Sim, uma por tenant | Connection string do banco daquele tenant. `{tenantId}` é o GUID do tenant, hífens inclusos. |
 | `Intranet__Database__Provider` | Não (padrão `SqlServer`) | `SqlServer` ou `PostgreSql`. |
 | `Secco__ReverseProxy__Habilitado` | Sim, se atrás de proxy | `true` para confiar em `X-Forwarded-For`/`X-Forwarded-Proto`. Só ligue se a porta do container for inalcançável por fora do proxy — ver "Topologia". |
-| `Intranet__Auditoria__LogStreamUrl` | Não | URL do `Secco.LogStream`. Vazia = trilha de auditoria não é gravada (modo silencioso, não é erro). |
+| `Intranet__Auditoria__LogStreamUrl` | Não, exceto para exportar | URL do `Secco.LogStream`. Vazia = trilha de auditoria não é gravada (modo silencioso, não é erro). **Exceção: a exportação Excel/PDF.** A trilha dela é fail-closed (ADR-0013), e fora de `Development` uma exportação sem a URL é recusada. |
+| `Intranet__Exportacao__MaxXlsxRows` | Não (padrão `100000`) | Maior número de linhas de uma planilha exportada. Teto do Excel: 1.048.575. Acima do limite, a exportação pede para restringir o filtro. |
+| `Intranet__Exportacao__MaxPdfRows` | Não (padrão `10000`) | Maior número de linhas de um PDF exportado (perto de 300 páginas). |
+| `Intranet__Exportacao__MaxConcurrentExports` | Não (padrão: metade dos processadores) | Quantas exportações geram ao mesmo tempo na instância; as demais esperam vaga. |
+| `Intranet__Exportacao__TempDirectory` | Não (padrão: temporário do sistema) | Raiz do diretório temporário onde o arquivo é gerado antes do envio. O SDK usa um subdiretório próprio, `0700` no Linux, e apaga o arquivo ao terminar. |
+| `Intranet__Exportacao__PorPessoaPorMinuto` | Não (padrão `10`) | Exportações por pessoa por minuto; acima disso, `429`. O contador é da instância: com N réplicas, o teto efetivo é N vezes este valor. |
 | `Intranet__Notificacao__HubUrl` | Não | URL do `Secco.NotificationHub`. Vazia = sino/e-mail de notificação não são enviados. |
 | `Intranet__Notificacao__UrlBase` | Recomendada se `HubUrl` estiver definida | URL pública da Intranet (ex.: `https://intranet.suaempresa.com`, sem barra final) — sem ela, o link da notificação por e-mail fica relativo e não abre fora do navegador já logado. |
 | `Intranet__Documentos__Chave__ChaveAtiva` | Sim, fora de Development | Chave mestra que embrulha as chaves dos documentos cifrados: base64 de 32 bytes, por exemplo `openssl rand -base64 32`. Sem ela a aplicação não sobe. **Perder a chave é perder todos os documentos**: guarde-a fora do host. A chave de desenvolvimento embutida só vale em `Development`. |

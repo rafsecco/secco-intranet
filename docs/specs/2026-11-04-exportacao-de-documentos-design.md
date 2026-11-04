@@ -1,7 +1,7 @@
 # Exportação Excel/PDF para RCLs — desenho do recurso
 
 **Data:** 2026-11-04
-**Estado:** aprovado
+**Estado:** aprovado, implementado
 **Origem:** issue #5 ("Adotar o Secco.SDK.Documents (ADR-0058)"). A decisão sobre a trilha sem LogStream
 está registrada [num comentário da issue](https://github.com/rafsecco/secco-intranet/issues/5#issuecomment-6637701111).
 

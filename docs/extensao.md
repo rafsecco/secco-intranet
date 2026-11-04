@@ -1,9 +1,19 @@
-# Acrescentando itens ao menu principal da Secco.Intranet
+# Estendendo a Secco.Intranet sem editar o core
 
-Quem adota a intranet pode colocar uma página própria no grupo principal do menu (onde ficam Mural e
-Diretório) **sem editar o core**: basta um projeto externo, referenciado pelo `Secco.Intranet.Web`,
-com uma classe que implementa `IItemDeMenuPrincipal`. A decisão que sustenta isso está na
-[ADR-0011](adr/secco-intranet-adrs.md#adr-0011-ponto-de-extensão-do-menu-principal-em-projeto-próprio-seccointranetwebextensibility).
+Quem adota a intranet acrescenta páginas próprias num projeto externo (uma RCL), referenciado pelo
+`Secco.Intranet.Web`. O único projeto do produto que a RCL referencia é o
+`Secco.Intranet.Web.Extensibility`, que oferece dois pontos de extensão:
+
+- [**Itens no menu principal**](#passo-a-passo): a página aparece no grupo principal, onde ficam
+  Mural e Diretório
+  ([ADR-0011](adr/secco-intranet-adrs.md#adr-0011-ponto-de-extensão-do-menu-principal-em-projeto-próprio-seccointranetwebextensibility)).
+- [**Exportação em Excel e PDF**](#exportando-excel-e-pdf): a página exporta a listagem dela, com a
+  trilha de auditoria e o limite por pessoa do host
+  ([ADR-0013](adr/secco-intranet-adrs.md#adr-0013-exportação-trilha-fail-closed-ao-lado-da-fail-open-e-o-extensibility-além-do-menu)).
+
+## Itens no menu principal
+
+Uma classe que implementa `IItemDeMenuPrincipal` põe a página no grupo principal do menu.
 
 > **A regra:** o seu projeto diz *que* o item existe e *quem* o vê; o admin da instalação decide *onde*
 > ele fica.
@@ -145,3 +155,168 @@ Reordenar não muda quem vê o quê.
 Item com filhos, item em outro grupo (Setores ou Administração), item com URL externa e ordem por
 usuário ficam fora do contrato. Mudar `IItemDeMenuPrincipal` é uma mudança incompatível para quem
 estende: leia as notas de versão antes de atualizar.
+
+## Exportando Excel e PDF
+
+A RCL exporta a listagem dela em `.xlsx` ou PDF tabular pelo `Secco.SDK.Documents` (ADR-0058 da
+plataforma). O host já registra tudo; a RCL **só injeta**:
+
+| Serviço | Vem de | Para quê |
+|---|---|---|
+| `ISeccoDocumentExporter` | `Secco.SDK.Documents` | Gera o arquivo, com memória constante e as defesas do SDK |
+| `ITrilhaDeExportacao` | `Secco.Intranet.Web.Extensibility` | Registra a exportação **antes** do envio e diz se o arquivo pode sair |
+| `PoliticaDeExportacao.Nome` | `Secco.Intranet.Web.Extensibility` | Limite de exportações por pessoa, aplicado pelo nome |
+
+> **A regra:** gerar → registrar na trilha → enviar. Se a trilha recusar, o documento é descartado
+> e nada sai. Ao contrário da trilha das outras ações, esta é fail-closed.
+
+### 1. Referências
+
+```xml
+<ItemGroup>
+	<ProjectReference Include="..\Secco.Intranet.Web.Extensibility\Secco.Intranet.Web.Extensibility.csproj" />
+	<PackageReference Include="Secco.SDK.Documents" />
+</ItemGroup>
+```
+
+Use a mesma versão do `Secco.SDK.Documents` que o `Directory.Packages.props` da intranet fixa.
+
+### 2. O formulário
+
+A exportação é sempre `POST` com antiforgery, nunca `GET` nem link: uma página externa conseguiria
+disparar um `GET` em nome de quem tem sessão (ADR-0058). Os filtros da tela vão em campos ocultos.
+O tag helper do `<form method="post">` acrescenta o token sozinho, e não há script inline, então o
+formulário passa na CSP.
+
+```cshtml
+<form method="post" asp-action="Exportar">
+	<input type="hidden" name="de" value="@Model.De" />
+	<input type="hidden" name="ate" value="@Model.Ate" />
+	<button type="submit" name="formato" value="xlsx" class="btn btn-outline-secondary">Excel</button>
+	<button type="submit" name="formato" value="pdf" class="btn btn-outline-secondary">PDF</button>
+</form>
+```
+
+O tema ainda não tem parcial para esses botões: use as classes do tema ativo.
+
+### 3. O controller
+
+```csharp
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Secco.Intranet.Web.Extensibility;
+using Secco.SDK.Documents;
+
+public sealed class RelatorioController(
+	ISeccoDocumentExporter exportador,
+	ITrilhaDeExportacao trilha) : Controller
+{
+	private const string Recurso = "relatorio-de-inscritos";
+
+	// Chave do TempData que o tema mostra como erro (a mesma do core).
+	private const string MensagemDeErro = "MensagemDeErro";
+
+	[HttpPost("/relatorio/exportar")]
+	[ValidateAntiForgeryToken]
+	[EnableRateLimiting(PoliticaDeExportacao.Nome)]
+	[Authorize(Policy = "relatorio:export")] // permissão da própria RCL
+	public async Task<IResult> Exportar(string formato, DateOnly? de, DateOnly? ate)
+	{
+		var filtros = new List<ExportFilter>
+		{
+			new("De", de?.ToString("dd/MM/yyyy") ?? "—"),
+			new("Até", ate?.ToString("dd/MM/yyyy") ?? "—"),
+		};
+
+		var gerado = await exportador.ExportAsync(
+			new ExportRequest<LinhaDoRelatorio>(
+				formato == "pdf" ? ExportFormat.Pdf : ExportFormat.Xlsx,
+				"Relatório de inscritos",
+				Recurso,
+				Colunas(),
+				BuscarLinhas(de, ate)) // IAsyncEnumerable, com os mesmos filtros da tela
+			{
+				Filters = filtros,
+				IssuedBy = User.Identity?.Name,
+				TimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo"),
+			},
+			HttpContext.RequestAborted);
+
+		if (gerado.IsFailure)
+		{
+			// TooManyRows: o limite de linhas do formato. Peça para restringir o filtro.
+			TempData[MensagemDeErro] = gerado.Error.Description;
+			return Results.Redirect(Url.Action(nameof(Index), new { de, ate })!);
+		}
+
+		var documento = gerado.Value;
+
+		try
+		{
+			var registrado = await trilha.RegistrarAsync(
+				new ExportacaoParaAuditar(
+					Recurso,
+					formato,
+					documento.RowCount,
+					filtros.Select(f => new FiltroDeExportacao(f.Name, f.Value)).ToList()),
+				HttpContext.RequestAborted);
+
+			if (!registrado)
+			{
+				await documento.DisposeAsync();
+				TempData[MensagemDeErro] = "Não foi possível exportar agora. Tente de novo em alguns minutos.";
+				return Results.Redirect(Url.Action(nameof(Index), new { de, ate })!);
+			}
+		}
+		catch
+		{
+			await documento.DisposeAsync();
+			throw;
+		}
+
+		return documento.ToHttpResult();
+	}
+}
+```
+
+O `ToHttpResult()` envia com `Content-Disposition: attachment`, `Cache-Control: no-store` e o nome
+do arquivo gerado no servidor, e descarta o documento ao terminar. A mensagem de retorno segue o
+mesmo caminho das outras ações: `TempData` antes do redirect, mostrada pelo tema. As chaves são
+`"MensagemDeErro"` para erro e `"Mensagem"` para confirmação, as mesmas que o core usa. A action
+devolve `IResult`, porque é isso que o `ToHttpResult()` do SDK entrega; o MVC executa o `IResult`
+normalmente, inclusive o `TempData` do redirect.
+
+O exemplo completo e testado é o `ExportacaoDeTesteController`, em
+`tests/Secco.Intranet.Tests/Integration/Exportacao`.
+
+### Regras
+
+- **Recurso:** chave fixa no código, de 1 a 64 caracteres, só `[a-z0-9-]`. É o que identifica o
+  relatório na trilha (verbo `exportacao.gerar`, recurso `exportacao`, o seu recurso no id). Não mude
+  depois de publicada, ou a busca na trilha se divide em duas.
+- **Filtros:** os mesmos que o PDF mostra no cabeçalho. A trilha guarda até 200 caracteres de cada
+  valor, porque filtro pode trazer dado pessoal. Nunca passe para a trilha o conteúdo exportado nem
+  dado que não seja filtro.
+- **Permissão:** a exportação tem permissão própria, separada da de ver a listagem (ADR-0058): baixar
+  tudo de uma vez é um risco diferente de ver uma página. Esconder o botão não fecha a rota.
+- **Limite por pessoa:** acima de `Intranet:Exportacao:PorPessoaPorMinuto` (padrão 10), a resposta é
+  `429`. O contador é por instância.
+- **Recurso, formato, linhas ou filtros inválidos** lançam `ArgumentException`: é erro de quem
+  chama, não falha de infraestrutura.
+
+### O que muda por ambiente
+
+| Situação | O que a trilha faz |
+|---|---|
+| `Intranet:Auditoria:LogStreamUrl` preenchida | Registra no LogStream. Se ele recusar, estiver fora do ar ou não responder, **recusa** |
+| Sem LogStream, em `Development` ou `Testing` | Aceita, com um log `Warning` de que a exportação não foi auditada |
+| Sem LogStream, em qualquer outro ambiente | **Recusa** sempre |
+
+Ou seja: fora de Development, exportar exige o LogStream configurado, ao contrário do resto da
+auditoria, que só deixa de registrar. Os testes de integração do produto rodam em `Testing` e
+exportam sem LogStream; para testar a recusa, atribua uma trilha que falha a
+`IntranetWebFactory.TrilhaObrigatoria`.
+
+Mudar `ITrilhaDeExportacao` ou os records dela é mudança incompatível para quem estende, como no
+menu.

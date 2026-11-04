@@ -91,11 +91,15 @@ public class ExportacaoTests(IntranetWebFactory factory) : IClassFixture<Intrane
 
 		try
 		{
-			var resposta = await ExportarAsync(CriarCliente(), "xlsx");
+			var client = CriarCliente();
+			var resposta = await ExportarAsync(client, "xlsx");
 
 			resposta.StatusCode.Should().Be(HttpStatusCode.Redirect);
 			resposta.Headers.Location!.OriginalString.Should().Be(ExportacaoDeTesteController.Caminho);
 			resposta.Content.Headers.ContentDisposition.Should().BeNull("sem trilha, o arquivo não sai");
+			(await client.GetStringAsync(ExportacaoDeTesteController.Caminho + "/mensagem"))
+				.Should().Be(ExportacaoDeTesteController.MensagemDeRecusa,
+					"o TempData sobrevive ao redirect devolvido como IResult, como o guia ensina");
 		}
 		finally
 		{
