@@ -66,8 +66,10 @@
     <!-- Base das factories de integração da plataforma (ADR-0027): traz o Testcontainers
          e a instância de SQL Server, então o produto não reescreve a própria factory. -->
     <PackageVersion Include="Secco.SDK.Testing" Version="0.1.1" />
-    <!-- Versão fixada para o pinning transitivo; a referência direta saiu com o SDK.Testing. -->
+    <!-- O SDK.Testing também o traz; os testes de migration usam o builder diretamente. -->
     <PackageVersion Include="Testcontainers.MsSql" Version="4.16.0" />
+    <!-- Mesma linha do Testcontainers.MsSql: os testes de migration sobem um Postgres real. -->
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.16.0" />
   </ItemGroup>
 
 </Project>
