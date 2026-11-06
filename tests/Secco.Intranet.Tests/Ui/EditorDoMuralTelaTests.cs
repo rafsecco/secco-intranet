@@ -272,4 +272,271 @@ public class EditorDoMuralTelaTests(EditorDoMuralFixture f) : IClassFixture<Edit
 
 		escuro.Should().NotBe(claro);
 	}
+
+	private const string Avisos = ".sc-editor__avisos .alert";
+
+	private const string AvisoMesclada = "Esta tabela tinha células mescladas, que não são suportadas. Confira o resultado ou envie a tabela como imagem.";
+
+	private const string AvisoAninhada = "Esta tabela tinha outra tabela dentro dela, o que não é suportado. Confira o resultado ou envie a tabela como imagem.";
+
+	private const string AvisoImagem = "A imagem não foi colada. Use o campo Imagem.";
+
+	private static Task ColarAsync(IPage pagina, string html, string? texto = null) =>
+		pagina.EvaluateAsync(
+			"""
+			([html, texto]) => {
+			  const alvo = document.querySelector('.sc-editor .ProseMirror');
+			  alvo.focus();
+			  const dados = new DataTransfer();
+			  if (html) { dados.setData('text/html', html); }
+			  if (texto) { dados.setData('text/plain', texto); }
+			  alvo.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dados, bubbles: true, cancelable: true }));
+			}
+			""",
+			new string?[] { html, texto });
+
+	/// <summary>Linhas da tabela do markdown (as que começam com barra), sem a linha de separação.</summary>
+	private static string[] LinhasDaTabela(string markdown) => [.. markdown
+		.Split('\n')
+		.Select(l => l.Trim())
+		.Where(l => l.StartsWith('|') && !Regex.IsMatch(l, @"^\|(\s*-+\s*\|)+$"))];
+
+	private static int Colunas(string linha) => Regex.Matches(linha, @"(?<!\\)\|").Count - 1;
+
+	/// <summary>Salva o aviso e devolve o corpo publicado, na página de detalhe.</summary>
+	private async Task<ILocator> PublicarAsync(IPage pagina, string tema)
+	{
+		var titulo = $"Colado {Guid.NewGuid():N}"[..14];
+		await pagina.Locator("#Form_Titulo").FillAsync(titulo);
+		await pagina.GetByRole(AriaRole.Button, new() { Name = "Salvar publicação" }).ClickAsync();
+
+		var editar = pagina.Locator($"a[title='Editar {titulo}']");
+		await Expect(editar).ToBeVisibleAsync();
+		var id = Regex.Match((await editar.GetAttributeAsync("href"))!, "editar=([0-9a-f-]{36})").Groups[1].Value;
+		await pagina.GotoAsync($"{f.Enderecos[tema]}/publicacoes/{id}");
+
+		return pagina.Locator(".sc-card__body");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_TextoBasicoDoWord_PreservaTituloNegritoItalicoListaELink(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, """
+			<html xmlns:o="urn:schemas-microsoft-com:office:office"><body><!--StartFragment-->
+			<h1>Título do comunicado</h1>
+			<p class="MsoNormal">Texto <b>forte</b> e <i>inclinado</i><o:p></o:p></p>
+			<ul><li style="mso-list:l0 level1 lfo1">primeiro</li><li style="mso-list:l0 level1 lfo1">segundo</li></ul>
+			<p class="MsoNormal">Veja <a href="https://exemplo.com">o site</a></p>
+			<!--EndFragment--></body></html>
+			""");
+
+		var markdown = await pagina.Locator(Corpo).InputValueAsync();
+		markdown.Should().Contain("# ");
+		markdown.Should().Contain("**forte**");
+		markdown.Should().MatchRegex(@"(?<!\*)\*[^*]+\*(?!\*)");
+		markdown.Should().Contain("- primeiro");
+		markdown.Should().Contain("](https://exemplo.com)");
+		await Expect(pagina.Locator(Avisos)).ToHaveCountAsync(0);
+		f.ViolacoesDeCsp(pagina).Should().BeEmpty();
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_TextoQuePareceDominio_NaoViraLink(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, "<p>Usamos ASP.NET aqui</p>");
+
+		var markdown = await pagina.Locator(Corpo).InputValueAsync();
+		markdown.Should().Contain("ASP.NET");
+		markdown.Should().NotContain("](");
+		markdown.Should().NotContain("http");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_TabelaSemCabecalho_PrimeiraLinhaViraCabecalho(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, """
+			<table class="MsoTableGrid"><tr><td>Sala</td><td>Dia</td></tr><tr><td>Azul</td><td>Terça</td></tr></table>
+			""");
+
+		var linhas = (await pagina.Locator(Corpo).InputValueAsync()).Split('\n').Select(l => l.Trim()).Where(l => l.StartsWith('|')).ToList();
+		linhas[0].Should().Be("| Sala | Dia |");
+		linhas[1].Should().Be("| --- | --- |");
+
+		var publicado = await PublicarAsync(pagina, tema);
+		await Expect(publicado.Locator("table")).ToHaveCountAsync(1);
+		var textoPublicado = await publicado.InnerTextAsync();
+		textoPublicado.Should().NotContain("<");
+		textoPublicado.Should().NotContain("##");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_TituloEQuebraEListaEmCelula_FicamNaMesmaLinha(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, """
+			<table><tr><td>Col</td><td>Col2</td><td>Col3</td></tr>
+			<tr><td><h2>T</h2></td><td>a<br>b</td><td><ul><li>x</li><li>y</li></ul></td></tr></table>
+			""");
+
+		var markdown = await pagina.Locator(Corpo).InputValueAsync();
+		var celulas = string.Join('\n', LinhasDaTabela(markdown));
+		celulas.Should().NotContain("##");
+		celulas.Should().NotContain("<br>");
+		celulas.Should().NotContain("- ");
+		celulas.Should().Contain("**T**");
+		celulas.Should().Contain("a b");
+		celulas.Should().Contain("x y");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_CelulaMesclada_ExpandeEAvisa(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, """
+			<table>
+			<tr><td colspan="2">Topo</td><td>B</td></tr>
+			<tr><td rowspan="2">Lado</td><td>D</td><td>E</td></tr>
+			<tr><td>F</td><td>G</td></tr>
+			</table>
+			""");
+
+		var linhas = LinhasDaTabela(await pagina.Locator(Corpo).InputValueAsync());
+		linhas.Should().HaveCount(3);
+		linhas.Select(Colunas).Should().OnlyContain(c => c == 3);
+		linhas[2].Should().MatchRegex(@"^\|\s*\|\s*F\s*\|\s*G\s*\|$");
+		await Expect(pagina.Locator(Avisos)).ToHaveCountAsync(1);
+		await Expect(pagina.Locator(Avisos)).ToContainTextAsync(AvisoMesclada);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_TabelaDentroDeTabela_MantemOTextoEAvisa(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, """
+			<table><tr><td>Externa</td><td>Fora</td></tr>
+			<tr><td><table><tr><td>interno1</td><td>interno2</td></tr></table></td><td>Resto</td></tr></table>
+			""");
+
+		var markdown = await pagina.Locator(Corpo).InputValueAsync();
+		markdown.Should().Contain("Externa");
+		markdown.Should().Contain("interno1 interno2");
+		Regex.Matches(markdown, @"^\|\s*---", RegexOptions.Multiline).Should().HaveCount(1);
+		await Expect(pagina.Locator(Avisos)).ToContainTextAsync(AvisoAninhada);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_LinhasDeTamanhosDiferentes_MantemATabelaValida(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, """
+			<table><tr><td>a1</td><td>a2</td><td>a3</td></tr><tr><td>b1</td><td>b2</td></tr></table>
+			""");
+
+		var linhas = LinhasDaTabela(await pagina.Locator(Corpo).InputValueAsync());
+		linhas.Should().HaveCount(2);
+		linhas.Select(Colunas).Should().OnlyContain(c => c == 3);
+		linhas[1].Should().MatchRegex(@"^\|\s*b1\s*\|\s*b2\s*\|\s*\|$");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_TabelaDentroDeCelulaExistente_MantemTabelaValida(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+		await pagina.GetByLabel("Inserir tabela").ClickAsync();
+
+		await ColarAsync(pagina, "<table><tr><td>colado</td><td>junto</td></tr></table>");
+
+		var markdown = await pagina.Locator(Corpo).InputValueAsync();
+		Regex.Matches(markdown, @"^\|\s*---", RegexOptions.Multiline).Should().HaveCount(1);
+		markdown.Should().Contain("colado");
+		var linhas = LinhasDaTabela(markdown);
+		linhas.Select(Colunas).Distinct().Should().HaveCount(1);
+		linhas[0].Should().Contain("colado");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_Imagem_DescartaEAvisa(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, """<p>Antes</p><p><img src="file:///C:/x/clip_image001.png"></p>""");
+
+		var markdown = await pagina.Locator(Corpo).InputValueAsync();
+		markdown.Should().NotContain("![");
+		markdown.Should().NotContain("file:");
+		await Expect(pagina.Locator(Avisos)).ToContainTextAsync(AvisoImagem);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_TextoPuro_InsereSemAviso(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, string.Empty, "apenas texto puro");
+
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().Contain("apenas texto puro");
+		await Expect(pagina.Locator(Avisos)).ToHaveCountAsync(0);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_LinkComEsquemaProibido_SaiSemLink(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, """<p>Veja <a href="javascript:alert(1)">este texto</a></p>""");
+
+		var publicado = await PublicarAsync(pagina, tema);
+		await Expect(publicado).ToContainTextAsync("este texto");
+		await Expect(publicado.Locator("a")).ToHaveCountAsync(0);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Aviso_Fechar_Remove(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		const string Html = """<p><img src="file:///C:/x/clip_image001.png"></p>""";
+
+		await ColarAsync(pagina, Html);
+		await ColarAsync(pagina, Html);
+		await Expect(pagina.Locator(Avisos)).ToHaveCountAsync(1);
+
+		await pagina.Locator($"{Avisos} .btn-close").ClickAsync();
+		await Expect(pagina.Locator(Avisos)).ToHaveCountAsync(0);
+		f.ViolacoesDeCsp(pagina).Should().BeEmpty();
+	}
 }

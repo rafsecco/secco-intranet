@@ -41,6 +41,29 @@
   conteiner.appendChild(avisos);
   area.parentNode.insertBefore(conteiner, area);
 
+  // Um alerta dispensavel por texto, sem repetir o que ja esta na tela. textContent, nunca HTML:
+  // o texto e fixo, mas o contrato vale para qualquer aviso que entre aqui.
+  function mostrarAvisos(textos) {
+    textos.forEach(function (aviso) {
+      var repetido = Array.prototype.some.call(avisos.children, function (alerta) {
+        return alerta.firstChild.textContent === aviso;
+      });
+
+      if (repetido) {
+        return;
+      }
+
+      var alerta = el('div', 'alert alert-warning alert-dismissible fade show mb-0 mt-2');
+      var mensagem = el('span');
+      var fechar = el('button', 'btn-close', { type: 'button', 'data-bs-dismiss': 'alert', 'aria-label': 'Fechar' });
+
+      mensagem.textContent = aviso;
+      alerta.appendChild(mensagem);
+      alerta.appendChild(fechar);
+      avisos.appendChild(alerta);
+    });
+  }
+
   var editor;
 
   try {
@@ -49,7 +72,8 @@
       markdown: area.value,
       aoMudar: function (markdown) {
         area.value = markdown;
-      }
+      },
+      aoColar: mostrarAvisos
     });
   } catch (erro) {
     // Desiste sem deixar rastro. Esconder o textarea ANTES de saber que o editor subiu
