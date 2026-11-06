@@ -62,7 +62,7 @@ jobs:
         run: dotnet build Secco.Intranet.slnx --no-restore --configuration Release
 
       - name: Test
-        # Testcontainers (ADR-0012) usa o Docker do runner ubuntu-latest. Fumaça contra o
+        # Testcontainers (ADR-0012) usa o Docker do runner. Fumaça contra o
         # SecureGate real e testes de tela (Playwright) são opt-in e ficam de fora aqui.
         run: >
           dotnet test Secco.Intranet.slnx --no-build --configuration Release
