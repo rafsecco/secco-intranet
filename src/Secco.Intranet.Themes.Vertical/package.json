@@ -7,7 +7,7 @@
   "scripts": {
     "build": "npm run copy:assets && npm run build:js && npm run build:css",
     "build:css": "sass wwwroot/scss/theme.scss wwwroot/css/theme.css --style=compressed --no-source-map --quiet-deps --silence-deprecation=import --load-path=node_modules",
-    "build:js": "esbuild scripts/editor-bundle.js --bundle --minify --format=iife --global-name=toastui --outfile=wwwroot/vendor/js/toastui-editor.js --log-level=warning",
+    "build:js": "esbuild scripts/editor-bundle.js --bundle --minify --format=iife --global-name=seccoEditor --outfile=wwwroot/vendor/js/editor-tiptap.js --log-level=warning",
     "copy:assets": "node scripts/copy-assets.mjs",
     "watch:css": "sass --watch wwwroot/scss/theme.scss wwwroot/css/theme.css --quiet-deps --silence-deprecation=import --load-path=node_modules"
   },
@@ -15,7 +15,11 @@
     "@fontsource/instrument-sans": "5.3.0",
     "@fontsource/inter": "5.3.0",
     "@fontsource/jetbrains-mono": "5.3.0",
-    "@toast-ui/editor": "^3.2.2",
+    "@tiptap/core": "3.33.0",
+    "@tiptap/extension-table": "3.33.0",
+    "@tiptap/markdown": "3.33.0",
+    "@tiptap/pm": "3.33.0",
+    "@tiptap/starter-kit": "3.33.0",
     "bootstrap": "5.3.8",
     "bootstrap-icons": "1.13.1",
     "cropperjs": "1.6.2",

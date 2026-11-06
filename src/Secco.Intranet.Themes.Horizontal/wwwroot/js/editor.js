@@ -1,78 +1,219 @@
-// Editor de markdown do mural: melhoria progressiva sobre o textarea que o core renderiza.
-// Sem este script, o formulario continua funcionando — o campo apenas aceita markdown cru.
+// Editor do corpo do aviso: melhoria progressiva sobre o textarea que o core renderiza. Sem este
+// script, ou se o editor nao subir, o formulario segue valendo — o campo aceita markdown cru.
+// O textarea continua sendo o campo enviado; o editor so o mantem em dia.
 (function () {
   'use strict';
 
   var area = document.querySelector('[data-sc-editor-markdown]');
 
-  if (!area || typeof toastui === 'undefined') {
+  if (!area || typeof seccoEditor === 'undefined') {
     return;
   }
 
-  var hospedeiro = document.createElement('div');
-  area.parentNode.insertBefore(hospedeiro, area);
+  function el(tag, classe, atributos) {
+    var no = document.createElement(tag);
+
+    if (classe) {
+      no.className = classe;
+    }
+
+    Object.keys(atributos || {}).forEach(function (nome) {
+      no.setAttribute(nome, atributos[nome]);
+    });
+
+    return no;
+  }
+
+  function botao(rotulo, icone) {
+    var b = el('button', 'btn btn-sm btn-outline-secondary', { type: 'button', 'aria-label': rotulo, title: rotulo });
+    b.appendChild(el('i', 'bi ' + icone, { 'aria-hidden': 'true' }));
+
+    return b;
+  }
+
+  var conteiner = el('div', 'sc-editor');
+  var barra = el('div', 'sc-editor__barra', { role: 'toolbar', 'aria-label': 'Formatação do texto' });
+  var avisos = el('div', 'sc-editor__avisos', { 'aria-live': 'polite' });
+  var texto = el('div', 'sc-editor__texto');
+
+  conteiner.appendChild(barra);
+  conteiner.appendChild(texto);
+  conteiner.appendChild(avisos);
+  area.parentNode.insertBefore(conteiner, area);
 
   var editor;
 
   try {
-    editor = new toastui.Editor({
-      el: hospedeiro,
-      height: '320px',
-      // Abre em WYSIWYG: quem publica um comunicado nao precisa conhecer markdown.
-      initialEditType: 'wysiwyg',
-      previewStyle: 'vertical',
-      initialValue: area.value,
-      usageStatistics: false,
-      language: 'pt-BR',
-      // A imagem do aviso tem campo proprio no formulario: nada de imagem dentro do texto, nem
-      // pela barra nem colando da area de transferencia.
-      toolbarItems: [
-        ['heading', 'bold', 'italic', 'strike'],
-        ['hr', 'quote'],
-        ['ul', 'ol', 'task', 'indent', 'outdent'],
-        ['table', 'link'],
-        ['code', 'codeblock'],
-        ['scrollSync']
-      ],
-      hooks: {
-        addImageBlobHook: function () {}
+    editor = seccoEditor.criarEditor({
+      elemento: texto,
+      markdown: area.value,
+      aoMudar: function (markdown) {
+        area.value = markdown;
       }
     });
   } catch (erro) {
     // Desiste sem deixar rastro. Esconder o textarea ANTES de saber que o editor subiu
-    // trocaria "sem editor" por "formulario inutilizavel", que e o oposto de melhoria
-    // progressiva — e foi exatamente o que aconteceu quando o bundle vinha incompleto.
-    hospedeiro.remove();
-    console.error('Editor de markdown indisponivel; o campo de texto simples segue valendo.', erro);
+    // trocaria "sem editor" por "formulario inutilizavel", o oposto de melhoria progressiva.
+    conteiner.remove();
+    console.error('Editor do mural indisponivel; o campo de texto simples segue valendo.', erro);
 
     return;
   }
 
-  area.style.display = 'none';
+  area.classList.add('d-none');
 
-  // O editor traz folha propria e nao enxerga os tokens do tema: sem isto ele fica branco
-  // dentro do shell escuro. Acompanha o data-bs-theme, inclusive quando o usuario alterna
-  // com a pagina aberta.
-  var raiz = document.documentElement;
+  // O botao nao rouba o foco do texto: a selecao segue valendo e quem digita logo depois do
+  // clique nao perde as primeiras letras.
+  barra.addEventListener('mousedown', function (evento) {
+    if (evento.target.closest('button')) {
+      evento.preventDefault();
+    }
+  });
 
-  function aplicarModo() {
-    var modo = raiz.getAttribute('data-bs-theme');
+  var atualizadores = [];
 
-    if (!modo) {
-      modo = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  function comando(rotulo, icone, executar, ativo) {
+    var b = botao(rotulo, icone);
+
+    b.addEventListener('click', function () {
+      executar(editor.chain().focus()).run();
+    });
+
+    if (ativo) {
+      atualizadores.push(function () {
+        var ligado = ativo();
+        b.classList.toggle('active', ligado);
+        b.setAttribute('aria-pressed', ligado ? 'true' : 'false');
+      });
     }
 
-    hospedeiro.classList.toggle('toastui-editor-dark', modo === 'dark');
+    return b;
   }
 
-  aplicarModo();
-  new MutationObserver(aplicarModo).observe(raiz, { attributes: true, attributeFilter: ['data-bs-theme'] });
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', aplicarModo);
+  function grupo(botoes, atributos) {
+    var g = el('div', 'sc-editor__grupo', atributos);
+    botoes.forEach(function (b) {
+      g.appendChild(b);
+    });
+    barra.appendChild(g);
 
-  // O textarea continua sendo o campo enviado: o editor so o mantem em dia.
-  editor.on('change', function () {
-    area.value = editor.getMarkdown();
+    return g;
+  }
+
+  grupo([
+    comando('Título', 'bi-type-h2', function (c) { return c.toggleHeading({ level: 2 }); },
+      function () { return editor.isActive('heading', { level: 2 }); }),
+    comando('Subtítulo', 'bi-type-h3', function (c) { return c.toggleHeading({ level: 3 }); },
+      function () { return editor.isActive('heading', { level: 3 }); }),
+    comando('Negrito', 'bi-type-bold', function (c) { return c.toggleBold(); },
+      function () { return editor.isActive('bold'); }),
+    comando('Itálico', 'bi-type-italic', function (c) { return c.toggleItalic(); },
+      function () { return editor.isActive('italic'); })
+  ]);
+
+  grupo([
+    comando('Lista', 'bi-list-ul', function (c) { return c.toggleBulletList(); },
+      function () { return editor.isActive('bulletList'); }),
+    comando('Lista numerada', 'bi-list-ol', function (c) { return c.toggleOrderedList(); },
+      function () { return editor.isActive('orderedList'); }),
+    comando('Citação', 'bi-quote', function (c) { return c.toggleBlockquote(); },
+      function () { return editor.isActive('blockquote'); }),
+    comando('Separador', 'bi-dash-lg', function (c) { return c.setHorizontalRule(); })
+  ]);
+
+  grupo([
+    comando('Código', 'bi-code', function (c) { return c.toggleCode(); },
+      function () { return editor.isActive('code'); }),
+    comando('Bloco de código', 'bi-code-square', function (c) { return c.toggleCodeBlock(); },
+      function () { return editor.isActive('codeBlock'); })
+  ]);
+
+  // Link: o endereco vem de um campo na propria barra. prompt() fica fora por ser bloqueante e
+  // impossivel de estilizar ou testar.
+  var botaoLink = botao('Link', 'bi-link-45deg');
+  var campoLink = el('div', 'sc-editor__link input-group input-group-sm', { hidden: '' });
+  var entradaLink = el('input', 'form-control', {
+    type: 'text', 'aria-label': 'Endereço do link', placeholder: 'https://', autocomplete: 'off'
   });
+  var aplicar = el('button', 'btn btn-outline-secondary', { type: 'button' });
+  var remover = el('button', 'btn btn-outline-secondary', { type: 'button' });
+  aplicar.textContent = 'Aplicar';
+  remover.textContent = 'Remover';
+  campoLink.appendChild(entradaLink);
+  campoLink.appendChild(aplicar);
+  campoLink.appendChild(remover);
+
+  function aplicarLink() {
+    var destino = entradaLink.value.trim();
+    var corrente = editor.chain().focus().extendMarkRange('link');
+    var aceito = destino ? corrente.setLink({ href: destino }).run() : corrente.unsetLink().run();
+
+    entradaLink.classList.toggle('is-invalid', !aceito);
+
+    if (aceito) {
+      campoLink.hidden = true;
+    }
+  }
+
+  botaoLink.addEventListener('click', function () {
+    campoLink.hidden = !campoLink.hidden;
+
+    if (!campoLink.hidden) {
+      entradaLink.value = editor.getAttributes('link').href || '';
+      entradaLink.classList.remove('is-invalid');
+      entradaLink.focus();
+    }
+  });
+  aplicar.addEventListener('click', aplicarLink);
+  remover.addEventListener('click', function () {
+    entradaLink.value = '';
+    aplicarLink();
+  });
+  entradaLink.addEventListener('keydown', function (evento) {
+    if (evento.key === 'Enter') {
+      evento.preventDefault();
+      aplicarLink();
+    }
+  });
+  atualizadores.push(function () {
+    var ligado = editor.isActive('link');
+    botaoLink.classList.toggle('active', ligado);
+    botaoLink.setAttribute('aria-pressed', ligado ? 'true' : 'false');
+  });
+
+  grupo([
+    botaoLink,
+    comando('Inserir tabela', 'bi-table', function (c) {
+      return c.insertTable({ rows: 3, cols: 2, withHeaderRow: true });
+    })
+  ]);
+
+  var tabela = grupo([
+    comando('Adicionar linha', 'bi-plus-square', function (c) { return c.addRowAfter(); }),
+    comando('Remover linha', 'bi-dash-square', function (c) { return c.deleteRow(); }),
+    comando('Adicionar coluna', 'bi-layout-sidebar-inset', function (c) { return c.addColumnAfter(); }),
+    comando('Remover coluna', 'bi-layout-sidebar', function (c) { return c.deleteColumn(); }),
+    comando('Remover tabela', 'bi-trash', function (c) { return c.deleteTable(); })
+  ], { hidden: '' });
+  atualizadores.push(function () {
+    tabela.hidden = !editor.isActive('table');
+  });
+
+  grupo([
+    comando('Desfazer', 'bi-arrow-counterclockwise', function (c) { return c.undo(); }),
+    comando('Refazer', 'bi-arrow-clockwise', function (c) { return c.redo(); })
+  ]);
+
+  barra.appendChild(campoLink);
+
+  function atualizar() {
+    atualizadores.forEach(function (f) {
+      f();
+    });
+  }
+
+  editor.on('transaction', atualizar);
+  atualizar();
 
   var formulario = area.closest('form');
   if (formulario) {
@@ -80,49 +221,4 @@
       area.value = editor.getMarkdown();
     });
   }
-
-  // Legenda da sintaxe. Abre por clique — so hover excluiria teclado e toque — e tambem
-  // responde ao passar do mouse, para quem descobre a funcao explorando.
-  var legenda = document.createElement('div');
-  legenda.className = 'sc-legenda';
-  legenda.innerHTML =
-    '<button class="sc-legenda__botao" type="button" aria-expanded="false">' +
-    '<i class="bi bi-question-circle" aria-hidden="true"></i> Sintaxe do Markdown</button>' +
-    '<div class="sc-legenda__conteudo" hidden>' +
-    '<p><code>**negrito**</code> deixa o texto <strong>em negrito</strong></p>' +
-    '<p><code>*italico*</code> deixa o texto <em>em italico</em></p>' +
-    '<p><code># Titulo</code> cria um titulo</p>' +
-    '<p><code>- item</code> cria um item de lista</p>' +
-    '<p><code>[texto](endereco)</code> cria um link</p>' +
-    '</div>';
-
-  hospedeiro.parentNode.insertBefore(legenda, hospedeiro.nextSibling);
-
-  var botao = legenda.querySelector('.sc-legenda__botao');
-  var conteudo = legenda.querySelector('.sc-legenda__conteudo');
-
-  function mostrar(visivel) {
-    conteudo.hidden = !visivel;
-    botao.setAttribute('aria-expanded', visivel ? 'true' : 'false');
-  }
-
-  // O clique precisa de estado proprio. Decidir pela visibilidade atual nao funciona no
-  // mouse: o mouseenter ja abriu a legenda antes do clique chegar, entao o clique a
-  // fecharia e o botao pareceria morto. O hover so mostra de passagem; o clique fixa.
-  var fixado = false;
-
-  botao.addEventListener('click', function () {
-    fixado = !fixado;
-    mostrar(fixado);
-  });
-
-  legenda.addEventListener('mouseenter', function () {
-    mostrar(true);
-  });
-
-  legenda.addEventListener('mouseleave', function () {
-    if (!fixado) {
-      mostrar(false);
-    }
-  });
 })();

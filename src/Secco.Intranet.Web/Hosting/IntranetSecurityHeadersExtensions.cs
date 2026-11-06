@@ -14,7 +14,7 @@ namespace Secco.Intranet.Web.Hosting;
 /// A política não abre exceção para script inline nem para estilo inline escrito pela Intranet: os
 /// temas carregam o script de preferências como arquivo e pintam a cor do setor por classe
 /// (<c>sc-hue-{matiz}</c>), então nenhuma view emite <c>style="..."</c> nem <c>&lt;script&gt;</c> sem
-/// <c>src</c>. A única exceção são os valores exatos de <see cref="EstilosDeTerceirosPermitidos"/>.
+/// <c>src</c>. A única exceção é o valor exato de <see cref="EstilosDeTerceirosPermitidos"/>.
 /// </remarks>
 public static class IntranetSecurityHeadersExtensions
 {
@@ -24,9 +24,9 @@ public static class IntranetSecurityHeadersExtensions
 	/// <summary>Coletor externo de relatórios de violação, HTTPS. Opcional.</summary>
 	public const string ChaveDoReportUri = "Intranet:Csp:ReportUri";
 
-	/// <summary>Atributos style de bibliotecas de terceiros liberados pelo valor exato.</summary>
+	/// <summary>Atributos style liberados pelo valor exato.</summary>
 	public static readonly IReadOnlyList<string> EstilosDeTerceirosPermitidos =
-		["display: none", "display: block", "display:none", "null"];
+		["display:none"];
 
 	/// <summary>
 	/// Registra a política. O padrão é <c>Enforce</c>: navegando a Intranet nesse modo (2026-11-01), nada
@@ -39,12 +39,9 @@ public static class IntranetSecurityHeadersExtensions
 
 		services.AddSeccoSecurityHeaders(options =>
 		{
-			// Valores exatos de style que código de terceiros escreve no HTML, achados navegando a
-			// Intranet com a CSP em Enforce (2026-11-01). Liberados só pelo hash do valor: qualquer outro
-			// style continua bloqueado. "display: none"/"display: block": o editor Toast UI mostra e
-			// esconde partes dele; "display:none": a dica do editor e o <li> vazio que o
-			// asp-validation-summary do ASP.NET Core emite sem erro; "null": o editor chama
-			// setAttribute('style', null), inofensivo, liberado só para não sujar os relatórios.
+			// Valor exato de style que o HTML da Intranet ainda emite, achado navegando com a CSP em
+			// Enforce: "display:none", o <li> vazio que o asp-validation-summary do ASP.NET Core escreve
+			// sem erro. Liberado só pelo hash do valor: qualquer outro style continua bloqueado.
 			foreach (var valor in EstilosDeTerceirosPermitidos)
 			{
 				options.AllowStyleAttribute(valor);

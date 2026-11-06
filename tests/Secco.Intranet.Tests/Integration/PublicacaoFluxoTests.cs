@@ -173,7 +173,7 @@ public class PublicacaoFluxoTests(IntranetWebFactory factory) : IClassFixture<In
 
 		var resposta = await client.PostAsync($"/{slug}/avisos", FormularioComCorpo(titulo, new string('x', 20_001), token));
 
-		WebUtility.HtmlDecode(await resposta.Content.ReadAsStringAsync()).Should().Contain("20000");
+		WebUtility.HtmlDecode(await resposta.Content.ReadAsStringAsync()).Should().Contain("O corpo excede o limite de 20000 caracteres.");
 		(await client.GetStringAsync("/")).Should().NotContain(titulo);
 	}
 
