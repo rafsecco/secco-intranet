@@ -79,7 +79,8 @@ function substituirEstilo(_, separador, aspas, apostrofos, sem) {
 // Listas do Word que chegam como paragrafos: o marcador ("·", "1.") vem entre comentarios
 // condicionais `[if !supportLists]`, que somem no parse. Ainda na string, o bloco vira um
 // marcador `data-sc-marcador` (ol quando o texto e numeracao, ul nos demais casos).
-const BLOCO_MARCADOR = /<!(?:--)?\[if !supportLists\](?:--)?>([\s\S]*?)<!(?:--)?\[endif\](?:--)?>/gi;
+// O miolo e limitado: com `*?` solto, marcadores abertos e nunca fechados deixam a busca quadratica.
+const BLOCO_MARCADOR = /<!(?:--)?\[if !supportLists\](?:--)?>([\s\S]{0,500}?)<!(?:--)?\[endif\](?:--)?>/gi;
 const NUMERACAO = /^\s*(\d+|[a-zA-Z]|[ivxlcIVXLC]+)[.)]/;
 
 function marcarListas(html) {
