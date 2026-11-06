@@ -22,6 +22,7 @@ public sealed class RenderizadorMarkdown : IRenderizadorMarkdown
 	private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
 		.DisableHtml()
 		.UseAutoLinks()
+		.UsePipeTables()
 		.Build();
 
 	private static readonly HashSet<string> EsquemasPermitidos =

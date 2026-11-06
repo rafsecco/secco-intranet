@@ -186,7 +186,7 @@ public static class IntranetErrors
 
 		/// <summary>Corpo acima do limite da coluna.</summary>
 		public static readonly Error CorpoTooLong =
-			Error.Validation("Intranet.Publicacao.CorpoTooLong", "O corpo excede o limite de 4000 caracteres.");
+			Error.Validation("Intranet.Publicacao.CorpoTooLong", "O corpo excede o limite de 20000 caracteres.");
 
 		/// <summary>Imagem acima do limite de tamanho.</summary>
 		public static readonly Error ImagemGrandeDemais =

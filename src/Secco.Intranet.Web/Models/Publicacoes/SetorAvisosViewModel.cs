@@ -18,7 +18,7 @@ public sealed class PublicacaoFormViewModel
 	public string? Titulo { get; set; }
 
 	/// <summary>Corpo em Markdown; opcional (só o título é obrigatório).</summary>
-	[StringLength(4_000)]
+	[StringLength(20_000, ErrorMessage = "O corpo excede o limite de 20000 caracteres.")]
 	public string? Corpo { get; set; }
 
 	/// <summary>Imagem enviada; vazia mantém a atual (edição) ou publica sem imagem (nova).</summary>

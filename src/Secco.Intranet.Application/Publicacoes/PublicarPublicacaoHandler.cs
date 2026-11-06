@@ -76,6 +76,7 @@ public sealed class PublicarPublicacaoHandler(
 {
 	private static readonly MarkdownPipeline PipelineDeTexto = new MarkdownPipelineBuilder()
 		.DisableHtml()
+		.UsePipeTables()
 		.Build();
 
 	/// <summary>Executa o caso de uso.</summary>

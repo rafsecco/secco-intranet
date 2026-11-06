@@ -148,6 +148,47 @@ public class PublicacaoFluxoTests(IntranetWebFactory factory) : IClassFixture<In
 	}
 
 	[Fact]
+	public async Task Publicar_CorpoNoLimite_Aceita()
+	{
+		var client = CriarCliente();
+		var slug = $"avisos-{Guid.NewGuid():N}"[..20];
+		var titulo = $"No limite {Guid.NewGuid():N}"[..24];
+		await CriarSetorAsync(client, slug);
+		var token = await TokenAsync(client, $"/{slug}/avisos");
+
+		var resposta = await client.PostAsync($"/{slug}/avisos", FormularioComCorpo(titulo, new string('x', 20_000), token));
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+		(await client.GetStringAsync("/")).Should().Contain(titulo);
+	}
+
+	[Fact]
+	public async Task Publicar_CorpoAcimaDoLimite_Recusa()
+	{
+		var client = CriarCliente();
+		var slug = $"avisos-{Guid.NewGuid():N}"[..20];
+		var titulo = $"Acima do limite {Guid.NewGuid():N}"[..24];
+		await CriarSetorAsync(client, slug);
+		var token = await TokenAsync(client, $"/{slug}/avisos");
+
+		var resposta = await client.PostAsync($"/{slug}/avisos", FormularioComCorpo(titulo, new string('x', 20_001), token));
+
+		WebUtility.HtmlDecode(await resposta.Content.ReadAsStringAsync()).Should().Contain("20000");
+		(await client.GetStringAsync("/")).Should().NotContain(titulo);
+	}
+
+	private static FormUrlEncodedContent FormularioComCorpo(string titulo, string corpo, string token) => new(
+	[
+		new KeyValuePair<string, string>("Form.Titulo", titulo),
+		new KeyValuePair<string, string>("Form.Corpo", corpo),
+		new KeyValuePair<string, string>("Form.Tipo", "0"),
+		new KeyValuePair<string, string>("Form.Visibilidade", "1"),
+		new KeyValuePair<string, string>("Form.Prioridade", "0"),
+		new KeyValuePair<string, string>("Form.PublicadoEm", DateTime.Now.AddMinutes(-5).ToString("yyyy-MM-ddTHH:mm")),
+		new KeyValuePair<string, string>("__RequestVerificationToken", token),
+	]);
+
+	[Fact]
 	public async Task Publicar_SemTitulo_Recusa()
 	{
 		var client = CriarCliente();

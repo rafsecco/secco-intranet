@@ -418,8 +418,8 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
 
                     b.Property<string>("Corpo")
                         .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
                         .HasColumnName("ds_corpo");
 
                     b.Property<DateTimeOffset>("CreatedAt")

@@ -418,8 +418,8 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
 
                     b.Property<string>("Corpo")
                         .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)")
+                        .HasMaxLength(20000)
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("ds_corpo");
 
                     b.Property<DateTimeOffset>("CreatedAt")

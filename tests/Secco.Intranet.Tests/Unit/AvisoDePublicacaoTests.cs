@@ -111,6 +111,18 @@ public class AvisoDePublicacaoTests
 	}
 
 	[Fact]
+	public async Task HandleAsync_CorpoComTabela_ResumoSemSeparadoresDeTabela()
+	{
+		var (handler, notificador) = Montar(Usuario("a@x.com", "financeiro-user"));
+		var comando = Comando() with { Corpo = "Antes\n\n| Dia | Sala |\n| --- | --- |\n| Seg | 12 |" };
+
+		await handler.HandleAsync(comando);
+
+		var resumo = notificador.Lotes.Should().ContainSingle().Which.Resumo;
+		resumo.Should().Contain("Dia").And.Contain("Seg").And.NotContain("|").And.NotContain("---");
+	}
+
+	[Fact]
 	public async Task Normal_UsaSomenteOCanalInApp()
 	{
 		var (handler, notificador) = Montar(Usuario("a@x.com", "financeiro-user"));

@@ -23,9 +23,9 @@ internal sealed class PublicacaoConfiguration : IEntityTypeConfiguration<Publica
 
 		builder.Property(publicacao => publicacao.Titulo).HasMaxLength(256);
 
-		// 4000 e nao mais: acima disso o SQL Server troca nvarchar(n) por nvarchar(max) e a
-		// coluna deixa de ter limite real no banco.
-		builder.Property(publicacao => publicacao.Corpo).HasMaxLength(4_000);
+		// Acima de 4000 o SQL Server troca nvarchar(n) por nvarchar(max); o limite de 20000 e imposto
+		// pela validacao da aplicacao. No Postgres a coluna continua com limite real (varchar(20000)).
+		builder.Property(publicacao => publicacao.Corpo).HasMaxLength(20_000);
 		builder.Property(publicacao => publicacao.CriadoPor).HasMaxLength(256);
 
 		builder.Property(publicacao => publicacao.ImagemCaminhoRelativo).HasMaxLength(256);

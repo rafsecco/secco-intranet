@@ -9,7 +9,7 @@ namespace Secco.Intranet.Application.Publicacoes;
 internal static class ValidacaoDePublicacao
 {
 	/// <summary>Limite da coluna <c>ds_corpo</c>.</summary>
-	internal const int LimiteDoCorpo = 4_000;
+	internal const int LimiteDoCorpo = 20_000;
 
 	/// <summary>Devolve o erro correspondente, ou <c>null</c> quando a entrada é válida.</summary>
 	/// <param name="titulo">Título informado.</param>

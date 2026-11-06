@@ -20,6 +20,22 @@ public class RenderizadorMarkdownTests
 	}
 
 	[Fact]
+	public void Renderizar_TabelaEmMarkdown_GeraTabelaHtml()
+	{
+		var html = Renderizar("| Dia | Sala |\n| --- | --- |\n| Seg | 12 |");
+
+		html.Should().Contain("<th>Dia</th>").And.Contain("<td>Seg</td>");
+	}
+
+	[Fact]
+	public void Renderizar_HtmlEmCelula_SaiEscapado()
+	{
+		var html = Renderizar("| a |\n| --- |\n| <img src=x onerror=alert(1)> |");
+
+		html.Should().NotContain("<img").And.Contain("&lt;img");
+	}
+
+	[Fact]
 	public void Renderizar_ComNegrito_GeraStrong() =>
 		Renderizar("Atenção: **importante**.").Should().Contain("<strong>importante</strong>");
 
