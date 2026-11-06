@@ -38,7 +38,7 @@
     <!-- Relying party OIDC (ADR-0023): o handler não vem implícito no FrameworkReference. -->
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.14" />
     <!-- Markdown do mural. O pipeline desabilita HTML bruto, entao nao ha sanitizador a manter. -->
-    <PackageVersion Include="Markdig" Version="1.5.1" />
+    <PackageVersion Include="Markdig" Version="1.6.0" />
   </ItemGroup>
 
   <ItemGroup Label="EF Core / Migrations">
