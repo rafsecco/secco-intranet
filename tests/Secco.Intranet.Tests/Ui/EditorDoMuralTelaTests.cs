@@ -539,4 +539,89 @@ public class EditorDoMuralTelaTests(EditorDoMuralFixture f) : IClassFixture<Edit
 		await Expect(pagina.Locator(Avisos)).ToHaveCountAsync(0);
 		f.ViolacoesDeCsp(pagina).Should().BeEmpty();
 	}
+
+	private const string ListaFalsaComMarcador = """
+		<p class="MsoListParagraphCxSpFirst" style="mso-list:l0 level1 lfo1"><![if !supportLists]><span style="font-family:Symbol">MID<span>&nbsp;&nbsp;</span></span><![endif]>Primeiro</p>
+		<p class="MsoListParagraphCxSpLast" style="mso-list:l0 level1 lfo1"><![if !supportLists]><span style="font-family:Symbol">MID<span>&nbsp;&nbsp;</span></span><![endif]>Segundo</p>
+		""";
+
+	private const string ListaFalsaNumerada = """
+		<p class="MsoListParagraphCxSpFirst" style="mso-list:l0 level1 lfo1"><!--[if !supportLists]--><span>1.<span>&nbsp;</span></span><!--[endif]-->Primeiro</p>
+		<p class="MsoListParagraphCxSpLast" style="mso-list:l0 level1 lfo1"><!--[if !supportLists]--><span>2.<span>&nbsp;</span></span><!--[endif]-->Segundo</p>
+		""";
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_TextoQueCitaStyle_PreservaOTexto(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, "<p>use style=foo aqui</p><p style=\"color:red\">x</p>");
+
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().Contain("style=foo");
+		f.ViolacoesDeCsp(pagina).Should().BeEmpty();
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_ListaFalsaDoWord_ViraListaComMarcadores(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, ListaFalsaComMarcador.Replace("MID", "·"));
+
+		var markdown = await pagina.Locator(Corpo).InputValueAsync();
+		markdown.Should().Contain("- Primeiro");
+		markdown.Should().Contain("- Segundo");
+		markdown.Should().NotContain("·");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_ListaFalsaNumeradaDoWord_ViraListaNumerada(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, ListaFalsaNumerada);
+
+		var markdown = await pagina.Locator(Corpo).InputValueAsync();
+		markdown.Should().Contain("1. Primeiro");
+		markdown.Should().Contain("2. Segundo");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_ListaFalsaEmCelula_FicaNaMesmaLinha(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, "<table><tr><td>Cab</td></tr><tr><td>" + ListaFalsaComMarcador.Replace("MID", "·") + "</td></tr></table>");
+
+		var celulas = string.Join('\n', LinhasDaTabela(await pagina.Locator(Corpo).InputValueAsync()));
+		celulas.Should().Contain("Primeiro Segundo");
+		celulas.Should().NotContain("- ");
+		celulas.Should().NotContain("·");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_TabelaGiganteComMesclagem_ViraTextoEAvisa(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		var linhas = string.Concat(Enumerable.Range(0, 200).Select(i =>
+			$"<tr><td colspan=\"100\">{(i == 0 ? "marcador" : "x")}</td><td colspan=\"100\">y</td></tr>"));
+
+		await ColarAsync(pagina, $"<table>{linhas}</table>");
+
+		await Expect(pagina.Locator(Avisos)).ToContainTextAsync("A tabela é grande demais: o limite é de 10000 células. Envie-a como imagem.");
+		var markdown = await pagina.Locator(Corpo).InputValueAsync();
+		markdown.Should().Contain("marcador");
+		markdown.Should().NotContain("| --- |");
+		(await pagina.EvaluateAsync<int>("() => 1 + 1")).Should().Be(2);
+	}
 }

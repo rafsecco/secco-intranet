@@ -8,7 +8,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { Tabela } from './tabela-markdown.js';
 import { limparColagem } from './colagem.js';
 
-export { limparColagem, AVISO_ANINHADA, AVISO_IMAGEM, AVISO_MESCLADA } from './colagem.js';
+export { limparColagem, AVISO_ANINHADA, AVISO_IMAGEM, AVISO_MESCLADA, AVISO_TABELA_GRANDE } from './colagem.js';
 
 const ESQUEMAS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
 
