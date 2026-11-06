@@ -211,6 +211,13 @@ processos (maior risco técnico) só entra com a base já sólida.
       atribuição, e o `intranet-admin` edita as permissões dele na tela de Acesso —
       `Secco.SecureGate.Client` 0.24.0, ADR-0056 da plataforma
       ([secco-platform#51](https://github.com/rafsecco/secco-platform/issues/51))
+- [x] Editor do Mural, etapa 1 (2026-11-06): o Toast UI deu lugar ao Tiptap nos dois temas, com
+      barra de formatação, tabela, limpeza da colagem do Word (avisa o que não é suportado) e
+      Markdown como formato guardado. Limites: 20.000 caracteres no corpo e 10.000 células por
+      tabela colada. Conteúdo hostil (script, `on*`, `javascript:`, `data:`, mXSS) é provado
+      não executar, e a ida e volta do texto é testada — [spec](specs/2026-11-06-editor-do-mural-design.md).
+      Pendente: etapa 2 (imagem no meio do texto) e o escape de `|` em célula de tabela, que o
+      editor perde ao salvar (teste ignorado `Editor_SalvarEReabrir_BarraEmCelula_MantemACelula`)
 
 ## Fase 2 — Operacional
 
@@ -277,9 +284,9 @@ processos (maior risco técnico) só entra com a base já sólida.
       [secco-platform#53](https://github.com/rafsecco/secco-platform/issues/53)): CSP com nonce,
       `nosniff`, `Referrer-Policy`, `Permissions-Policy`, `frame-ancestors` e HSTS, e `form-action`
       com a origem do SecureGate. Para a CSP não abrir exceção, os temas deixaram o script inline
-      (`preferencias.js`) e o `style` da cor do setor (classes `sc-hue-{matiz}`); os únicos `style`
-      liberados, por hash, são quatro valores exatos do editor Toast UI e do
-      `asp-validation-summary`
+      (`preferencias.js`) e o `style` da cor do setor (classes `sc-hue-{matiz}`); o único `style`
+      liberado, por hash, é o valor exato do `asp-validation-summary` (`display:none`); o editor
+      Tiptap, que trocou o Toast UI, não precisa de nenhum
 - [x] CSP em `Enforce` por padrão (2026-11-02; `Intranet:Csp:Modo=ReportOnly` para investigar).
       Navegando em Enforce só sobrava bloqueada a imagem externa num aviso em Markdown: o Mural
       passou a mostrar só imagem da própria Intranet, e `![](https://...)` vira link para o

@@ -1,7 +1,7 @@
 # Editor do Mural: colar do Word, tabela e imagem no texto — desenho do recurso
 
 **Data:** 2026-11-06
-**Estado:** aprovada, a implementar
+**Estado:** etapa 1 entregue, etapa 2 a implementar
 **Revisa:** "Imagem no meio do texto" e "Nenhum caminho deixa a imagem dentro do texto" de [2026-10-31-imagem-na-publicacao-design.md](2026-10-31-imagem-na-publicacao-design.md). A primeira deixa de estar fora do escopo; a segunda continua valendo para imagem embutida em base64.
 
 ## Problema

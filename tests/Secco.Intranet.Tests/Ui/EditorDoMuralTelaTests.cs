@@ -36,6 +36,9 @@ public sealed class EditorDoMuralFixture : IAsyncLifetime
 	/// <summary>Endereço da aplicação por tema.</summary>
 	public Dictionary<string, string> Enderecos { get; } = [];
 
+	/// <summary>Chave do app do tema Vertical com a CSP em ReportOnly, para a CSP não mascarar o resultado dos ataques.</summary>
+	public const string ReportOnly = "Vertical-ReportOnly";
+
 	/// <summary>Slug do setor do cenário.</summary>
 	public string Slug { get; } = $"edt-{Guid.NewGuid():N}"[..12];
 
@@ -50,15 +53,18 @@ public sealed class EditorDoMuralFixture : IAsyncLifetime
 		await ((IAsyncLifetime)_fabrica).InitializeAsync();
 		await _fabrica.EnsureDatabaseMigratedAsync();
 
-		foreach (var tema in new[] { "Vertical", "Horizontal" })
+		foreach (var chave in new[] { "Vertical", "Horizontal", ReportOnly })
 		{
+			var tema = chave == ReportOnly ? "Vertical" : chave;
+			var modoDaCsp = chave == ReportOnly ? "ReportOnly" : null;
 			var app = _fabrica.WithWebHostBuilder(builder => builder
 				.UseSetting("Intranet:Theme:Nome", tema)
+				.UseSetting("Intranet:Csp:Modo", modoDaCsp)
 				.UseStaticWebAssets());
 			app.UseKestrel(kestrel => kestrel.Listen(System.Net.IPAddress.Loopback, 0));
 			app.StartServer();
-			_apps[tema] = app;
-			Enderecos[tema] = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.First();
+			_apps[chave] = app;
+			Enderecos[chave] = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.First();
 		}
 
 		await CriarSetorAsync();
@@ -69,11 +75,11 @@ public sealed class EditorDoMuralFixture : IAsyncLifetime
 
 	/// <summary>Abre a tela de avisos do setor, como administrador da intranet.</summary>
 	public Task<IPage> AbrirAvisosAsync(string tema, bool javaScript = true) =>
-		AbrirAsync(tema, $"/{Slug}/avisos", javaScript);
+		AbrirAsync(tema, $"/{Slug}/avisos", javaScript, null);
 
 	/// <summary>Abre a tela de avisos do setor com a publicação em edição.</summary>
-	public Task<IPage> AbrirEdicaoAsync(string tema, Guid publicacaoId) =>
-		AbrirAsync(tema, $"/{Slug}/avisos?editar={publicacaoId}", javaScript: true);
+	public Task<IPage> AbrirEdicaoAsync(string tema, Guid publicacaoId, string? scriptInicial = null) =>
+		AbrirAsync(tema, $"/{Slug}/avisos?editar={publicacaoId}", javaScript: true, scriptInicial);
 
 	/// <summary>Grava uma publicação com o corpo dado, pelo caso de uso, sem passar pelo formulário.</summary>
 	public async Task<Guid> CriarPublicacaoAsync(string corpo)
@@ -100,7 +106,10 @@ public sealed class EditorDoMuralFixture : IAsyncLifetime
 	/// <summary>Mensagens de console sobre a CSP vistas pela página desde que foi aberta.</summary>
 	public List<string> ViolacoesDeCsp(IPage pagina) => _violacoes.TryGetValue(pagina, out var lista) ? lista : [];
 
-	private async Task<IPage> AbrirAsync(string tema, string caminho, bool javaScript)
+	/// <summary>Abre um caminho do tema, como administrador da intranet.</summary>
+	public Task<IPage> AbrirAsync(string tema, string caminho) => AbrirAsync(tema, caminho, javaScript: true, null);
+
+	private async Task<IPage> AbrirAsync(string tema, string caminho, bool javaScript, string? scriptInicial)
 	{
 		var contexto = await Navegador.NewContextAsync(new BrowserNewContextOptions
 		{
@@ -126,6 +135,11 @@ public sealed class EditorDoMuralFixture : IAsyncLifetime
 				}
 			}
 		};
+
+		if (scriptInicial is not null)
+		{
+			await pagina.AddInitScriptAsync(scriptInicial);
+		}
 
 		await pagina.GotoAsync(caminho);
 
@@ -623,5 +637,135 @@ public class EditorDoMuralTelaTests(EditorDoMuralFixture f) : IClassFixture<Edit
 		markdown.Should().Contain("marcador");
 		markdown.Should().NotContain("| --- |");
 		(await pagina.EvaluateAsync<int>("() => 1 + 1")).Should().Be(2);
+	}
+
+	private const string ScriptXss = "window.__xss = [];";
+
+	/// <summary>Cargas hostis; cada uma vai sozinha no corpo da publicação.</summary>
+	public static TheoryData<string, string> CargasHostis => new()
+	{
+		{ "script", "<script>window.__xss.push('script')</script>" },
+		{ "imgOnerror", "<img src=x onerror=\"window.__xss.push('imgOnerror')\">" },
+		{ "svgOnload", "<svg onload=\"window.__xss.push('svgOnload')\"></svg>" },
+		{ "iframe", "<iframe srcdoc=\"<script>parent.__xss.push('iframe')</script>\"></iframe>" },
+		{ "detalhes", "<details open ontoggle=\"window.__xss.push('detalhes')\">x</details>" },
+		{ "mxss", "<math><mtext><table><mglyph><style><img src=x onerror=\"window.__xss.push('mxss')\">" },
+		{ "linkJs", "[clique](javascript:window.__xss.push('linkJs'))" },
+		{ "linkData", "[clique](data:text/html,<script>window.__xss.push('linkData')</script>)" },
+		{ "imgAtributo", "![a](x\" onerror=\"window.__xss.push('imgAtributo'))" },
+		{ "imgJs", "![a](javascript:window.__xss.push('imgJs'))" },
+		{ "celula", "| a |\n| --- |\n| <img src=x onerror=\"window.__xss.push('celula')\"> |" },
+		{ "codigo", "```\n<img src=x onerror=\"window.__xss.push('codigo')\">\n```" },
+	};
+
+	[UiTheory]
+	[MemberData(nameof(CargasHostis))]
+	public async Task Editor_ConteudoHostil_NaoExecuta(string nome, string carga)
+	{
+		var id = await f.CriarPublicacaoAsync(carga);
+		var pagina = await f.AbrirEdicaoAsync(EditorDoMuralFixture.ReportOnly, id, ScriptXss);
+
+		await Expect(pagina.Locator(".sc-editor .ProseMirror")).ToBeVisibleAsync();
+		await pagina.WaitForTimeoutAsync(500);
+
+		(await pagina.EvaluateAsync<string[]>("() => window.__xss")).Should().BeEmpty($"a carga {nome} não pode executar");
+		(await pagina.EvaluateAsync<int>(
+			"() => [...document.querySelectorAll('.sc-editor *')].filter(e => [...e.attributes].some(a => a.name.startsWith('on'))).length"))
+			.Should().Be(0);
+		(await pagina.Locator(".sc-editor").Locator("script, iframe, svg, math, details, object, embed").CountAsync()).Should().Be(0);
+		(await pagina.Locator(".sc-editor a[href^='javascript:' i], .sc-editor a[href^='data:' i]").CountAsync()).Should().Be(0);
+
+		await pagina.GetByRole(AriaRole.Button, new() { Name = "Salvar publicação" }).ClickAsync();
+		await pagina.WaitForURLAsync(url => !url.Contains("editar=", StringComparison.Ordinal));
+		await pagina.GotoAsync($"{f.Enderecos[EditorDoMuralFixture.ReportOnly]}/publicacoes/{id}");
+		await pagina.WaitForLoadStateAsync(LoadState.Load);
+		await pagina.WaitForTimeoutAsync(500);
+
+		(await pagina.EvaluateAsync<string[]>("() => window.__xss")).Should().BeEmpty($"a carga {nome} não pode executar na página de leitura");
+	}
+
+	private const string CorpoDeIdaEVolta = """
+		# Título 1 < 2 e a * b
+
+		Texto com 1 < 2 e a * b no meio.
+
+		- item 1 < 2
+		- item a * b
+
+		| Coluna | Valor |
+		| --- | --- |
+		| ab | 1 < 2 |
+		| a * b | fim |
+		""";
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Editor_SalvarEReabrir_MantemOTextoVisivel(string tema)
+	{
+		var id = await f.CriarPublicacaoAsync(CorpoDeIdaEVolta);
+
+		var original = await TextoVisivelAsync(tema, id);
+		var markdown1 = await SalvarSemMudarAsync(tema, id);
+		var depoisDaPrimeira = await TextoVisivelAsync(tema, id);
+		var markdown2 = await SalvarSemMudarAsync(tema, id);
+
+		depoisDaPrimeira.Should().Be(original, "markdown1: " + markdown1);
+		markdown2.Should().Be(markdown1, "uma segunda ida e volta não pode alterar mais o Markdown");
+		original.Should().Contain("1 < 2");
+		original.Should().Contain("a * b");
+	}
+
+	[UiTheory(Skip = "Defeito conhecido: o editor serializa a barra escapada de uma celula (a\\|b) sem o escape, e a celula se parte em duas. Remover o Skip quando corrigido.")]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Editor_SalvarEReabrir_BarraEmCelula_MantemACelula(string tema)
+	{
+		var id = await f.CriarPublicacaoAsync("| Coluna | Valor |\n| --- | --- |\n| a\\|b | x |");
+
+		var original = await TextoVisivelAsync(tema, id);
+		await SalvarSemMudarAsync(tema, id);
+
+		(await TextoVisivelAsync(tema, id)).Should().Be(original);
+	}
+
+	private async Task<string> TextoVisivelAsync(string tema, Guid id)
+	{
+		var pagina = await f.AbrirAsync(tema, $"/publicacoes/{id}");
+
+		return await pagina.Locator(".sc-card__body").InnerTextAsync();
+	}
+
+	/// <summary>Abre a edição, provoca a serialização do editor sem mudar o texto, salva e devolve o Markdown enviado.</summary>
+	private async Task<string> SalvarSemMudarAsync(string tema, Guid id)
+	{
+		var pagina = await f.AbrirEdicaoAsync(tema, id);
+		await Expect(pagina.Locator(".sc-editor .ProseMirror")).ToBeVisibleAsync();
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+		await pagina.Keyboard.PressAsync("Control+End");
+		await pagina.Keyboard.TypeAsync("x");
+		await pagina.Keyboard.PressAsync("Backspace");
+		var markdown = await pagina.Locator(Corpo).InputValueAsync();
+
+		await pagina.GetByRole(AriaRole.Button, new() { Name = "Salvar publicação" }).ClickAsync();
+		await pagina.WaitForURLAsync(url => !url.Contains("editar=", StringComparison.Ordinal));
+
+		return markdown;
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Publicar_CorpoAcimaDoLimite_MantemOTextoNoEditor(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+		await pagina.Keyboard.InsertTextAsync(new string('a', 20_001));
+		await pagina.Locator("#Form_Titulo").FillAsync("Corpo grande");
+
+		await pagina.GetByRole(AriaRole.Button, new() { Name = "Salvar publicação" }).ClickAsync();
+
+		await Expect(pagina.GetByText("O corpo excede o limite de 20000 caracteres.").First).ToBeVisibleAsync();
+		(await pagina.Locator(".sc-editor .ProseMirror").InnerTextAsync()).Length.Should().BeGreaterThanOrEqualTo(20_001);
 	}
 }

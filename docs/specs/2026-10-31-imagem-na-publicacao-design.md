@@ -2,6 +2,7 @@
 
 **Data:** 2026-10-31
 **Estado:** aprovado, implementado
+**Revisada por:** [2026-11-06-editor-do-mural-design.md](2026-11-06-editor-do-mural-design.md) ("Imagem no meio do texto" deixa de estar fora do escopo)
 **Origem:** conversa de 2026-10-31, depois de publicar um aviso com imagem por endereço externo
 para ver como ficava
 
