@@ -64,14 +64,22 @@ internal static class ValidacaoDePublicacao
 		var pipesNaLinha = 0;
 		long linhas = 1;
 
-		foreach (var caractere in corpo)
+		for (var i = 0; i < corpo.Length; i++)
 		{
+			var caractere = corpo[i];
+
 			if (caractere == '|')
 			{
 				pipesNaLinha++;
 			}
-			else if (caractere == '\n')
+			else if (caractere == '\n' || caractere == '\r')
 			{
+				// O Markdig trata \r, \n e \r\n como fim de linha; \r\n é uma quebra só.
+				if (caractere == '\r' && i + 1 < corpo.Length && corpo[i + 1] == '\n')
+				{
+					i++;
+				}
+
 				linhas++;
 				maiorNumeroDePipes = Math.Max(maiorNumeroDePipes, pipesNaLinha);
 				pipesNaLinha = 0;

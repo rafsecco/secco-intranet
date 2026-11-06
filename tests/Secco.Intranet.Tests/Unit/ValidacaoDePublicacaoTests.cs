@@ -63,6 +63,30 @@ public class ValidacaoDePublicacaoTests
 	}
 
 	[Fact]
+	public void Validar_TabelaComCrSozinho_Recusa()
+	{
+		var corpo = "|" + Repetir("a|", 1000) + "\r|" + Repetir("-|", 1000) + "\r" + Repetir("|\r", 7000);
+
+		Validar(corpo).Should().Be(IntranetErrors.Publicacoes.TabelaGrandeDemais, "o Markdig trata \\r sozinho como fim de linha");
+	}
+
+	[Fact]
+	public void Validar_TabelaNoLimiteComCrLf_Aceita()
+	{
+		var corpo = new string('|', 99) + "\r\n" + Repetir("x\r\n", 98) + "x";
+
+		Validar(corpo).Should().BeNull("\\r\\n é uma quebra só: (99 + 1) * 100 = 10.000");
+	}
+
+	[Fact]
+	public void Validar_UmaCelulaAcimaDoLimiteComCrLf_Recusa()
+	{
+		var corpo = new string('|', 100) + "\r\n" + Repetir("x\r\n", 98) + "x";
+
+		Validar(corpo).Should().Be(IntranetErrors.Publicacoes.TabelaGrandeDemais, "(100 + 1) * 100 = 10.100");
+	}
+
+	[Fact]
 	public void Validar_TextoSemPipeComMuitasLinhas_Aceita()
 	{
 		var corpo = Repetir("x\n", 10_000);
