@@ -519,6 +519,10 @@ public static class IntranetErrors
 		public static readonly Error IconeInvalido =
 			Error.Validation("Intranet.Menu.IconeInvalido", "O ícone precisa ser uma classe do Bootstrap Icons, como 'bi-cash-coin'.");
 
+		/// <summary>Nível de acesso fora dos valores conhecidos.</summary>
+		public static readonly Error NivelDeAcessoInvalido =
+			Error.Validation("Intranet.Menu.NivelDeAcessoInvalido", "Escolha quem vê o item no menu: quem lê ou quem escreve no setor.");
+
 		/// <summary>Item não encontrado no banco do tenant atual.</summary>
 		public static readonly Error NotFound =
 			Error.NotFound("Intranet.Menu.NotFound", "Item de menu não encontrado.");

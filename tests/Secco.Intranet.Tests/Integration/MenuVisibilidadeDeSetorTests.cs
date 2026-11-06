@@ -1,8 +1,12 @@
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Secco.Intranet.Application.Acesso;
+using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
+using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Tests.Integration.TestAuthentication;
+using Secco.Intranet.Tests.Support;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SharedKernel.Constants;
 using AwesomeAssertions;
@@ -103,6 +107,100 @@ public class MenuVisibilidadeDeSetorTests(IntranetWebFactory factory) : IClassFi
 		Regex.IsMatch(html, @"<button[^>]*data-sc-submenu[^>]*>(?:(?!</button>).)*>Setores<", RegexOptions.Singleline)
 			.Should().BeTrue("o grupo Setores é um botão expansível");
 		html.Should().NotContain("sc-nav__group-title", "o título do grupo deixou de ser um rótulo solto na barra");
+	}
+
+	/// <summary>Setor com um item restrito; devolve o slug e o link que o item leva.</summary>
+	private async Task<(string Slug, string Link)> CriarSetorComItemRestritoAsync()
+	{
+		var slug = await CriarSetorAsync($"menu-{Guid.NewGuid():N}"[..20]);
+		var link = $"/painel-{slug}";
+
+		using var escopo = factory.Services.CreateScope();
+		escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
+
+		var setor = await escopo.ServiceProvider.GetRequiredService<GetSetorBySlugHandler>().HandleAsync(slug);
+		var arvore = await escopo.ServiceProvider.GetRequiredService<IItemMenuRepository>().ListarPorSetorAsync(setor.Value.Id);
+		var criado = await escopo.ServiceProvider.GetRequiredService<CriarItemMenuHandler>().HandleAsync(new CriarItemMenuCommand(
+			setor.Value.Id,
+			arvore.Single(item => item.Tipo == TipoDeItemMenu.Setor).Id,
+			"Painel",
+			"painel",
+			TipoDeItemMenu.Personalizado,
+			link,
+			null,
+			NivelDeAcessoItemMenu.Escrita));
+
+		criado.IsSuccess.Should().BeTrue();
+
+		return (slug, link);
+	}
+
+	// Role com sufixo único por teste: o cache de permissões do SDK guarda o resultado por (tenant, role).
+	private HttpClient ClienteCom(params string[] permissoes)
+	{
+		var role = $"menu-nivel-{Guid.NewGuid():N}";
+		var resolvedor = new PermissionResolverDeTeste();
+
+		foreach (var permissao in permissoes)
+		{
+			resolvedor.ComPermissao(role, permissao);
+		}
+
+		factory.ResolvedorDePermissoes = resolvedor;
+
+		return CriarCliente(role);
+	}
+
+	[Fact]
+	public async Task ItemRestrito_QuemSoLe_NaoVeOItem_MasVeOsDemais()
+	{
+		var (slug, link) = await CriarSetorComItemRestritoAsync();
+
+		var html = await ClienteCom(IntranetPermissoes.Setor.Read(slug)).GetStringAsync("/");
+
+		html.Should().Contain($"href=\"/{slug}/avisos\"");
+		html.Should().NotContain($"href=\"{link}\"");
+	}
+
+	[Fact]
+	public async Task ItemRestrito_QuemEscreve_VeOItem()
+	{
+		var (slug, link) = await CriarSetorComItemRestritoAsync();
+
+		var html = await ClienteCom(IntranetPermissoes.Setor.Read(slug), IntranetPermissoes.Setor.Write(slug)).GetStringAsync("/");
+
+		html.Should().Contain($"href=\"{link}\"");
+	}
+
+	[Fact]
+	public async Task ItemRestrito_QuemSoTemEscrita_VeSoOItem()
+	{
+		var (slug, link) = await CriarSetorComItemRestritoAsync();
+
+		var html = await ClienteCom(IntranetPermissoes.Setor.Write(slug)).GetStringAsync("/");
+
+		html.Should().Contain($"href=\"{link}\"");
+		html.Should().NotContain($"href=\"/{slug}/avisos\"", "esse item é de quem lê o setor");
+	}
+
+	[Fact]
+	public async Task ItemRestrito_IntranetAdmin_VeOItem()
+	{
+		var (_, link) = await CriarSetorComItemRestritoAsync();
+
+		var html = await CriarCliente("intranet-admin").GetStringAsync("/");
+
+		html.Should().Contain($"href=\"{link}\"");
+	}
+
+	[Fact]
+	public async Task SoEscrita_EmSetorSemItemRestrito_OSetorNaoAparece()
+	{
+		var slug = await CriarSetorAsync($"menu-{Guid.NewGuid():N}"[..20]);
+
+		var html = await ClienteCom(IntranetPermissoes.Setor.Write(slug)).GetStringAsync("/");
+
+		html.Should().NotContain($"Setor {slug}");
 	}
 
 	private static void AssertarArvore(string html, string slug)

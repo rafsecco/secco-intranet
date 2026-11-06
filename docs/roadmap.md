@@ -197,6 +197,10 @@ processos (maior risco técnico) só entra com a base já sólida.
       [spec](specs/2026-11-04-exportacao-de-documentos-design.md), plano em
       [plans/2026-11-04-exportacao-de-documentos.md](plans/2026-11-04-exportacao-de-documentos.md).
       Issue #5. As listagens do core ainda não exportam
+- [x] Nível de acesso por item da árvore do setor: quem lê (padrão) ou quem escreve no setor, escolhido
+      na tela de menu do setor. Só decide a visibilidade no menu, sem proteger a página —
+      [guia](extensao.md#página-da-rcl-na-árvore-de-um-setor),
+      [spec](specs/2026-11-06-nivel-de-acesso-item-menu-design.md). Issue #6
 - [x] Imagem na publicação do Mural: uma imagem opcional por aviso, enviada do computador,
       processada pelo `Secco.SDK.Imaging` 0.2.0 com `ImageCrop.Whole` (inteira, sem recorte,
       [secco-platform#52](https://github.com/rafsecco/secco-platform/issues/52)) e servida em

@@ -17,6 +17,8 @@ namespace Secco.Intranet.Web.Navigation;
 /// <param name="Posicoes">Posições salvas do menu do tenant; nulo = ordem padrão.</param>
 /// <param name="SlugsReservados">Slugs que as rotas fixas ocupam; setor com um deles fica fora do menu. Nulo = nenhum.</param>
 /// <param name="Bibliotecas">Bibliotecas ativas que o usuário pode ler; viram itens do grupo principal. Nulo = nenhuma.</param>
+/// <param name="SetoresComEscrita">Setores em que o usuário escreve, para os itens restritos. Nulo = nenhum: a omissão esconde em vez de mostrar.</param>
+/// <param name="SetoresSemLeitura">Setores de <paramref name="Setores"/> que o usuário não lê, presentes só pela escrita. Nulo = nenhum.</param>
 public sealed record NavigationRequest(
 	IReadOnlyList<SetorDto> Setores,
 	string CaminhoAtual,
@@ -27,7 +29,9 @@ public sealed record NavigationRequest(
 	IReadOnlyList<ItemExtraDoMenu>? ItensExtras = null,
 	PosicoesDoMenuDto? Posicoes = null,
 	ISlugsReservados? SlugsReservados = null,
-	IReadOnlyList<BibliotecaDto>? Bibliotecas = null);
+	IReadOnlyList<BibliotecaDto>? Bibliotecas = null,
+	IReadOnlySet<Guid>? SetoresComEscrita = null,
+	IReadOnlySet<Guid>? SetoresSemLeitura = null);
 
 /// <summary>
 /// Montagem do menu. O Mural é o único item fixo que fala com a empresa toda; a seção Setores
@@ -58,7 +62,7 @@ public static class IntranetNavigation
 		var setores = OrdemDoMenu.Ordenar(request.Setores, setor => setor.Id.ToString("D"), request.Posicoes?.Setores)
 			// Setor com slug de rota fixa (criado antes da rota existir): a rota vence e o link daria 404.
 			.Where(setor => request.SlugsReservados?.Contem(setor.Slug) != true)
-			.Select(setor => SetorNoMenu(setor, request.Arvores, caminho))
+			.Select(setor => SetorNoMenu(setor, request, caminho))
 			.OfType<NavigationItemModel>()
 			.ToList();
 
@@ -143,10 +147,9 @@ public static class IntranetNavigation
 	}
 
 	/// <summary>O setor como nó de nível 0, sem link; nulo se nada debaixo dele leva a algum lugar.</summary>
-	private static NavigationItemModel? SetorNoMenu(
-		SetorDto setor, IReadOnlyDictionary<Guid, IReadOnlyList<ItemMenuDto>>? arvores, string caminho)
+	private static NavigationItemModel? SetorNoMenu(SetorDto setor, NavigationRequest request, string caminho)
 	{
-		if (arvores is null || !arvores.TryGetValue(setor.Id, out var itens))
+		if (request.Arvores is null || !request.Arvores.TryGetValue(setor.Id, out var itens))
 		{
 			return null;
 		}
@@ -158,7 +161,11 @@ public static class IntranetNavigation
 			return null;
 		}
 
-		var filhos = Filhos(raiz.Id, $"/{setor.Slug}", itens, caminho);
+		var acesso = new AcessoAoSetor(
+			PodeLer: request.SetoresSemLeitura?.Contains(setor.Id) != true,
+			PodeEscrever: request.SetoresComEscrita?.Contains(setor.Id) == true);
+
+		var filhos = Filhos(raiz.Id, $"/{setor.Slug}", itens, caminho, acesso);
 
 		return filhos.Count == 0
 			? null
@@ -166,19 +173,28 @@ public static class IntranetNavigation
 	}
 
 	/// <summary>
-	/// Filhos de um nó, em ordem, já podados: nó sem destino e sem filhos visíveis some (de baixo
-	/// para cima, então uma cadeia de agrupadores vazios some inteira).
+	/// Filhos de um nó, em ordem, já podados: item restrito sem escrita some com a subárvore, e nó
+	/// sem destino e sem filhos visíveis some (de baixo para cima, então uma cadeia de agrupadores
+	/// vazios some inteira). Para quem não lê o setor, um item de leitura perde o link e só agrupa,
+	/// senão um item restrito dentro dele ficaria inalcançável.
 	/// </summary>
 	private static List<NavigationItemModel> Filhos(
-		Guid paiId, string caminhoDoPai, IReadOnlyList<ItemMenuDto> itens, string caminhoAtual)
+		Guid paiId, string caminhoDoPai, IReadOnlyList<ItemMenuDto> itens, string caminhoAtual, AcessoAoSetor acesso)
 	{
 		var resultado = new List<NavigationItemModel>();
 
 		foreach (var item in itens.Where(item => item.ParentId == paiId).OrderBy(item => item.Ordem))
 		{
+			var restrito = item.NivelDeAcesso == NivelDeAcessoItemMenu.Escrita;
+
+			if (restrito && !acesso.PodeEscrever)
+			{
+				continue;
+			}
+
 			var caminhoDoItem = $"{caminhoDoPai}/{item.Slug}";
-			var netos = Filhos(item.Id, caminhoDoItem, itens, caminhoAtual);
-			var url = Destino(item, caminhoDoItem);
+			var netos = Filhos(item.Id, caminhoDoItem, itens, caminhoAtual, acesso);
+			var url = restrito || acesso.PodeLer ? Destino(item, caminhoDoItem) : null;
 
 			if (url is null && netos.Count == 0)
 			{
@@ -202,6 +218,9 @@ public static class IntranetNavigation
 		TipoDeItemMenu.Personalizado when !string.IsNullOrWhiteSpace(item.Rota) => item.Rota,
 		_ => null,
 	};
+
+	/// <summary>O que o usuário pode no setor cuja árvore está sendo montada.</summary>
+	private readonly record struct AcessoAoSetor(bool PodeLer, bool PodeEscrever);
 
 	private static bool EhMural(string caminho) =>
 		caminho == "/" || Corresponde(caminho, "/mural");

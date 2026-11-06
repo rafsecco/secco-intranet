@@ -31,6 +31,11 @@ public sealed class CriarItemMenuHandler(IItemMenuRepository repository, ITrilha
 			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.TipoInvalido);
 		}
 
+		if (!Enum.IsDefined(command.NivelDeAcesso))
+		{
+			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.NivelDeAcessoInvalido);
+		}
+
 		if (string.IsNullOrWhiteSpace(command.Nome))
 		{
 			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.NomeRequired);
@@ -109,13 +114,13 @@ public sealed class CriarItemMenuHandler(IItemMenuRepository repository, ITrilha
 
 		var item = new ItemMenu(
 			command.SetorId, command.ParentId, command.Nome.Trim(), slugNormalizado, command.Tipo,
-			rota, command.Icone, proximaOrdem);
+			rota, command.Icone, proximaOrdem, command.NivelDeAcesso);
 
 		await repository.AddAsync(item, cancellationToken).ConfigureAwait(false);
 
 		await AuditoriaDeMenu.ItemAsync(
 			trilha, VerbosDeAuditoria.MenuItemCriar, item,
-			new { setorId = item.SetorId, parentId = item.ParentId, nome = item.Nome, slug = item.Slug, tipo = item.Tipo.ToString(), rota = item.Rota },
+			new { setorId = item.SetorId, parentId = item.ParentId, nome = item.Nome, slug = item.Slug, tipo = item.Tipo.ToString(), rota = item.Rota, nivelDeAcesso = item.NivelDeAcesso.ToString() },
 			cancellationToken).ConfigureAwait(false);
 
 		return ItemMenuDto.FromEntity(item);

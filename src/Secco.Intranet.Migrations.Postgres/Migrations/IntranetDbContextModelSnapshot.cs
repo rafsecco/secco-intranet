@@ -321,6 +321,10 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("ds_icone");
 
+                    b.Property<int>("NivelDeAcesso")
+                        .HasColumnType("integer")
+                        .HasColumnName("ie_nivel_de_acesso");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(256)

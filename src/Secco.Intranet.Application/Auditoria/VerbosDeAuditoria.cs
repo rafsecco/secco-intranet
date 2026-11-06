@@ -66,6 +66,9 @@ public static class VerbosDeAuditoria
 	/// <summary>Item trocou de posição com um irmão.</summary>
 	public const string MenuItemMover = "menu.item-mover";
 
+	/// <summary>Item da árvore mudou de nível de acesso — muda quem o vê no menu.</summary>
+	public const string MenuItemDefinirNivel = "menu.item-definir-nivel";
+
 	/// <summary>Item personalizado excluído — irreversível.</summary>
 	public const string MenuItemExcluir = "menu.item-excluir";
 

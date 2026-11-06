@@ -4,11 +4,20 @@ namespace Secco.Intranet.Application.Menu;
 
 /// <summary>Um nó da árvore, para leitura.</summary>
 public sealed record ItemMenuDto(
-	Guid Id, Guid? ParentId, string Nome, string Slug, TipoDeItemMenu Tipo, string? Rota, string? Icone, int Ordem, bool Ativo)
+	Guid Id,
+	Guid? ParentId,
+	string Nome,
+	string Slug,
+	TipoDeItemMenu Tipo,
+	string? Rota,
+	string? Icone,
+	int Ordem,
+	bool Ativo,
+	NivelDeAcessoItemMenu NivelDeAcesso = NivelDeAcessoItemMenu.Leitura)
 {
 	/// <summary>Converte a entidade.</summary>
 	public static ItemMenuDto FromEntity(ItemMenu item) =>
-		new(item.Id, item.ParentId, item.Nome, item.Slug, item.Tipo, item.Rota, item.Icone, item.Ordem, item.Ativo);
+		new(item.Id, item.ParentId, item.Nome, item.Slug, item.Tipo, item.Rota, item.Icone, item.Ordem, item.Ativo, item.NivelDeAcesso);
 }
 
 /// <summary>Pedido de criação de um item.</summary>
@@ -19,5 +28,13 @@ public sealed record ItemMenuDto(
 /// <param name="Tipo">Tipo do item — a tela nunca envia <see cref="TipoDeItemMenu.Setor"/>.</param>
 /// <param name="Rota">Só relevante em <see cref="TipoDeItemMenu.Personalizado"/>.</param>
 /// <param name="Icone">Classe do Bootstrap Icons; vazio = sem ícone.</param>
+/// <param name="NivelDeAcesso">Quem vê o item no menu.</param>
 public sealed record CriarItemMenuCommand(
-	Guid SetorId, Guid ParentId, string? Nome, string? Slug, TipoDeItemMenu Tipo, string? Rota, string? Icone);
+	Guid SetorId,
+	Guid ParentId,
+	string? Nome,
+	string? Slug,
+	TipoDeItemMenu Tipo,
+	string? Rota,
+	string? Icone,
+	NivelDeAcessoItemMenu NivelDeAcesso = NivelDeAcessoItemMenu.Leitura);

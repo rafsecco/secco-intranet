@@ -23,6 +23,19 @@ public enum TipoDeItemMenu
 }
 
 /// <summary>
+/// Quem vê um item no menu. Só decide a visibilidade no menu: não protege a página de destino,
+/// que continua responsável pela própria autorização.
+/// </summary>
+public enum NivelDeAcessoItemMenu
+{
+	/// <summary>Quem lê o setor — o padrão.</summary>
+	Leitura = 0,
+
+	/// <summary>Quem escreve no setor.</summary>
+	Escrita = 1,
+}
+
+/// <summary>
 /// Nó de uma árvore autorrecursiva de itens de menu, escopada a um Setor. A raiz
 /// (<see cref="TipoDeItemMenu.Setor"/>) nasce junto com o <c>Setor</c>; Documentos, Avisos, Vencimentos e
 /// itens <c>Personalizado</c> são sempre descendentes dela. <see cref="ParentId"/> só é
@@ -46,9 +59,18 @@ public sealed class ItemMenu : BaseEntity
 	/// <param name="rota">Link opcional, só relevante em <see cref="TipoDeItemMenu.Personalizado"/>.</param>
 	/// <param name="icone">Classe do Bootstrap Icons; vazio/nulo = sem ícone.</param>
 	/// <param name="ordem">Posição entre irmãos.</param>
-	/// <exception cref="DomainInvariantException">Nome/slug vazios, ou ícone fora do formato.</exception>
+	/// <param name="nivelDeAcesso">Quem vê o item no menu; a raiz fica sempre em <see cref="NivelDeAcessoItemMenu.Leitura"/>.</param>
+	/// <exception cref="DomainInvariantException">Nome/slug vazios, ícone fora do formato, ou nível inválido para o tipo.</exception>
 	public ItemMenu(
-		Guid setorId, Guid? parentId, string nome, string slug, TipoDeItemMenu tipo, string? rota, string? icone, int ordem)
+		Guid setorId,
+		Guid? parentId,
+		string nome,
+		string slug,
+		TipoDeItemMenu tipo,
+		string? rota,
+		string? icone,
+		int ordem,
+		NivelDeAcessoItemMenu nivelDeAcesso = NivelDeAcessoItemMenu.Leitura)
 	{
 		if (string.IsNullOrWhiteSpace(nome))
 		{
@@ -65,6 +87,8 @@ public sealed class ItemMenu : BaseEntity
 			throw new DomainInvariantException("O ícone precisa ser uma classe do Bootstrap Icons, como 'bi-cash-coin'.");
 		}
 
+		ValidarNivelDeAcesso(tipo, nivelDeAcesso);
+
 		SetorId = setorId;
 		ParentId = parentId;
 		Nome = nome;
@@ -73,6 +97,7 @@ public sealed class ItemMenu : BaseEntity
 		Rota = string.IsNullOrWhiteSpace(rota) ? null : rota.Trim();
 		Icone = iconeNormalizado;
 		Ordem = ordem;
+		NivelDeAcesso = nivelDeAcesso;
 		Ativo = true;
 		CreatedAt = DateTimeOffset.UtcNow;
 	}
@@ -104,6 +129,9 @@ public sealed class ItemMenu : BaseEntity
 	/// <summary>Ativo — some da árvore quando <c>false</c>, sem apagar.</summary>
 	public bool Ativo { get; private set; }
 
+	/// <summary>Quem vê o item no menu.</summary>
+	public NivelDeAcessoItemMenu NivelDeAcesso { get; private set; }
+
 	/// <summary>Momento da criação.</summary>
 	public DateTimeOffset CreatedAt { get; private set; }
 
@@ -120,4 +148,28 @@ public sealed class ItemMenu : BaseEntity
 	/// <summary>Troca a posição entre irmãos.</summary>
 	/// <param name="ordem">Nova posição.</param>
 	public void DefinirOrdem(int ordem) => Ordem = ordem;
+
+	/// <summary>Troca quem vê o item no menu.</summary>
+	/// <param name="nivel">Novo nível.</param>
+	/// <exception cref="DomainInvariantException">Valor fora do enum, ou <c>Escrita</c> na raiz.</exception>
+	public void DefinirNivelDeAcesso(NivelDeAcessoItemMenu nivel)
+	{
+		ValidarNivelDeAcesso(Tipo, nivel);
+
+		NivelDeAcesso = nivel;
+	}
+
+	private static void ValidarNivelDeAcesso(TipoDeItemMenu tipo, NivelDeAcessoItemMenu nivel)
+	{
+		if (!Enum.IsDefined(nivel))
+		{
+			throw new DomainInvariantException("Nível de acesso desconhecido para um item de menu.");
+		}
+
+		// Restringir a raiz equivaleria a restringir o setor, que é decidido pela permissão de leitura.
+		if (tipo == TipoDeItemMenu.Setor && nivel != NivelDeAcessoItemMenu.Leitura)
+		{
+			throw new DomainInvariantException("A raiz do setor não tem nível de acesso próprio.");
+		}
+	}
 }

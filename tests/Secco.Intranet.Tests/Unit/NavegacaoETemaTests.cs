@@ -168,8 +168,157 @@ public class NavegacaoETemaTests
 			.Should().Contain(item => item.Texto == "Diretório" && item.Ativo);
 	}
 
-	private static ItemMenuDto No(Guid? pai, string nome, string slug, TipoDeItemMenu tipo, int ordem = 0, string? rota = null) =>
-		new(Guid.NewGuid(), pai, nome, slug, tipo, rota, null, ordem, Ativo: true);
+	private static ItemMenuDto No(
+		Guid? pai, string nome, string slug, TipoDeItemMenu tipo, int ordem = 0, string? rota = null,
+		NivelDeAcessoItemMenu nivel = NivelDeAcessoItemMenu.Leitura) =>
+		new(Guid.NewGuid(), pai, nome, slug, tipo, rota, null, ordem, Ativo: true, NivelDeAcesso: nivel);
+
+	private const NivelDeAcessoItemMenu Restrito = NivelDeAcessoItemMenu.Escrita;
+
+	private static NavigationModel Menu(
+		SetorDto setor, Dictionary<Guid, IReadOnlyList<ItemMenuDto>> arvores,
+		IReadOnlySet<Guid>? comEscrita = null, IReadOnlySet<Guid>? semLeitura = null) =>
+		IntranetNavigation.Build(new NavigationRequest(
+			[setor], "/", false, false, false, arvores, SetoresComEscrita: comEscrita, SetoresSemLeitura: semLeitura));
+
+	[Fact]
+	public void Build_ItemRestrito_SemEscrita_FicaDeFora()
+	{
+		var (setor, arvores) = Financeiro(raiz =>
+		[
+			No(raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos),
+			No(raiz.Id, "Painel", "painel", TipoDeItemMenu.Personalizado, rota: "/painel", nivel: Restrito),
+		]);
+
+		var item = SetorNoMenu(Menu(setor, arvores, comEscrita: new HashSet<Guid>()));
+
+		item.Filhos!.Select(filho => filho.Texto).Should().Equal("Avisos");
+	}
+
+	[Fact]
+	public void Build_SetoresComEscritaNulo_EscondeORestrito()
+	{
+		var (setor, arvores) = Financeiro(raiz =>
+		[
+			No(raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos),
+			No(raiz.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, nivel: Restrito),
+		]);
+
+		var item = SetorNoMenu(Menu(setor, arvores));
+
+		item.Filhos!.Select(filho => filho.Texto).Should().Equal("Avisos");
+	}
+
+	[Fact]
+	public void Build_ItemRestrito_ComEscrita_Aparece()
+	{
+		var (setor, arvores) = Financeiro(raiz =>
+			[No(raiz.Id, "Painel", "painel", TipoDeItemMenu.Personalizado, rota: "/painel", nivel: Restrito)]);
+
+		var item = SetorNoMenu(Menu(setor, arvores, comEscrita: new HashSet<Guid> { setor.Id }));
+
+		item.Filhos!.Single().Url.Should().Be("/painel");
+	}
+
+	[Fact]
+	public void Build_EscritaEmOutroSetor_NaoLiberaORestrito()
+	{
+		var (setor, arvores) = Financeiro(raiz =>
+		[
+			No(raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos),
+			No(raiz.Id, "Painel", "painel", TipoDeItemMenu.Personalizado, rota: "/painel", nivel: Restrito),
+		]);
+
+		var item = SetorNoMenu(Menu(setor, arvores, comEscrita: new HashSet<Guid> { Guid.NewGuid() }));
+
+		item.Filhos!.Select(filho => filho.Texto).Should().Equal("Avisos");
+	}
+
+	[Fact]
+	public void Build_ItemRestrito_EscondeTambemOsFilhos()
+	{
+		var (setor, arvores) = Financeiro(raiz =>
+		{
+			var grupo = No(raiz.Id, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado, nivel: Restrito);
+			return
+			[
+				No(raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos),
+				grupo,
+				No(grupo.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos),
+			];
+		});
+
+		var item = SetorNoMenu(Menu(setor, arvores));
+
+		item.Filhos!.Select(filho => filho.Texto).Should().Equal("Avisos");
+	}
+
+	[Fact]
+	public void Build_GrupoComTodosOsFilhosRestritos_Some()
+	{
+		var (setor, arvores) = Financeiro(raiz =>
+		{
+			var grupo = No(raiz.Id, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado);
+			return
+			[
+				No(raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos),
+				grupo,
+				No(grupo.Id, "Inscritos", "inscritos", TipoDeItemMenu.Personalizado, rota: "/inscritos", nivel: Restrito),
+			];
+		});
+
+		var item = SetorNoMenu(Menu(setor, arvores));
+
+		item.Filhos!.Select(filho => filho.Texto).Should().Equal("Avisos");
+	}
+
+	[Fact]
+	public void Build_SetorComTodosOsItensRestritos_SaiDoMenuDeQuemSoLe()
+	{
+		var (setor, arvores) = Financeiro(raiz =>
+			[No(raiz.Id, "Painel", "painel", TipoDeItemMenu.Personalizado, rota: "/painel", nivel: Restrito)]);
+
+		var menu = Menu(setor, arvores);
+
+		menu.Grupos.Single(grupo => grupo.Titulo == "Setores").Itens.Should().BeEmpty();
+	}
+
+	[Fact]
+	public void Build_SoComEscrita_MostraORestritoDentroDoGrupo_ESemOsItensDeLeitura()
+	{
+		var (setor, arvores) = Financeiro(raiz =>
+		{
+			var grupo = No(raiz.Id, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado);
+			return
+			[
+				No(raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos),
+				grupo,
+				No(grupo.Id, "Inscritos", "inscritos", TipoDeItemMenu.Personalizado, rota: "/inscritos", nivel: Restrito),
+			];
+		});
+
+		var item = SetorNoMenu(Menu(
+			setor, arvores, comEscrita: new HashSet<Guid> { setor.Id }, semLeitura: new HashSet<Guid> { setor.Id }));
+
+		var relatorios = item.Filhos!.Should().ContainSingle().Subject;
+		relatorios.Texto.Should().Be("Relatórios");
+		relatorios.Filhos!.Single().Url.Should().Be("/inscritos");
+	}
+
+	[Fact]
+	public void Build_SoComEscrita_ItemDeLeituraComRotaViraSoAgrupador()
+	{
+		var (setor, arvores) = Financeiro(raiz =>
+		{
+			var grupo = No(raiz.Id, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado, rota: "/relatorios");
+			return [grupo, No(grupo.Id, "Inscritos", "inscritos", TipoDeItemMenu.Personalizado, rota: "/inscritos", nivel: Restrito)];
+		});
+
+		var item = SetorNoMenu(Menu(
+			setor, arvores, comEscrita: new HashSet<Guid> { setor.Id }, semLeitura: new HashSet<Guid> { setor.Id }));
+
+		item.Filhos!.Single().Url.Should().BeNull("quem não lê o setor não recebe o link do item de leitura");
+	}
 
 	private static (SetorDto Setor, Dictionary<Guid, IReadOnlyList<ItemMenuDto>> Arvores) Financeiro(params Func<ItemMenuDto, ItemMenuDto[]>[] filhosDaRaiz)
 	{

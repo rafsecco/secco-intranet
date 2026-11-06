@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Secco.Intranet.Web.Authentication;
+using Secco.Intranet.Application;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Menu;
@@ -26,6 +28,7 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="excluirItem">Exclusão de item personalizado.</param>
 /// <param name="moverItem">Reordenação de item entre os irmãos.</param>
 /// <param name="reconciliar">Garante a árvore mínima nos setores criados antes dela existir.</param>
+/// <param name="definirNivel">Troca de quem vê um item no menu.</param>
 [SomenteIntranetAdmin]
 public sealed class SetoresController(
 	CreateSetorHandler createHandler,
@@ -37,7 +40,8 @@ public sealed class SetoresController(
 	AtivarDesativarItemMenuHandler alternarItem,
 	ExcluirItemMenuHandler excluirItem,
 	MoverItemMenuHandler moverItem,
-	ReconciliarItensDeMenuHandler reconciliar) : Controller
+	ReconciliarItensDeMenuHandler reconciliar,
+	DefinirNivelDeAcessoItemMenuHandler definirNivel) : Controller
 {
 	/// <summary>Garante a raiz e os itens Documentos/Avisos em todo setor que ainda não os tem.</summary>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
@@ -89,6 +93,7 @@ public sealed class SetoresController(
 	/// <param name="tipo">Tipo do item.</param>
 	/// <param name="rota">Rota opcional (só Personalizado).</param>
 	/// <param name="icone">Classe do Bootstrap Icons, opcional.</param>
+	/// <param name="nivelDeAcesso">Quem vê o item no menu; ausente fica no padrão.</param>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
 	[HttpPost]
 	[ValidateAntiForgeryToken]
@@ -100,13 +105,47 @@ public sealed class SetoresController(
 		TipoDeItemMenu tipo,
 		string? rota,
 		string? icone,
+		NivelDeAcessoItemMenu nivelDeAcesso = NivelDeAcessoItemMenu.Leitura,
 		CancellationToken cancellationToken = default)
 	{
+		if (NivelDoFormularioEhInvalido(nameof(nivelDeAcesso)))
+		{
+			return VoltarParaMenu(setorId, null, Result.Failure(IntranetErrors.Menu.NivelDeAcessoInvalido));
+		}
+
 		var resultado = await criarItem.HandleAsync(
-			new CriarItemMenuCommand(setorId, parentId, nome, slug, tipo, rota, icone), cancellationToken);
+			new CriarItemMenuCommand(setorId, parentId, nome, slug, tipo, rota, icone, nivelDeAcesso), cancellationToken);
 
 		return VoltarParaMenu(setorId, resultado.IsSuccess ? $"Item \"{resultado.Value.Nome}\" criado." : null, resultado);
 	}
+
+	/// <summary>Troca quem vê um item no menu.</summary>
+	/// <param name="setorId">Setor dono da árvore (só para voltar à tela).</param>
+	/// <param name="itemId">Item a alterar.</param>
+	/// <param name="nivelDeAcesso">Novo nível; obrigatório, para um envio incompleto não abrir o item em silêncio.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> DefinirNivelDeItemDeMenu(
+		Guid setorId,
+		Guid itemId,
+		[BindRequired] NivelDeAcessoItemMenu nivelDeAcesso,
+		CancellationToken cancellationToken = default)
+	{
+		if (NivelDoFormularioEhInvalido(nameof(nivelDeAcesso)))
+		{
+			return VoltarParaMenu(setorId, null, Result.Failure(IntranetErrors.Menu.NivelDeAcessoInvalido));
+		}
+
+		var resultado = await definirNivel.HandleAsync(itemId, nivelDeAcesso, cancellationToken);
+
+		return VoltarParaMenu(setorId, "Nível de acesso do item salvo.", resultado);
+	}
+
+	// O binding recusa um número fora do enum e deixa o valor padrão no parâmetro: sem esta checagem,
+	// um envio inválido viraria "quem lê o setor" em silêncio.
+	private bool NivelDoFormularioEhInvalido(string campo) =>
+		ModelState.GetFieldValidationState(campo) == ModelValidationState.Invalid;
 
 	/// <summary>Ativa ou desativa um item da árvore.</summary>
 	/// <param name="setorId">Setor dono da árvore (só para voltar à tela).</param>

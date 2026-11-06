@@ -3,6 +3,7 @@
 **Data:** 2026-09-30
 **Estado:** rascunho, aguardando revisão
 **Revisada por:** [2026-10-01-menu-principal-arvore-dos-setores-design.md](2026-10-01-menu-principal-arvore-dos-setores-design.md) — a navegação (página do setor com abas, redirecionamento ao primeiro filho, prefixo `/setor/`) foi substituída; dados e administração continuam valendo.
+**Revisada por:** [2026-11-06-nivel-de-acesso-item-menu-design.md](2026-11-06-nivel-de-acesso-item-menu-design.md) — o item ganhou um nível de acesso, que decide quem o vê no menu; a decisão "Permissão por nó" abaixo não vale mais para a visibilidade no menu.
 
 ## Problema
 

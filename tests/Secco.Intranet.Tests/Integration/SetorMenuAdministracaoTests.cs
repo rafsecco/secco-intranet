@@ -131,6 +131,166 @@ public class SetorMenuAdministracaoTests(IntranetWebFactory factory) : IClassFix
 		(await client.GetAsync($"/{slug}/documentos")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 	}
 
+	private async Task<ItemMenu> ItemAsync(Guid setorId, TipoDeItemMenu tipo, string? slug = null)
+	{
+		using var escopo = factory.Services.CreateScope();
+		escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
+
+		var arvore = await escopo.ServiceProvider.GetRequiredService<IItemMenuRepository>().ListarPorSetorAsync(setorId);
+
+		return arvore.Single(item => item.Tipo == tipo && (slug is null || item.Slug == slug));
+	}
+
+	private static FormUrlEncodedContent Formulario(params (string Nome, string Valor)[] campos) =>
+		new(campos.Select(campo => new KeyValuePair<string, string>(campo.Nome, campo.Valor)));
+
+	[Fact]
+	public async Task CriarItem_ComNivelDeEscrita_GravaONivel()
+	{
+		var (setorId, _, raizId) = await CriarSetorAsync();
+		var client = CriarCliente();
+		var token = await TokenAsync(client, $"/Setores/Menu/{setorId}");
+
+		await client.PostAsync("/Setores/CriarItemDeMenu", Formulario(
+			("setorId", setorId.ToString()),
+			("parentId", raizId.ToString()),
+			("nome", "Inscritos"),
+			("slug", "inscritos"),
+			("tipo", "Personalizado"),
+			("rota", "/inscritos"),
+			("nivelDeAcesso", "Escrita"),
+			("__RequestVerificationToken", token)));
+
+		(await ItemAsync(setorId, TipoDeItemMenu.Personalizado, "inscritos")).NivelDeAcesso.Should().Be(NivelDeAcessoItemMenu.Escrita);
+	}
+
+	[Fact]
+	public async Task CriarItem_ComNivelInvalido_NaoCria()
+	{
+		var (setorId, _, raizId) = await CriarSetorAsync();
+		var client = CriarCliente();
+		var token = await TokenAsync(client, $"/Setores/Menu/{setorId}");
+
+		await client.PostAsync("/Setores/CriarItemDeMenu", Formulario(
+			("setorId", setorId.ToString()),
+			("parentId", raizId.ToString()),
+			("nome", "Inscritos"),
+			("slug", "inscritos"),
+			("tipo", "Personalizado"),
+			("nivelDeAcesso", "99"),
+			("__RequestVerificationToken", token)));
+
+		using var escopo = factory.Services.CreateScope();
+		escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
+		var arvore = await escopo.ServiceProvider.GetRequiredService<IItemMenuRepository>().ListarPorSetorAsync(setorId);
+		arvore.Should().NotContain(item => item.Slug == "inscritos", "um valor inválido não pode virar o padrão em silêncio");
+	}
+
+	[Fact]
+	public async Task DefinirNivel_PeloFormulario_AlteraOItemEmbutido()
+	{
+		var (setorId, _, _) = await CriarSetorAsync();
+		var client = CriarCliente();
+		var documentos = await ItemAsync(setorId, TipoDeItemMenu.Documentos);
+		var token = await TokenAsync(client, $"/Setores/Menu/{setorId}");
+
+		var resposta = await client.PostAsync("/Setores/DefinirNivelDeItemDeMenu", Formulario(
+			("setorId", setorId.ToString()),
+			("itemId", documentos.Id.ToString()),
+			("nivelDeAcesso", "Escrita"),
+			("__RequestVerificationToken", token)));
+
+		resposta.RequestMessage!.RequestUri!.AbsolutePath.Should().Be($"/Setores/Menu/{setorId}");
+		(await ItemAsync(setorId, TipoDeItemMenu.Documentos)).NivelDeAcesso.Should().Be(NivelDeAcessoItemMenu.Escrita);
+	}
+
+	[Theory]
+	[InlineData("99")]
+	[InlineData(null)]
+	public async Task DefinirNivel_InvalidoOuAusente_NaoAbreOItem(string? valor)
+	{
+		var (setorId, _, _) = await CriarSetorAsync();
+		var client = CriarCliente();
+		var documentos = await ItemAsync(setorId, TipoDeItemMenu.Documentos);
+		var token = await TokenAsync(client, $"/Setores/Menu/{setorId}");
+
+		await client.PostAsync("/Setores/DefinirNivelDeItemDeMenu", Formulario(
+			("setorId", setorId.ToString()),
+			("itemId", documentos.Id.ToString()),
+			("nivelDeAcesso", "Escrita"),
+			("__RequestVerificationToken", token)));
+
+		var campos = new List<(string, string)>
+		{
+			("setorId", setorId.ToString()),
+			("itemId", documentos.Id.ToString()),
+			("__RequestVerificationToken", token),
+		};
+
+		if (valor is not null)
+		{
+			campos.Add(("nivelDeAcesso", valor));
+		}
+
+		await client.PostAsync("/Setores/DefinirNivelDeItemDeMenu", Formulario([.. campos]));
+
+		(await ItemAsync(setorId, TipoDeItemMenu.Documentos)).NivelDeAcesso.Should().Be(NivelDeAcessoItemMenu.Escrita);
+	}
+
+	[Fact]
+	public async Task DefinirNivel_SemTokenAntifalsificacao_Recusa()
+	{
+		var (setorId, _, _) = await CriarSetorAsync();
+		var documentos = await ItemAsync(setorId, TipoDeItemMenu.Documentos);
+
+		var resposta = await CriarCliente().PostAsync("/Setores/DefinirNivelDeItemDeMenu", Formulario(
+			("setorId", setorId.ToString()),
+			("itemId", documentos.Id.ToString()),
+			("nivelDeAcesso", "Escrita")));
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+		(await ItemAsync(setorId, TipoDeItemMenu.Documentos)).NivelDeAcesso.Should().Be(NivelDeAcessoItemMenu.Leitura);
+	}
+
+	[Fact]
+	public async Task TelaDoMenu_OfereceONivelEmCadaItem_MenosNaRaiz()
+	{
+		var (setorId, _, raizId) = await CriarSetorAsync();
+
+		var html = await CriarCliente().GetStringAsync($"/Setores/Menu/{setorId}");
+
+		var ids = Regex.Matches(html, "action=\"/Setores/DefinirNivelDeItemDeMenu\".*?name=\"itemId\" value=\"([^\"]+)\"", RegexOptions.Singleline)
+			.Select(match => Guid.Parse(match.Groups[1].Value))
+			.ToList();
+
+		ids.Should().NotBeEmpty();
+		ids.Should().NotContain(raizId);
+		html.Should().Contain("não protege a página");
+	}
+
+	[Fact]
+	public async Task TelaDoMenu_ItemDebaixoDeRestrito_AvisaQueFicaEscondido()
+	{
+		var (setorId, _, raizId) = await CriarSetorAsync();
+
+		using (var escopo = factory.Services.CreateScope())
+		{
+			escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
+			var criar = escopo.ServiceProvider.GetRequiredService<CriarItemMenuHandler>();
+
+			var grupo = await criar.HandleAsync(new CriarItemMenuCommand(
+				setorId, raizId, "Relatórios", "relatorios", TipoDeItemMenu.Personalizado, null, null, NivelDeAcessoItemMenu.Escrita));
+			var filho = await criar.HandleAsync(new CriarItemMenuCommand(
+				setorId, grupo.Value.Id, "Mensais", "mensais", TipoDeItemMenu.Personalizado, "/mensais", null));
+
+			filho.IsSuccess.Should().BeTrue();
+		}
+
+		var html = await CriarCliente().GetStringAsync($"/Setores/Menu/{setorId}");
+
+		html.Should().Contain("Escondido pelo item acima");
+	}
+
 	[Fact]
 	public async Task DetalheDoSetor_TemLinkParaOMenu()
 	{

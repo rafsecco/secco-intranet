@@ -90,4 +90,62 @@ public class ItemMenuTests
 
 		item.Ordem.Should().Be(3);
 	}
+
+	[Fact]
+	public void Criar_SemNivelDeAcesso_FicaEmLeitura()
+	{
+		var item = new ItemMenu(SetorId, null, "Nome", "slug", TipoDeItemMenu.Personalizado, null, null, 0);
+
+		item.NivelDeAcesso.Should().Be(NivelDeAcessoItemMenu.Leitura);
+	}
+
+	[Theory]
+	[InlineData(TipoDeItemMenu.Documentos)]
+	[InlineData(TipoDeItemMenu.Avisos)]
+	[InlineData(TipoDeItemMenu.Vencimentos)]
+	[InlineData(TipoDeItemMenu.Personalizado)]
+	public void Criar_ComEscrita_AceitaTodoTipoQueNaoSejaARaiz(TipoDeItemMenu tipo)
+	{
+		var item = new ItemMenu(SetorId, Guid.NewGuid(), "Nome", "slug", tipo, null, null, 0, NivelDeAcessoItemMenu.Escrita);
+
+		item.NivelDeAcesso.Should().Be(NivelDeAcessoItemMenu.Escrita);
+	}
+
+	[Fact]
+	public void Criar_RaizComEscrita_Recusa()
+	{
+		var acao = () => new ItemMenu(SetorId, null, "Nome", "slug", TipoDeItemMenu.Setor, null, null, 0, NivelDeAcessoItemMenu.Escrita);
+
+		acao.Should().Throw<DomainInvariantException>();
+	}
+
+	[Fact]
+	public void DefinirNivelDeAcesso_NaRaiz_Recusa()
+	{
+		var raiz = new ItemMenu(SetorId, null, "Nome", "slug", TipoDeItemMenu.Setor, null, null, 0);
+
+		var acao = () => raiz.DefinirNivelDeAcesso(NivelDeAcessoItemMenu.Escrita);
+
+		acao.Should().Throw<DomainInvariantException>();
+	}
+
+	[Fact]
+	public void DefinirNivelDeAcesso_ForaDoEnum_Recusa()
+	{
+		var item = new ItemMenu(SetorId, Guid.NewGuid(), "Nome", "slug", TipoDeItemMenu.Personalizado, null, null, 0);
+
+		var acao = () => item.DefinirNivelDeAcesso((NivelDeAcessoItemMenu)99);
+
+		acao.Should().Throw<DomainInvariantException>();
+	}
+
+	[Fact]
+	public void DefinirNivelDeAcesso_TrocaOValor()
+	{
+		var item = new ItemMenu(SetorId, Guid.NewGuid(), "Nome", "slug", TipoDeItemMenu.Documentos, null, null, 0);
+
+		item.DefinirNivelDeAcesso(NivelDeAcessoItemMenu.Escrita);
+
+		item.NivelDeAcesso.Should().Be(NivelDeAcessoItemMenu.Escrita);
+	}
 }

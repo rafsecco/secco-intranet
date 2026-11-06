@@ -2,7 +2,8 @@
 
 Quem adota a intranet acrescenta páginas próprias num projeto externo (uma RCL), referenciado pelo
 `Secco.Intranet.Web`. O único projeto do produto que a RCL referencia é o
-`Secco.Intranet.Web.Extensibility`, que oferece dois pontos de extensão:
+`Secco.Intranet.Web.Extensibility`, que oferece dois pontos de extensão (para pôr a página
+[na árvore de um setor](#página-da-rcl-na-árvore-de-um-setor), nem isso é necessário):
 
 - [**Itens no menu principal**](#passo-a-passo): a página aparece no grupo principal, onde ficam
   Mural e Diretório
@@ -154,7 +155,54 @@ Reordenar não muda quem vê o quê.
 
 Item com filhos, item em outro grupo (Setores ou Administração), item com URL externa e ordem por
 usuário ficam fora do contrato. Mudar `IItemDeMenuPrincipal` é uma mudança incompatível para quem
-estende: leia as notas de versão antes de atualizar.
+estende: leia as notas de versão antes de atualizar. Para pôr a página dentro de um setor, veja a
+próxima seção.
+
+## Página da RCL na árvore de um setor
+
+Quando a página pertence a um setor, ela entra no menu como um item **Personalizado** da árvore dele,
+sem nenhum código de menu na RCL. O `intranet-admin` cria o item em **Setores › Menu do setor**,
+informa a rota da página e, se quiser, um item sem rota acima dele para agrupar.
+
+A coluna "Quem vê no menu" define o nível de acesso de cada item da árvore, exceto a raiz:
+
+| Nível | Quem vê o item no menu |
+|---|---|
+| Quem lê o setor (padrão) | Quem tem `setor-{slug}:read` |
+| Quem escreve no setor | Quem tem `setor-{slug}:write` |
+
+O `intranet-admin` vê todos os itens, e no modo aberto de DEV todos aparecem. Um item restrito esconde
+também os filhos, e um grupo sem rota some quando nenhum filho é visível.
+
+> **O nível não substitui a autorização da página.** Ele só decide quem vê o link. Quem tem a URL ainda
+> chega à página, então ela precisa checar a própria permissão.
+
+```csharp
+public sealed class InscritosController(IAuthorizationService autorizacao) : Controller
+{
+	[HttpGet("/relatorios/inscritos")]
+	public async Task<IActionResult> Index()
+	{
+		// Mesma resposta de "não existe" para quem não pode, como as páginas do core.
+		if (!(await autorizacao.AuthorizeAsync(User, "setor-comercial:write")).Succeeded)
+		{
+			return NotFound();
+		}
+
+		return View();
+	}
+}
+```
+
+Marcar Documentos, Avisos ou Vencimentos como "quem escreve no setor" também só tira o link do menu. As
+páginas deles exigem apenas a leitura do setor: quem lê continua abrindo pela URL direta, e os avisos
+continuam no Mural. Para que um conteúdo seja realmente restrito, ele precisa de uma página com
+autorização própria. Quem tem só a escrita do setor vê um desses itens restritos, mas recebe 404 na
+página, que exige leitura.
+
+Use o [`IItemDeMenuPrincipal`](#itens-no-menu-principal) quando a página não pertence a um setor, e a
+árvore quando pertence: o primeiro fica no grupo principal, sem filhos, e a visibilidade é decidida em
+código; na árvore, quem decide é o admin da instalação.
 
 ## Exportando Excel e PDF
 

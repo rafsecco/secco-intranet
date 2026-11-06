@@ -43,6 +43,31 @@ public class AuditoriaDeMenuTests
 	}
 
 	[Fact]
+	public async Task Criar_ComNivelDeEscrita_RegistraONivelEGravaNoItem()
+	{
+		var (repo, trilha, raiz) = Cenario();
+
+		var criado = await new CriarItemMenuHandler(repo, trilha).HandleAsync(new CriarItemMenuCommand(
+			raiz.SetorId, raiz.Id, "Painel BI", "painel-bi", TipoDeItemMenu.Personalizado, "/bi", null, NivelDeAcessoItemMenu.Escrita));
+
+		criado.Value.NivelDeAcesso.Should().Be(NivelDeAcessoItemMenu.Escrita);
+		using var json = JsonDocument.Parse(trilha.Registros.Should().ContainSingle().Subject.Metadata!);
+		json.RootElement.GetProperty("nivelDeAcesso").GetString().Should().Be("Escrita");
+	}
+
+	[Fact]
+	public async Task Criar_ComNivelForaDoEnum_Recusa()
+	{
+		var (repo, trilha, raiz) = Cenario();
+
+		var criado = await new CriarItemMenuHandler(repo, trilha).HandleAsync(new CriarItemMenuCommand(
+			raiz.SetorId, raiz.Id, "Painel BI", "painel-bi", TipoDeItemMenu.Personalizado, "/bi", null, (NivelDeAcessoItemMenu)99));
+
+		criado.Error.Should().Be(Secco.Intranet.Application.IntranetErrors.Menu.NivelDeAcessoInvalido);
+		trilha.Registros.Should().BeEmpty();
+	}
+
+	[Fact]
 	public async Task Criar_QueFalha_NaoRegistra()
 	{
 		var (repo, trilha, raiz) = Cenario();

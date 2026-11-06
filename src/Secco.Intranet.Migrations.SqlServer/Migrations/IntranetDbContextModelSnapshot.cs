@@ -321,6 +321,10 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
                         .HasColumnType("nvarchar(64)")
                         .HasColumnName("ds_icone");
 
+                    b.Property<int>("NivelDeAcesso")
+                        .HasColumnType("int")
+                        .HasColumnName("ie_nivel_de_acesso");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(256)

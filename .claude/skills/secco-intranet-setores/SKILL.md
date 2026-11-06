@@ -80,6 +80,11 @@ O exemplo mais recente e completo é Vencimentos
   ligado pelo `AcessoAoRecursoDoSetor` — recurso desligado é 404 na leitura **e** na escrita;
 - a descrição da família `setor-{id}:write` em `IntranetPermissoes`.
 
+Cada item da árvore, exceto a raiz, tem um **nível de acesso** (`NivelDeAcessoItemMenu`): quem lê o
+setor (padrão) ou quem escreve nele ([spec](../../../docs/specs/2026-11-06-nivel-de-acesso-item-menu-design.md)).
+O nível só decide a visibilidade **no menu**, em `IntranetNavigation.Build`: não entra em
+`AcessoAoRecursoDoSetor` nem protege a página, que continua responsável pela própria autorização.
+
 Nem todo recurso se encaixa nisso — antes de forçar um módulo na árvore, pergunte se ele
 pertence a **um** setor ou é transversal à Intranet. O Inventário é transversal: ver
 "Recursos sem setor dono" acima.

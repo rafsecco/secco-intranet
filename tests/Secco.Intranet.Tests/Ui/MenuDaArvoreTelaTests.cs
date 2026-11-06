@@ -68,6 +68,9 @@ public sealed class TelaFixture : IAsyncLifetime
 	/// <summary>Nome do setor do cenário.</summary>
 	public string NomeDoSetor => $"Setor {Slug}";
 
+	/// <summary>Id do setor do cenário.</summary>
+	public Guid SetorId { get; private set; }
+
 	/// <summary>
 	/// Perfil de teste do visitante. Fora de Development o menu só mostra o setor a quem tem a
 	/// permissão de leitura dele (o modo aberto vale só em Development, ADR-0020).
@@ -148,6 +151,7 @@ public sealed class TelaFixture : IAsyncLifetime
 		var setor = await escopo.ServiceProvider.GetRequiredService<CreateSetorHandler>()
 			.HandleAsync(new CreateSetorCommand(NomeDoSetor, Slug));
 		setor.IsSuccess.Should().BeTrue();
+		SetorId = setor.Value.Id;
 
 		var arvore = await escopo.ServiceProvider.GetRequiredService<IItemMenuRepository>().ListarPorSetorAsync(setor.Value.Id);
 		var criar = escopo.ServiceProvider.GetRequiredService<CriarItemMenuHandler>();
@@ -214,6 +218,37 @@ public sealed class TelaFixture : IAsyncLifetime
 public class MenuDaArvoreTelaTests(TelaFixture f) : IClassFixture<TelaFixture>
 {
 	private const string Grupo = ".sc-nav > li > button[data-sc-submenu]";
+
+	[UiTheory]
+	[InlineData("Vertical", 1280)]
+	[InlineData("Vertical", 375)]
+	[InlineData("Horizontal", 1280)]
+	[InlineData("Horizontal", 375)]
+	public async Task TelaDoMenuDoSetor_SalvaONivel_SemTransbordar(string tema, int largura)
+	{
+		var pagina = await f.AbrirAsync(tema, largura);
+		await pagina.Context.SetExtraHTTPHeadersAsync(new Dictionary<string, string>
+		{
+			[SeccoHeaders.TenantId] = f.Tenant.ToString(),
+			[RolesDeTesteMiddleware.Header] = "intranet-admin",
+		});
+		await pagina.GotoAsync($"/Setores/Menu/{f.SetorId}");
+
+		var transborda = await pagina.EvaluateAsync<bool>(
+			"document.documentElement.scrollWidth > document.documentElement.clientWidth");
+		transborda.Should().BeFalse("a tela não pode rolar na horizontal");
+
+		var seletor = pagina.Locator(".sc-list__item:has-text('Avisos') select[name='nivelDeAcesso']");
+
+		foreach (var nivel in new[] { "Escrita", "Leitura" })
+		{
+			await seletor.SelectOptionAsync(nivel);
+			await pagina.Locator(".sc-list__item:has-text('Avisos') form[action$='DefinirNivelDeItemDeMenu'] button").ClickAsync();
+			await Expect(seletor).ToHaveValueAsync(nivel);
+		}
+
+		f.ErrosDeScript(pagina).Should().BeEmpty();
+	}
 
 	private ILocator BotaoDoSetor(IPage pagina) =>
 		pagina.Locator($"button[data-sc-submenu]:has-text('{f.NomeDoSetor}')");

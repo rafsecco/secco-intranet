@@ -27,7 +27,7 @@ namespace Secco.Intranet.Web.ViewComponents;
 /// <param name="tenantContext">Tenant da requisição atual.</param>
 /// <param name="configuration">Configuração do host, para saber se a autenticação está ativa.</param>
 /// <param name="environment">Ambiente de hospedagem, para o modo aberto de DEV.</param>
-/// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura (ADR-0021).</param>
+/// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura e escrita (ADR-0021).</param>
 /// <param name="permissoesDeBiblioteca">Em quais bibliotecas o usuário tem leitura (ADR-0021).</param>
 /// <param name="catalogo">Catálogo dos itens extras de projetos externos.</param>
 /// <param name="authorizationService">Serviço de autorização do framework, para o nível do Diretório.</param>
@@ -57,7 +57,14 @@ public sealed class NavigationViewComponent(
 		// ValidacaoSecureGateHostedService (ADR-0020).
 		var modoAberto = AcessoAdministrativo.ModoAbertoDeDev(environment, configuration);
 
-		var setores = await CarregarSetoresAsync(HttpContext.User, exigirPermissao: !modoAberto).ConfigureAwait(false);
+		// As árvores vêm de todo setor ativo porque quem só escreve num setor vê os itens restritos
+		// dele; a regra de visibilidade decide o que vira menu, e o resto fica em memória até aqui.
+		var ativos = await CarregarSetoresAtivosAsync().ConfigureAwait(false);
+		var arvores = await CarregarArvoresAsync(ativos).ConfigureAwait(false);
+		var visibilidade = await VisibilidadeDosSetoresNoMenu
+			.ResolverAsync(permissoesDeSetor, HttpContext.User, ativos, arvores, modoAberto, logger, HttpContext.RequestAborted)
+			.ConfigureAwait(false);
+		var setores = visibilidade.Setores;
 
 		foreach (var setor in setores.Where(setor => slugsReservados.Contem(setor.Slug)))
 		{
@@ -76,13 +83,15 @@ public sealed class NavigationViewComponent(
 			MostrarInventario: modoAberto
 				|| AcessoAdministrativo.TemAcesso(HttpContext.User, AcessoAdministrativo.RoleInventarioAdmin)
 				|| (await authorizationService.AuthorizeAsync(HttpContext.User, IntranetPermissoes.Inventario.Read).ConfigureAwait(false)).Succeeded,
-			Arvores: await CarregarArvoresAsync(setores).ConfigureAwait(false),
+			Arvores: arvores,
 			ItensExtras: await GatesDoMenuPrincipal
 				.FiltrarAsync(catalogo.Criar(serviceProvider), HttpContext.User, modoAberto, logger, HttpContext.RequestAborted)
 				.ConfigureAwait(false),
 			Posicoes: await CarregarPosicoesAsync().ConfigureAwait(false),
 			SlugsReservados: slugsReservados,
-			Bibliotecas: await CarregarBibliotecasAsync(HttpContext.User, exigirPermissao: !modoAberto).ConfigureAwait(false));
+			Bibliotecas: await CarregarBibliotecasAsync(HttpContext.User, exigirPermissao: !modoAberto).ConfigureAwait(false),
+			SetoresComEscrita: visibilidade.ComEscrita,
+			SetoresSemLeitura: visibilidade.SemLeitura);
 
 		return View(IntranetNavigation.Build(request));
 	}
@@ -178,9 +187,7 @@ public sealed class NavigationViewComponent(
 		}
 	}
 
-	private async Task<IReadOnlyList<SetorDto>> CarregarSetoresAsync(
-		System.Security.Claims.ClaimsPrincipal usuario,
-		bool exigirPermissao)
+	private async Task<IReadOnlyList<SetorDto>> CarregarSetoresAtivosAsync()
 	{
 		if (!tenantContext.IsResolved)
 		{
@@ -199,23 +206,7 @@ public sealed class NavigationViewComponent(
 				.HandleAsync(criteria, HttpContext.RequestAborted)
 				.ConfigureAwait(false);
 
-			if (resultado.IsFailure)
-			{
-				return [];
-			}
-
-			var ativos = resultado.Value.Items;
-
-			if (!exigirPermissao)
-			{
-				return ativos;
-			}
-
-			var slugsComLeitura = await permissoesDeSetor
-				.SlugsComPermissaoAsync(usuario, "read", [.. ativos.Select(s => s.Slug)], HttpContext.RequestAborted)
-				.ConfigureAwait(false);
-
-			return [.. ativos.Where(setor => slugsComLeitura.Contains(setor.Slug))];
+			return resultado.IsFailure ? [] : resultado.Value.Items;
 		}
 #pragma warning disable CA1031 // O menu está no layout: uma falha aqui derrubaria até a própria página de erro.
 		catch (Exception exception)
