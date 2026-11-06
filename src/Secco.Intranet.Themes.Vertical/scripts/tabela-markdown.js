@@ -23,7 +23,7 @@ function celula(c, h) {
     .join(' ')
     .replace(/\s*\r?\n\s*/g, ' ')
     .replace(/<br\s*\/?>/gi, ' ')
-    .replace(/\.|\|/g, (m) => (m === '|' ? '\|' : m))
+    .replace(/\\.|\|/g, (m) => (m === '|' ? '\\|' : m))
     .replace(/\s+/g, ' ')
     .trim();
 }

@@ -716,7 +716,24 @@ public class EditorDoMuralTelaTests(EditorDoMuralFixture f) : IClassFixture<Edit
 		original.Should().Contain("a * b");
 	}
 
-	[UiTheory(Skip = "Defeito conhecido: o editor serializa a barra escapada de uma celula (a\\|b) sem o escape, e a celula se parte em duas. Remover o Skip quando corrigido.")]
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Editor_Tabela_BarraDigitadaNaCelula_FicaEscapada(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+		await pagina.GetByLabel("Inserir tabela").ClickAsync();
+		var colunas = Colunas(LinhasDaTabela(await pagina.Locator(Corpo).InputValueAsync())[0]);
+		await pagina.Keyboard.TypeAsync("a|b");
+
+		var linhas = LinhasDaTabela(await pagina.Locator(Corpo).InputValueAsync());
+		linhas[0].Should().Contain(@"a\|b");
+		linhas.Select(Colunas).Should().OnlyContain(c => c == colunas);
+	}
+
+	[UiTheory]
 	[InlineData("Vertical")]
 	[InlineData("Horizontal")]
 	public async Task Editor_SalvarEReabrir_BarraEmCelula_MantemACelula(string tema)

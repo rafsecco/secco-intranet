@@ -216,8 +216,7 @@ processos (maior risco técnico) só entra com a base já sólida.
       Markdown como formato guardado. Limites: 20.000 caracteres no corpo e 10.000 células por
       tabela colada. Conteúdo hostil (script, `on*`, `javascript:`, `data:`, mXSS) é provado
       não executar, e a ida e volta do texto é testada — [spec](specs/2026-11-06-editor-do-mural-design.md).
-      Pendente: etapa 2 (imagem no meio do texto) e o escape de `|` em célula de tabela, que o
-      editor perde ao salvar (teste ignorado `Editor_SalvarEReabrir_BarraEmCelula_MantemACelula`)
+      Pendente: etapa 2 (imagem no meio do texto)
 
 ## Fase 2 — Operacional
 
