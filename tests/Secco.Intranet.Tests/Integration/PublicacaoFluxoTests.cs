@@ -177,6 +177,23 @@ public class PublicacaoFluxoTests(IntranetWebFactory factory) : IClassFixture<In
 		(await client.GetStringAsync("/")).Should().NotContain(titulo);
 	}
 
+	[Fact]
+	public async Task Publicar_TabelaAcimaDoLimite_RecusaComAMensagem()
+	{
+		var client = CriarCliente();
+		var slug = $"avisos-{Guid.NewGuid():N}"[..20];
+		var titulo = $"Tabela grande {Guid.NewGuid():N}"[..24];
+		await CriarSetorAsync(client, slug);
+		var token = await TokenAsync(client, $"/{slug}/avisos");
+		var corpo = ("|" + string.Concat(Enumerable.Repeat("a|", 2500)) + "\n" + string.Concat(Enumerable.Repeat("|\n", 5000)));
+
+		var resposta = await client.PostAsync($"/{slug}/avisos", FormularioComCorpo(titulo, corpo, token));
+
+		WebUtility.HtmlDecode(await resposta.Content.ReadAsStringAsync())
+			.Should().Contain("A tabela é grande demais: o limite é de 10000 células. Envie-a como imagem.");
+		(await client.GetStringAsync("/")).Should().NotContain(titulo);
+	}
+
 	private static FormUrlEncodedContent FormularioComCorpo(string titulo, string corpo, string token) => new(
 	[
 		new KeyValuePair<string, string>("Form.Titulo", titulo),

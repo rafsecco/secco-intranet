@@ -188,6 +188,12 @@ public static class IntranetErrors
 		public static readonly Error CorpoTooLong =
 			Error.Validation("Intranet.Publicacao.CorpoTooLong", "O corpo excede o limite de 20000 caracteres.");
 
+		/// <summary>Tabela com células demais: a renderização completa cada linha até a largura do cabeçalho.</summary>
+		public static readonly Error TabelaGrandeDemais =
+			Error.Validation(
+				"Intranet.Publicacao.TabelaGrandeDemais",
+				"A tabela é grande demais: o limite é de 10000 células. Envie-a como imagem.");
+
 		/// <summary>Imagem acima do limite de tamanho.</summary>
 		public static readonly Error ImagemGrandeDemais =
 			Error.Validation("Intranet.Publicacao.ImagemGrandeDemais", "A imagem passa de 10 MB.");

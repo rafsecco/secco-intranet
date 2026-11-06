@@ -178,7 +178,7 @@ Arquivo sem marcador é ignorado e não é gravado. Mais de 10 imagens ou arquiv
 - **Destino de imagem no editor:** carregar `![](/qualquer/rota)` geraria um GET autenticado na tela de quem edita. O editor só carrega imagem desta publicação ou `blob:`, e mostra os outros destinos como marcador.
 - **Quem lê:** a proteção não muda. O servidor gera o HTML a partir do Markdown, com `DisableHtml` e a lista de esquemas.
 - **Colagem:** o HTML e o RTF do Word são entrada não confiável. O RTF só é lido até o limite de tamanho, e o servidor revalida cada imagem pelo conteúdo com o `Secco.SDK.Imaging`.
-- **Negação de serviço:** limites de quantidade, de tamanho por arquivo e de requisição. Só quem tem escrita no setor envia, e as imagens são processadas uma de cada vez.
+- **Negação de serviço:** limites de quantidade, de tamanho por arquivo e de requisição. Só quem tem escrita no setor envia, e as imagens são processadas uma de cada vez. A tabela é limitada a 10.000 células, estimadas por varredura do texto, porque a tabela em Markdown completa cada linha até a largura do cabeçalho e 20 KB chegariam a 122 MB de HTML.
 - **Tenant:** imagem e publicação vivem no banco e no armazenamento do tenant da requisição.
 - **Dependências:** `@tiptap/*` são MIT e ativos. A árvore é auditada de novo na implementação.
 
@@ -197,6 +197,7 @@ Arquivo sem marcador é ignorado e não é gravado. Mais de 10 imagens ou arquiv
 - [ ] Sem violação de CSP ao usar o editor em Enforce, nos dois temas e nos modos claro e escuro.
 - [ ] O formulário funciona sem o script, pelo `textarea`.
 - [ ] Corpo de até 20.000 caracteres é aceito e, acima disso, recusado, nos dois providers.
+- [ ] Tabela acima de 10.000 células é recusada com mensagem, ao publicar e ao editar.
 - [ ] O resumo da notificação de um aviso com tabela não traz `|` nem `---`.
 
 ### Etapa 2

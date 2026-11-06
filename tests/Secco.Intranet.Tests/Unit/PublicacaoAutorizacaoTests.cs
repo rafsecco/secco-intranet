@@ -113,6 +113,25 @@ public class PublicacaoAutorizacaoTests
 	}
 
 	[Fact]
+	public async Task Editar_TabelaAcimaDoLimite_Recusa()
+	{
+		var repositorio = new RepositorioFalso(Existente());
+		var handler = new EditarPublicacaoHandler(
+			repositorio, new IntranetOptions(),
+			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance), new Secco.Intranet.Tests.Support.ProcessadorDeImagemFalso(), new Secco.Intranet.Tests.Support.ArquivoStoreFalso(), new Secco.Intranet.Tests.Support.LoggerCapturador<EditarPublicacaoHandler>());
+		var corpo = new string('|', 200) + string.Concat(Enumerable.Repeat("x\n", 200));
+
+		var resultado = await handler.HandleAsync(new EditarPublicacaoCommand(
+			Guid.NewGuid(), Setores("financeiro"), ExigirVinculo: true,
+			"Titulo", corpo, TipoPublicacao.Aviso, Visibilidade.Empresa,
+			PrioridadePublicacao.Normal, DateTimeOffset.UtcNow, null));
+
+		resultado.IsFailure.Should().BeTrue("o limite de tabela vale na edição também");
+		resultado.Error.Should().Be(IntranetErrors.Publicacoes.TabelaGrandeDemais);
+		repositorio.Gravou.Should().BeFalse();
+	}
+
+	[Fact]
 	public async Task Editar_ComTituloAcimaDoLimiteConfigurado_Recusa()
 	{
 		var handler = new EditarPublicacaoHandler(
