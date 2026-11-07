@@ -113,7 +113,9 @@ services:
       # A do .env usa localhost, que de dentro do container não alcança o SQL Server.
       Secco__Tenancy__Tenants__018f0000-0000-7000-8000-000000000001__ConnectionString: "Server=sqlserver,1433;Database=intranet_alfa;User Id=intranet_alfa_app;Password=${MSSQL_APP_PASSWORD};TrustServerCertificate=true"
     ports:
-      - "${INTRANET_PORT:-8080}:8080"
+      # Só na própria máquina: sem SecureGate configurado, Development roda em modo aberto, e quem
+      # alcançasse a porta pela rede entraria sem login.
+      - "127.0.0.1:${INTRANET_PORT:-8080}:8080"
     volumes:
       - ./.dados/documentos:/var/lib/intranet/documentos
       - ./.dados/chaves:/var/lib/intranet/chaves
