@@ -84,6 +84,8 @@ secrets.json
 *.db-wal
 *.mdf
 *.ldf
+# Dados de DEV: documentos, chaves do DataProtection e arquivos do SQL Server
+.dados/
 
 # ============================================================================
 # SISTEMA OPERACIONAL

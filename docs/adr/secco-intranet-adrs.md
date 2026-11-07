@@ -5,7 +5,7 @@
 > Para mudar uma decisão, cria-se uma nova ADR que **substitui** a anterior — ADRs nunca são editadas retroativamente nem apagadas.
 > Decisões da plataforma (multi-tenancy, `Result<T>`, nomenclatura de banco...) estão em `secco-platform/docs/adr/secco-platform-adrs.md` — este documento cobre apenas decisões específicas deste produto.
 
-**Última atualização:** 2026-11-04 (ADR-0013 adicionada)
+**Última atualização:** 2026-11-06 (ADR-0014 adicionada)
 
 ---
 
@@ -692,3 +692,28 @@ coisas estão erradas: o arquivo ainda não saiu, e sair sem trilha é o que a A
 - Com N réplicas, o limite efetivo por pessoa é N vezes o configurado.
 - A `429` sai pela página de status padrão do host. Uma tela amigável fica junto com o parcial de
   tema.
+
+---
+
+## ADR-0014: Chaves do DataProtection em pasta, e não no banco
+
+**Status:** Aceita
+**Data:** 2026-11-06
+
+### Contexto
+As chaves do ASP.NET Core DataProtection protegem cookie de sessão, antiforgery e TempData. Sem
+persistência, recriar o container troca as chaves, e tudo isso deixa de valer. A ADR-0035 da
+plataforma manda o estado durável para o banco do produto, e o SecureGate faz assim. A Intranet só
+tem bancos por tenant (ADR-0005), e o conjunto de chaves é da instalação, não de um tenant.
+
+### Decisão
+1. **As chaves ficam em arquivo**, na pasta de `Intranet:ProtecaoDeDados:PastaDasChaves`. Vazia, vale o
+   padrão do framework.
+2. **Nome de aplicação fixo**, `intranet`. O padrão do framework deriva do content root, que difere
+   entre o `dotnet run` e o container.
+3. **Sem cifra em repouso.** A pasta é tratada como segredo, e o aviso do framework ao subir é esperado.
+
+### Consequências
+- O backup da pasta é opcional: perdê-la só obriga todos a entrar de novo. Quem a tem forja a sessão
+  de qualquer pessoa, então a cópia que existir precisa ser cifrada ([guia](../guia-de-deploy.md#backup-e-restauração)).
+- Mais de uma réplica exige a pasta compartilhada.

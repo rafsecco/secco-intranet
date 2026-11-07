@@ -102,6 +102,9 @@ fecha o acesso direto à URL.
 É só isso. O catálogo do core lê as application parts do MVC no primeiro uso e encontra todo tipo
 público e concreto que implemente `IItemDeMenuPrincipal`. Não há nada para registrar no `Program.cs`.
 
+Uma RCL sob `src/` entra na imagem sem editar o `Dockerfile`; fora de `src/`, precisa de `COPY`
+próprio nele.
+
 ### 5. Alternativa: registro explícito
 
 Se preferir não depender da descoberta pelas application parts (por exemplo, com o tipo num

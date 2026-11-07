@@ -133,8 +133,8 @@ public sealed class IntranetWebFactory : SeccoApiFactory<Program>
 	/// <inheritdoc />
 	protected override void ConfigureTestConfiguration(IDictionary<string, string?> settings)
 	{
-		AddTenant(settings, TenantAlfa, GetConnectionStringFor("secco_intranet_alfa"));
-		AddTenant(settings, TenantBeta, GetConnectionStringFor("secco_intranet_beta"));
+		AddTenant(settings, TenantAlfa, GetConnectionStringFor("intranet_alfa"));
+		AddTenant(settings, TenantBeta, GetConnectionStringFor("intranet_beta"));
 
 		settings["Intranet:Documentos:Armazenamento:Raiz"] = _raizDeArquivos;
 		settings["Intranet:Documentos:Chave:ChaveAtiva"] = _chaveMestra;

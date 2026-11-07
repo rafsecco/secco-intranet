@@ -10,10 +10,13 @@
     o SQL de DEV e roda a aplicação.
 
 .PARAMETER Tema
-    Tema a usar (Vertical ou Horizontal). Sem ele, vale o de appsettings.
+    Tema a usar: qualquer tema registrado, inclusive o de um fork. Sem ele, vale o de appsettings.
+    O nome não é validado aqui: nome errado aparece na primeira página, quando a view do tema não
+    é encontrada.
 
 .PARAMETER SemDocker
-    Não roda "docker compose up -d" (o SQL já está no ar, ou você usa outro).
+    Não sobe o SQL de DEV (ele já está no ar, ou você usa outro). Com a instância existente ativa
+    no .env (COMPOSE_FILE com docker-compose.sql-existente.yml), o script já pula o Docker sozinho.
 
 .EXAMPLE
     ./scripts/dev.ps1
@@ -21,7 +24,6 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('Vertical', 'Horizontal')]
     [string] $Tema,
 
     [switch] $SemDocker
@@ -63,18 +65,30 @@ if ($Tema) {
     $env:Intranet__Theme__Nome = $Tema
 }
 
+if ($env:COMPOSE_FILE -like '*sql-existente*') {
+    Write-Host 'Instância de SQL existente ativa no .env: sem subir o SQL de DEV.'
+    $SemDocker = $true
+}
+
 if (-not $SemDocker) {
     # O docker escreve o progresso no stderr; com 'Stop' o PowerShell trata isso como erro e
     # aborta mesmo com o compose dando certo. Quem decide o sucesso é o código de saída.
     $preferenciaAnterior = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     # 2>&1 + ForEach-Object: o progresso sai como texto comum, não como ErrorRecord vermelho.
-    docker compose --project-directory $raiz up -d 2>&1 | ForEach-Object { "$_" }
+    docker compose --project-directory $raiz up -d sqlserver-init 2>&1 | ForEach-Object { "$_" }
     $codigoDoCompose = $LASTEXITCODE
+
+    # O up não espera o init terminar, e até lá o banco pode não estar legível.
+    if ($codigoDoCompose -eq 0) {
+        docker compose --project-directory $raiz wait sqlserver-init 2>&1 | ForEach-Object { "$_" }
+        $codigoDoCompose = $LASTEXITCODE
+    }
+
     $ErrorActionPreference = $preferenciaAnterior
 
     if ($codigoDoCompose -ne 0) {
-        throw 'docker compose up falhou — o Docker está rodando?'
+        throw 'O SQL de DEV não subiu — o Docker está rodando? Veja docker compose logs sqlserver-init.'
     }
 }
 
