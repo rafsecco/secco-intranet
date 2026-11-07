@@ -57,8 +57,8 @@ ver ADR-0006 e ADR-0007.
 ## Pré-requisitos
 
 - **.NET SDK 10.0** — confira com `dotnet --version`.
-- **Docker** — o SQL Server e a aplicação de desenvolvimento sobem via `docker compose`, e os
-  testes de integração criam o próprio container através do Testcontainers.
+- **Docker, com Compose 2.24 ou mais novo** — o SQL Server e a aplicação de desenvolvimento sobem
+  via `docker compose`, e os testes de integração criam o próprio container através do Testcontainers.
 - **Autenticação no feed de pacotes** (abaixo) — sem ela o `dotnet restore` não passa.
 - **Arquivo `.env`** (abaixo) — sem ele o `docker compose up` falha, de propósito.
 
@@ -192,7 +192,7 @@ ou siga com `dotnet run`. As demais observações estão no [`.env.example`](.en
 
 ```bash
 docker compose down          # o SQL precisa estar parado
-# copie .dados/ e .env para a outra máquina, ao lado do repositório clonado
+# copie .dados/ e .env para a raiz do repositório clonado na outra máquina
 docker compose up -d
 ```
 
