@@ -71,6 +71,10 @@ builder.Services.AddLogStream(opcoes =>
     }
 });
 
+// Dados de DEV em caminho relativo ao content root e chaves do DataProtection em pasta (ADR-0014).
+builder.Configuration.ResolverCaminhosDeDados(builder.Environment.ContentRootPath);
+builder.Services.AddIntranetProtecaoDeDados(builder.Configuration);
+
 builder.Services.AddIntranetApplication();
 builder.Services.AddIntranetInfrastructure(builder.Configuration);
 // Exportação Excel/PDF para RCLs (ADR-0013): SDK, trilha fail-closed e limite por pessoa.
