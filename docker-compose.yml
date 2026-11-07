@@ -1,34 +1,53 @@
-# Ambiente de desenvolvimento: SQL Server local.
-#   cp .env.example .env    # uma vez por máquina, e troque as senhas
-#   docker compose up -d
+# Ambiente de desenvolvimento, com os dados em .dados/ (não versionada).
+#   cp .env.example .env                  # uma vez por máquina, e troque as senhas
+#   docker compose up -d                  # tudo: SQL Server e aplicação em http://localhost:8080
+#   docker compose up -d sqlserver-init   # só o SQL, para F5 ou dotnet run
 #
 # Nenhuma credencial aqui: tudo vem do .env da raiz, que o Compose lê sozinho para
 # interpolar este arquivo. O inventário das variáveis está em .env.example.
 #
 # sa existe só para o container subir e para o serviço sqlserver-init provisionar o banco
 # do tenant — a aplicação NUNCA usa sa (ADR-0007). Depois do init, a connection string do
-# tenant no .env aponta para o login de aplicação que o init cria, com db_owner só naquele
-# banco. Ver docker/init/provision-tenant-db.sql.
+# tenant aponta para o login de aplicação que o init cria, com db_owner só naquele banco.
+# Ver docker/init/provision-tenant-db.sql.
 #
-# O serviço do monolito (Secco.Intranet.Web, ADR-0002) será adicionado quando o
-# projeto existir; em Development ele aplicará migrations e seed nos tenants do catálogo.
+# Para trocar de máquina: docker compose down, copie .dados/ e .env, docker compose up -d.
 
 services:
+  # Cria as pastas de .dados/ e ajusta o dono antes de os outros serviços subirem. O chown
+  # importa em Linux; no Docker Desktop do Windows pode falhar sem prejuízo.
+  dados-init:
+    image: busybox:1.37.0
+    volumes:
+      - ./.dados:/dados
+    command:
+      - sh
+      - -c
+      - |
+        mkdir -p /dados/documentos /dados/chaves /dados/sql/data /dados/sql/log /dados/sql/secrets
+        chown -R 10001:0 /dados/sql || true
+        chown -R ${INTRANET_UID:-1654} /dados/documentos /dados/chaves || true
+    restart: "no"
+
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      dados-init:
+        condition: service_completed_successfully
     environment:
       ACCEPT_EULA: "Y"
       # Sem valor default de propósito: preferimos falhar a subida a subir um banco
-      # com senha que qualquer um que leia o repositório conhece.
+      # com senha que qualquer um que leia o repositório conhece. Só vale na criação de
+      # .dados/sql: uma senha diferente depois deixa o serviço unhealthy, e o up falha.
       MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?defina MSSQL_SA_PASSWORD no .env (copie de .env.example)}"
     ports:
       - "${MSSQL_PORT:-1433}:1433"
     volumes:
-      # Sem isto, todo `docker compose up` que recria o container zera os bancos de
-      # tenant. A app recria o schema no start (migrations + seed em Development), mas
-      # os dados que você cadastrou navegando somem junto.
-      # Para começar do zero de propósito: `docker compose down -v`.
-      - mssql-data:/var/opt/mssql
+      # Por subpastas: /var/opt/mssql inteiro em bind mount derruba o SQL Server no Docker do
+      # Windows. Para começar do zero de propósito: docker compose down e apague .dados/sql.
+      - ./.dados/sql/data:/var/opt/mssql/data
+      - ./.dados/sql/log:/var/opt/mssql/log
+      - ./.dados/sql/secrets:/var/opt/mssql/secrets
     healthcheck:
       # $$ escapa a interpolação do Compose: quem expande é o shell DENTRO do container,
       # então a senha não aparece no YAML nem no comando registrado do healthcheck.
@@ -40,6 +59,10 @@ services:
   # Roda uma vez, cria o banco do tenant "alfa" e o login de aplicação com db_owner só
   # nele, e sai (restart: "no"). sa fica confinado a este container efêmero — o processo
   # da aplicação nunca o vê. Reexecutar é seguro: o script é idempotente.
+  #
+  # Repete até conseguir ler o banco, porque nestes bind mounts a leitura dá erro 904 por alguns
+  # segundos depois de o servidor responder. O número de tentativas é limitado: um banco que
+  # nunca fica legível precisa terminar com erro, não travar o up.
   sqlserver-init:
     image: mcr.microsoft.com/mssql/server:2022-latest
     depends_on:
@@ -52,11 +75,56 @@ services:
       - ./docker/init/provision-tenant-db.sql:/init/provision-tenant-db.sql:ro
     entrypoint: ["/bin/bash", "-c"]
     command:
-      - >
-        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C
-        -v AppPassword="$$MSSQL_APP_PASSWORD"
-        -i /init/provision-tenant-db.sql
+      - |
+        sqlcmd="/opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -C -b"
+        export SQLCMDPASSWORD="$$MSSQL_SA_PASSWORD"
+        for tentativa in $$(seq 1 30); do
+          $$sqlcmd -v AppPassword="$$MSSQL_APP_PASSWORD" -i /init/provision-tenant-db.sql \
+            && $$sqlcmd -d intranet_alfa -Q "SELECT TOP 1 1 FROM sys.objects" \
+            && exit 0
+          sleep 2
+        done
+        echo "sqlserver-init: o banco nao ficou legivel; confira MSSQL_SA_PASSWORD e .dados/sql" >&2
+        exit 1
     restart: "no"
 
-volumes:
-  mssql-data:
+  intranet-web:
+    image: intranet-web
+    build:
+      context: .
+      dockerfile: src/Secco.Intranet.Web/Dockerfile
+      secrets:
+        - nuget_pat
+    user: "${INTRANET_UID:-1654}"
+    depends_on:
+      dados-init:
+        condition: service_completed_successfully
+      sqlserver-init:
+        condition: service_completed_successfully
+    # Tema, SecureGate e o que mais estiver no .env chegam à aplicação por aqui.
+    env_file:
+      - .env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # Zeradas porque o env_file as traria: o sa e o PAT não chegam ao processo da aplicação.
+      MSSQL_SA_PASSWORD: ""
+      MSSQL_APP_PASSWORD: ""
+      NUGET_PAT: ""
+      # A do .env usa localhost, que de dentro do container não alcança o SQL Server.
+      Secco__Tenancy__Tenants__018f0000-0000-7000-8000-000000000001__ConnectionString: "Server=sqlserver,1433;Database=intranet_alfa;User Id=intranet_alfa_app;Password=${MSSQL_APP_PASSWORD};TrustServerCertificate=true"
+    ports:
+      - "${INTRANET_PORT:-8080}:8080"
+    volumes:
+      - ./.dados/documentos:/var/lib/intranet/documentos
+      - ./.dados/chaves:/var/lib/intranet/chaves
+    healthcheck:
+      # A imagem não tem curl/wget: o bash abre a conexão e confere o status 200.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /health/live HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && head -n1 <&3 | grep -q ' 200 '"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+# O PAT do feed privado só existe durante o restore, como BuildKit secret: não vai para camada.
+secrets:
+  nuget_pat:
+    environment: NUGET_PAT
