@@ -61,6 +61,6 @@ public class EnvioDeLogTests(IntranetWebFactory factory) : IClassFixture<Intrane
 		var opcoes = Resolver([]);
 
 		opcoes.ServiceName.Should().Be(
-			"secco-intranet", "sem isso o log chega ao LogStream sem dizer de qual produto veio");
+			"intranet", "sem isso o log chega ao LogStream sem dizer de qual produto veio");
 	}
 }

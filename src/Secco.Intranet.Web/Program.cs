@@ -60,7 +60,7 @@ builder.Services.AddSeccoHealthChecks();
 // ausente, o ILogger local segue sozinho.
 builder.Services.AddLogStream(opcoes =>
 {
-    opcoes.ServiceName = "secco-intranet";
+    opcoes.ServiceName = "intranet";
 
     // O Enabled do pacote vem true por padrão, e aí o validador passa a exigir BaseUrl,
     // credenciais e scope — sem a seção, a aplicação nem subiria. Desligar aqui é o que

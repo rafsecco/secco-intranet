@@ -102,15 +102,15 @@ nunca usa `sa` (ADR-0007):
 # Git Bash converte caminhos de /opt/...; MSYS_NO_PATHCONV evita isso
 export MSYS_NO_PATHCONV=1
 SQL="docker exec secco-platform-sqlserver-1 /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P Secco@Dev123 -C"
-$SQL -Q "CREATE DATABASE secco_intranet_smoke; CREATE LOGIN smoke_app WITH PASSWORD='Smoke#App2026x', CHECK_POLICY=OFF;"
-$SQL -d secco_intranet_smoke -Q "CREATE USER smoke_app FOR LOGIN smoke_app; ALTER ROLE db_owner ADD MEMBER smoke_app;"
+$SQL -Q "CREATE DATABASE intranet_smoke; CREATE LOGIN smoke_app WITH PASSWORD='Smoke#App2026x', CHECK_POLICY=OFF;"
+$SQL -d intranet_smoke -Q "CREATE USER smoke_app FOR LOGIN smoke_app; ALTER ROLE db_owner ADD MEMBER smoke_app;"
 ```
 
 (o `USE` não funciona no mesmo lote que o `CREATE DATABASE`, por isso são duas chamadas.)
 
 ```bash
 env "ASPNETCORE_ENVIRONMENT=Development" \
-    "Secco__Tenancy__Tenants__018f0000-0000-7000-8000-000000000001__ConnectionString=Server=localhost,1433;Database=secco_intranet_smoke;User Id=smoke_app;Password=Smoke#App2026x;TrustServerCertificate=true" \
+    "Secco__Tenancy__Tenants__018f0000-0000-7000-8000-000000000001__ConnectionString=Server=localhost,1433;Database=intranet_smoke;User Id=smoke_app;Password=Smoke#App2026x;TrustServerCertificate=true" \
     "Secco__SecureGate__BaseUrl=http://localhost:4101" \
     "Secco__SecureGate__ClientId=secco-dev-console" \
     "Secco__SecureGate__ClientSecret=secco-dev-console-secret-32-chars-min!" \
@@ -164,7 +164,7 @@ como client OIDC no SecureGate e entre com login real (ver a seção de autentic
 
 ```bash
 # parar a Intranet e a API do SecureGate (Ctrl+C nos terminais, ou pelo gerenciador de processos)
-$SQL -Q "ALTER DATABASE secco_intranet_smoke SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE secco_intranet_smoke; DROP LOGIN smoke_app;"
+$SQL -Q "ALTER DATABASE intranet_smoke SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE intranet_smoke; DROP LOGIN smoke_app;"
 cd ../secco-platform && docker compose stop
 ```
 

@@ -3,29 +3,29 @@
 -- teto de privilégio que a ADR-0028 da plataforma define para o provisionamento real
 -- (Secco.SecureGate.Client, ProvisionTenantDatabaseAsync).
 --
--- Idempotente: reexecutar (docker compose up sem down -v) não falha nem duplica.
+-- Idempotente: reexecutar (docker compose up com .dados/ já preenchida) não falha nem duplica.
 -- AppPassword chega via sqlcmd -v (variável de scripting, não segredo em texto no arquivo).
 
-IF DB_ID(N'secco_intranet_alfa') IS NULL
+IF DB_ID(N'intranet_alfa') IS NULL
 BEGIN
-    CREATE DATABASE secco_intranet_alfa;
+    CREATE DATABASE intranet_alfa;
 END
 GO
 
-IF SUSER_ID(N'secco_intranet_alfa_app') IS NULL
+IF SUSER_ID(N'intranet_alfa_app') IS NULL
 BEGIN
-    CREATE LOGIN secco_intranet_alfa_app WITH PASSWORD = N'$(AppPassword)';
+    CREATE LOGIN intranet_alfa_app WITH PASSWORD = N'$(AppPassword)';
 END
 GO
 
-USE secco_intranet_alfa;
+USE intranet_alfa;
 GO
 
-IF USER_ID(N'secco_intranet_alfa_app') IS NULL
+IF USER_ID(N'intranet_alfa_app') IS NULL
 BEGIN
-    CREATE USER secco_intranet_alfa_app FOR LOGIN secco_intranet_alfa_app;
+    CREATE USER intranet_alfa_app FOR LOGIN intranet_alfa_app;
 END
 GO
 
-ALTER ROLE db_owner ADD MEMBER secco_intranet_alfa_app;
+ALTER ROLE db_owner ADD MEMBER intranet_alfa_app;
 GO
