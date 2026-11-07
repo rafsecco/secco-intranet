@@ -231,6 +231,11 @@ processos (maior risco técnico) só entra com a base já sólida.
       não teria como desfazer um aviso já agendado). Sem `Intranet:Notificacao:HubUrl` não há
       aviso de vencimento. [Spec](specs/2026-10-24-aviso-de-vencimento-design.md); plano em
       [plans/2026-10-24-aviso-de-vencimento.md](plans/2026-10-24-aviso-de-vencimento.md)
+- [x] Docker e dados da instalação: `docker compose up` sobe a aplicação em DEV, com documentos, chaves
+      do DataProtection e banco em `.dados/`; instância de SQL existente por override; compose de HML/PRD
+      em bind mounts e backup e restauração no [guia](guia-de-deploy.md#backup-e-restauração) —
+      [ADR-0014](adr/secco-intranet-adrs.md), [spec](specs/2026-11-06-docker-e-dados-design.md), plano em
+      [plans/2026-11-06-docker-e-dados.md](plans/2026-11-06-docker-e-dados.md)
 - [ ] Ferramentas do dia a dia (reserva de sala, links rápidos)
 
 ## Fase 3 — Controle de processos (v1 simples)
