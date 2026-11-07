@@ -250,6 +250,9 @@ estreitas, foco de teclado visível, link de pular navegação, `aria-current` n
 O projeto do tema precisa estar referenciado por `Secco.Intranet.Web` para que os assets da
 RCL sejam publicados. Trocar de tema é configuração — não exige deploy de código novo do core.
 
+Um tema sob `src/` entra na imagem sem editar o `Dockerfile`; fora de `src/`, precisa de `COPY`
+próprio nele.
+
 ## Assets do tema padrão
 
 O tema `Vertical` compila Bootstrap e Bootstrap Icons por Sass e auto-hospeda as fontes.
