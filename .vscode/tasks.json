@@ -71,6 +71,14 @@
       "problemMatcher": []
     },
     {
+      // So o SQL Server, para F5 ou dotnet run. A task acima sobe tambem a aplicacao.
+      "label": "docker: SQL de DEV",
+      "type": "process",
+      "command": "docker",
+      "args": ["compose", "up", "-d", "sqlserver-init"],
+      "problemMatcher": []
+    },
+    {
       "label": "docker: compose down",
       "type": "process",
       "command": "docker",

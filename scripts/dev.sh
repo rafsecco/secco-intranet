@@ -7,7 +7,11 @@
 # tira as aspas do valor, passa tudo pelo `env` (que aceita qualquer nome), sobe o SQL de DEV e
 # roda a aplicação.
 #
-# Uso: ./scripts/dev.sh [--tema Vertical|Horizontal] [--sem-docker]
+# Uso: ./scripts/dev.sh [--tema <nome>] [--sem-docker]
+#   --tema        qualquer tema registrado, inclusive o de um fork. O nome não é validado aqui:
+#                 nome errado aparece na primeira página, quando a view do tema não é encontrada.
+#   --sem-docker  não sobe o SQL de DEV. Com a instância existente ativa no .env (COMPOSE_FILE com
+#                 docker-compose.sql-existente.yml), o script já pula o Docker sozinho.
 set -euo pipefail
 
 raiz="$(cd "$(dirname "$0")/.." && pwd)"
@@ -53,6 +57,15 @@ while IFS= read -r linha || [ -n "$linha" ]; do
     fi
 
     variaveis+=("$nome=$valor")
+
+    if [ "$nome" = "COMPOSE_FILE" ]; then
+        case "$valor" in
+            *sql-existente*)
+                echo "Instância de SQL existente ativa no .env: sem subir o SQL de DEV."
+                sem_docker=1
+                ;;
+        esac
+    fi
 done < "$arquivo"
 
 if [ -n "$tema" ]; then
@@ -60,7 +73,9 @@ if [ -n "$tema" ]; then
 fi
 
 if [ "$sem_docker" -eq 0 ]; then
-    docker compose --project-directory "$raiz" up -d
+    docker compose --project-directory "$raiz" up -d sqlserver-init
+    # O up não espera o init terminar, e até lá o banco pode não estar legível.
+    docker compose --project-directory "$raiz" wait sqlserver-init
 fi
 
 exec env "${variaveis[@]}" dotnet run --project "$raiz/src/Secco.Intranet.Web" --launch-profile http

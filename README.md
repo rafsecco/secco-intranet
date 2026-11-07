@@ -57,8 +57,8 @@ ver ADR-0006 e ADR-0007.
 ## Pré-requisitos
 
 - **.NET SDK 10.0** — confira com `dotnet --version`.
-- **Docker** — o SQL Server de desenvolvimento sobe via `docker compose`, e os testes de
-  integração criam o próprio container através do Testcontainers.
+- **Docker** — o SQL Server e a aplicação de desenvolvimento sobem via `docker compose`, e os
+  testes de integração criam o próprio container através do Testcontainers.
 - **Autenticação no feed de pacotes** (abaixo) — sem ela o `dotnet restore` não passa.
 - **Arquivo `.env`** (abaixo) — sem ele o `docker compose up` falha, de propósito.
 
@@ -72,7 +72,8 @@ ignorado pelo git. O inventário das variáveis está em [`.env.example`](.env.e
 ```bash
 cp .env.example .env
 # abra o .env e troque MSSQL_SA_PASSWORD e MSSQL_APP_PASSWORD — e repita a segunda
-# dentro da connection string do tenant
+# dentro da connection string do tenant. Para construir a imagem, preencha também NUGET_PAT
+# (PAT com read:packages)
 ```
 
 `sa` existe só para o container subir e para o serviço `sqlserver-init` provisionar o
@@ -84,13 +85,15 @@ Quem lê esse arquivo:
 
 - **`docker compose`** lê o `.env` da raiz sozinho, para interpolar o
   `docker-compose.yml`. Sem `MSSQL_SA_PASSWORD`/`MSSQL_APP_PASSWORD` definidas o `up` falha
-  com mensagem explícita, em vez de subir um banco com senha que está no repositório.
+  com mensagem explícita, em vez de subir um banco com senha que está no repositório. O serviço
+  `intranet-web` recebe o arquivo como ambiente, menos as duas senhas e o `NUGET_PAT`.
 - **VS Code (F5)** lê via `"envFile"` no `.vscode/launch.json`. É assim que a variável
   `Secco__Tenancy__Tenants__<id>__ConnectionString` chega na configuração da aplicação —
   o provider de variáveis de ambiente do ASP.NET Core troca `__` por `:`.
 
 - **Terminal:** use o script de DEV, que lê o `.env`, tira as aspas dos valores, sobe o SQL
-  (`docker compose up -d`) e roda a aplicação:
+  (`docker compose up -d sqlserver-init`) e roda a aplicação. `-Tema` e `--tema` aceitam qualquer
+  tema registrado:
 
   ```powershell
   ./scripts/dev.ps1                      # Windows (PowerShell)
@@ -144,7 +147,7 @@ Code. Ao abrir a pasta, aceite a notificação de extensões recomendadas
 `ASPNETCORE_ENVIRONMENT` do `launchSettings.json` (fonte única, para o F5 e o `dotnet run`
 baterem) e carrega o `.env` da raiz via `"envFile"` — é de lá que vem a connection string
 do tenant. Antes da primeira vez: `cp .env.example .env`, `dotnet dev-certs https --trust`
-(uma vez só) e `docker compose up -d` (o `Program.cs` aplica migrations e faz seed dos
+(uma vez só) e `docker compose up -d sqlserver-init` (o `Program.cs` aplica migrations e faz seed dos
 tenants em `Development` no start). `Ctrl+Shift+B` roda a task `build`, que builda a solução inteira; a
 view **Testing** do C# Dev Kit descobre os testes automaticamente (sem precisar de task
 separada). Para gerar migration, use a task `ef: nova migration (ambos os engines)` — ela
@@ -159,13 +162,43 @@ redundante com o C# Dev Kit, que já gera namespace file-scoped conforme o `.edi
 
 ### Rodar
 
+Há duas formas de rodar. Tudo em container, com a aplicação em `http://localhost:8080`:
+
 ```bash
 cp .env.example .env   # uma vez por máquina — ver acima
-docker compose up -d   # SQL Server de desenvolvimento na porta 1433
+docker compose up -d
+```
+
+Só o SQL em container (porta 1433), com a aplicação no F5 ou no `dotnet run`:
+
+```bash
+docker compose up -d sqlserver-init
 dotnet restore
 dotnet build
 dotnet test            # os testes de integração sobem container próprio (Testcontainers)
 ```
+
+As duas usam as mesmas pastas em `.dados/`, na raiz e fora do versionamento: documentos, chaves do
+DataProtection e arquivos do SQL Server. Sobrevivem a `docker compose down` e a `dotnet clean`.
+
+#### Usar uma instância de SQL existente
+
+Tire o comentário de `COMPOSE_FILE` e `COMPOSE_PATH_SEPARATOR` no `.env` e aponte a connection string
+para a sua instância: o Compose deixa de subir o SQL, e `dev.ps1` e `dev.sh` pulam o Docker sozinhos.
+De um container Linux, autenticação integrada do Windows/AD não funciona sem Kerberos: use login SQL
+ou siga com `dotnet run`. As demais observações estão no [`.env.example`](.env.example).
+
+#### Trocar de máquina
+
+```bash
+docker compose down          # o SQL precisa estar parado
+# copie .dados/ e .env para a outra máquina, ao lado do repositório clonado
+docker compose up -d
+```
+
+Copie os dois juntos: o SQL Server só aceita a senha do `sa` com que `.dados/sql` foi criada, e com
+outra o serviço fica `unhealthy`. Em Linux, as pastas têm donos diferentes do seu usuário: copie com
+`sudo cp -a`.
 
 Os testes da gestão de acesso usam um SecureGate de mentira. Para conferir o adaptador e as
 telas contra o **SecureGate real**, há um roteiro de fumaça (11 testes opt-in, pulados por padrão,

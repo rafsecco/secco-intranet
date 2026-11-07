@@ -1,0 +1,25 @@
+# Usa uma instância de SQL Server que já existe, em vez do SQL em container. Ativado por duas
+# linhas no .env (Compose 2.24 ou mais novo, por causa de !override e !reset):
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.sql-existente.yml
+#   COMPOSE_PATH_SEPARATOR=:
+#
+# A connection string passa a ser a do .env. As observações sobre login e localhost estão no
+# .env.example.
+
+services:
+  # Num perfil que ninguém liga: o serviço existe, mas não sobe.
+  sqlserver:
+    profiles: [sql-container]
+
+  sqlserver-init:
+    profiles: [sql-container]
+
+  intranet-web:
+    depends_on: !override
+      dados-init:
+        condition: service_completed_successfully
+    environment:
+      Secco__Tenancy__Tenants__018f0000-0000-7000-8000-000000000001__ConnectionString: !reset null
+    # Em Linux, host.docker.internal só existe com esta linha.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
