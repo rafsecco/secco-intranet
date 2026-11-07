@@ -213,6 +213,8 @@ sem cifra em repouso, e por isso a pasta delas é tratada como segredo (ver "Bac
 2. **Crie um banco e um login de aplicação por tenant**, com permissão só naquele banco
    (nunca `sa`/superusuário — mesmo princípio do `docker/init/provision-tenant-db.sql`
    usado em desenvolvimento, adapte para o seu SGBD gerenciado).
+   **Porta do banco:** em HML pode ficar aberta para a equipe consultar; em PRD, fechada, alcançável
+   só pela aplicação e pelo DBA.
 3. **Registre a connection string de cada tenant** na configuração da aplicação (variável
    de ambiente, ver tabela abaixo) — não existe UI para cadastrar tenant hoje; é
    configuração de deploy.
@@ -514,6 +516,7 @@ referenciam. `RESTORE VERIFYONLY` confirma o arquivo de backup, mas não substit
       `migrate` do SecureGate rodado antes de subir o SecureGate.
 - [ ] SecureGate com duas credenciais de banco: a de migração (dona) e a de runtime (sem posse).
 - [ ] Porta do container não publicada para fora do host — só o proxy alcança.
+- [ ] Em PRD, porta do banco fechada: só a aplicação e o DBA a alcançam.
 - [ ] `Secco:ReverseProxy:Habilitado=true` **só** com o ponto acima garantido.
 - [ ] `migrate` da Intranet terminado com `0` antes do primeiro start.
 - [ ] Role `intranet-admin` criada e atribuída a alguém antes do primeiro login.

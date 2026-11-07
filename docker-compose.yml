@@ -41,6 +41,8 @@ services:
       # .dados/sql: uma senha diferente depois deixa o serviço unhealthy, e o up falha.
       MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?defina MSSQL_SA_PASSWORD no .env (copie de .env.example)}"
     ports:
+      # Em todas as interfaces de propósito, em DEV. Publicada só em 127.0.0.1, a connection
+      # string com Server=localhost falha: o SqlClient tenta ::1 primeiro e estoura o tempo.
       - "${MSSQL_PORT:-1433}:1433"
     volumes:
       # Por subpastas: /var/opt/mssql inteiro em bind mount derruba o SQL Server no Docker do
