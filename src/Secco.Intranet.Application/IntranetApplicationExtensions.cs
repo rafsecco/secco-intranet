@@ -48,6 +48,7 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ListarMuralHandler>();
 		services.AddScoped<ObterPublicacaoHandler>();
 		services.AddScoped<ObterImagemDaPublicacaoHandler>();
+		services.AddScoped<ObterImagemNoTextoHandler>();
 		services.AddScoped<PublicarPublicacaoHandler>();
 		services.AddScoped<EditarPublicacaoHandler>();
 		services.AddScoped<ArquivarPublicacaoHandler>();

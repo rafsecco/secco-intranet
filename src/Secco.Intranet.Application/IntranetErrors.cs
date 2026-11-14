@@ -206,6 +206,22 @@ public static class IntranetErrors
 		public static readonly Error ImagemInvalida =
 			Error.Validation("Intranet.Publicacao.ImagemInvalida", "Não foi possível ler esta imagem.");
 
+		/// <summary>Imagem do texto que chegou sem o arquivo.</summary>
+		public static readonly Error ImagemNoTextoSemArquivo =
+			Error.Validation(
+				"Intranet.Publicacao.ImagemNoTextoSemArquivo",
+				"Uma imagem do texto chegou sem o arquivo. Insira a imagem de novo.");
+
+		/// <summary>Imagem do texto com destino que não pode ser usado.</summary>
+		public static readonly Error ImagemNoTextoInvalida =
+			Error.Validation(
+				"Intranet.Publicacao.ImagemNoTextoInvalida",
+				"O texto tem uma imagem que não pode ser usada: só imagens enviadas neste aviso ou endereços https.");
+
+		/// <summary>Mais imagens no texto do que o limite.</summary>
+		public static readonly Error ImagensNoTextoDemais =
+			Error.Validation("Intranet.Publicacao.ImagensNoTextoDemais", "O texto passa de 10 imagens.");
+
 		/// <summary>Descrição da imagem acima do limite.</summary>
 		public static readonly Error ImagemDescricaoTooLong =
 			Error.Validation("Intranet.Publicacao.ImagemDescricaoTooLong", "A descrição da imagem passa de 300 caracteres.");

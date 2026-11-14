@@ -30,6 +30,7 @@ namespace Secco.Intranet.Application.Publicacoes;
 /// </param>
 /// <param name="Imagem">Imagem enviada, ou nulo. O chamador fecha o fluxo.</param>
 /// <param name="ImagemDescricao">Descrição da imagem; sem imagem, é ignorada.</param>
+/// <param name="ImagensDoTexto">Arquivos das imagens do texto; o índice é o N de <c>nova-imagem:N</c>.</param>
 public sealed record PublicarPublicacaoCommand(
 	string? SetorSlug,
 	string? Titulo,
@@ -42,7 +43,8 @@ public sealed record PublicarPublicacaoCommand(
 	string CriadoPor,
 	Guid? CriadoPorId = null,
 	ImagemEnviada? Imagem = null,
-	string? ImagemDescricao = null);
+	string? ImagemDescricao = null,
+	IReadOnlyList<ImagemEnviada>? ImagensDoTexto = null);
 
 /// <summary>A publicação criada e o que aconteceu com o aviso dela.</summary>
 /// <param name="Publicacao">A publicação persistida.</param>
@@ -62,6 +64,7 @@ public sealed record PublicacaoPublicadaDto(PublicacaoDto Publicacao, RelatorioD
 /// <param name="trilha">Trilha de auditoria.</param>
 /// <param name="imagens">Processamento da imagem enviada.</param>
 /// <param name="arquivos">Armazenamento cifrado.</param>
+/// <param name="imagensNoTexto">Persistência das imagens no texto.</param>
 /// <param name="logger">Log.</param>
 public sealed class PublicarPublicacaoHandler(
 	IPublicacaoRepository repository,
@@ -73,6 +76,7 @@ public sealed class PublicarPublicacaoHandler(
 	ITrilhaDeAuditoria trilha,
 	IProcessadorDeImagem imagens,
 	IArquivoStore arquivos,
+	IImagemNoTextoRepository imagensNoTexto,
 	ILogger<PublicarPublicacaoHandler> logger)
 {
 	private static readonly MarkdownPipeline PipelineDeTexto = new MarkdownPipelineBuilder()
@@ -117,6 +121,18 @@ public sealed class PublicarPublicacaoHandler(
 			return IntranetErrors.Setores.NotFound;
 		}
 
+		var nova = new Publicacao(
+			setor.Id, command.Titulo!, command.Corpo, command.Tipo, command.Visibilidade,
+			command.Prioridade, command.PublicadoEm, command.ExpiraEm, command.CriadoPor);
+
+		var analise = ImagensDoCorpo.Analisar(
+			command.Corpo, nova.Id, new HashSet<Guid>(), command.ImagensDoTexto?.Count ?? 0);
+
+		if (analise.IsFailure)
+		{
+			return analise.Error;
+		}
+
 		ArquivoGravado? gravada = null;
 
 		if (command.Imagem is not null)
@@ -133,13 +149,37 @@ public sealed class PublicarPublicacaoHandler(
 			gravada = gravacao.Value;
 		}
 
+		var preparado = await ImagensDoCorpo
+			.GravarEReescreverAsync(
+				analise.Value, nova.Id, command.ImagensDoTexto, imagens, arquivos, logger, cancellationToken)
+			.ConfigureAwait(false);
+
+		if (preparado.IsFailure)
+		{
+			await ImagemDaPublicacao
+				.ApagarAsync(gravada?.CaminhoRelativo, arquivos, logger, CancellationToken.None)
+				.ConfigureAwait(false);
+
+			return preparado.Error;
+		}
+
+		var caminhosNovos = preparado.Value.Novas.Select(i => i.CaminhoRelativo).ToList();
+
+		if (gravada is not null)
+		{
+			caminhosNovos.Add(gravada.CaminhoRelativo);
+		}
+
 		var publicacao = await ImagemDaPublicacao
 			.PersistirOuDescartarAsync(
 				async () =>
 				{
-					var nova = new Publicacao(
-						setor.Id, command.Titulo!, command.Corpo, command.Tipo, command.Visibilidade,
-						command.Prioridade, command.PublicadoEm, command.ExpiraEm, command.CriadoPor);
+					if (preparado.Value.Corpo != command.Corpo)
+					{
+						nova.Editar(
+							command.Titulo!, preparado.Value.Corpo, command.Tipo, command.Visibilidade,
+							command.Prioridade, command.PublicadoEm, command.ExpiraEm);
+					}
 
 					if (gravada is not null)
 					{
@@ -148,9 +188,14 @@ public sealed class PublicarPublicacaoHandler(
 
 					await repository.AddAsync(nova, cancellationToken).ConfigureAwait(false);
 
+					foreach (var imagem in preparado.Value.Novas)
+					{
+						imagensNoTexto.Adicionar(imagem);
+					}
+
 					return nova;
 				},
-				gravada?.CaminhoRelativo,
+				caminhosNovos,
 				arquivos,
 				logger)
 			.ConfigureAwait(false);
@@ -171,6 +216,7 @@ public sealed class PublicarPublicacaoHandler(
 						prioridade = dto.Prioridade.ToString(),
 						setor = dto.SetorSlug,
 						imagem = dto.TemImagem,
+						imagensNoTexto = preparado.Value.Novas.Count,
 					})),
 				cancellationToken)
 			.ConfigureAwait(false);

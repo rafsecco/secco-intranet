@@ -100,7 +100,7 @@ public class PublicacaoAutorizacaoTests
 		var agora = DateTimeOffset.UtcNow;
 		var handler = new EditarPublicacaoHandler(
 			new RepositorioFalso(Existente()), new IntranetOptions(),
-			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance), new Secco.Intranet.Tests.Support.ProcessadorDeImagemFalso(), new Secco.Intranet.Tests.Support.ArquivoStoreFalso(), new Secco.Intranet.Tests.Support.LoggerCapturador<EditarPublicacaoHandler>());
+			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance), new Secco.Intranet.Tests.Support.ProcessadorDeImagemFalso(), new Secco.Intranet.Tests.Support.ArquivoStoreFalso(), new Secco.Intranet.Tests.Support.ImagemNoTextoRepositorioFalso(), new Secco.Intranet.Tests.Support.LoggerCapturador<EditarPublicacaoHandler>());
 
 		var resultado = await handler.HandleAsync(new EditarPublicacaoCommand(
 			Guid.NewGuid(), Setores("financeiro"), ExigirVinculo: true,
@@ -118,7 +118,7 @@ public class PublicacaoAutorizacaoTests
 		var repositorio = new RepositorioFalso(Existente());
 		var handler = new EditarPublicacaoHandler(
 			repositorio, new IntranetOptions(),
-			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance), new Secco.Intranet.Tests.Support.ProcessadorDeImagemFalso(), new Secco.Intranet.Tests.Support.ArquivoStoreFalso(), new Secco.Intranet.Tests.Support.LoggerCapturador<EditarPublicacaoHandler>());
+			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance), new Secco.Intranet.Tests.Support.ProcessadorDeImagemFalso(), new Secco.Intranet.Tests.Support.ArquivoStoreFalso(), new Secco.Intranet.Tests.Support.ImagemNoTextoRepositorioFalso(), new Secco.Intranet.Tests.Support.LoggerCapturador<EditarPublicacaoHandler>());
 		var corpo = new string('|', 200) + string.Concat(Enumerable.Repeat("x\n", 200));
 
 		var resultado = await handler.HandleAsync(new EditarPublicacaoCommand(
@@ -136,7 +136,7 @@ public class PublicacaoAutorizacaoTests
 	{
 		var handler = new EditarPublicacaoHandler(
 			new RepositorioFalso(Existente()), new IntranetOptions { MaxNameLength = 10 },
-			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance), new Secco.Intranet.Tests.Support.ProcessadorDeImagemFalso(), new Secco.Intranet.Tests.Support.ArquivoStoreFalso(), new Secco.Intranet.Tests.Support.LoggerCapturador<EditarPublicacaoHandler>());
+			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance), new Secco.Intranet.Tests.Support.ProcessadorDeImagemFalso(), new Secco.Intranet.Tests.Support.ArquivoStoreFalso(), new Secco.Intranet.Tests.Support.ImagemNoTextoRepositorioFalso(), new Secco.Intranet.Tests.Support.LoggerCapturador<EditarPublicacaoHandler>());
 
 		var resultado = await handler.HandleAsync(new EditarPublicacaoCommand(
 			Guid.NewGuid(), Setores("financeiro"), ExigirVinculo: true,

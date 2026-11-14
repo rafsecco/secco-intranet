@@ -20,6 +20,7 @@ public class ImagemDaPublicacaoHandlersTests
 {
 	private readonly ProcessadorDeImagemFalso _imagens = new();
 	private readonly ArquivoStoreFalso _arquivos = new();
+	private readonly ImagemNoTextoRepositorioFalso _imagensNoTexto = new();
 	private readonly RepositorioEmMemoria _repositorio = new();
 	private readonly TrilhaFalsa _trilha = new();
 	private readonly NotificadorFalso _notificador = new();
@@ -28,13 +29,13 @@ public class ImagemDaPublicacaoHandlersTests
 	private PublicarPublicacaoHandler Publicador() =>
 		new(_repositorio, new SetorRepositorioFalso(), new IntranetOptions(),
 			new DiretorioFalso(), _notificador, new NotificacaoOptions(), _trilha,
-			_imagens, _arquivos, new LoggerCapturador<PublicarPublicacaoHandler>());
+			_imagens, _arquivos, _imagensNoTexto, new LoggerCapturador<PublicarPublicacaoHandler>());
 
 	private EditarPublicacaoHandler Editor()
 	{
 		_arquivos.ContadorDeSalvamentos = () => _repositorio.Salvou;
 
-		return new(_repositorio, new IntranetOptions(), _trilha, _imagens, _arquivos, _logger);
+		return new(_repositorio, new IntranetOptions(), _trilha, _imagens, _arquivos, _imagensNoTexto, _logger);
 	}
 
 	private static PublicarPublicacaoCommand Publicar(

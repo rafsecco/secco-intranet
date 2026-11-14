@@ -62,9 +62,25 @@ internal static class ImagemDaPublicacao
 	/// <param name="caminhoNovo">Caminho do arquivo recém-guardado, ou nulo se não houve.</param>
 	/// <param name="arquivos">Armazenamento cifrado.</param>
 	/// <param name="logger">Log.</param>
-	internal static async Task<T> PersistirOuDescartarAsync<T>(
+	internal static Task<T> PersistirOuDescartarAsync<T>(
 		Func<Task<T>> persistir,
 		string? caminhoNovo,
+		IArquivoStore arquivos,
+		ILogger logger) =>
+		PersistirOuDescartarAsync(persistir, caminhoNovo is null ? [] : [caminhoNovo], arquivos, logger);
+
+	/// <summary>
+	/// Como a sobrecarga de um caminho, para vários arquivos recém-guardados (a imagem final e
+	/// as imagens do texto): se a persistência falhar, apaga todos.
+	/// </summary>
+	/// <typeparam name="T">Resultado da persistência.</typeparam>
+	/// <param name="persistir">Passos que aplicam as imagens ao domínio e salvam.</param>
+	/// <param name="caminhosNovos">Caminhos recém-guardados.</param>
+	/// <param name="arquivos">Armazenamento cifrado.</param>
+	/// <param name="logger">Log.</param>
+	internal static async Task<T> PersistirOuDescartarAsync<T>(
+		Func<Task<T>> persistir,
+		IReadOnlyCollection<string> caminhosNovos,
 		IArquivoStore arquivos,
 		ILogger logger)
 	{
@@ -74,7 +90,10 @@ internal static class ImagemDaPublicacao
 		}
 		catch
 		{
-			await ApagarAsync(caminhoNovo, arquivos, logger, CancellationToken.None).ConfigureAwait(false);
+			foreach (var caminho in caminhosNovos)
+			{
+				await ApagarAsync(caminho, arquivos, logger, CancellationToken.None).ConfigureAwait(false);
+			}
 
 			throw;
 		}

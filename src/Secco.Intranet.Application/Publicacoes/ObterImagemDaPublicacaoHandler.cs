@@ -1,4 +1,5 @@
 using Secco.Intranet.Domain;
+using Secco.Intranet.Domain.Publicacoes;
 using Secco.SharedKernel.Results;
 
 namespace Secco.Intranet.Application.Publicacoes;
@@ -31,6 +32,27 @@ public sealed class ObterImagemDaPublicacaoHandler(IPublicacaoRepository reposit
 {
 	private const string ContentTypeServido = "image/webp";
 
+	/// <summary>
+	/// Quem vê a imagem de uma publicação: quem escreve no setor dono, ou, com a publicação no ar,
+	/// qualquer um se a visibilidade é Empresa, ou o leitor do setor. Compartilhada com a imagem no texto.
+	/// </summary>
+	/// <param name="publicacao">Publicação dona da imagem.</param>
+	/// <param name="setorSlug">Slug do setor dono.</param>
+	/// <param name="setoresDoLeitor">Slugs dos setores do leitor.</param>
+	/// <param name="setoresComEscrita">Slugs dos setores em que o leitor escreve.</param>
+	/// <param name="exigirVisibilidade">Quando <c>false</c>, dispensa o filtro.</param>
+	internal static bool PodeVer(
+		Publicacao publicacao,
+		string setorSlug,
+		IReadOnlyList<string> setoresDoLeitor,
+		IReadOnlySet<string> setoresComEscrita,
+		bool exigirVisibilidade) =>
+		!exigirVisibilidade
+		|| setoresComEscrita.Contains(setorSlug, StringComparer.OrdinalIgnoreCase)
+		|| (publicacao.EstaNoAr(DateTimeOffset.UtcNow)
+			&& (publicacao.Visibilidade == Visibilidade.Empresa
+				|| setoresDoLeitor.Contains(setorSlug, StringComparer.OrdinalIgnoreCase)));
+
 	/// <summary>Executa o caso de uso.</summary>
 	/// <param name="query">Consulta.</param>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
@@ -47,11 +69,8 @@ public sealed class ObterImagemDaPublicacaoHandler(IPublicacaoRepository reposit
 			return IntranetErrors.Publicacoes.NotFound;
 		}
 
-		var pode = !query.ExigirVisibilidade
-			|| query.SetoresComEscrita.Contains(encontrada.SetorSlug, StringComparer.OrdinalIgnoreCase)
-			|| (publicacao.EstaNoAr(DateTimeOffset.UtcNow)
-				&& (publicacao.Visibilidade == Visibilidade.Empresa
-					|| query.SetoresDoLeitor.Contains(encontrada.SetorSlug, StringComparer.OrdinalIgnoreCase)));
+		var pode = PodeVer(
+			publicacao, encontrada.SetorSlug, query.SetoresDoLeitor, query.SetoresComEscrita, query.ExigirVisibilidade);
 
 		return pode
 			? new ImagemGuardada(caminho, chave, ETagDeArquivo.De(caminho), ContentTypeServido)

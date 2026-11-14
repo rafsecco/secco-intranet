@@ -105,7 +105,7 @@ public class AvisoDePublicacaoTests
 		var handler = new PublicarPublicacaoHandler(
 			new RepositorioFalso(), new SetorRepositorioFalso(), new IntranetOptions(),
 			new DiretorioFalso(usuarios), notificador, new NotificacaoOptions(),
-			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance), new Secco.Intranet.Tests.Support.ProcessadorDeImagemFalso(), new Secco.Intranet.Tests.Support.ArquivoStoreFalso(), new Secco.Intranet.Tests.Support.LoggerCapturador<PublicarPublicacaoHandler>());
+			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance), new Secco.Intranet.Tests.Support.ProcessadorDeImagemFalso(), new Secco.Intranet.Tests.Support.ArquivoStoreFalso(), new Secco.Intranet.Tests.Support.ImagemNoTextoRepositorioFalso(), new Secco.Intranet.Tests.Support.LoggerCapturador<PublicarPublicacaoHandler>());
 
 		return (handler, notificador);
 	}
@@ -281,7 +281,7 @@ public class AvisoDePublicacaoTests
 			new RepositorioFalso(), new SetorRepositorioFalso(), new IntranetOptions(),
 			new DiretorioFalso(Usuario("a@x.com", "financeiro-user")),
 			new NotificadorQueFalha(), new NotificacaoOptions(),
-			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance), new Secco.Intranet.Tests.Support.ProcessadorDeImagemFalso(), new Secco.Intranet.Tests.Support.ArquivoStoreFalso(), new Secco.Intranet.Tests.Support.LoggerCapturador<PublicarPublicacaoHandler>());
+			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance), new Secco.Intranet.Tests.Support.ProcessadorDeImagemFalso(), new Secco.Intranet.Tests.Support.ArquivoStoreFalso(), new Secco.Intranet.Tests.Support.ImagemNoTextoRepositorioFalso(), new Secco.Intranet.Tests.Support.LoggerCapturador<PublicarPublicacaoHandler>());
 
 		var resultado = await handler.HandleAsync(Comando());
 
@@ -309,7 +309,7 @@ public class AvisoDePublicacaoTests
 			new RepositorioFalso(), new SetorRepositorioFalso(), new IntranetOptions(),
 			new DiretorioFalso(Usuario("a@x.com", "financeiro-user")), notificador,
 			new NotificacaoOptions { UrlBase = "https://intranet.exemplo.com" },
-			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance), new Secco.Intranet.Tests.Support.ProcessadorDeImagemFalso(), new Secco.Intranet.Tests.Support.ArquivoStoreFalso(), new Secco.Intranet.Tests.Support.LoggerCapturador<PublicarPublicacaoHandler>());
+			new TrilhaSilenciosa(NullLogger<TrilhaSilenciosa>.Instance), new Secco.Intranet.Tests.Support.ProcessadorDeImagemFalso(), new Secco.Intranet.Tests.Support.ArquivoStoreFalso(), new Secco.Intranet.Tests.Support.ImagemNoTextoRepositorioFalso(), new Secco.Intranet.Tests.Support.LoggerCapturador<PublicarPublicacaoHandler>());
 
 		var resultado = await handler.HandleAsync(Comando());
 

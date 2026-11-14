@@ -25,6 +25,7 @@ namespace Secco.Intranet.Application.Publicacoes;
 /// Descrição da imagem. Com imagem nova, vale para ela; sem, é aplicada à atual (se existir).
 /// </param>
 /// <param name="RemoverImagem">Tira a imagem atual. Ignorado quando há <paramref name="Imagem"/>.</param>
+/// <param name="ImagensDoTexto">Arquivos das imagens novas do texto; o índice é o N de <c>nova-imagem:N</c>.</param>
 public sealed record EditarPublicacaoCommand(
 	Guid PublicacaoId,
 	IReadOnlySet<string> SetoresAdministrados,
@@ -38,7 +39,8 @@ public sealed record EditarPublicacaoCommand(
 	DateTimeOffset? ExpiraEm,
 	ImagemEnviada? Imagem = null,
 	string? ImagemDescricao = null,
-	bool RemoverImagem = false);
+	bool RemoverImagem = false,
+	IReadOnlyList<ImagemEnviada>? ImagensDoTexto = null);
 
 /// <summary>Altera conteúdo e agendamento de uma publicação existente.</summary>
 /// <param name="repository">Persistência de publicações.</param>
@@ -46,6 +48,7 @@ public sealed record EditarPublicacaoCommand(
 /// <param name="trilha">Trilha de auditoria.</param>
 /// <param name="imagens">Processamento da imagem enviada.</param>
 /// <param name="arquivos">Armazenamento cifrado.</param>
+/// <param name="imagensNoTexto">Persistência das imagens no texto.</param>
 /// <param name="logger">Log.</param>
 public sealed class EditarPublicacaoHandler(
 	IPublicacaoRepository repository,
@@ -53,6 +56,7 @@ public sealed class EditarPublicacaoHandler(
 	ITrilhaDeAuditoria trilha,
 	IProcessadorDeImagem imagens,
 	IArquivoStore arquivos,
+	IImagemNoTextoRepository imagensNoTexto,
 	ILogger<EditarPublicacaoHandler> logger)
 {
 	/// <summary>Executa o caso de uso.</summary>
@@ -88,6 +92,19 @@ public sealed class EditarPublicacaoHandler(
 		}
 
 		var publicacao = encontrada.Publicacao;
+
+		var existentes = await imagensNoTexto
+			.ListarDaPublicacaoAsync(publicacao.Id, cancellationToken)
+			.ConfigureAwait(false);
+
+		var analise = ImagensDoCorpo.Analisar(
+			command.Corpo, publicacao.Id, existentes.Select(i => i.Id).ToHashSet(), command.ImagensDoTexto?.Count ?? 0);
+
+		if (analise.IsFailure)
+		{
+			return analise.Error;
+		}
+
 		ArquivoGravado? gravada = null;
 
 		if (command.Imagem is not null)
@@ -104,12 +121,35 @@ public sealed class EditarPublicacaoHandler(
 			gravada = gravacao.Value;
 		}
 
+		var preparado = await ImagensDoCorpo
+			.GravarEReescreverAsync(
+				analise.Value, publicacao.Id, command.ImagensDoTexto, imagens, arquivos, logger, cancellationToken)
+			.ConfigureAwait(false);
+
+		if (preparado.IsFailure)
+		{
+			await ImagemDaPublicacao
+				.ApagarAsync(gravada?.CaminhoRelativo, arquivos, logger, CancellationToken.None)
+				.ConfigureAwait(false);
+
+			return preparado.Error;
+		}
+
+		var caminhosNovos = preparado.Value.Novas.Select(i => i.CaminhoRelativo).ToList();
+
+		if (gravada is not null)
+		{
+			caminhosNovos.Add(gravada.CaminhoRelativo);
+		}
+
+		var obsoletas = existentes.Where(i => !analise.Value.Existentes.Contains(i.Id)).ToList();
+
 		var (anterior, acao) = await ImagemDaPublicacao
 			.PersistirOuDescartarAsync(
 				async () =>
 				{
 					publicacao.Editar(
-						command.Titulo!, command.Corpo, command.Tipo, command.Visibilidade,
+						command.Titulo!, preparado.Value.Corpo, command.Tipo, command.Visibilidade,
 						command.Prioridade, command.PublicadoEm, command.ExpiraEm);
 
 					string? removida = null;
@@ -130,16 +170,31 @@ public sealed class EditarPublicacaoHandler(
 						publicacao.DescreverImagem(command.ImagemDescricao);
 					}
 
+					foreach (var imagem in preparado.Value.Novas)
+					{
+						imagensNoTexto.Adicionar(imagem);
+					}
+
+					foreach (var imagem in obsoletas)
+					{
+						imagensNoTexto.Remover(imagem);
+					}
+
 					await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
 					return (removida, resultado);
 				},
-				gravada?.CaminhoRelativo,
+				caminhosNovos,
 				arquivos,
 				logger)
 			.ConfigureAwait(false);
 
 		await ImagemDaPublicacao.ApagarAsync(anterior, arquivos, logger, cancellationToken).ConfigureAwait(false);
+
+		foreach (var imagem in obsoletas)
+		{
+			await ImagemDaPublicacao.ApagarAsync(imagem.CaminhoRelativo, arquivos, logger, cancellationToken).ConfigureAwait(false);
+		}
 
 		await trilha
 			.RegistrarAsync(
@@ -156,6 +211,7 @@ public sealed class EditarPublicacaoHandler(
 						setor = encontrada.SetorSlug,
 						imagem = publicacao.TemImagem,
 						imagemAcao = acao,
+						imagensNoTexto = analise.Value.Existentes.Count + preparado.Value.Novas.Count,
 					})),
 				cancellationToken)
 			.ConfigureAwait(false);

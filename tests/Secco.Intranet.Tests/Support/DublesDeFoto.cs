@@ -74,6 +74,9 @@ public sealed class ProcessadorDeImagemFalso : IProcessadorDeImagem
 	/// <summary>Quando não nulo, o processamento falha com este erro.</summary>
 	public Error? FalharCom { get; set; }
 
+	/// <summary>Quando informado, <see cref="FalharCom"/> vale só para esta chamada (1 é a primeira).</summary>
+	public int? FalharNaChamada { get; set; }
+
 	/// <summary>Quantas vezes foi chamado (foto e imagem de publicação).</summary>
 	public int Chamadas { get; private set; }
 
@@ -82,7 +85,7 @@ public sealed class ProcessadorDeImagemFalso : IProcessadorDeImagem
 	{
 		Chamadas++;
 
-		return Task.FromResult(FalharCom is null
+		return Task.FromResult(FalharCom is null || (FalharNaChamada is not null && FalharNaChamada != Chamadas)
 			? Result.Success(new FotoProcessada([1, 2, 3], "image/webp"))
 			: Result.Failure<FotoProcessada>(FalharCom));
 	}
