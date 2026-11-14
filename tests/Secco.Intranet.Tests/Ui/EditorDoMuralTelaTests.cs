@@ -785,4 +785,123 @@ public class EditorDoMuralTelaTests(EditorDoMuralFixture f) : IClassFixture<Edit
 		await Expect(pagina.GetByText("O corpo excede o limite de 20000 caracteres.").First).ToBeVisibleAsync();
 		(await pagina.Locator(".sc-editor .ProseMirror").InnerTextAsync()).Length.Should().BeGreaterThanOrEqualTo(20_001);
 	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Editor_ModoMarkdown_MostraOTextoCruEVolta(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		var editor = pagina.Locator(".sc-editor .ProseMirror");
+		var botao = pagina.GetByLabel("Markdown", new() { Exact = true });
+		var negrito = pagina.GetByLabel("Negrito", new() { Exact = true });
+
+		await editor.ClickAsync();
+		await pagina.Keyboard.TypeAsync("Texto ");
+		await negrito.ClickAsync();
+		await pagina.Keyboard.TypeAsync("forte");
+		await botao.ClickAsync();
+
+		await Expect(pagina.Locator(Corpo)).ToBeVisibleAsync();
+		await Expect(pagina.Locator(Corpo)).ToHaveValueAsync(new Regex(@"\*\*forte\*\*"));
+		await Expect(editor).ToBeHiddenAsync();
+		await Expect(negrito).ToBeDisabledAsync();
+		await Expect(botao).ToHaveAttributeAsync("aria-pressed", "true");
+
+		await pagina.Locator(Corpo).FillAsync((await pagina.Locator(Corpo).InputValueAsync()) + "\n\n## Novo");
+		await botao.ClickAsync();
+
+		await Expect(editor).ToBeVisibleAsync();
+		await Expect(editor.Locator("h2")).ToHaveTextAsync("Novo");
+		await Expect(pagina.Locator(Corpo)).ToBeHiddenAsync();
+		await Expect(negrito).ToBeEnabledAsync();
+		await Expect(botao).ToHaveAttributeAsync("aria-pressed", "false");
+		f.ViolacoesDeCsp(pagina).Should().BeEmpty();
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Editor_ModoMarkdown_EnviaOTextoCru(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await pagina.GetByLabel("Markdown", new() { Exact = true }).ClickAsync();
+		await pagina.Locator(Corpo).FillAsync("Texto **cru**");
+
+		var publicado = await PublicarAsync(pagina, tema);
+
+		await Expect(publicado.Locator("strong")).ToHaveTextAsync("cru");
+	}
+
+	[UiTheory]
+	[MemberData(nameof(CargasHostis))]
+	public async Task Editor_ModoMarkdown_ConteudoHostilAoVoltar_NaoExecuta(string nome, string carga)
+	{
+		var id = await f.CriarPublicacaoAsync("Texto inicial");
+		var pagina = await f.AbrirEdicaoAsync(EditorDoMuralFixture.ReportOnly, id, ScriptXss);
+
+		await Expect(pagina.Locator(".sc-editor .ProseMirror")).ToBeVisibleAsync();
+		await pagina.GetByLabel("Markdown", new() { Exact = true }).ClickAsync();
+		await pagina.Locator(Corpo).FillAsync(carga);
+		await pagina.GetByLabel("Markdown", new() { Exact = true }).ClickAsync();
+		await Expect(pagina.Locator(".sc-editor .ProseMirror")).ToBeVisibleAsync();
+		await pagina.WaitForTimeoutAsync(500);
+
+		(await pagina.EvaluateAsync<string[]>("() => window.__xss")).Should().BeEmpty($"a carga {nome} não pode executar");
+		(await pagina.EvaluateAsync<int>(
+			"() => [...document.querySelectorAll('.sc-editor *')].filter(e => [...e.attributes].some(a => a.name.startsWith('on'))).length"))
+			.Should().Be(0);
+		(await pagina.Locator(".sc-editor").Locator("script, iframe, svg, math, details, object, embed").CountAsync()).Should().Be(0);
+		(await pagina.Locator(".sc-editor a[href^='javascript:' i], .sc-editor a[href^='data:' i]").CountAsync()).Should().Be(0);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_MarkdownComoTexto_ViraFormatacao(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, string.Empty, "## T\n\n**n**\n\n- a\n- b\n\n| A | B |\n| --- | --- |\n| 1 | 2 |");
+
+		var editor = pagina.Locator(".sc-editor .ProseMirror");
+		await Expect(editor.Locator("h2")).ToHaveTextAsync("T");
+		await Expect(editor.Locator("strong")).ToHaveTextAsync("n");
+		await Expect(editor.Locator("li")).ToHaveCountAsync(2);
+		await Expect(editor.Locator("table")).ToHaveCountAsync(1);
+		var markdown = await pagina.Locator(Corpo).InputValueAsync();
+		markdown.Should().Contain("## T");
+		markdown.Should().Contain("**n**");
+		markdown.Should().Contain("- a");
+		markdown.Should().Contain("| A | B |");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_MarkdownComHtml_UsaOHtml(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, "<p><b>do html</b></p>", "**do texto**");
+
+		var editor = pagina.Locator(".sc-editor .ProseMirror");
+		await Expect(editor.Locator("strong")).ToHaveTextAsync("do html");
+		(await editor.InnerTextAsync()).Should().NotContain("do texto");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_TextoComumComAsterisco_FicaComoTexto(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, string.Empty, "Conta: 2 * 3 = 6");
+
+		var editor = pagina.Locator(".sc-editor .ProseMirror");
+		await Expect(editor).ToHaveTextAsync("Conta: 2 * 3 = 6");
+		(await editor.Locator("strong, em").CountAsync()).Should().Be(0);
+	}
 }

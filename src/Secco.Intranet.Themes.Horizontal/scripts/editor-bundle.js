@@ -7,7 +7,9 @@ import { TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 import StarterKit from '@tiptap/starter-kit';
 import { Tabela } from './tabela-markdown.js';
 import { limparColagem } from './colagem.js';
+import { pareceMarkdown } from './markdown-colado.js';
 
+export { pareceMarkdown } from './markdown-colado.js';
 export { limparColagem, AVISO_ANINHADA, AVISO_IMAGEM, AVISO_MESCLADA, AVISO_TABELA_GRANDE } from './colagem.js';
 
 const ESQUEMAS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
@@ -22,7 +24,7 @@ function destinoPermitido(url) {
 }
 
 export function criarEditor({ elemento, markdown, aoMudar, aoColar }) {
-  return new Editor({
+  const editor = new Editor({
     element: elemento,
     // A <style> injetada violaria a CSP; o CSS vem do tema.
     injectCSS: false,
@@ -49,6 +51,26 @@ export function criarEditor({ elemento, markdown, aoMudar, aoColar }) {
     ],
     editorProps: {
       attributes: { role: 'textbox', 'aria-multiline': 'true', 'aria-label': 'Corpo' },
+      // Colar so texto (sem text/html) que pareca Markdown vira formatacao. Com text/html, a
+      // colagem segue pelo transformPastedHTML (Word, sites).
+      handlePaste: (view, event) => {
+        const dados = event.clipboardData;
+
+        if (!dados || (dados.getData('text/html') || '').trim() !== '') {
+          return false;
+        }
+
+        const texto = dados.getData('text/plain') || '';
+
+        if (!pareceMarkdown(texto)) {
+          return false;
+        }
+
+        // `editor` ainda nao existe na primeira chamada, mas o handler so roda depois do construtor.
+        editor.commands.insertContent(texto, { contentType: 'markdown' });
+
+        return true;
+      },
       transformPastedHTML: (html) => {
         const limpo = limparColagem(html);
         aoColar?.(limpo.avisos);
@@ -58,4 +80,6 @@ export function criarEditor({ elemento, markdown, aoMudar, aoColar }) {
     },
     onUpdate: ({ editor }) => aoMudar(editor.getMarkdown()),
   });
+
+  return editor;
 }

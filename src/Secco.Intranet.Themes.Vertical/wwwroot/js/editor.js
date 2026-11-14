@@ -228,6 +228,13 @@
     comando('Refazer', 'bi-arrow-clockwise', function (c) { return c.redo(); })
   ]);
 
+  // Modo Markdown cru: o textarea (o campo enviado) fica a vista no lugar do editor.
+  var botaoMarkdown = botao('Markdown', 'bi-markdown');
+  var modoCru = false;
+
+  botaoMarkdown.setAttribute('aria-pressed', 'false');
+  grupo([botaoMarkdown]);
+
   barra.appendChild(campoLink);
 
   function atualizar() {
@@ -236,13 +243,48 @@
     });
   }
 
+  function alternarModoCru() {
+    modoCru = !modoCru;
+    botaoMarkdown.classList.toggle('active', modoCru);
+    botaoMarkdown.setAttribute('aria-pressed', modoCru ? 'true' : 'false');
+
+    Array.prototype.forEach.call(barra.querySelectorAll('button'), function (b) {
+      if (b !== botaoMarkdown) {
+        b.disabled = modoCru;
+      }
+    });
+
+    if (modoCru) {
+      area.value = editor.getMarkdown();
+      texto.hidden = true;
+      area.classList.remove('d-none');
+      campoLink.hidden = true;
+      tabela.hidden = true;
+      area.focus();
+
+      return;
+    }
+
+    editor.commands.setContent(area.value, { contentType: 'markdown' });
+    area.value = editor.getMarkdown();
+    area.classList.add('d-none');
+    texto.hidden = false;
+    editor.commands.focus();
+    atualizar();
+  }
+
+  botaoMarkdown.addEventListener('click', alternarModoCru);
+
   editor.on('transaction', atualizar);
   atualizar();
 
   var formulario = area.closest('form');
   if (formulario) {
     formulario.addEventListener('submit', function () {
-      area.value = editor.getMarkdown();
+      // No modo cru o campo enviado e o texto que a pessoa escreveu.
+      if (!modoCru) {
+        area.value = editor.getMarkdown();
+      }
     });
   }
 })();
