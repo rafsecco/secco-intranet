@@ -188,9 +188,16 @@ public sealed class PublicarPublicacaoHandler(
 
 					await repository.AddAsync(nova, cancellationToken).ConfigureAwait(false);
 
-					foreach (var imagem in preparado.Value.Novas)
+					// AddAsync já salvou a publicação; as imagens entram no contexto depois dele e
+					// precisam de um salvamento próprio, senão ficam só em memória.
+					if (preparado.Value.Novas.Count > 0)
 					{
-						imagensNoTexto.Adicionar(imagem);
+						foreach (var imagem in preparado.Value.Novas)
+						{
+							imagensNoTexto.Adicionar(imagem);
+						}
+
+						await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 					}
 
 					return nova;

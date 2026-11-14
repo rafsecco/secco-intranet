@@ -248,6 +248,82 @@ public sealed class MuralController(
 		return new EmptyResult();
 	}
 
+	/// <summary>
+	/// Entrega uma imagem inserida no texto da publicação, com a mesma regra de visibilidade, cache e
+	/// ETag da imagem de destaque. Fora do alcance, de outra publicação ou ausente responde 404.
+	/// </summary>
+	/// <param name="id">Identificador da publicação.</param>
+	/// <param name="imagemId">Identificador da imagem.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpGet("/publicacoes/{id:guid}/imagens/{imagemId:guid}")]
+	public async Task<IActionResult> ImagemNoTexto(Guid id, Guid imagemId, CancellationToken cancellationToken = default)
+	{
+		if (!tenantContext.IsResolved)
+		{
+			return NotFound();
+		}
+
+		var leitura = await SlugsComLeituraAsync(cancellationToken).ConfigureAwait(false);
+
+		var comEscrita = AcessoAdministrativo.ModoAbertoDeDev(environment, configuration)
+			? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+			: await permissoesDeSetor
+				.SlugsComPermissaoAsync(User, "write", leitura, cancellationToken)
+				.ConfigureAwait(false);
+
+		var resultado = await serviceProvider
+			.GetRequiredService<ObterImagemNoTextoHandler>()
+			.HandleAsync(
+				new ObterImagemNoTextoQuery(
+					id,
+					imagemId,
+					leitura,
+					comEscrita,
+					ExigirVisibilidade: !AcessoAdministrativo.ModoAbertoDeDev(environment, configuration)),
+				cancellationToken)
+			.ConfigureAwait(false);
+
+		if (resultado.IsFailure)
+		{
+			return resultado.Error.Type == ErrorType.NotFound ? NotFound() : StatusCode(StatusCodes.Status503ServiceUnavailable);
+		}
+
+		var imagem = resultado.Value;
+
+		Response.Headers.ETag = imagem.ETag;
+		Response.Headers.CacheControl = "private, no-cache";
+		Response.Headers.XContentTypeOptions = "nosniff";
+
+		if (Request.Headers.IfNoneMatch.Any(valor => ETagConfere(valor, imagem.ETag)))
+		{
+			return StatusCode(StatusCodes.Status304NotModified);
+		}
+
+		using var conteudo = new MemoryStream();
+
+		try
+		{
+			await serviceProvider
+				.GetRequiredService<IArquivoStore>()
+				.EscreverEmAsync(imagem.CaminhoRelativo, imagem.ChaveEmbrulhada, conteudo, cancellationToken)
+				.ConfigureAwait(false);
+		}
+		catch (Exception falha) when (falha is not OperationCanceledException)
+		{
+			logger.LogWarning("Não foi possível ler a imagem {ImagemId} da publicação {PublicacaoId} do armazenamento ({TipoDaFalha}).", imagemId, id, falha.GetType().Name);
+
+			Response.Headers.Remove("ETag");
+
+			return NotFound();
+		}
+
+		Response.ContentType = imagem.ContentType;
+		conteudo.Position = 0;
+		await conteudo.CopyToAsync(Response.Body, cancellationToken).ConfigureAwait(false);
+
+		return new EmptyResult();
+	}
+
 	// If-None-Match pode trazer uma lista de validadores, fracos (W/) ou "*".
 	private static bool ETagConfere(string? cabecalho, string etag) =>
 		cabecalho is not null

@@ -65,6 +65,9 @@ public sealed class SetorController(
 	AcessoAoRecursoDoSetor acesso,
 	ResolverCaminhoDeMenuHandler resolverCaminho) : Controller
 {
+	// 11 arquivos de 10 MB (destaque e 10 imagens do texto) mais os campos de texto.
+	private const long LimiteDaRequisicaoDeAviso = 128L * 1024 * 1024;
+
 	/// <summary>
 	/// Qualquer nó da árvore do setor: renderiza pelo tipo; nó que só agrupa responde 404.
 	/// </summary>
@@ -461,6 +464,8 @@ public sealed class SetorController(
 	/// <param name="cancellationToken">Token de cancelamento.</param>
 	[HttpPost("avisos")]
 	[ValidateAntiForgeryToken]
+	[RequestSizeLimit(LimiteDaRequisicaoDeAviso)]
+	[RequestFormLimits(MultipartBodyLengthLimit = LimiteDaRequisicaoDeAviso)]
 	public async Task<IActionResult> SalvarAviso(
 		string slug,
 		PublicacaoFormViewModel form,
@@ -493,6 +498,10 @@ public sealed class SetorController(
 		await using var arquivo = form.Imagem is { Length: > 0 } ? form.Imagem.OpenReadStream() : null;
 		var imagem = arquivo is null ? null : new ImagemEnviada(arquivo);
 
+		// Cada arquivo abre o fluxo uma vez; todos fecham no fim da action. Vazio é "sem arquivo".
+		using var fluxosDoTexto = new FluxosDosArquivos(form.ImagensDoTexto);
+		var imagensDoTexto = fluxosDoTexto.Imagens;
+
 		var exigirVinculo = !AcessoAdministrativo.ModoAbertoDeDev(environment, configuration);
 		var publicadoEm = new DateTimeOffset(form.PublicadoEm, DateTimeOffset.Now.Offset);
 		DateTimeOffset? expiraEm = form.ExpiraEm is null
@@ -509,7 +518,7 @@ public sealed class SetorController(
 			var publicado = await publicarPublicacaoHandler.HandleAsync(
 				new PublicarPublicacaoCommand(slug, form.Titulo, form.Corpo, form.Tipo, form.Visibilidade,
 					form.Prioridade, publicadoEm, expiraEm, User.Identity?.Name ?? "desconhecido",
-					IdDoUsuarioAtual(), imagem, form.ImagemDescricao),
+					IdDoUsuarioAtual(), imagem, form.ImagemDescricao, ImagensDoTexto: imagensDoTexto),
 				cancellationToken).ConfigureAwait(false);
 
 			if (publicado.IsFailure)
@@ -527,7 +536,7 @@ public sealed class SetorController(
 				new EditarPublicacaoCommand(
 					form.Id, await SlugsComEscritaAsync(cancellationToken).ConfigureAwait(false), exigirVinculo,
 					form.Titulo, form.Corpo, form.Tipo, form.Visibilidade, form.Prioridade,
-					publicadoEm, expiraEm, imagem, form.ImagemDescricao, form.RemoverImagem),
+					publicadoEm, expiraEm, imagem, form.ImagemDescricao, form.RemoverImagem, imagensDoTexto),
 				cancellationToken).ConfigureAwait(false);
 
 			if (editado.IsFailure)
@@ -692,6 +701,14 @@ public sealed class SetorController(
 		{
 			ModelState.AddModelError(string.Empty, "Escolha a imagem de novo.");
 		}
+
+		// O Markdown volta com os marcadores, mas os arquivos não: o editor os mostra como pendentes.
+		if (form.ImagensDoTexto is { Count: > 0 }
+			|| (form.Corpo?.Contains("nova-imagem:", StringComparison.Ordinal) ?? false))
+		{
+			ModelState.AddModelError(
+				string.Empty, "As imagens novas do texto não foram guardadas: insira-as de novo antes de enviar.");
+		}
 	}
 
 	/// <summary>Identificador pedido em <c>?editar=</c>, quando válido.</summary>
@@ -759,5 +776,45 @@ public sealed class SetorController(
 		var slugs = await SlugsComEscritaAsync(cancellationToken).ConfigureAwait(false);
 
 		return slugs.Select(ReferenciaDeDono.DoSetor).ToHashSet();
+	}
+
+	/// <summary>
+	/// Fluxos abertos dos arquivos das imagens do texto, um por arquivo, na ordem recebida (o índice é o
+	/// N do marcador). Arquivo vazio mantém a posição com um fluxo vazio, que o handler recusa, para não
+	/// deslocar os índices dos demais.
+	/// </summary>
+	private sealed class FluxosDosArquivos : IDisposable
+	{
+		private readonly List<Stream> _abertos = [];
+
+		public FluxosDosArquivos(IReadOnlyList<IFormFile>? arquivos)
+		{
+			Imagens = arquivos is null or { Count: 0 }
+				? null
+				: [.. arquivos.Select(arquivo => new ImagemEnviada(Abrir(arquivo)))];
+		}
+
+		public IReadOnlyList<ImagemEnviada>? Imagens { get; }
+
+		public void Dispose()
+		{
+			foreach (var fluxo in _abertos)
+			{
+				fluxo.Dispose();
+			}
+		}
+
+		private Stream Abrir(IFormFile arquivo)
+		{
+			if (arquivo.Length == 0)
+			{
+				return Stream.Null;
+			}
+
+			var fluxo = arquivo.OpenReadStream();
+			_abertos.Add(fluxo);
+
+			return fluxo;
+		}
 	}
 }

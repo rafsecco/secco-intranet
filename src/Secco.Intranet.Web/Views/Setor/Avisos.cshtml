@@ -67,7 +67,7 @@
 
                 <div class="col-12">
                     <label class="form-label" asp-for="Form.Corpo">Corpo</label>
-                    <textarea class="form-control" asp-for="Form.Corpo" rows="8" data-sc-editor-markdown></textarea>
+                    <textarea class="form-control" asp-for="Form.Corpo" rows="8" data-sc-editor-markdown data-sc-publicacao-id="@(editando ? Model.Form.Id.ToString() : string.Empty)"></textarea>
                     <span class="text-danger" asp-validation-for="Form.Corpo"></span>
                 </div>
 

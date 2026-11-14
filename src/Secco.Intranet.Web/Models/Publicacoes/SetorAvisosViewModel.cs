@@ -24,6 +24,12 @@ public sealed class PublicacaoFormViewModel
 	/// <summary>Imagem enviada; vazia mantém a atual (edição) ou publica sem imagem (nova).</summary>
 	public IFormFile? Imagem { get; set; }
 
+	/// <summary>
+	/// Arquivos das imagens novas inseridas no texto; o índice de cada um é o N do marcador
+	/// <c>nova-imagem:N</c> no Markdown.
+	/// </summary>
+	public List<IFormFile>? ImagensDoTexto { get; set; }
+
 	/// <summary>Descrição da imagem, para quem usa leitor de tela.</summary>
 	[StringLength(300, ErrorMessage = "A descrição da imagem passa de 300 caracteres.")]
 	public string? ImagemDescricao { get; set; }
