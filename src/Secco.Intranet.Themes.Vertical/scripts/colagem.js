@@ -116,7 +116,7 @@ function marcarListas(html) {
 }
 
 // Cada paragrafo que comeca com o marcador vira <li>; irmaos seguidos do mesmo tipo entram na
-// mesma lista. A lista e plana: o nivel nao e preservado.
+// mesma lista. O nivel vem do mso-list e e reconstruido depois (aninharNiveis).
 function listasFalsas(doc) {
   const criadas = new Set();
 
