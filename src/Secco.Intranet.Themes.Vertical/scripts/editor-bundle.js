@@ -6,6 +6,7 @@ import { Markdown } from '@tiptap/markdown';
 import { TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 import StarterKit from '@tiptap/starter-kit';
 import { Tokenizer } from 'marked';
+import { Sublinhado } from './sublinhado-markdown.js';
 import { Tabela } from './tabela-markdown.js';
 import { limparColagem } from './colagem.js';
 import { htmlSemFormatacao, pareceMarkdown } from './markdown-colado.js';
@@ -59,6 +60,8 @@ export function criarEditor({ elemento, markdown, aoMudar, aoColar }) {
           shouldAutoLink: (url) => /^[a-z][a-z0-9+.-]*:\/\//i.test(url),
         },
       }),
+      // O sublinhado nativo do StarterKit grava <u>; este grava ++texto++ (sublinhado-markdown.js).
+      Sublinhado,
       Tabela.configure({ resizable: false }),
       TableRow,
       TableHeader,

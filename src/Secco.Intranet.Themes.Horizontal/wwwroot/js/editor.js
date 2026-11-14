@@ -132,7 +132,9 @@
     comando('Negrito', 'bi-type-bold', function (c) { return c.toggleBold(); },
       function () { return editor.isActive('bold'); }),
     comando('Itálico', 'bi-type-italic', function (c) { return c.toggleItalic(); },
-      function () { return editor.isActive('italic'); })
+      function () { return editor.isActive('italic'); }),
+    comando('Sublinhado', 'bi-type-underline', function (c) { return c.toggleUnderline(); },
+      function () { return editor.isActive('underline'); })
   ]);
 
   grupo([

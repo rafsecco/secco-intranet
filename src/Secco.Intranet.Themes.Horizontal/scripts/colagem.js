@@ -95,7 +95,9 @@ function substituirEstilo(_, separador, aspas, apostrofos, sem) {
   const negrito = /font-weight:\s*(bold|[6-9]00)/.test(estilo) ? ' data-sc-negrito' : '';
   const italico = /font-style:\s*italic/.test(estilo) ? ' data-sc-italico' : '';
 
-  return separador + (negrito + italico).trim();
+  const sublinhado = /text-decoration(?:-line)?:[^;]*underline/.test(estilo) ? ' data-sc-sublinhado' : '';
+
+  return separador + (negrito + italico + sublinhado).trim();
 }
 
 // Listas do Word que chegam como paragrafos: o marcador ("·", "1.") vem entre comentarios
@@ -217,9 +219,14 @@ function aninharNiveis(doc) {
 }
 
 function estiloEmMarcas(doc) {
-  doc.body.querySelectorAll('[data-sc-negrito], [data-sc-italico]').forEach((no) => {
+  doc.body.querySelectorAll('[data-sc-negrito], [data-sc-italico], [data-sc-sublinhado]').forEach((no) => {
     let marcado = doc.createElement('span');
     marcado.append(...no.childNodes);
+    if (no.hasAttribute('data-sc-sublinhado')) {
+      const u = doc.createElement('u');
+      u.appendChild(marcado);
+      marcado = u;
+    }
     if (no.hasAttribute('data-sc-italico')) {
       const em = doc.createElement('em');
       em.appendChild(marcado);
@@ -233,6 +240,7 @@ function estiloEmMarcas(doc) {
     no.appendChild(marcado);
     no.removeAttribute('data-sc-negrito');
     no.removeAttribute('data-sc-italico');
+    no.removeAttribute('data-sc-sublinhado');
   });
 }
 
