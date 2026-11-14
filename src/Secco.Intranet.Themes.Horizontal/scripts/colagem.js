@@ -63,6 +63,28 @@ function emLinha(origem, destino, doc) {
 // <strong> e <em>.
 const ATRIBUTO_STYLE = /([\s/])style\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
 
+// O Word informa o nivel do item de lista no style (`mso-list:l0 level2 lfo1`), nos <p> da lista falsa
+// e nos <li> da lista real. Como o style sai antes do parse, o nivel vira `data-sc-nivel` ainda na
+// string; `aninharNiveis` o usa depois. O teto de 9 niveis e o do proprio Word.
+const NIVEL_MAXIMO = 9;
+const TAG_DE_ITEM = /<(?:p|li)(?=[\s>])[^>]{0,2000}>/gi;
+const NIVEL_DO_WORD = /mso-list:\s*l\d+\s+level(\d+)/i;
+const FIM_DO_NOME = /^<[a-z]+/i;
+
+function nivelValido(valor) {
+  const n = Number.parseInt(valor, 10);
+
+  return Number.isFinite(n) ? Math.min(Math.max(n, 1), NIVEL_MAXIMO) : 1;
+}
+
+function marcarNiveis(html) {
+  return html.replace(TAG_DE_ITEM, (tag) => {
+    const nivel = NIVEL_DO_WORD.exec(tag);
+
+    return nivel ? tag.replace(FIM_DO_NOME, (inicio) => `${inicio} data-sc-nivel="${nivelValido(nivel[1])}"`) : tag;
+  });
+}
+
 function tirarEstilo(html) {
   // So dentro de tags de abertura: o texto "use style=foo" nao pode perder nada.
   return html.replace(/<[a-z][^>]*>/gi, (tag) => tag.replace(ATRIBUTO_STYLE, substituirEstilo));
@@ -110,6 +132,10 @@ function listasFalsas(doc) {
     marcador.remove();
     item.append(...p.childNodes);
 
+    if (p.hasAttribute('data-sc-nivel')) {
+      item.setAttribute('data-sc-nivel', p.getAttribute('data-sc-nivel'));
+    }
+
     const anterior = p.previousElementSibling;
     let lista;
 
@@ -124,6 +150,70 @@ function listasFalsas(doc) {
     lista.appendChild(item);
     p.remove();
   });
+}
+
+const TIPOS_DE_LISTA = new Set(['UL', 'OL']);
+
+function listaComNivel(no) {
+  return TIPOS_DE_LISTA.has(no.tagName) && Array.from(no.children).some((filho) => filho.hasAttribute('data-sc-nivel'));
+}
+
+// Reconstroi o aninhamento a partir do `data-sc-nivel`: o item de nivel N+1 entra numa sublista (do
+// tipo da lista em que veio, ul ou ol) dentro do ultimo item de nivel N. Listas irmas seguidas,
+// como as da lista falsa (cada tipo de marcador vira a sua), formam uma sequencia so. Lista sem
+// `data-sc-nivel` fica como esta.
+function aninharNiveis(doc) {
+  const tratadas = new Set();
+
+  Array.from(doc.body.querySelectorAll('ul, ol')).forEach((primeira) => {
+    if (tratadas.has(primeira) || !listaComNivel(primeira) || primeira.parentElement?.closest('li')) {
+      return;
+    }
+
+    const sequencia = [primeira];
+    while (listaComNivel(sequencia.at(-1).nextElementSibling ?? doc.body)) {
+      sequencia.push(sequencia.at(-1).nextElementSibling);
+    }
+
+    const itens = sequencia.flatMap((lista) => Array.from(lista.children)
+      .filter((filho) => filho.tagName === 'LI')
+      .map((li) => ({ li, tipo: lista.tagName.toLowerCase(), nivel: nivelValido(li.getAttribute('data-sc-nivel')) })));
+    const raizes = [];
+    const pilha = [];
+
+    itens.forEach(({ li, tipo, nivel }) => {
+      while (pilha.length && pilha.at(-1).nivel > nivel) {
+        pilha.pop();
+      }
+
+      if (pilha.length && pilha.at(-1).nivel === nivel && pilha.at(-1).tipo !== tipo) {
+        pilha.pop();
+      }
+
+      if (!pilha.length || pilha.at(-1).nivel < nivel) {
+        const lista = doc.createElement(tipo);
+        const pai = pilha.at(-1)?.ultimo;
+
+        if (pai) {
+          pai.appendChild(lista);
+        } else {
+          raizes.push(lista);
+        }
+
+        pilha.push({ nivel, tipo, lista, ultimo: null });
+      }
+
+      const atual = pilha.at(-1);
+      atual.lista.appendChild(li);
+      atual.ultimo = li;
+    });
+
+    sequencia.forEach((lista) => tratadas.add(lista));
+    primeira.before(...raizes);
+    sequencia.forEach((lista) => lista.remove());
+  });
+
+  doc.body.querySelectorAll('[data-sc-nivel]').forEach((no) => no.removeAttribute('data-sc-nivel'));
 }
 
 function estiloEmMarcas(doc) {
@@ -269,7 +359,7 @@ export function limparColagem(html) {
     }
   };
 
-  const doc = new DOMParser().parseFromString(tirarEstilo(marcarListas(String(html ?? ''))), 'text/html');
+  const doc = new DOMParser().parseFromString(tirarEstilo(marcarListas(marcarNiveis(String(html ?? '')))), 'text/html');
   const corpo = doc.body;
 
   const comentarios = [];
@@ -293,6 +383,7 @@ export function limparColagem(html) {
 
   estiloEmMarcas(doc);
   listasFalsas(doc);
+  aninharNiveis(doc);
   corpo.querySelectorAll('[style], [class]').forEach((no) => {
     no.removeAttribute('style');
     no.removeAttribute('class');
