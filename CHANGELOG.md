@@ -46,3 +46,36 @@ Detalhes no [guia de deploy](docs/guia-de-deploy.md), no [README](README.md) e n
   fixo. Na primeira subida com a versão nova, todos entram de novo uma vez.
 - O log chega ao LogStream com `ServiceName` `intranet`: filtro ou painel que use `secco-intranet`
   precisa mudar.
+
+### Quebras — Editor do Mural
+
+O Toast UI deu lugar ao Tiptap. Detalhes na
+[spec do editor](docs/specs/2026-11-06-editor-do-mural-design.md).
+
+**Banco:**
+
+- A migration `AumentarCorpoDaPublicacao` leva `ds_corpo` a `nvarchar(max)` no SQL Server e a
+  `character varying(20000)` no PostgreSQL. Rode o `migrate` antes de subir a versão nova.
+
+**Avisos existentes:**
+
+- O corpo passa a aceitar até 20.000 caracteres, e tabela acima de 10.000 células estimadas é recusada
+  ao publicar e ao editar.
+- Aviso com imagem no texto (`![](...)`) ou tachado (`~~...~~`) perde esses elementos quando é
+  reaberto e salvo no editor visual. O texto guardado não muda até alguém salvá-lo.
+
+**Tema próprio (fork):**
+
+- Saíram `vendor/js/toastui-editor.js`, `vendor/js/i18n/pt-br.js`,
+  `vendor/css/toastui-editor.css`, `vendor/css/toastui-editor-dark.css` e a classe `.sc-legenda`.
+- O editor passa a ser `vendor/js/editor-tiptap.js`, com o global `seccoEditor`, mais
+  `wwwroot/js/editor.js`. A view de avisos continua carregando os dois do tema Vertical.
+- O CSS do editor fica em cada tema: copie para o seu tema o bloco `.sc-editor` e as regras de tabela
+  de `.sc-card__body` do `_components.scss` do Vertical. Sem esse bloco, o editor sobe sem estilo,
+  porque o Tiptap não injeta CSS para não violar a CSP.
+
+**CSP:**
+
+- `EstilosDeTerceirosPermitidos` fica só com `display:none`. Saíram `display: none`,
+  `display: block` e `null`, que existiam pelo Toast UI. Código de fork que escreva esses valores em
+  `style` passa a ser bloqueado.
