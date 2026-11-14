@@ -36,6 +36,18 @@ public class RenderizadorMarkdownTests
 	}
 
 	[Fact]
+	public void Renderizar_Sublinhado_GeraIns() =>
+		Renderizar("a ++b++ c").Should().Contain("<ins>b</ins>");
+
+	[Fact]
+	public void Renderizar_Tachado_ContinuaTexto()
+	{
+		var html = Renderizar("~~x~~");
+
+		html.Should().NotContain("<del>").And.NotContain("<s>");
+	}
+
+	[Fact]
 	public void Renderizar_ComNegrito_GeraStrong() =>
 		Renderizar("Atenção: **importante**.").Should().Contain("<strong>importante</strong>");
 

@@ -1,4 +1,5 @@
 using Markdig;
+using Markdig.Extensions.EmphasisExtras;
 using Markdig.Renderers;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
@@ -23,6 +24,8 @@ public sealed class RenderizadorMarkdown : IRenderizadorMarkdown
 		.DisableHtml()
 		.UseAutoLinks()
 		.UsePipeTables()
+		// So o sublinhado (++texto++ vira <ins>): as demais opcoes ligariam tachado, sobrescrito e realce.
+		.UseEmphasisExtras(EmphasisExtraOptions.Inserted)
 		.Build();
 
 	private static readonly HashSet<string> EsquemasPermitidos =

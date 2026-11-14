@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Markdig;
+using Markdig.Extensions.EmphasisExtras;
 using Microsoft.Extensions.Logging;
 using Secco.Intranet.Application.Auditoria;
 using Secco.Intranet.Application.Diretorio;
@@ -77,6 +78,7 @@ public sealed class PublicarPublicacaoHandler(
 	private static readonly MarkdownPipeline PipelineDeTexto = new MarkdownPipelineBuilder()
 		.DisableHtml()
 		.UsePipeTables()
+		.UseEmphasisExtras(EmphasisExtraOptions.Inserted)
 		.Build();
 
 	/// <summary>Executa o caso de uso.</summary>

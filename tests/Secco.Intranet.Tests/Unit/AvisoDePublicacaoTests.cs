@@ -111,6 +111,18 @@ public class AvisoDePublicacaoTests
 	}
 
 	[Fact]
+	public async Task HandleAsync_CorpoComSublinhado_ResumoSemMarcadores()
+	{
+		var (handler, notificador) = Montar(Usuario("a@x.com", "financeiro-user"));
+		var comando = Comando() with { Corpo = "Texto ++forte++" };
+
+		await handler.HandleAsync(comando);
+
+		var resumo = notificador.Lotes.Should().ContainSingle().Which.Resumo;
+		resumo.Should().Contain("forte").And.NotContain("++");
+	}
+
+	[Fact]
 	public async Task HandleAsync_CorpoComTabela_ResumoSemSeparadoresDeTabela()
 	{
 		var (handler, notificador) = Montar(Usuario("a@x.com", "financeiro-user"));
