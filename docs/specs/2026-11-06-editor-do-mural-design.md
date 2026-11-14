@@ -27,7 +27,6 @@
 - **Representar célula mesclada** e guardar HTML no corpo. O corpo continua Markdown, e o servidor continua sem aceitar HTML bruto.
 - **Preservar cor, fonte, tamanho e sublinhado do Word.**
 - **Rascunho automático** contra perda de texto quando a sessão expira. É um risco que já existe hoje.
-- **Modo Markdown cru no editor.** O `textarea` continua só como alternativa quando o script não carrega.
 - **Imagem no e-mail ou no sino.** As notificações seguem com título, resumo e link.
 - **Unificar a imagem final do aviso com as imagens do texto.**
 - **Tirar do core o caminho fixo do tema Vertical.** O item segue no roadmap, com o Marketplace de temas.
@@ -111,6 +110,14 @@ Os avisos aparecem junto ao editor até a pessoa fechá-los:
 - *"A imagem não foi colada. Use o campo Imagem."* (substituído na etapa 2)
 
 Se a saída em Markdown vier com colunas alinhadas por espaços, ela é compactada, porque esse preenchimento consome boa parte do limite. Se a extensão não permitir, a limpeza fica de fora: o limite de 20.000 já comporta o tamanho observado.
+
+### Modo Markdown e Markdown colado
+
+O botão "Markdown", no fim da barra, alterna entre o editor e o texto cru (o `textarea` que é o campo enviado). Ao ligar, o `textarea` recebe o Markdown do editor, ganha o foco, e os outros botões da barra ficam desativados. Ao desligar, o texto do `textarea` volta ao editor como Markdown e o Markdown guardado é normalizado. No modo cru o envio leva o texto exatamente como está, sem passar pelo editor.
+
+Colar só texto (`text/plain`) que pareça Markdown (título, lista, citação, bloco de código, linha de tabela, negrito ou link) é convertido em formatação. Texto comum, como "Conta: 2 * 3 = 6", continua texto.
+
+Limite conhecido: a colagem com `text/html`, como a do VS Code, segue pelo caminho do HTML (a limpeza acima), e não pelo do Markdown.
 
 ### Servidor
 
@@ -196,6 +203,8 @@ Arquivo sem marcador é ignorado e não é gravado. Mais de 10 imagens ou arquiv
 - [ ] As 12 cargas hostis não executam ao abrir no editor com a CSP desligada.
 - [ ] Sem violação de CSP ao usar o editor em Enforce, nos dois temas e nos modos claro e escuro.
 - [ ] O formulário funciona sem o script, pelo `textarea`.
+- [ ] O botão "Markdown" alterna para o texto cru e volta, e no modo cru o formulário envia o texto como está.
+- [ ] Markdown colado como texto vira formatação; texto comum continua texto.
 - [ ] Corpo de até 20.000 caracteres é aceito e, acima disso, recusado, nos dois providers.
 - [ ] Tabela acima de 10.000 células é recusada com mensagem, ao publicar e ao editar.
 - [ ] O resumo da notificação de um aviso com tabela não traz `|` nem `---`.
