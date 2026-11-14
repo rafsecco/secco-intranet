@@ -5,6 +5,7 @@ import { Editor } from '@tiptap/core';
 import { Markdown } from '@tiptap/markdown';
 import { TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 import StarterKit from '@tiptap/starter-kit';
+import { Tokenizer } from 'marked';
 import { Tabela } from './tabela-markdown.js';
 import { limparColagem } from './colagem.js';
 import { htmlSemFormatacao, pareceMarkdown } from './markdown-colado.js';
@@ -21,6 +22,21 @@ function destinoPermitido(url) {
   const esquema = /^([a-z][a-z0-9+.-]*:)/i.exec(texto);
 
   return !esquema || ESQUEMAS.has(esquema[1].toLowerCase());
+}
+
+// No Markdown padrao (e no GitHub) a quebra simples dentro do paragrafo e so um espaco; o `marked`
+// a deixa como "\n" no texto, que o editor mostraria como quebra de linha. So a quebra forcada
+// (dois espacos e "\n", ou Shift+Enter) e quebra: ela chega como token `br`, nao como texto.
+class TokenizadorSemQuebraSimples extends Tokenizer {
+  inlineText(src) {
+    const token = super.inlineText(src);
+
+    if (token) {
+      token.text = token.text.replace(/\n/g, ' ');
+    }
+
+    return token;
+  }
 }
 
 export function criarEditor({ elemento, markdown, aoMudar, aoColar }) {
@@ -47,7 +63,7 @@ export function criarEditor({ elemento, markdown, aoMudar, aoColar }) {
       TableRow,
       TableHeader,
       TableCell,
-      Markdown,
+      Markdown.configure({ markedOptions: { tokenizer: new TokenizadorSemQuebraSimples() } }),
     ],
     editorProps: {
       attributes: { role: 'textbox', 'aria-multiline': 'true', 'aria-label': 'Corpo' },
