@@ -904,4 +904,156 @@ public class EditorDoMuralTelaTests(EditorDoMuralFixture f) : IClassFixture<Edit
 		await Expect(editor).ToHaveTextAsync("Conta: 2 * 3 = 6");
 		(await editor.Locator("strong, em").CountAsync()).Should().Be(0);
 	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Leitura_CitacaoCodigoETitulo_TemEstilo(string tema)
+	{
+		var id = await f.CriarPublicacaoAsync("## T\n\n> citação\n\n```\ncódigo\n```");
+		var pagina = await f.AbrirAsync(tema, $"/publicacoes/{id}");
+
+		const string Estilo = "(seletor) => { const e = document.querySelector('.sc-card__body ' + seletor); return e ? [getComputedStyle(e).borderLeftWidth, getComputedStyle(e).backgroundColor, getComputedStyle(e).borderBottomWidth] : null; }";
+		var citacao = await pagina.EvaluateAsync<string[]>(Estilo, "blockquote");
+		var codigo = await pagina.EvaluateAsync<string[]>(Estilo, "pre");
+		var titulo = await pagina.EvaluateAsync<string[]>(Estilo, "h2");
+
+		citacao.Should().NotBeNull();
+		codigo.Should().NotBeNull();
+		titulo.Should().NotBeNull();
+		citacao[0].Should().NotBe("0px", "a citação tem filete à esquerda");
+		codigo[1].Should().NotBe("rgba(0, 0, 0, 0)", "o bloco de código tem fundo");
+		titulo[2].Should().NotBe("0px", "o título tem traço embaixo");
+	}
+
+	private const string HtmlDoVsCode = """
+		<meta charset="utf-8"><div style="color: #cccccc;background-color: #1f1f1f;font-family: Consolas, monospace;font-weight: normal;font-size: 14px;line-height: 19px;white-space: pre;"><div><span style="color: #569cd6;">## T</span></div><div><span style="color: #cccccc;"><br></span></div><div><span style="color: #cccccc;">&gt; citação</span></div><div><span style="color: #cccccc;"><br></span></div><div><span style="color: #cccccc;">```</span></div><div><span style="color: #cccccc;">código</span></div><div><span style="color: #cccccc;">```</span></div></div>
+		""";
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_DoVsCode_ViraMarkdown(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, HtmlDoVsCode, "## T\n\n> citação\n\n```\ncódigo\n```");
+
+		var editor = pagina.Locator(".sc-editor .ProseMirror");
+		await Expect(editor.Locator("h2")).ToHaveTextAsync("T");
+		await Expect(editor.Locator("blockquote")).ToHaveCountAsync(1);
+		await Expect(editor.Locator("pre")).ToHaveCountAsync(1);
+		f.ViolacoesDeCsp(pagina).Should().BeEmpty();
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_MarkdownComQuebraSimples_JuntaAsLinhas(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, string.Empty, "## T\n\nlinha um\nlinha dois");
+
+		var editor = pagina.Locator(".sc-editor .ProseMirror");
+		await Expect(editor.Locator("h2")).ToHaveTextAsync("T");
+		var markdown = await pagina.Locator(Corpo).InputValueAsync();
+		markdown.Should().Contain("linha um linha dois");
+		await Expect(editor.Locator("br:not(.ProseMirror-trailingBreak)")).ToHaveCountAsync(0);
+		var publicado = await PublicarAsync(pagina, tema);
+		await Expect(publicado.Locator("br")).ToHaveCountAsync(0);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Editor_ShiftEnter_ContinuaQuebraForcada(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+		await pagina.Keyboard.TypeAsync("um");
+		await pagina.Keyboard.PressAsync("Shift+Enter");
+		await pagina.Keyboard.TypeAsync("dois");
+
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().MatchRegex(@"um {2}\ndois");
+		await Expect(pagina.Locator(".sc-editor .ProseMirror p br:not(.ProseMirror-trailingBreak)")).ToHaveCountAsync(1);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_ListaFalsaComSubitensDoWord_FormaSublista(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, """
+			<p class="MsoListParagraphCxSpFirst" style="mso-list:l0 level1 lfo1"><![if !supportLists]><span>·<span>&nbsp;&nbsp;</span></span><![endif]>Pai</p>
+			<p class="MsoListParagraphCxSpMiddle" style="mso-list:l0 level2 lfo1"><![if !supportLists]><span>o<span>&nbsp;&nbsp;</span></span><![endif]>Filho</p>
+			<p class="MsoListParagraphCxSpLast" style="mso-list:l0 level1 lfo1"><![if !supportLists]><span>·<span>&nbsp;&nbsp;</span></span><![endif]>Outro</p>
+			""");
+
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().MatchRegex(@"- Pai\n {2}- Filho\n- Outro");
+		var publicado = await PublicarAsync(pagina, tema);
+		await Expect(publicado.Locator("li ul")).ToHaveCountAsync(1);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_ListaRealComSubitensDoWord_FormaSublista(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, """
+			<ul><li style="mso-list:l0 level1 lfo1">Pai</li><li style="mso-list:l0 level2 lfo1">Filho</li><li style="mso-list:l0 level1 lfo1">Outro</li></ul>
+			""");
+
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().MatchRegex(@"- Pai\n {2}- Filho\n- Outro");
+		var publicado = await PublicarAsync(pagina, tema);
+		await Expect(publicado.Locator("li ul")).ToHaveCountAsync(1);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Barra_Sublinhado_SalvaComoMaisMais(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		var botao = pagina.GetByLabel("Sublinhado", new() { Exact = true });
+
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+		await botao.ClickAsync();
+		await pagina.Keyboard.TypeAsync("x");
+		await Expect(botao).ToHaveAttributeAsync("aria-pressed", "true");
+
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().Contain("++x++");
+		var publicado = await PublicarAsync(pagina, tema);
+		await Expect(publicado.Locator("ins")).ToHaveTextAsync("x");
+		var decoracao = await publicado.Locator("ins").EvaluateAsync<string>("e => getComputedStyle(e).textDecorationLine");
+		decoracao.Should().Contain("underline");
+
+		var id = Regex.Match(pagina.Url, "publicacoes/([0-9a-f-]{36})").Groups[1].Value;
+		var reaberta = await f.AbrirEdicaoAsync(tema, Guid.Parse(id));
+		await Expect(reaberta.Locator(".sc-editor .ProseMirror u, .sc-editor .ProseMirror ins")).ToHaveTextAsync("x");
+		await reaberta.Locator(".sc-editor .ProseMirror").ClickAsync();
+		await reaberta.Keyboard.PressAsync("Control+End");
+		await reaberta.Keyboard.TypeAsync("y");
+		await reaberta.Keyboard.PressAsync("Backspace");
+		(await reaberta.Locator(Corpo).InputValueAsync()).Should().Contain("++x++");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_SublinhadoDoWord_ViraSublinhado(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, """<p><u>a</u> e <span style="text-decoration:underline">b</span></p>""");
+
+		var markdown = await pagina.Locator(Corpo).InputValueAsync();
+		markdown.Should().Contain("++a++").And.Contain("++b++");
+		f.ViolacoesDeCsp(pagina).Should().BeEmpty();
+	}
 }

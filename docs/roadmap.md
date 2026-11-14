@@ -214,7 +214,9 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [x] Editor do Mural, etapa 1 (2026-11-06): o Toast UI deu lugar ao Tiptap nos dois temas, com
       barra de formatação, tabela, limpeza da colagem do Word (avisa o que não é suportado) e
       Markdown como formato guardado, botão de modo Markdown cru e conversão do Markdown
-      colado como texto. Limites: 20.000 caracteres no corpo e 10.000 células por
+      colado como texto (inclusive o do VS Code), subitens de lista do Word preservados,
+      sublinhado (`++texto++`, `<ins>`), quebra simples do Markdown como espaço, e citação,
+      bloco de código e títulos com estilo na leitura. Limites: 20.000 caracteres no corpo e 10.000 células por
       tabela colada. Conteúdo hostil (script, `on*`, `javascript:`, `data:`, mXSS) é provado
       não executar, e a ida e volta do texto é testada — [spec](specs/2026-11-06-editor-do-mural-design.md).
       Pendente: etapa 2 (imagem no meio do texto)

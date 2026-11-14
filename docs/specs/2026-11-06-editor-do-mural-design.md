@@ -25,7 +25,7 @@
 
 - **Mudar quem pode publicar, editar ou ver.** Isso continua definido pelo `intranet-admin` nas permissões atuais.
 - **Representar célula mesclada** e guardar HTML no corpo. O corpo continua Markdown, e o servidor continua sem aceitar HTML bruto.
-- **Preservar cor, fonte, tamanho e sublinhado do Word.**
+- **Preservar cor, fonte e tamanho do Word.**
 - **Rascunho automático** contra perda de texto quando a sessão expira. É um risco que já existe hoje.
 - **Imagem no e-mail ou no sino.** As notificações seguem com título, resumo e link.
 - **Unificar a imagem final do aviso com as imagens do texto.**
@@ -80,9 +80,11 @@ A amostra é pequena e o Word usado foi um só. O plano começa repetindo a cola
 
 `wwwroot/js/editor.js` continua sendo melhoria progressiva sobre o `textarea[data-sc-editor-markdown]`, que segue como o campo enviado.
 
-- **Extensões:** núcleo do Tiptap, tabela e Markdown oficiais, com o mínimo necessário do `StarterKit`. Sem sublinhado, tachado e lista de tarefas.
+- **Extensões:** núcleo do Tiptap, tabela e Markdown oficiais, com o mínimo necessário do `StarterKit`. Sem tachado e lista de tarefas.
+- **Sublinhado:** como `++texto++`, que o `RenderizadorMarkdown` (e o resumo da notificação) leem como `<ins>` com `UseEmphasisExtras(EmphasisExtraOptions.Inserted)`, só essa opção, para não ligar tachado, sobrescrito e realce. O Markdown não tem sublinhado; o `<u>` nativo do Tiptap não é entendido pelo leitor. No CSS, `ins` fica sublinhado e sem fundo, na leitura e no editor.
+- **Quebra de linha:** a quebra simples dentro do parágrafo (`linha um\nlinha dois`) vale um espaço, como no Markdown padrão e no GitHub, na leitura do corpo e no Markdown colado. A quebra forçada (Shift+Enter) segue sendo quebra.
 - **Link:** sem `autolink` e sem transformar texto colado em link. Protocolos `http`, `https`, `mailto` e `tel`, os mesmos do `RenderizadorMarkdown`.
-- **Barra:** título, negrito, itálico, listas, citação, separador, tabela (inserir e remover linha e coluna), link, código, bloco de código, desfazer e refazer. Cada botão tem `aria-label` em português e funciona por teclado.
+- **Barra:** título, negrito, itálico, sublinhado, listas, citação, separador, tabela (inserir e remover linha e coluna), link, código, bloco de código, desfazer e refazer. Cada botão tem `aria-label` em português e funciona por teclado.
 - **Saem:** o seletor de modo, a legenda "Sintaxe do Markdown", o CSS do Toast UI e o `MutationObserver` do modo escuro. O tema escuro passa a vir dos tokens.
 - **Versões:** as estáveis mais recentes no momento da implementação, consultadas ao vivo.
 
@@ -103,6 +105,11 @@ Roda antes de o conteúdo entrar no editor, para o que a pessoa vê ser o que o 
 | Tabela dentro de tabela | Tabela externa com o texto da interna, mais o aviso abaixo |
 | `&nbsp;` isolado e parágrafo vazio | Removidos |
 | Imagem | Na etapa 1: descartada, mais o aviso abaixo |
+| Subitem de lista (`mso-list:l0 level2`) | Sublista dentro do último item do nível anterior, até o nível 9, na lista falsa (`<p>` com marcador) e na real (`<li>`) |
+| Sublinhado (`<u>` ou `text-decoration: underline`) | Sublinhado (`++texto++`) |
+| `text/html` do VS Code (só `div`, `span`, `br` e `meta`) | Ignorado: o `text/plain` é tratado como Markdown, se parecer Markdown |
+
+A leitura do nível é feita ainda na string, antes de o `style` sair, e o aninhamento é refeito depois do parse (sem `DOMParser` sobre `style`, por causa da CSP). O HTML sem nenhuma tag de formatação (`p`, títulos, listas, tabela, `b`, `strong`, `i`, `em`, `u`, `a`, `img`, `blockquote`, `pre`, `code`) é reconhecido por regex nos nomes das tags.
 
 Os avisos aparecem junto ao editor até a pessoa fechá-los:
 
@@ -117,7 +124,7 @@ O botão "Markdown", no fim da barra, alterna entre o editor e o texto cru (o `t
 
 Colar só texto (`text/plain`) que pareça Markdown (título, lista, citação, bloco de código, linha de tabela, negrito ou link) é convertido em formatação. Texto comum, como "Conta: 2 * 3 = 6", continua texto.
 
-Limite conhecido: a colagem com `text/html`, como a do VS Code, segue pelo caminho do HTML (a limpeza acima), e não pelo do Markdown.
+A colagem do VS Code, que manda `text/html` só com `div`, `span`, `br` e `meta`, também entra por esse caminho: sem nenhuma tag de formatação no HTML, vale o `text/plain`. Com `text/html` de verdade (Word, sites), a colagem segue pelo caminho do HTML (a limpeza acima), e não pelo do Markdown.
 
 ### Servidor
 
