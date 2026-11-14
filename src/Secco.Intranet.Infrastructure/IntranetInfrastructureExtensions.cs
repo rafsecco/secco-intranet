@@ -113,7 +113,8 @@ public static class IntranetInfrastructureExtensions
 		services.AddScoped<IPosicaoMenuRepository, PosicaoMenuRepository>();
 		services.AddScoped<IDocumentoRepository, DocumentoRepository>();
 		services.AddScoped<IPublicacaoRepository, PublicacaoRepository>();
-		services.AddScoped<IItemInventarioRepository, ItemInventarioRepository>();
+		services.AddScoped<IImagemNoTextoRepository, ImagemNoTextoRepository>();
+		services.AddScoped<IItemInventarioRepository,ItemInventarioRepository>();
 		services.AddScoped<IPerfilColaboradorRepository, PerfilColaboradorRepository>();
 		services.AddScoped<IItemVencimentoRepository, ItemVencimentoRepository>();
 

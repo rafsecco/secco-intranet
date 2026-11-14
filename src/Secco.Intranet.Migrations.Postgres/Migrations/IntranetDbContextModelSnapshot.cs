@@ -401,6 +401,38 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                     b.ToTable("tb_posicoes_menu");
                 });
 
+            modelBuilder.Entity("Secco.Intranet.Domain.Publicacoes.ImagemNoTexto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id_pk_imagem_no_texto");
+
+                    b.Property<string>("CaminhoRelativo")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("ds_caminho_relativo");
+
+                    b.Property<string>("ChaveEmbrulhada")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("ds_chave_embrulhada");
+
+                    b.Property<Guid>("PublicacaoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id_fk_publicacao");
+
+                    b.HasKey("Id")
+                        .HasName("pk_imagens_no_texto");
+
+                    b.HasIndex("PublicacaoId")
+                        .HasDatabaseName("idx_imagens_no_texto_id_fk_publicacao");
+
+                    b.ToTable("tb_imagens_no_texto");
+                });
+
             modelBuilder.Entity("Secco.Intranet.Domain.Publicacoes.Publicacao", b =>
                 {
                     b.Property<Guid>("Id")
@@ -743,6 +775,16 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_itens_menu_setor");
+                });
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Publicacoes.ImagemNoTexto", b =>
+                {
+                    b.HasOne("Secco.Intranet.Domain.Publicacoes.Publicacao", null)
+                        .WithMany()
+                        .HasForeignKey("PublicacaoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_imagens_no_texto_publicacao");
                 });
 
             modelBuilder.Entity("Secco.Intranet.Domain.Publicacoes.Publicacao", b =>

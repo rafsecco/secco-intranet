@@ -31,6 +31,9 @@ public sealed class IntranetDbContext(DbContextOptions<IntranetDbContext> option
 	/// <summary>Publicações do mural (tabela <c>tb_publicacoes</c>).</summary>
 	public DbSet<Publicacao> Publicacoes => Set<Publicacao>();
 
+	/// <summary>Imagens inseridas no texto das publicações (tabela <c>tb_imagens_no_texto</c>).</summary>
+	public DbSet<ImagemNoTexto> ImagensNoTexto => Set<ImagemNoTexto>();
+
 	/// <summary>Itens de inventário, sem setor dono (tabela <c>tb_itens_inventario</c>).</summary>
 	public DbSet<ItemInventario> ItensInventario => Set<ItemInventario>();
 
