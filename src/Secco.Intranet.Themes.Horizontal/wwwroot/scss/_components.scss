@@ -805,22 +805,13 @@ html.sc-js .sc-nav__sub.is-open {
       white-space: pre-wrap;
     }
 
+    // Citacao, bloco de codigo e titulos: ver o bloco compartilhado com a leitura, mais abaixo.
     pre {
       white-space: pre-wrap;
-      padding: .5rem .75rem;
-      border-radius: var(--bs-border-radius);
-      background-color: var(--sc-surface-muted);
     }
 
     code {
       color: var(--sc-text);
-    }
-
-    blockquote {
-      margin-left: 0;
-      padding-left: 1rem;
-      border-left: 3px solid var(--sc-border);
-      color: var(--sc-text-muted);
     }
 
     hr {
@@ -884,6 +875,43 @@ html.sc-js .sc-nav__sub.is-open {
 }
 
 // Tabela do aviso, no editor e na leitura: a larga rola dentro do card em vez de estourar a tela.
+.sc-editor .ProseMirror,
+.sc-card__body {
+  // Citacao, bloco de codigo e titulos: a leitura (Markdig) e o editor (Tiptap) desenham igual.
+  blockquote {
+    margin-right: 0;
+    margin-left: 0;
+    padding-left: 1rem;
+    border-left: 3px solid var(--sc-border);
+    color: var(--sc-text-muted);
+  }
+
+  pre {
+    padding: .5rem .75rem;
+    border-radius: var(--bs-border-radius);
+    background-color: var(--sc-surface-muted);
+    overflow-x: auto;
+
+    code {
+      color: inherit;
+    }
+  }
+
+  // O traco sob o titulo, no estilo do GitHub.
+  h1,
+  h2 {
+    padding-bottom: .3em;
+    border-bottom: 1px solid var(--sc-border);
+  }
+
+  // Sublinhado (++texto++): so o traco, sem o fundo que um navegador ou o Bootstrap daria.
+  ins,
+  u {
+    background: none;
+    text-decoration: underline;
+  }
+}
+
 .sc-editor,
 .sc-card__body {
   table {
