@@ -4,9 +4,11 @@
 // suporta: grade retangular, sem celula mesclada, primeira linha como cabecalho, uma linha de
 // texto por celula.
 
+import { LIMITE_BYTES } from './imagem-no-texto.js';
+
 export const AVISO_MESCLADA = 'Esta tabela tinha células mescladas, que não são suportadas. Confira o resultado ou envie a tabela como imagem.';
 export const AVISO_ANINHADA = 'Esta tabela tinha outra tabela dentro dela, o que não é suportado. Confira o resultado ou envie a tabela como imagem.';
-export const AVISO_IMAGEM = 'A imagem não foi colada. Use o campo Imagem.';
+export const AVISO_IMAGEM = 'Algumas imagens não vieram. Clique em cada uma para enviar o arquivo.';
 export const AVISO_TABELA_GRANDE = 'A tabela é grande demais: o limite é de 10000 células. Envie-a como imagem.';
 
 // Teto de mesclagem: um colspan="100000" vindo de um HTML malicioso nao pode alocar a grade.
@@ -16,6 +18,10 @@ const LIMITE_MESCLAGEM = 100;
 const LIMITE_CELULAS = 10_000;
 const REMOVIDOS = 'script, style, meta, link, title, template, iframe, object, embed';
 const MARCAS_EM_LINHA = new Set(['B', 'STRONG', 'I', 'EM', 'A', 'CODE', 'SPAN', 'U', 'S', 'SUB', 'SUP', 'MARK']);
+
+// A imagem ja tratada (nova-imagem:N) e o botao do lugar de uma que nao veio.
+const IMAGENS = 'img, [data-imagem-pendente]';
+const DATA_IMAGEM = /^data:(image\/(?:png|jpeg|webp));base64,/i;
 
 function vazio(texto) {
   return texto.replace(/[\s\xa0]/g, '') === '';
@@ -39,6 +45,8 @@ function emLinha(origem, destino, doc) {
       destino.appendChild(doc.createTextNode(no.nodeValue));
     } else if (no.nodeType !== 1) {
       return;
+    } else if (no.matches(IMAGENS)) {
+      destino.appendChild(no.cloneNode(true));
     } else if (no.tagName === 'BR') {
       destino.appendChild(doc.createTextNode(' '));
     } else if (/^H[1-6]$/.test(no.tagName)) {
@@ -353,13 +361,81 @@ function reconstruirTabela(tabela, doc, aviso) {
   tabela.replaceWith(nova);
 }
 
+function arquivoDeDataUri(src) {
+  const achado = DATA_IMAGEM.exec(src.trim());
+  const dados = achado ? src.trim().slice(achado[0].length) : '';
+
+  // 4 caracteres de base64 sao 3 bytes: acima do limite nem decodifica.
+  if (!achado || dados.length > Math.ceil(LIMITE_BYTES / 3) * 4) {
+    return null;
+  }
+
+  try {
+    const texto = atob(dados);
+    const bytes = Uint8Array.from(texto, (c) => c.charCodeAt(0));
+    const tipo = achado[1].toLowerCase();
+
+    return new File([bytes], `colada.${tipo === 'image/jpeg' ? 'jpg' : tipo.slice(6)}`, { type: tipo });
+  } catch {
+    return null;
+  }
+}
+
+function pendente(doc) {
+  const botao = doc.createElement('button');
+  botao.setAttribute('data-imagem-pendente', '');
+
+  return botao;
+}
+
+// Cada <img> vira a imagem nova (arquivo registrado) ou o lugar de uma que nao veio. `file:` e o Word:
+// a N-esima corresponde a N-esima imagem do RTF, e so se as quantidades batem; imagem certa no lugar
+// errado e pior que nenhuma. `data:` de PNG, JPEG e WebP vira arquivo; o resto (http, https, ...) e
+// pendente.
+function tratarImagens(doc, { rtf = [], aceitar } = {}, aviso) {
+  const imgs = Array.from(doc.body.querySelectorAll('img'));
+  const doWord = imgs.filter((img) => /^file:/i.test((img.getAttribute('src') ?? '').trim()));
+  const casam = doWord.length === rtf.length;
+  let pendentes = false;
+
+  imgs.forEach((img) => {
+    const src = (img.getAttribute('src') ?? '').trim();
+    let arquivo = null;
+
+    if (/^file:/i.test(src)) {
+      arquivo = casam ? rtf[doWord.indexOf(img)] : null;
+    } else if (/^data:/i.test(src)) {
+      arquivo = arquivoDeDataUri(src);
+    }
+
+    const marcador = arquivo && aceitar ? aceitar(arquivo) : null;
+
+    if (marcador) {
+      const nova = doc.createElement('img');
+      nova.setAttribute('src', marcador);
+      nova.setAttribute('alt', '');
+      img.replaceWith(nova);
+    } else {
+      img.replaceWith(pendente(doc));
+      pendentes = true;
+    }
+  });
+
+  if (pendentes) {
+    aviso(AVISO_IMAGEM);
+  }
+}
+
 /**
  * Limpa o HTML colado.
  * @param {string} html HTML da area de transferencia.
+ * @param {{ rtf?: File[], aceitar?: (arquivo: File) => string | null }} [opcoes] `rtf`: as imagens do
+ *   `text/rtf` (Word), na ordem. `aceitar` valida e registra um arquivo como imagem nova do texto e
+ *   devolve o marcador, ou null se nao cabe. Sem `aceitar`, toda imagem vira pendente.
  * @returns {{ html: string, avisos: string[] }} HTML limpo e os avisos (sem repeticao) do que nao
  *   e suportado.
  */
-export function limparColagem(html) {
+export function limparColagem(html, opcoes = {}) {
   const avisos = [];
   const aviso = (texto) => {
     if (!avisos.includes(texto)) {
@@ -384,10 +460,7 @@ export function limparColagem(html) {
     .filter((no) => no.tagName.includes(':'))
     .forEach(desembrulhar);
 
-  if (corpo.querySelector('img')) {
-    corpo.querySelectorAll('img').forEach((no) => no.remove());
-    aviso(AVISO_IMAGEM);
-  }
+  tratarImagens(doc, opcoes, aviso);
 
   estiloEmMarcas(doc);
   listasFalsas(doc);
@@ -406,7 +479,7 @@ export function limparColagem(html) {
   });
 
   corpo.querySelectorAll('p').forEach((p) => {
-    if (vazio(p.textContent)) {
+    if (vazio(p.textContent) && !p.querySelector(IMAGENS)) {
       p.remove();
     }
   });

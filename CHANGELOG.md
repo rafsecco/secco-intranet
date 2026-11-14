@@ -57,12 +57,16 @@ O Toast UI deu lugar ao Tiptap. Detalhes na
 - A migration `AumentarCorpoDaPublicacao` leva `ds_corpo` a `nvarchar(max)` no SQL Server e a
   `character varying(20000)` no PostgreSQL. Rode o `migrate` antes de subir a versão nova.
 
+- A migration `ImagensNoTexto` cria a tabela das imagens do texto dos avisos. Rode o `migrate` antes
+  de subir a versão nova.
+
 **Avisos existentes:**
 
 - O corpo passa a aceitar até 20.000 caracteres, e tabela acima de 10.000 células estimadas é recusada
   ao publicar e ao editar.
-- Aviso com imagem no texto (`![](...)`) ou tachado (`~~...~~`) perde esses elementos quando é
-  reaberto e salvo no editor visual. O texto guardado não muda até alguém salvá-lo.
+- Aviso com tachado (`~~...~~`) perde esse elemento quando é reaberto e salvo no editor visual. O
+  texto guardado não muda até alguém salvá-lo. Imagem no texto (`![](...)`) com endereço externo
+  vira marcador de imagem pendente, que a pessoa troca enviando o arquivo.
 
 **Tema próprio (fork):**
 
@@ -73,6 +77,8 @@ O Toast UI deu lugar ao Tiptap. Detalhes na
 - O CSS do editor fica em cada tema: copie para o seu tema o bloco `.sc-editor` e as regras de tabela
   de `.sc-card__body` do `_components.scss` do Vertical. Sem esse bloco, o editor sobe sem estilo,
   porque o Tiptap não injeta CSS para não violar a CSP.
+- O bloco `.sc-editor` ganhou as regras do marcador de imagem pendente (`sc-editor__pendente`) e da
+  imagem selecionada no texto: o tema de fork precisa copiá-las também.
 
 **CSP:**
 

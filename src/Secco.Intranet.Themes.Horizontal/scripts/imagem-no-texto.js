@@ -87,7 +87,21 @@ export const ImagemDoTexto = Image.extend({
   },
 });
 
-function contarImagens(documento) {
+// O aviso do motivo de o arquivo nao poder virar imagem do texto, ou null se pode. `ocupadas` e
+// quantas imagens (e pendentes) o texto ja tem.
+export function validarImagem(arquivo, ocupadas) {
+  if (!TIPOS_DE_IMAGEM.includes(arquivo.type)) {
+    return AVISO_IMAGEM_TIPO;
+  }
+
+  if (arquivo.size > LIMITE_BYTES) {
+    return AVISO_IMAGEM_GRANDE;
+  }
+
+  return ocupadas >= LIMITE_IMAGENS ? AVISO_IMAGENS_DEMAIS : null;
+}
+
+export function contarImagens(documento) {
   let total = 0;
 
   documento.descendants((no) => {
@@ -108,12 +122,10 @@ export function inserirArquivos(editor, arquivos, { posicao, substituir } = {}) 
   const ocupadas = contarImagens(editor.state.doc) - (substituir === undefined ? 0 : 1);
 
   Array.from(arquivos).forEach((arquivo) => {
-    if (!TIPOS_DE_IMAGEM.includes(arquivo.type)) {
-      avisos.add(AVISO_IMAGEM_TIPO);
-    } else if (arquivo.size > LIMITE_BYTES) {
-      avisos.add(AVISO_IMAGEM_GRANDE);
-    } else if (ocupadas + nos.length >= LIMITE_IMAGENS) {
-      avisos.add(AVISO_IMAGENS_DEMAIS);
+    const recusa = validarImagem(arquivo, ocupadas + nos.length);
+
+    if (recusa) {
+      avisos.add(recusa);
     } else {
       nos.push({ type: 'image', attrs: { src: registrar(arquivo), alt: '' } });
     }

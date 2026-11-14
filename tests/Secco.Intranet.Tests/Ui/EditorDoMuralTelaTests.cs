@@ -303,7 +303,7 @@ public class EditorDoMuralTelaTests(EditorDoMuralFixture f) : IClassFixture<Edit
 
 	private const string AvisoAninhada = "Esta tabela tinha outra tabela dentro dela, o que não é suportado. Confira o resultado ou envie a tabela como imagem.";
 
-	private const string AvisoImagem = "A imagem não foi colada. Use o campo Imagem.";
+	private const string AvisoImagem = "Algumas imagens não vieram. Clique em cada uma para enviar o arquivo.";
 
 	private static Task ColarAsync(IPage pagina, string html, string? texto = null) =>
 		pagina.EvaluateAsync(
@@ -508,16 +508,181 @@ public class EditorDoMuralTelaTests(EditorDoMuralFixture f) : IClassFixture<Edit
 	[UiTheory]
 	[InlineData("Vertical")]
 	[InlineData("Horizontal")]
-	public async Task Colar_Imagem_DescartaEAvisa(string tema)
+	public async Task Colar_ImagemFileSemRtf_ViraPendenteEAvisa(string tema)
 	{
 		var pagina = await f.AbrirAvisosAsync(tema);
 
 		await ColarAsync(pagina, """<p>Antes</p><p><img src="file:///C:/x/clip_image001.png"></p>""");
 
 		var markdown = await pagina.Locator(Corpo).InputValueAsync();
-		markdown.Should().NotContain("![");
 		markdown.Should().NotContain("file:");
+		markdown.Should().Contain("pendente:");
+		await Expect(pagina.Locator(PendenteNoEditor)).ToHaveCountAsync(1);
 		await Expect(pagina.Locator(Avisos)).ToContainTextAsync(AvisoImagem);
+	}
+
+	private const string PendenteNoEditor = ".sc-editor .ProseMirror [data-imagem-pendente]";
+
+	private const string HtmlComDuasImagensDoWord =
+		"""<p>Antes <img src="file:///C:/x/clip_image001.png"> e <img src="file:///C:/x/clip_image002.png"> depois</p>""";
+
+	/// <summary>PNG válido de largura x 1, montado aqui, para cada imagem ter uma largura natural própria.</summary>
+	private static byte[] PngDeLargura(int largura)
+	{
+		using var png = new MemoryStream();
+		png.Write([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+		var ihdr = new List<byte>();
+		ihdr.AddRange(BigEndian((uint)largura));
+		ihdr.AddRange(BigEndian((uint)largura));
+		ihdr.AddRange([8, 2, 0, 0, 0]);
+		EscreverBloco(png, "IHDR", [.. ihdr]);
+
+		using var dados = new MemoryStream();
+		using (var zlib = new ZLibStream(dados, CompressionLevel.Optimal, leaveOpen: true))
+		{
+			var linha = new byte[1 + (largura * 3)];
+			Array.Fill(linha, (byte)120, 1, linha.Length - 1);
+			for (var i = 0; i < largura; i++)
+			{
+				zlib.Write(linha);
+			}
+		}
+
+		EscreverBloco(png, "IDAT", dados.ToArray());
+		EscreverBloco(png, "IEND", []);
+
+		return png.ToArray();
+	}
+
+	/// <summary>Hexadecimal com quebra de linha a cada 64 caracteres, como o Word grava.</summary>
+	private static string HexComQuebras(byte[] bytes) =>
+		string.Join("\r\n", Convert.ToHexStringLower(bytes).Chunk(64).Select(c => new string(c)));
+
+	/// <summary>RTF fictício: cada PNG num \pict de \shppict, seguido do \nonshppict (metafile) que o Word acrescenta.</summary>
+	private static string RtfComPngs(params byte[][] imagens)
+	{
+		var rtf = new System.Text.StringBuilder(@"{\rtf1\ansi\deff0 {\fonttbl{\f0 Calibri;}}\pard Texto ");
+		foreach (var png in imagens)
+		{
+			rtf.Append(@"{\*\shppict{\pict{\*\picprop{\sp{\sn shapeType}{\sv 75}}}\picw53\pich53\picwgoal1000\pichgoal1000\pngblip\bliptag-1234567{\*\blipuid abcdef0123456789}");
+			rtf.Append("\r\n").Append(HexComQuebras(png)).Append("}}");
+			rtf.Append(@"{\nonshppict{\pict\picw53\pich53\wmetafile8 ").Append(HexComQuebras([1, 0, 9, 0, 0, 3, 0, 0, 0, 0])).Append("}}");
+		}
+
+		return rtf.Append('}').ToString();
+	}
+
+	private static string RtfSoComMetafile() =>
+		@"{\rtf1\ansi {\*\shppict{\pict\picw53\pich53\wmetafile8 " + HexComQuebras([1, 0, 9, 0, 0, 3, 0, 0, 0, 0]) + "}}}";
+
+	private static Task ColarComRtfAsync(IPage pagina, string html, string rtf) =>
+		pagina.EvaluateAsync(
+			"""
+			([html, rtf]) => {
+			  const alvo = document.querySelector('.sc-editor .ProseMirror');
+			  alvo.focus();
+			  const dados = new DataTransfer();
+			  dados.setData('text/html', html);
+			  dados.setData('text/rtf', rtf);
+			  alvo.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dados, bubbles: true, cancelable: true }));
+			}
+			""",
+			new[] { html, rtf });
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task ColarDoWord_DuasImagens_EntramNaOrdem(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarComRtfAsync(pagina, HtmlComDuasImagensDoWord, RtfComPngs(PngDeLargura(30), PngDeLargura(70)));
+
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(2);
+		await pagina.WaitForFunctionAsync(
+			"s => Array.from(document.querySelectorAll(s)).every(i => i.complete && i.naturalWidth > 0)", ImagemNoEditor);
+		var larguras = await pagina.Locator(ImagemNoEditor).EvaluateAllAsync<int[]>("is => is.map(i => i.naturalWidth)");
+		larguras.Should().Equal(30, 70);
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().Contain("nova-imagem:0").And.Contain("nova-imagem:1");
+		await Expect(pagina.Locator(PendenteNoEditor)).ToHaveCountAsync(0);
+		f.ViolacoesDeCsp(pagina).Should().BeEmpty();
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task ColarDoWord_QuantidadeDiferente_ViraPendente(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarComRtfAsync(pagina, HtmlComDuasImagensDoWord, RtfComPngs(PngDeLargura(30)));
+
+		await Expect(pagina.Locator(PendenteNoEditor)).ToHaveCountAsync(2);
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(0);
+		await Expect(pagina.Locator(Avisos)).ToContainTextAsync(AvisoImagem);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task ColarDoWord_SoWmf_ViraPendente(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarComRtfAsync(pagina, """<p>Antes <img src="file:///C:/x/clip_image001.emz"></p>""", RtfSoComMetafile());
+
+		await Expect(pagina.Locator(PendenteNoEditor)).ToHaveCountAsync(1);
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(0);
+		await Expect(pagina.Locator(Avisos)).ToContainTextAsync(AvisoImagem);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_ImagemData_Insere(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		var html = $"""<p>Antes <img src="data:image/png;base64,{Convert.ToBase64String(PngDeLargura(5))}"> depois</p>""";
+
+		await ColarAsync(pagina, html);
+
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(1);
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveAttributeAsync("src", new Regex("^blob:"));
+		await Expect(pagina.Locator(PendenteNoEditor)).ToHaveCountAsync(0);
+		await Expect(pagina.Locator(Avisos)).ToHaveCountAsync(0);
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().Contain("![](nova-imagem:0)");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Colar_ImagemExterna_ViraPendente(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await ColarAsync(pagina, """<p>Antes <img src="https://exemplo.invalid/a.png"> depois</p>""");
+
+		await Expect(pagina.Locator(PendenteNoEditor)).ToHaveCountAsync(1);
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(0);
+		await Expect(pagina.Locator(Avisos)).ToContainTextAsync(AvisoImagem);
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().NotContain("exemplo.invalid");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task ColarDoWord_ComImagens_Publica(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		await ColarComRtfAsync(pagina, HtmlComDuasImagensDoWord, RtfComPngs(PngDeLargura(30), PngDeLargura(70)));
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(2);
+
+		var publicado = await PublicarAsync(pagina, tema);
+
+		await Expect(publicado.Locator("img")).ToHaveCountAsync(2);
+		await Expect(publicado.Locator("img").First).ToHaveAttributeAsync("src", new Regex("^/publicacoes/[0-9a-f-]{36}/imagens/[0-9a-f-]{36}$"));
+		var urls = await publicado.Locator("img").EvaluateAllAsync<string[]>("is => is.map(i => i.getAttribute('src'))");
+		urls.Distinct().Should().HaveCount(2, "cada imagem do Word foi gravada à parte");
 	}
 
 	[UiTheory]

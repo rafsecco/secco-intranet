@@ -10,8 +10,9 @@ import { Sublinhado } from './sublinhado-markdown.js';
 import { Tabela } from './tabela-markdown.js';
 import { limparColagem } from './colagem.js';
 import { htmlSemFormatacao, pareceMarkdown } from './markdown-colado.js';
-import { definirPublicacao } from './imagens-novas.js';
-import { ImagemDoTexto, ImagemPendente, arquivosDeImagem, inserirArquivos } from './imagem-no-texto.js';
+import { definirPublicacao, registrar } from './imagens-novas.js';
+import { imagensDoRtf } from './imagens-do-rtf.js';
+import { ImagemDoTexto, ImagemPendente, arquivosDeImagem, contarImagens, inserirArquivos, validarImagem } from './imagem-no-texto.js';
 
 export { htmlSemFormatacao, pareceMarkdown } from './markdown-colado.js';
 export { paraEnvio } from './imagens-novas.js';
@@ -46,6 +47,13 @@ class TokenizadorSemQuebraSimples extends Tokenizer {
 
 export function criarEditor({ elemento, markdown, aoMudar, aoColar, publicacaoId, aoClicarPendente }) {
   definirPublicacao(publicacaoId);
+
+  // O transformPastedHTML so recebe o HTML; o text/rtf (de onde saem os bytes das imagens do Word)
+  // e lido na captura do mesmo evento de colagem, antes de o editor tratar o evento.
+  let rtfDaColagem = '';
+  elemento.addEventListener('paste', (evento) => {
+    rtfDaColagem = evento.clipboardData?.getData('text/rtf') ?? '';
+  }, true);
 
   const editor = new Editor({
     element: elemento,
@@ -142,7 +150,22 @@ export function criarEditor({ elemento, markdown, aoMudar, aoColar, publicacaoId
         return true;
       },
       transformPastedHTML: (html) => {
-        const limpo = limparColagem(html);
+        // O RTF e o do mesmo evento de colagem (guardado pelo listener de captura abaixo).
+        const rtf = rtfDaColagem;
+        rtfDaColagem = '';
+        let usadas = contarImagens(editor.state.doc);
+        const limpo = limparColagem(html, {
+          rtf: imagensDoRtf(rtf),
+          aceitar: (arquivo) => {
+            if (validarImagem(arquivo, usadas) !== null) {
+              return null;
+            }
+
+            usadas += 1;
+
+            return registrar(arquivo);
+          },
+        });
         aoColar?.(limpo.avisos);
 
         return limpo.html;

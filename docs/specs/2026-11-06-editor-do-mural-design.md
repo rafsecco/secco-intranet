@@ -1,7 +1,7 @@
 # Editor do Mural: colar do Word, tabela e imagem no texto — desenho do recurso
 
 **Data:** 2026-11-06
-**Estado:** etapa 1 entregue, etapa 2 a implementar
+**Estado:** etapas 1 e 2 entregues. A colagem do Word com várias imagens foi provada só com um RTF fictício, montado nos testes de tela, até que alguém a teste com o Word real
 **Revisa:** "Imagem no meio do texto" e "Nenhum caminho deixa a imagem dentro do texto" de [2026-10-31-imagem-na-publicacao-design.md](2026-10-31-imagem-na-publicacao-design.md). A primeira deixa de estar fora do escopo; a segunda continua valendo para imagem embutida em base64.
 
 ## Problema
@@ -104,7 +104,7 @@ Roda antes de o conteúdo entrar no editor, para o que a pessoa vê ser o que o 
 | Célula mesclada | Células normais, a primeira com o texto e as outras vazias, mais o aviso abaixo |
 | Tabela dentro de tabela | Tabela externa com o texto da interna, mais o aviso abaixo |
 | `&nbsp;` isolado e parágrafo vazio | Removidos |
-| Imagem | Na etapa 1: descartada, mais o aviso abaixo |
+| Imagem | Na etapa 1: descartada, mais o aviso abaixo. Desde a etapa 2: imagem no texto ou marcador, como descrito na etapa 2 |
 | Subitem de lista (`mso-list:l0 level2`) | Sublista dentro do último item do nível anterior, até o nível 9, na lista falsa (`<p>` com marcador) e na real (`<li>`) |
 | Sublinhado (`<u>` ou `text-decoration: underline`) | Sublinhado (`++texto++`) |
 | `text/html` do VS Code (só `div`, `span`, `br` e `meta`) | Ignorado: o `text/plain` é tratado como Markdown, se parecer Markdown |
@@ -114,7 +114,7 @@ A leitura do nível é feita ainda na string, antes de o `style` sair, e o aninh
 Os avisos aparecem junto ao editor até a pessoa fechá-los:
 
 - *"Esta tabela tinha células mescladas, que não são suportadas. Confira o resultado ou envie a tabela como imagem."*
-- *"A imagem não foi colada. Use o campo Imagem."* (substituído na etapa 2)
+- *"Algumas imagens não vieram. Clique em cada uma para enviar o arquivo."* (etapa 2; só quando sobra marcador)
 
 Se a saída em Markdown vier com colunas alinhadas por espaços, ela é compactada, porque esse preenchimento consome boa parte do limite. Se a extensão não permitir, a limpeza fica de fora: o limite de 20.000 já comporta o tamanho observado.
 
@@ -143,10 +143,11 @@ A colagem do VS Code, que manda `text/html` só com `div`, `span`, `br` e `meta`
 
 | Origem | Comportamento |
 |---|---|
-| Colagem do Word | Lê o `text/rtf` e associa a N-ésima imagem `file://` do HTML à N-ésima imagem PNG ou JPEG do RTF, ignorando `\nonshppict` |
+| Colagem do Word | Lê o `text/rtf` (guardado por um listener de `paste` em captura, porque o `transformPastedHTML` só recebe o HTML) e associa a N-ésima imagem `file://` do HTML à N-ésima imagem PNG ou JPEG do RTF, ignorando `\nonshppict` |
+| Colagem de `data:image/png`, `jpeg` ou `webp` | Vira arquivo pelo mesmo caminho, com os limites de 10 MB e de 10 imagens; fora deles, vira marcador |
 | Imagem copiada sozinha ou print | Usa o arquivo da área de transferência |
 | Botão "Imagem" ou arrastar | Abre o seletor de arquivo ou usa o arquivo solto |
-| Não recuperável | Fica um marcador visível no lugar: *"Esta imagem não veio do Word. Clique para enviar o arquivo."* |
+| Não recuperável | Fica um marcador visível no lugar: *"Esta imagem não veio. Clique para enviar o arquivo."* |
 
 **Não recuperável** inclui RTF sem imagem, só EMF ou WMF, RTF acima de 50 MB e imagem externa com `http`. Se o número de imagens do HTML e do RTF não bater, **todas** viram marcador, porque imagem certa no lugar errado é pior que imagem nenhuma.
 

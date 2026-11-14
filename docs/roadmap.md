@@ -219,7 +219,14 @@ processos (maior risco técnico) só entra com a base já sólida.
       bloco de código e títulos com estilo na leitura. Limites: 20.000 caracteres no corpo e 10.000 células por
       tabela colada. Conteúdo hostil (script, `on*`, `javascript:`, `data:`, mXSS) é provado
       não executar, e a ida e volta do texto é testada — [spec](specs/2026-11-06-editor-do-mural-design.md).
-      Pendente: etapa 2 (imagem no meio do texto)
+- [x] Editor do Mural, etapa 2 (2026-11-14): imagem no meio do texto, por botão, arrasto, colagem de
+      arquivo ou print, `data:` colado e imagens do Word recuperadas do RTF (só PNG e JPEG; a
+      quantidade precisa bater com a do HTML, senão todas viram marcador clicável). A imagem
+      fica no navegador até o envio e vai no mesmo formulário (até 10, de até 10 MB), sem rota
+      de upload nem órfãos; tabela `ImagensNoTexto`, rota `/publicacoes/{id}/imagens/{imagemId}`,
+      e o corpo recusa o que não é imagem desta publicação. Pendente: provar a colagem de várias
+      imagens com o Word real (os testes usam um RTF fictício) —
+      [spec](specs/2026-11-06-editor-do-mural-design.md)
 
 ## Fase 2 — Operacional
 
