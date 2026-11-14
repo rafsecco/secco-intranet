@@ -186,19 +186,14 @@ public sealed class PublicarPublicacaoHandler(
 						nova.DefinirImagem(gravada.CaminhoRelativo, gravada.ChaveEmbrulhada, command.ImagemDescricao);
 					}
 
-					await repository.AddAsync(nova, cancellationToken).ConfigureAwait(false);
-
-					// AddAsync já salvou a publicação; as imagens entram no contexto depois dele e
-					// precisam de um salvamento próprio, senão ficam só em memória.
-					if (preparado.Value.Novas.Count > 0)
+					// As imagens entram no contexto antes do AddAsync, que salva: publicação e imagens
+					// gravam num SaveChanges só, e a falha não deixa aviso apontando para linha ausente.
+					foreach (var imagem in preparado.Value.Novas)
 					{
-						foreach (var imagem in preparado.Value.Novas)
-						{
-							imagensNoTexto.Adicionar(imagem);
-						}
-
-						await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+						imagensNoTexto.Adicionar(imagem);
 					}
+
+					await repository.AddAsync(nova, cancellationToken).ConfigureAwait(false);
 
 					return nova;
 				},

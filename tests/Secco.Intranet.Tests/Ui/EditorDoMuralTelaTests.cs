@@ -5,11 +5,13 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Domain;
 using Secco.Intranet.Domain.Publicacoes;
+using Secco.Intranet.Infrastructure.Contexts;
 using Secco.Intranet.Tests.Integration;
 using Secco.Intranet.Tests.Integration.TestAuthentication;
 using Secco.SDK.AspNetCore.Tenancy;
@@ -90,7 +92,7 @@ public sealed class EditorDoMuralFixture : IAsyncLifetime
 			new PublicarPublicacaoCommand(
 				Slug,
 				$"Aviso {Guid.NewGuid():N}"[..14],
-				corpo,
+				string.Empty,
 				TipoPublicacao.Aviso,
 				Visibilidade.Empresa,
 				PrioridadePublicacao.Normal,
@@ -100,7 +102,14 @@ public sealed class EditorDoMuralFixture : IAsyncLifetime
 			CancellationToken.None);
 		resultado.IsSuccess.Should().BeTrue();
 
-		return resultado.Value.Publicacao.Id;
+		// O corpo cru entra direto no banco: o teste prova que um corpo hostil já guardado (de antes
+		// da validação, ou gravado por fora) não executa no editor, então não pode passar pelo caso de uso.
+		var id = resultado.Value.Publicacao.Id;
+		await escopo.ServiceProvider.GetRequiredService<IntranetDbContext>().Publicacoes
+			.Where(p => p.Id == id)
+			.ExecuteUpdateAsync(p => p.SetProperty(x => x.Corpo, corpo));
+
+		return id;
 	}
 
 	/// <summary>Mensagens de console sobre a CSP vistas pela página desde que foi aberta.</summary>

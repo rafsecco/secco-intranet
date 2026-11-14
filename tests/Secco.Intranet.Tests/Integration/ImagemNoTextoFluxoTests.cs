@@ -1,6 +1,10 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using AwesomeAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Secco.Intranet.Infrastructure.Contexts;
+using Secco.SDK.AspNetCore.Tenancy;
 using Secco.Intranet.Tests.Integration.TestAuthentication;
 using Secco.Intranet.Tests.Support;
 using Secco.SharedKernel.Constants;
@@ -122,6 +126,19 @@ public class ImagemNoTextoFluxoTests(IntranetWebFactory factory) : IClassFixture
 			resposta.Content.Headers.ContentType!.MediaType.Should().Be("image/webp");
 			resposta.Headers.GetValues("X-Content-Type-Options").Should().ContainSingle().Which.Should().Be("nosniff");
 		}
+	}
+
+	[Fact]
+	public async Task Publicar_ImagensNoTexto_GravaNoMesmoSaveChanges()
+	{
+		var (id, _, _) = await PublicarComDuasImagensAsync();
+
+		using var escopo = factory.Services.CreateScope();
+		escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
+		var contexto = escopo.ServiceProvider.GetRequiredService<IntranetDbContext>();
+
+		(await contexto.Publicacoes.CountAsync(p => p.Id == id)).Should().Be(1);
+		(await contexto.ImagensNoTexto.CountAsync(i => i.PublicacaoId == id)).Should().Be(2);
 	}
 
 	[Fact]
