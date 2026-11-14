@@ -7,9 +7,9 @@ import { TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 import StarterKit from '@tiptap/starter-kit';
 import { Tabela } from './tabela-markdown.js';
 import { limparColagem } from './colagem.js';
-import { pareceMarkdown } from './markdown-colado.js';
+import { htmlSemFormatacao, pareceMarkdown } from './markdown-colado.js';
 
-export { pareceMarkdown } from './markdown-colado.js';
+export { htmlSemFormatacao, pareceMarkdown } from './markdown-colado.js';
 export { limparColagem, AVISO_ANINHADA, AVISO_IMAGEM, AVISO_MESCLADA, AVISO_TABELA_GRANDE } from './colagem.js';
 
 const ESQUEMAS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
@@ -51,12 +51,19 @@ export function criarEditor({ elemento, markdown, aoMudar, aoColar }) {
     ],
     editorProps: {
       attributes: { role: 'textbox', 'aria-multiline': 'true', 'aria-label': 'Corpo' },
-      // Colar so texto (sem text/html) que pareca Markdown vira formatacao. Com text/html, a
-      // colagem segue pelo transformPastedHTML (Word, sites).
+      // Colar texto que pareca Markdown vira formatacao quando nao ha text/html ou quando ele nao
+      // tem formatacao (o VS Code manda so div/span/br). Com text/html de verdade, a colagem segue
+      // pelo transformPastedHTML (Word, sites).
       handlePaste: (view, event) => {
         const dados = event.clipboardData;
 
-        if (!dados || (dados.getData('text/html') || '').trim() !== '') {
+        if (!dados) {
+          return false;
+        }
+
+        const html = (dados.getData('text/html') || '').trim();
+
+        if (html !== '' && !htmlSemFormatacao(html)) {
           return false;
         }
 
