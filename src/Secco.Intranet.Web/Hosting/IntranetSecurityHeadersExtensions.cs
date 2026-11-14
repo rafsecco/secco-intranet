@@ -46,6 +46,10 @@ public static class IntranetSecurityHeadersExtensions
 			{
 				options.AllowStyleAttribute(valor);
 			}
+
+			// A pré-visualização da imagem escolhida no editor é um blob: local, antes do envio. Só ele
+			// entra além do 'self' do SDK: sem data:, sem curinga, sem origem de fora.
+			options.ImageSources.Add("blob:");
 		});
 
 		// Lido na montagem da política, não no registro: fontes de configuração tardias (testes) também valem.

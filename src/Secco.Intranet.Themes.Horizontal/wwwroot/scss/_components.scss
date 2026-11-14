@@ -764,6 +764,11 @@ html.sc-js .sc-nav__sub.is-open {
     max-width: 28rem;
   }
 
+  &__descricao {
+    flex: 1 1 100%;
+    max-width: 28rem;
+  }
+
   &__avisos:empty {
     display: none;
   }
@@ -821,6 +826,17 @@ html.sc-js .sc-nav__sub.is-open {
 
     a {
       color: var(--bs-primary);
+    }
+
+    // Imagem no meio do texto: nunca mais larga que o editor; a selecionada ganha contorno.
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    img.ProseMirror-selectednode,
+    .sc-editor__pendente.ProseMirror-selectednode {
+      outline: 2px solid var(--bs-primary);
     }
   }
 

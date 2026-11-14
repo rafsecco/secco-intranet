@@ -64,7 +64,33 @@
     });
   }
 
+  var AVISO_PENDENTES = 'Envie ou remova as imagens pendentes antes de publicar.';
   var editor;
+  var posicaoPendente;
+
+  // Seletor de arquivo unico, compartilhado pelo botao Imagem e pelo botao de imagem pendente.
+  var seletor = el('input', '', {
+    type: 'file', accept: 'image/png,image/jpeg,image/webp', hidden: '', tabindex: '-1', 'aria-hidden': 'true'
+  });
+  seletor.multiple = true;
+  conteiner.appendChild(seletor);
+
+  function escolherArquivos(pendente) {
+    posicaoPendente = pendente;
+    seletor.multiple = pendente === undefined;
+    seletor.click();
+  }
+
+  seletor.addEventListener('change', function () {
+    var opcoes = posicaoPendente === undefined ? {} : { substituir: posicaoPendente };
+
+    if (seletor.files.length > 0) {
+      mostrarAvisos(seccoEditor.inserirArquivos(editor, seletor.files, opcoes));
+    }
+
+    posicaoPendente = undefined;
+    seletor.value = '';
+  });
 
   try {
     editor = seccoEditor.criarEditor({
@@ -73,7 +99,9 @@
       aoMudar: function (markdown) {
         area.value = markdown;
       },
-      aoColar: mostrarAvisos
+      aoColar: mostrarAvisos,
+      publicacaoId: area.getAttribute('data-sc-publicacao-id') || '',
+      aoClicarPendente: escolherArquivos
     });
   } catch (erro) {
     // Desiste sem deixar rastro. Esconder o textarea ANTES de saber que o editor subiu
@@ -207,11 +235,49 @@
     botaoLink.setAttribute('aria-pressed', ligado ? 'true' : 'false');
   });
 
+  // Imagem: o arquivo entra no texto como marcador e so sobe com o formulario. A descricao (o alt)
+  // da imagem selecionada tem um campo proprio na barra, no molde do link.
+  var botaoImagem = botao('Imagem', 'bi-image');
+  var campoDescricao = el('div', 'sc-editor__descricao input-group input-group-sm', { hidden: '' });
+  var entradaDescricao = el('input', 'form-control', {
+    type: 'text', 'aria-label': 'Descrição da imagem', placeholder: 'Descrição da imagem', maxlength: '300', autocomplete: 'off'
+  });
+  var aplicarDescricao = el('button', 'btn btn-outline-secondary', { type: 'button' });
+  aplicarDescricao.textContent = 'Aplicar';
+  campoDescricao.appendChild(entradaDescricao);
+  campoDescricao.appendChild(aplicarDescricao);
+
+  function aplicarDescricaoDaImagem() {
+    editor.chain().updateAttributes('image', { alt: entradaDescricao.value.trim().slice(0, 300) }).run();
+  }
+
+  botaoImagem.addEventListener('click', function () {
+    escolherArquivos(undefined);
+  });
+  aplicarDescricao.addEventListener('click', aplicarDescricaoDaImagem);
+  entradaDescricao.addEventListener('keydown', function (evento) {
+    if (evento.key === 'Enter') {
+      evento.preventDefault();
+      aplicarDescricaoDaImagem();
+    }
+  });
+  atualizadores.push(function () {
+    var selecionada = editor.isActive('image');
+
+    campoDescricao.hidden = !selecionada;
+
+    // Quem digita a descricao nao pode ter o campo reescrito a cada transacao.
+    if (selecionada && document.activeElement !== entradaDescricao) {
+      entradaDescricao.value = editor.getAttributes('image').alt || '';
+    }
+  });
+
   grupo([
     botaoLink,
     comando('Inserir tabela', 'bi-table', function (c) {
       return c.insertTable({ rows: 3, cols: 2, withHeaderRow: true });
-    })
+    }),
+    botaoImagem
   ]);
 
   var tabela = grupo([
@@ -238,6 +304,7 @@
   grupo([botaoMarkdown]);
 
   barra.appendChild(campoLink);
+  barra.appendChild(campoDescricao);
 
   function atualizar() {
     atualizadores.forEach(function (f) {
@@ -261,6 +328,7 @@
       texto.hidden = true;
       area.classList.remove('d-none');
       campoLink.hidden = true;
+      campoDescricao.hidden = true;
       tabela.hidden = true;
       area.focus();
 
@@ -282,11 +350,36 @@
 
   var formulario = area.closest('form');
   if (formulario) {
-    formulario.addEventListener('submit', function () {
+    // Os arquivos das imagens novas vao neste campo, que so existe com o editor ativo.
+    var arquivosDoTexto = el('input', '', { type: 'file', name: 'Form.ImagensDoTexto', hidden: '' });
+    arquivosDoTexto.multiple = true;
+    formulario.appendChild(arquivosDoTexto);
+
+    formulario.addEventListener('submit', function (evento) {
       // No modo cru o campo enviado e o texto que a pessoa escreveu.
       if (!modoCru) {
         area.value = editor.getMarkdown();
       }
+
+      // Imagem que nao veio nao pode ir: o servidor so a descartaria, e o texto perderia o lugar dela.
+      if (area.value.indexOf('](pendente:)') !== -1) {
+        evento.preventDefault();
+        mostrarAvisos([AVISO_PENDENTES]);
+        (texto.querySelector('[data-imagem-pendente]') || area).focus();
+
+        return;
+      }
+
+      var envio = seccoEditor.paraEnvio(area.value);
+      var transferencia = new DataTransfer();
+
+      area.value = envio.markdown;
+      envio.arquivos.forEach(function (arquivo) {
+        transferencia.items.add(arquivo);
+      });
+      arquivosDoTexto.files = transferencia.files;
+      // Sem arquivo o navegador mandaria uma parte vazia: desabilitado, o campo nao vai.
+      arquivosDoTexto.disabled = envio.arquivos.length === 0;
     });
   }
 })();

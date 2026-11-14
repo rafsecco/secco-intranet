@@ -66,4 +66,13 @@ public class IntranetSecurityHeadersExtensionsTests
 	public void ReportUri_LidoDaConfiguracao() =>
 		Opcoes((IntranetSecurityHeadersExtensions.ChaveDoReportUri, "https://csp.exemplo.com/relatos"))
 			.ReportUri.Should().Be(new Uri("https://csp.exemplo.com/relatos"));
+
+	[Fact]
+	public void ImagensDoTexto_SoLiberaBlobParaAPreVisualizacao()
+	{
+		var origens = Opcoes().ImageSources;
+
+		origens.Should().Equal("blob:");
+		origens.Should().NotContain(["data:", "*", "https:", "http:"]);
+	}
 }

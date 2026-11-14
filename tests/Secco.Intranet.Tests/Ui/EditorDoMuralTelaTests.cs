@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using AwesomeAssertions;
@@ -1064,5 +1065,343 @@ public class EditorDoMuralTelaTests(EditorDoMuralFixture f) : IClassFixture<Edit
 		var markdown = await pagina.Locator(Corpo).InputValueAsync();
 		markdown.Should().Contain("++a++").And.Contain("++b++");
 		f.ViolacoesDeCsp(pagina).Should().BeEmpty();
+	}
+
+	private const string ImagemNoEditor = ".sc-editor .ProseMirror img:not(.ProseMirror-separator)";
+
+	private const string CampoDeArquivos = ".sc-editor input[type=file]";
+
+	private const string CampoDescricao = ".sc-editor [aria-label='Descrição da imagem']";
+
+	private const string AvisoImagemGrande = "A imagem passa de 10 MB.";
+
+	private const string AvisoTipo = "Use PNG, JPG ou WebP.";
+
+	private const string AvisoDemais = "O texto já tem 10 imagens.";
+
+	private const string AvisoPendentes = "Envie ou remova as imagens pendentes antes de publicar.";
+
+	private const string TextoPendente = "Esta imagem não veio. Clique para enviar o arquivo.";
+
+	/// <summary>PNG 2x2 válido, montado aqui: assinatura, IHDR, IDAT (zlib) e IEND, cada bloco com o seu CRC32.</summary>
+	private static byte[] PngValido()
+	{
+		using var png = new MemoryStream();
+		png.Write([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+		EscreverBloco(png, "IHDR", [0, 0, 0, 2, 0, 0, 0, 2, 8, 2, 0, 0, 0]);
+
+		using var dados = new MemoryStream();
+		using (var zlib = new ZLibStream(dados, CompressionLevel.Optimal, leaveOpen: true))
+		{
+			// Duas linhas: filtro 0 e dois pixels RGB.
+			zlib.Write([0, 200, 30, 30, 30, 200, 30, 0, 30, 30, 200, 200, 200, 30]);
+		}
+
+		EscreverBloco(png, "IDAT", dados.ToArray());
+		EscreverBloco(png, "IEND", []);
+
+		return png.ToArray();
+	}
+
+	private static void EscreverBloco(Stream destino, string tipo, byte[] dados)
+	{
+		var corpo = new byte[4 + dados.Length];
+		System.Text.Encoding.ASCII.GetBytes(tipo, corpo);
+		dados.CopyTo(corpo, 4);
+
+		var crc = 0xFFFFFFFFu;
+		foreach (var b in corpo)
+		{
+			crc ^= b;
+			for (var i = 0; i < 8; i++)
+			{
+				crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320u : crc >> 1;
+			}
+		}
+
+		destino.Write(BigEndian((uint)dados.Length));
+		destino.Write(corpo);
+		destino.Write(BigEndian(~crc));
+	}
+
+	private static byte[] BigEndian(uint valor)
+	{
+		var bytes = new byte[4];
+		System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(bytes, valor);
+
+		return bytes;
+	}
+
+	private static FilePayload Arquivo(string nome = "foto.png", string tipo = "image/png", byte[]? conteudo = null) =>
+		new() { Name = nome, MimeType = tipo, Buffer = conteudo ?? PngValido() };
+
+	private static async Task AnexarAsync(IPage pagina, params FilePayload[] arquivos)
+	{
+		await pagina.Locator(CampoDeArquivos).First.SetInputFilesAsync(arquivos);
+	}
+
+	private static async Task EsperarImagemCarregadaAsync(IPage pagina, string seletor) =>
+		await pagina.WaitForFunctionAsync(
+			"s => { const i = document.querySelector(s); return !!i && i.complete && i.naturalWidth > 0; }", seletor);
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Imagem_Botao_InsereEPublica(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+
+		var seletor = await pagina.RunAndWaitForFileChooserAsync(
+			() => pagina.Locator(".sc-editor__barra").GetByLabel("Imagem", new() { Exact = true }).ClickAsync());
+		await seletor.SetFilesAsync(Arquivo());
+
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(1);
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveAttributeAsync("src", new Regex("^blob:"));
+		await EsperarImagemCarregadaAsync(pagina, ImagemNoEditor);
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().Contain("![](nova-imagem:0)");
+
+		var publicado = await PublicarAsync(pagina, tema);
+
+		await Expect(publicado.Locator("img")).ToHaveCountAsync(1);
+		await Expect(publicado.Locator("img")).ToHaveAttributeAsync("src", new Regex("^/publicacoes/[0-9a-f-]{36}/imagens/[0-9a-f-]{36}$"));
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Imagem_ColarArquivo_Insere(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+
+		await pagina.EvaluateAsync(
+			"""
+			async (base64) => {
+			  const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+			  const alvo = document.querySelector('.sc-editor .ProseMirror');
+			  alvo.focus();
+			  const dados = new DataTransfer();
+			  dados.items.add(new File([bytes], 'print.png', { type: 'image/png' }));
+			  alvo.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dados, bubbles: true, cancelable: true }));
+			}
+			""",
+			Convert.ToBase64String(PngValido()));
+
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(1);
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().Contain("![](nova-imagem:0)");
+		f.ViolacoesDeCsp(pagina).Should().BeEmpty();
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Imagem_ApagadaAntesDoEnvio_NaoEEnviada(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+		await AnexarAsync(pagina, Arquivo());
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(1);
+
+		await pagina.Locator(ImagemNoEditor).ClickAsync();
+		await pagina.Keyboard.PressAsync("Backspace");
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(0);
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().NotContain("nova-imagem");
+
+		await pagina.Locator("#Form_Titulo").FillAsync("Sem imagem");
+		var envio = await pagina.RunAndWaitForRequestAsync(
+			() => pagina.GetByRole(AriaRole.Button, new() { Name = "Salvar publicação" }).ClickAsync(),
+			r => r.Method == "POST");
+
+		var corpo = System.Text.Encoding.UTF8.GetString(envio.PostDataBuffer!);
+		corpo.Should().NotContain("Form.ImagensDoTexto", "sem imagem no texto o envio não leva arquivo do texto");
+		corpo.Should().NotContain("nova-imagem");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Imagem_ModoMarkdownIdaEVolta_ContinuaEEnviada(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		var botao = pagina.GetByLabel("Markdown", new() { Exact = true });
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+		await AnexarAsync(pagina, Arquivo());
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(1);
+
+		await botao.ClickAsync();
+		await Expect(pagina.Locator(Corpo)).ToHaveValueAsync(new Regex("nova-imagem:0"));
+		await botao.ClickAsync();
+
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(1);
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveAttributeAsync("src", new Regex("^blob:"));
+
+		var publicado = await PublicarAsync(pagina, tema);
+
+		await Expect(publicado.Locator("img")).ToHaveCountAsync(1);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Imagem_ModoMarkdownEnviando_ReescreveEEnviaOArquivo(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+		await AnexarAsync(pagina, Arquivo("a.png"), Arquivo("b.png"));
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(2);
+
+		await pagina.GetByLabel("Markdown", new() { Exact = true }).ClickAsync();
+		// Só a segunda fica no texto: o envio renumera para 0 e leva um arquivo só.
+		await pagina.Locator(Corpo).FillAsync("Texto ![](nova-imagem:1)");
+
+		var publicado = await PublicarAsync(pagina, tema);
+
+		await Expect(publicado.Locator("img")).ToHaveCountAsync(1);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Imagem_GrandeDemais_AvisaENaoInsere(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+
+		await AnexarAsync(pagina, Arquivo("enorme.png", conteudo: new byte[(10 * 1024 * 1024) + 1]));
+
+		await Expect(pagina.Locator(Avisos)).ToContainTextAsync(AvisoImagemGrande);
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(0);
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().NotContain("nova-imagem");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Imagem_TipoNaoSuportado_AvisaENaoInsere(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+
+		await AnexarAsync(pagina, Arquivo("animacao.gif", "image/gif", [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]));
+
+		await Expect(pagina.Locator(Avisos)).ToContainTextAsync(AvisoTipo);
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(0);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Imagem_OnzeImagens_AvisaENaoInsere(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+
+		await AnexarAsync(pagina, [.. Enumerable.Range(0, 11).Select(i => Arquivo($"{i}.png"))]);
+
+		await Expect(pagina.Locator(Avisos)).ToContainTextAsync(AvisoDemais);
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(10);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Imagem_Pendente_BloqueiaOEnvio(string tema)
+	{
+		var id = await f.CriarPublicacaoAsync("Antes ![](nova-imagem:0) depois");
+		var pagina = await f.AbrirEdicaoAsync(tema, id);
+		var pendente = pagina.Locator(".sc-editor .ProseMirror [data-imagem-pendente]");
+
+		await Expect(pendente).ToHaveTextAsync(TextoPendente);
+
+		await pagina.GetByRole(AriaRole.Button, new() { Name = "Salvar publicação" }).ClickAsync();
+
+		await Expect(pagina.Locator(Avisos)).ToContainTextAsync(AvisoPendentes);
+		await Expect(pendente).ToBeFocusedAsync();
+		pagina.Url.Should().Contain("editar=", "o envio foi bloqueado");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Imagem_Pendente_ClicarEEnviarOArquivo_TrocaPelaImagem(string tema)
+	{
+		var id = await f.CriarPublicacaoAsync("Antes ![](nova-imagem:0) depois");
+		var pagina = await f.AbrirEdicaoAsync(tema, id);
+		var pendente = pagina.Locator(".sc-editor .ProseMirror [data-imagem-pendente]");
+		await Expect(pendente).ToBeVisibleAsync();
+
+		var seletor = await pagina.RunAndWaitForFileChooserAsync(() => pendente.ClickAsync());
+		await seletor.SetFilesAsync(Arquivo());
+
+		await Expect(pendente).ToHaveCountAsync(0);
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(1);
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().Contain("![](nova-imagem:0)").And.Contain("Antes").And.Contain("depois");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Imagem_Descricao_VaiParaOAlt(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+		await AnexarAsync(pagina, Arquivo());
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(1);
+		await Expect(pagina.Locator(CampoDescricao)).ToBeHiddenAsync();
+
+		await pagina.Locator(ImagemNoEditor).ClickAsync();
+		await Expect(pagina.Locator(CampoDescricao)).ToBeVisibleAsync();
+		await Expect(pagina.Locator(CampoDescricao)).ToHaveAttributeAsync("maxlength", "300");
+		await pagina.Locator(CampoDescricao).FillAsync("Gráfico de vendas");
+		await pagina.Locator(CampoDescricao).PressAsync("Enter");
+
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().Contain("![Gráfico de vendas](nova-imagem:0)");
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveAttributeAsync("alt", "Gráfico de vendas");
+
+		var publicado = await PublicarAsync(pagina, tema);
+
+		await Expect(publicado.Locator("img")).ToHaveAttributeAsync("alt", "Gráfico de vendas");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Imagem_EditarAvisoComImagens_MantemAsImagens(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+		await pagina.Keyboard.TypeAsync("Antes ");
+		await AnexarAsync(pagina, Arquivo());
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(1);
+		await pagina.Keyboard.TypeAsync(" depois");
+		var publicado = await PublicarAsync(pagina, tema);
+		var antes = await publicado.Locator("img").GetAttributeAsync("src");
+		var id = Guid.Parse(Regex.Match(pagina.Url, "publicacoes/([0-9a-f-]{36})").Groups[1].Value);
+
+		var edicao = await f.AbrirEdicaoAsync(tema, id);
+		await Expect(edicao.Locator(ImagemNoEditor)).ToHaveCountAsync(1);
+		await Expect(edicao.Locator(ImagemNoEditor)).ToHaveAttributeAsync("src", antes!);
+		await Expect(edicao.Locator(".sc-editor .ProseMirror [data-imagem-pendente]")).ToHaveCountAsync(0);
+
+		await SalvarSemMudarAsync(tema, id);
+
+		var leitura = await f.AbrirAsync(tema, $"/publicacoes/{id}");
+		await Expect(leitura.Locator(".sc-card__body img")).ToHaveCountAsync(1);
+		await Expect(leitura.Locator(".sc-card__body img")).ToHaveAttributeAsync("src", antes!);
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Imagem_SemViolacaoDeCsp(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+
+		await AnexarAsync(pagina, Arquivo());
+
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(1);
+		await EsperarImagemCarregadaAsync(pagina, ImagemNoEditor);
+		f.ViolacoesDeCsp(pagina).Should().BeEmpty("a pré-visualização blob: precisa passar na CSP em Enforce");
 	}
 }

@@ -10,8 +10,12 @@ import { Sublinhado } from './sublinhado-markdown.js';
 import { Tabela } from './tabela-markdown.js';
 import { limparColagem } from './colagem.js';
 import { htmlSemFormatacao, pareceMarkdown } from './markdown-colado.js';
+import { definirPublicacao } from './imagens-novas.js';
+import { ImagemDoTexto, ImagemPendente, arquivosDeImagem, inserirArquivos } from './imagem-no-texto.js';
 
 export { htmlSemFormatacao, pareceMarkdown } from './markdown-colado.js';
+export { paraEnvio } from './imagens-novas.js';
+export { inserirArquivos } from './imagem-no-texto.js';
 export { limparColagem, AVISO_ANINHADA, AVISO_IMAGEM, AVISO_MESCLADA, AVISO_TABELA_GRANDE } from './colagem.js';
 
 const ESQUEMAS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
@@ -40,7 +44,9 @@ class TokenizadorSemQuebraSimples extends Tokenizer {
   }
 }
 
-export function criarEditor({ elemento, markdown, aoMudar, aoColar }) {
+export function criarEditor({ elemento, markdown, aoMudar, aoColar, publicacaoId, aoClicarPendente }) {
+  definirPublicacao(publicacaoId);
+
   const editor = new Editor({
     element: elemento,
     // A <style> injetada violaria a CSP; o CSS vem do tema.
@@ -62,6 +68,9 @@ export function criarEditor({ elemento, markdown, aoMudar, aoColar }) {
       }),
       // O sublinhado nativo do StarterKit grava <u>; este grava ++texto++ (sublinhado-markdown.js).
       Sublinhado,
+      // Inline, para a imagem ficar no meio do texto. O base64 fica fora: o arquivo vai no formulario.
+      ImagemDoTexto.configure({ inline: true, allowBase64: false }),
+      ImagemPendente,
       Tabela.configure({ resizable: false }),
       TableRow,
       TableHeader,
@@ -82,6 +91,16 @@ export function criarEditor({ elemento, markdown, aoMudar, aoColar }) {
 
         const html = (dados.getData('text/html') || '').trim();
 
+        // Print ou imagem copiada: so o arquivo, sem text/html. Com text/html (Word, sites) a
+        // colagem segue pelo transformPastedHTML.
+        const imagens = html === '' ? arquivosDeImagem(dados) : [];
+
+        if (imagens.length > 0) {
+          aoColar?.(inserirArquivos(editor, imagens));
+
+          return true;
+        }
+
         if (html !== '' && !htmlSemFormatacao(html)) {
           return false;
         }
@@ -94,6 +113,31 @@ export function criarEditor({ elemento, markdown, aoMudar, aoColar }) {
 
         // `editor` ainda nao existe na primeira chamada, mas o handler so roda depois do construtor.
         editor.commands.insertContent(texto, { contentType: 'markdown' });
+
+        return true;
+      },
+      // Arquivo solto no texto vira imagem na posicao do solte. Devolver true tambem para o que nao
+      // e imagem: senao o navegador abriria o arquivo e a pessoa perderia o aviso que escreveu.
+      handleDrop: (view, event, slice, movido) => {
+        const arquivos = event.dataTransfer?.files;
+
+        if (movido || !arquivos || arquivos.length === 0) {
+          return false;
+        }
+
+        const alvo = view.posAtCoords({ left: event.clientX, top: event.clientY });
+        event.preventDefault();
+        aoColar?.(inserirArquivos(editor, arquivos, { posicao: alvo?.pos }));
+
+        return true;
+      },
+      handleClickOn: (view, pos, no, posDoNo, evento) => {
+        if (no.type.name !== 'imagemPendente') {
+          return false;
+        }
+
+        evento.preventDefault();
+        aoClicarPendente?.(posDoNo);
 
         return true;
       },
