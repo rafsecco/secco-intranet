@@ -30,6 +30,7 @@ public sealed record ItemMenuDto(
 /// <param name="Rota">Só relevante em <see cref="TipoDeItemMenu.Personalizado"/>.</param>
 /// <param name="Icone">Classe do Bootstrap Icons; vazio = sem ícone.</param>
 /// <param name="NivelDeAcesso">Quem vê o item no menu.</param>
+/// <param name="NovaAba">Se o destino abre em nova página; só vale com rota.</param>
 public sealed record CriarItemMenuCommand(
 	Guid SetorId,
 	Guid ParentId,
@@ -38,4 +39,5 @@ public sealed record CriarItemMenuCommand(
 	TipoDeItemMenu Tipo,
 	string? Rota,
 	string? Icone,
-	NivelDeAcessoItemMenu NivelDeAcesso = NivelDeAcessoItemMenu.Leitura);
+	NivelDeAcessoItemMenu NivelDeAcesso = NivelDeAcessoItemMenu.Leitura,
+	bool NovaAba = false);

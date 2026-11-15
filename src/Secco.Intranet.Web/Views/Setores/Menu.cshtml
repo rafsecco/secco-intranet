@@ -6,7 +6,7 @@
 
     var cabecalho = new PageHeaderModel(
         $"Menu de {Model.Setor.Nome}",
-        "Itens do menu deste setor. Documentos e Avisos só desativam; itens personalizados também se excluem.",
+        "Itens do menu deste setor. Documentos, Avisos, Vencimentos e Links só desativam; itens personalizados também se excluem.",
         Model.Setor.Slug,
         new[]
         {
@@ -41,6 +41,10 @@
                     }
                     @no.Item.Nome
                     <span class="sc-meta">@no.Item.Tipo · @no.Item.Slug</span>
+                    @if (!string.IsNullOrWhiteSpace(no.Item.Rota))
+                    {
+                        <span class="sc-meta">@no.Item.Rota@(no.Item.NovaAba ? " · nova página" : string.Empty)</span>
+                    }
                     @if (!no.Item.Ativo)
                     {
                         <partial name="_Badge" model="desativado" />
@@ -103,8 +107,8 @@
         <div class="col-sm-3">
             <label class="form-label" for="parentId">Pai</label>
             <select class="form-select" id="parentId" name="parentId">
-                @* Documentos/Avisos são folhas — não aparecem como pai possível. *@
-                @foreach (var (no, profundidade, _) in linhas.Where(linha => linha.No.Item.Tipo is TipoDeItemMenu.Setor or TipoDeItemMenu.Personalizado))
+                @* Documentos/Avisos/Vencimentos são folhas — não aparecem como pai possível. *@
+                @foreach (var (no, profundidade, _) in linhas.Where(linha => linha.No.Item.Tipo is TipoDeItemMenu.Setor or TipoDeItemMenu.Personalizado or TipoDeItemMenu.Links))
                 {
                     <option value="@no.Item.Id">@(new string('—', profundidade)) @no.Item.Nome</option>
                 }
@@ -134,6 +138,10 @@
                 {
                     <option value="@TipoDeItemMenu.Vencimentos">Vencimentos</option>
                 }
+                @if (!tiposExistentes.Contains(TipoDeItemMenu.Links))
+                {
+                    <option value="@TipoDeItemMenu.Links">Links</option>
+                }
             </select>
         </div>
         <div class="col-sm-2">
@@ -143,6 +151,12 @@
         <div class="col-sm-4">
             <label class="form-label" for="rota">Rota (só Personalizado)</label>
             <input class="form-control" id="rota" name="rota" maxlength="512" placeholder="/relatorios ou https://…" />
+        </div>
+        <div class="col-sm-2 d-flex align-items-end">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="novaAba" name="novaAba" value="true" checked />
+                <label class="form-check-label" for="novaAba">Abrir em nova página</label>
+            </div>
         </div>
         <div class="col-sm-3">
             <label class="form-label" for="nivelDeAcesso">Quem vê no menu</label>

@@ -38,4 +38,7 @@ public sealed class SetorFormViewModel
 
 	/// <summary>Se o setor nasce com o item Vencimentos na árvore de menu. Desmarcado por padrão.</summary>
 	public bool HabilitarVencimentos { get; set; }
+
+	/// <summary>Se o setor nasce com o item Links na árvore de menu. Marcado por padrão.</summary>
+	public bool HabilitarLinks { get; set; } = true;
 }

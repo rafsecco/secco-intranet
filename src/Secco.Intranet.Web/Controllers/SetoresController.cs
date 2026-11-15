@@ -94,6 +94,7 @@ public sealed class SetoresController(
 	/// <param name="rota">Rota opcional (só Personalizado).</param>
 	/// <param name="icone">Classe do Bootstrap Icons, opcional.</param>
 	/// <param name="nivelDeAcesso">Quem vê o item no menu; ausente fica no padrão.</param>
+	/// <param name="novaAba">Se o destino abre em nova página; caixa desmarcada não é enviada e vale falso.</param>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
 	[HttpPost]
 	[ValidateAntiForgeryToken]
@@ -106,6 +107,7 @@ public sealed class SetoresController(
 		string? rota,
 		string? icone,
 		NivelDeAcessoItemMenu nivelDeAcesso = NivelDeAcessoItemMenu.Leitura,
+		bool novaAba = false,
 		CancellationToken cancellationToken = default)
 	{
 		if (NivelDoFormularioEhInvalido(nameof(nivelDeAcesso)))
@@ -114,7 +116,7 @@ public sealed class SetoresController(
 		}
 
 		var resultado = await criarItem.HandleAsync(
-			new CriarItemMenuCommand(setorId, parentId, nome, slug, tipo, rota, icone, nivelDeAcesso), cancellationToken);
+			new CriarItemMenuCommand(setorId, parentId, nome, slug, tipo, rota, icone, nivelDeAcesso, novaAba), cancellationToken);
 
 		return VoltarParaMenu(setorId, resultado.IsSuccess ? $"Item \"{resultado.Value.Nome}\" criado." : null, resultado);
 	}
@@ -301,7 +303,7 @@ public sealed class SetoresController(
 		}
 
 		var result = await createHandler.HandleAsync(
-			new CreateSetorCommand(form.Nome, form.Slug, form.Fixo, form.Icone, form.HabilitarDocumentos, form.HabilitarAvisos, form.HabilitarVencimentos),
+			new CreateSetorCommand(form.Nome, form.Slug, form.Fixo, form.Icone, form.HabilitarDocumentos, form.HabilitarAvisos, form.HabilitarVencimentos, form.HabilitarLinks),
 			cancellationToken);
 
 		if (result.IsFailure)

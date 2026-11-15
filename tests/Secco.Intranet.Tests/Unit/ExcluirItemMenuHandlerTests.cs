@@ -72,4 +72,19 @@ public class ExcluirItemMenuHandlerTests
 
 		resultado.Error.Should().Be(IntranetErrors.Menu.RaizProtegida);
 	}
+
+	[Fact]
+	public async Task Excluir_NoLinks_TipoEmbutidoNaoExclui()
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = new ItemMenu(Guid.NewGuid(), null, "X", "x", TipoDeItemMenu.Setor, null, null, 0);
+		var links = new ItemMenu(raiz.SetorId, raiz.Id, "Links", "links", TipoDeItemMenu.Links, null, "bi-link-45deg", 0);
+		repo.Itens.AddRange([raiz, links]);
+		var handler = new ExcluirItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
+
+		var resultado = await handler.HandleAsync(links.Id);
+
+		resultado.Error.Should().Be(IntranetErrors.Menu.TipoEmbutidoNaoExclui);
+		repo.Itens.Should().ContainSingle(i => i.Id == links.Id);
+	}
 }

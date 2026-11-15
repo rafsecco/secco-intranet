@@ -131,6 +131,82 @@ public class SetorMenuAdministracaoTests(IntranetWebFactory factory) : IClassFix
 		(await client.GetAsync($"/{slug}/documentos")).StatusCode.Should().Be(HttpStatusCode.NotFound);
 	}
 
+	[Fact]
+	public async Task CriarSetor_ComHabilitarLinks_NasceComONo()
+	{
+		var slug = $"lnk-{Guid.NewGuid():N}"[..20];
+		Guid setorId;
+
+		using (var escopo = factory.Services.CreateScope())
+		{
+			escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
+			var criado = await escopo.ServiceProvider
+				.GetRequiredService<CreateSetorHandler>()
+				.HandleAsync(new CreateSetorCommand($"Setor {slug}", slug, HabilitarLinks: true));
+
+			criado.IsSuccess.Should().BeTrue();
+			setorId = criado.Value.Id;
+		}
+
+		var links = await ItemAsync(setorId, TipoDeItemMenu.Links);
+
+		links.Slug.Should().Be("links");
+		links.Icone.Should().Be("bi-link-45deg");
+		links.ParentId.Should().Be((await ItemAsync(setorId, TipoDeItemMenu.Setor)).Id);
+	}
+
+	[Fact]
+	public async Task Menu_CriarPersonalizadoComNovaAba_MostraNaTela()
+	{
+		var (setorId, _, raizId) = await CriarSetorAsync();
+		var client = CriarCliente();
+		var token = await TokenAsync(client, $"/Setores/Menu/{setorId}");
+
+		await client.PostAsync("/Setores/CriarItemDeMenu", Formulario(
+			("setorId", setorId.ToString()),
+			("parentId", raizId.ToString()),
+			("nome", "Portal"),
+			("slug", "portal"),
+			("tipo", "Personalizado"),
+			("rota", "https://exemplo.com/portal"),
+			("novaAba", "true"),
+			("__RequestVerificationToken", token)));
+
+		(await ItemAsync(setorId, TipoDeItemMenu.Personalizado, "portal")).NovaAba.Should().BeTrue();
+
+		var html = await client.GetStringAsync($"/Setores/Menu/{setorId}");
+
+		html.Should().Contain("nova página");
+		html.Should().MatchRegex("<input[^>]*name=\"novaAba\"[^>]*checked", "a caixa vem marcada por padrão para um item novo");
+	}
+
+	[Fact]
+	public async Task Menu_TipoLinks_SoApareceQuandoNaoExiste()
+	{
+		var (comLinks, _, _) = await CriarSetorAsync();
+		var semLinks = await CriarSetorSemLinksAsync();
+		var client = CriarCliente();
+
+		(await client.GetStringAsync($"/Setores/Menu/{comLinks}")).Should().NotContain("<option value=\"Links\">");
+		(await client.GetStringAsync($"/Setores/Menu/{semLinks}")).Should().Contain("<option value=\"Links\">");
+	}
+
+	private async Task<Guid> CriarSetorSemLinksAsync()
+	{
+		var slug = $"sl-{Guid.NewGuid():N}"[..20];
+
+		using var escopo = factory.Services.CreateScope();
+		escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
+
+		var criado = await escopo.ServiceProvider
+			.GetRequiredService<CreateSetorHandler>()
+			.HandleAsync(new CreateSetorCommand($"Setor {slug}", slug, HabilitarLinks: false));
+
+		criado.IsSuccess.Should().BeTrue();
+
+		return criado.Value.Id;
+	}
+
 	private async Task<ItemMenu> ItemAsync(Guid setorId, TipoDeItemMenu tipo, string? slug = null)
 	{
 		using var escopo = factory.Services.CreateScope();

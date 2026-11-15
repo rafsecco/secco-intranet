@@ -276,4 +276,79 @@ public class CriarItemMenuHandlerTests
 
 		resultado.Value.Rota.Should().BeNull("Rota só tem papel em Personalizado — não guardar lixo nos outros tipos");
 	}
+
+	[Fact]
+	public async Task Criar_Links_DuasVezes_TipoJaExiste()
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = CriarRaiz(repo);
+		repo.Itens.Add(new ItemMenu(SetorId, raiz.Id, "Links", "links", TipoDeItemMenu.Links, null, "bi-link-45deg", 0));
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
+
+		var resultado = await handler.HandleAsync(
+			new CriarItemMenuCommand(SetorId, raiz.Id, "Links 2", "links-2", TipoDeItemMenu.Links, null, null));
+
+		resultado.Error.Should().Be(IntranetErrors.Menu.TipoJaExiste);
+	}
+
+	[Fact]
+	public async Task Criar_Links_ForaDaRaiz_PaiInvalido()
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = CriarRaiz(repo);
+		var grupo = new ItemMenu(SetorId, raiz.Id, "Grupo", "grupo", TipoDeItemMenu.Personalizado, null, null, 0);
+		repo.Itens.Add(grupo);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
+
+		var resultado = await handler.HandleAsync(
+			new CriarItemMenuCommand(SetorId, grupo.Id, "Links", "links", TipoDeItemMenu.Links, null, null));
+
+		resultado.Error.Should().Be(IntranetErrors.Menu.PaiInvalido);
+	}
+
+	[Fact]
+	public async Task Criar_PersonalizadoSobLinks_Aceita()
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = CriarRaiz(repo);
+		var links = new ItemMenu(SetorId, raiz.Id, "Links", "links", TipoDeItemMenu.Links, null, "bi-link-45deg", 0);
+		repo.Itens.Add(links);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
+
+		var resultado = await handler.HandleAsync(
+			new CriarItemMenuCommand(SetorId, links.Id, "Portal", "portal", TipoDeItemMenu.Personalizado, "https://exemplo.com", null));
+
+		resultado.IsSuccess.Should().BeTrue();
+		resultado.Value.ParentId.Should().Be(links.Id);
+	}
+
+	[Fact]
+	public async Task Criar_DocumentosSobLinks_PaiInvalido()
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = CriarRaiz(repo);
+		var links = new ItemMenu(SetorId, raiz.Id, "Links", "links", TipoDeItemMenu.Links, null, "bi-link-45deg", 0);
+		repo.Itens.Add(links);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
+
+		var resultado = await handler.HandleAsync(
+			new CriarItemMenuCommand(SetorId, links.Id, "Documentos", "documentos", TipoDeItemMenu.Documentos, null, null));
+
+		resultado.Error.Should().Be(IntranetErrors.Menu.PaiInvalido);
+	}
+
+	[Fact]
+	public async Task Criar_PersonalizadoComNovaAba_Grava()
+	{
+		var repo = new ItemMenuRepositorioFalso();
+		var raiz = CriarRaiz(repo);
+		var handler = new CriarItemMenuHandler(repo, new TrilhaDeAcessoFalsa());
+
+		var resultado = await handler.HandleAsync(
+			new CriarItemMenuCommand(SetorId, raiz.Id, "Portal", "portal", TipoDeItemMenu.Personalizado, "https://exemplo.com", null, NovaAba: true));
+
+		resultado.IsSuccess.Should().BeTrue();
+		resultado.Value.NovaAba.Should().BeTrue();
+		repo.Itens.Single(i => i.Slug == "portal").NovaAba.Should().BeTrue();
+	}
 }

@@ -93,7 +93,18 @@ public sealed class CriarItemMenuHandler(IItemMenuRepository repository, ITrilha
 		var pai = arvore.FirstOrDefault(item => item.Id == command.ParentId);
 
 		// Documentos/Avisos/Vencimentos são folhas: com filho, a página do recurso redirecionaria para ele.
-		if (pai is null || (pai.Tipo != TipoDeItemMenu.Setor && pai.Tipo != TipoDeItemMenu.Personalizado))
+		// Links é o agrupador dos links do setor: só aceita Personalizado por baixo, e só mora na raiz.
+		if (pai is null || (pai.Tipo != TipoDeItemMenu.Setor && pai.Tipo != TipoDeItemMenu.Personalizado && pai.Tipo != TipoDeItemMenu.Links))
+		{
+			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.PaiInvalido);
+		}
+
+		if (pai.Tipo == TipoDeItemMenu.Links && command.Tipo != TipoDeItemMenu.Personalizado)
+		{
+			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.PaiInvalido);
+		}
+
+		if (command.Tipo == TipoDeItemMenu.Links && pai.Tipo != TipoDeItemMenu.Setor)
 		{
 			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.PaiInvalido);
 		}
@@ -104,7 +115,8 @@ public sealed class CriarItemMenuHandler(IItemMenuRepository repository, ITrilha
 			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.SlugJaExisteEntreIrmaos);
 		}
 
-		if ((command.Tipo == TipoDeItemMenu.Documentos || command.Tipo == TipoDeItemMenu.Avisos || command.Tipo == TipoDeItemMenu.Vencimentos)
+		if ((command.Tipo == TipoDeItemMenu.Documentos || command.Tipo == TipoDeItemMenu.Avisos
+			|| command.Tipo == TipoDeItemMenu.Vencimentos || command.Tipo == TipoDeItemMenu.Links)
 			&& await repository.ExisteTipoAsync(command.SetorId, command.Tipo, cancellationToken).ConfigureAwait(false))
 		{
 			return Result.Failure<ItemMenuDto>(IntranetErrors.Menu.TipoJaExiste);
@@ -114,13 +126,13 @@ public sealed class CriarItemMenuHandler(IItemMenuRepository repository, ITrilha
 
 		var item = new ItemMenu(
 			command.SetorId, command.ParentId, command.Nome.Trim(), slugNormalizado, command.Tipo,
-			rota, command.Icone, proximaOrdem, command.NivelDeAcesso);
+			rota, command.Icone, proximaOrdem, command.NivelDeAcesso, command.NovaAba);
 
 		await repository.AddAsync(item, cancellationToken).ConfigureAwait(false);
 
 		await AuditoriaDeMenu.ItemAsync(
 			trilha, VerbosDeAuditoria.MenuItemCriar, item,
-			new { setorId = item.SetorId, parentId = item.ParentId, nome = item.Nome, slug = item.Slug, tipo = item.Tipo.ToString(), rota = item.Rota, nivelDeAcesso = item.NivelDeAcesso.ToString() },
+			new { setorId = item.SetorId, parentId = item.ParentId, nome = item.Nome, slug = item.Slug, tipo = item.Tipo.ToString(), rota = item.Rota, nivelDeAcesso = item.NivelDeAcesso.ToString(), novaAba = item.NovaAba },
 			cancellationToken).ConfigureAwait(false);
 
 		return ItemMenuDto.FromEntity(item);
