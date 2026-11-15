@@ -34,6 +34,7 @@
             {
                 <div class="sc-nav__row">
                     <a class="@classe @matiz" href="@item.Url" title="@item.Texto"
+                       target="@(item.NovaAba ? "_blank" : null)" rel="@(item.NovaAba ? "noopener noreferrer" : null)"
                        aria-current="@(atual ? "page" : null)">
                         @if (!string.IsNullOrWhiteSpace(item.Icone))
                         {

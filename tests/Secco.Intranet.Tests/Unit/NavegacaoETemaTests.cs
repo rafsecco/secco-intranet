@@ -407,6 +407,130 @@ public class NavegacaoETemaTests
 		item.Filhos!.Select(filho => filho.Texto).Should().Equal("Avisos");
 	}
 
+	private static ItemMenuDto Links(Guid raizId) =>
+		No(raizId, "Links", "links", TipoDeItemMenu.Links);
+
+	private static ItemMenuDto Link(Guid paiId, string nome, string rota, bool novaAba = false) =>
+		No(paiId, nome, nome.ToLowerInvariant(), TipoDeItemMenu.Personalizado, rota: rota) with { NovaAba = novaAba };
+
+	private static NavigationItemModel NoLinks(NavigationModel menu) =>
+		SetorNoMenu(menu).Filhos!.Single(filho => filho.Texto == "Links");
+
+	[Fact]
+	public void Links_ComLinkEGrupo_LeitorVeGruposELinks_SemGerenciar()
+	{
+		var (setor, arvores) = Financeiro(raiz =>
+		{
+			var links = Links(raiz.Id);
+			var grupo = No(links.Id, "Sistemas", "sistemas", TipoDeItemMenu.Personalizado);
+			return
+			[
+				links,
+				grupo,
+				Link(grupo.Id, "ERP", "https://exemplo.test/erp"),
+				Link(links.Id, "Portal", "https://exemplo.test/portal"),
+			];
+		});
+
+		var noLinks = NoLinks(Menu(setor, arvores));
+
+		noLinks.Url.Should().BeNull("o nó Links só abre o submenu");
+		noLinks.Filhos!.Select(filho => filho.Texto).Should().Equal("Sistemas", "Portal");
+		noLinks.Filhos!.First().Filhos!.Single().Url.Should().Be("https://exemplo.test/erp");
+	}
+
+	[Fact]
+	public void Links_Escritor_UltimoFilhoEGerenciarLinks()
+	{
+		var (setor, arvores) = Financeiro(raiz =>
+		{
+			var links = Links(raiz.Id);
+			return [links, Link(links.Id, "Portal", "https://exemplo.test/portal")];
+		});
+
+		var noLinks = NoLinks(Menu(setor, arvores, comEscrita: new HashSet<Guid> { setor.Id }));
+
+		var ultimo = noLinks.Filhos!.Last();
+		ultimo.Texto.Should().Be("Gerenciar links");
+		ultimo.Url.Should().Be("/financeiro/links");
+		ultimo.NovaAba.Should().BeFalse();
+		noLinks.Filhos!.Select(filho => filho.Texto).Should().Equal("Portal", "Gerenciar links");
+	}
+
+	[Fact]
+	public void Links_Escritor_NaTelaDeGestao_MarcaGerenciarELinksEOSetorComoAtivos()
+	{
+		var (setor, arvores) = Financeiro(raiz => [Links(raiz.Id)]);
+
+		var menu = IntranetNavigation.Build(new NavigationRequest(
+			[setor], "/financeiro/links", false, false, false, arvores, SetoresComEscrita: new HashSet<Guid> { setor.Id }));
+
+		var item = SetorNoMenu(menu);
+		item.Ativo.Should().BeTrue();
+		item.Filhos!.Single().Ativo.Should().BeTrue();
+		item.Filhos!.Single().Filhos!.Single().Ativo.Should().BeTrue();
+	}
+
+	[Fact]
+	public void Links_Vazio_LeitorNaoVeONo_EscritorVeSoGerenciar()
+	{
+		var (setor, arvores) = Financeiro(raiz => [Links(raiz.Id)]);
+
+		Menu(setor, arvores).Grupos.Single(grupo => grupo.Titulo == "Setores").Itens.Should().BeEmpty();
+
+		var noLinks = NoLinks(Menu(setor, arvores, comEscrita: new HashSet<Guid> { setor.Id }));
+		noLinks.Filhos!.Select(filho => filho.Texto).Should().Equal("Gerenciar links");
+	}
+
+	[Fact]
+	public void Links_GrupoVazio_NaoApareceParaLeitor()
+	{
+		var (setor, arvores) = Financeiro(raiz =>
+		{
+			var links = Links(raiz.Id);
+			return
+			[
+				links,
+				No(links.Id, "Sistemas", "sistemas", TipoDeItemMenu.Personalizado),
+				Link(links.Id, "Portal", "https://exemplo.test/portal"),
+			];
+		});
+
+		NoLinks(Menu(setor, arvores)).Filhos!.Select(filho => filho.Texto).Should().Equal("Portal");
+	}
+
+	[Fact]
+	public void Links_NoDesativado_NinguemVe()
+	{
+		// O handler já tira inativos: o nó some e os filhos chegam órfãos.
+		var links = Links(Guid.NewGuid());
+		var (setor, arvores) = Financeiro(raiz =>
+			[Link(links.Id, "Portal", "https://exemplo.test/portal"), No(raiz.Id, "Avisos", "avisos", TipoDeItemMenu.Avisos)]);
+
+		foreach (var comEscrita in new IReadOnlySet<Guid>?[] { null, new HashSet<Guid> { setor.Id } })
+		{
+			var textos = SetorNoMenu(Menu(setor, arvores, comEscrita)).Filhos!.Select(filho => filho.Texto);
+
+			textos.Should().Equal("Avisos");
+		}
+	}
+
+	[Fact]
+	public void Personalizado_ComNovaAba_ItemTemNovaAba()
+	{
+		var (setor, arvores) = Financeiro(raiz => [Link(raiz.Id, "Portal", "https://exemplo.test/portal", novaAba: true)]);
+
+		SetorNoMenu(Menu(setor, arvores)).Filhos!.Single().NovaAba.Should().BeTrue();
+	}
+
+	[Fact]
+	public void Personalizado_SemNovaAba_ItemNaoTemNovaAba()
+	{
+		var (setor, arvores) = Financeiro(raiz => [Link(raiz.Id, "Portal", "https://exemplo.test/portal")]);
+
+		SetorNoMenu(Menu(setor, arvores)).Filhos!.Single().NovaAba.Should().BeFalse();
+	}
+
 	[Fact]
 	public void Build_SetorSemArvore_NaoAparece()
 	{

@@ -196,6 +196,15 @@ public static class IntranetNavigation
 			var netos = Filhos(item.Id, caminhoDoItem, itens, caminhoAtual, acesso);
 			var url = restrito || acesso.PodeLer ? Destino(item, caminhoDoItem) : null;
 
+			// O nó Links mora na raiz do setor (caminhoDoPai = "/{slug}"); quem escreve ganha a entrada
+			// de gestão por último, o que também mantém o nó visível quando ainda não há link nenhum.
+			if (item.Tipo == TipoDeItemMenu.Links && acesso.PodeEscrever)
+			{
+				var urlDeGestao = $"{caminhoDoPai}/links";
+
+				netos.Add(new NavigationItemModel("Gerenciar links", "bi-gear", urlDeGestao, Corresponde(caminhoAtual, urlDeGestao)));
+			}
+
 			if (url is null && netos.Count == 0)
 			{
 				continue;
@@ -205,7 +214,7 @@ public static class IntranetNavigation
 				|| (item.Rota is { } rota && rota.StartsWith('/') && Corresponde(caminhoAtual, rota))
 				|| netos.Exists(neto => neto.Ativo);
 
-			resultado.Add(new NavigationItemModel(item.Nome, item.Icone, url, ativo, Filhos: netos.Count == 0 ? null : netos));
+			resultado.Add(new NavigationItemModel(item.Nome, item.Icone, url, ativo, Filhos: netos.Count == 0 ? null : netos, NovaAba: item.NovaAba));
 		}
 
 		return resultado;

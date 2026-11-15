@@ -197,6 +197,61 @@ public class SetorMenuRotaTests(IntranetWebFactory factory) : IClassFixture<Intr
 		((int)resposta.StatusCode).Should().BeInRange(400, 499);
 	}
 
+	public static TheoryData<string> Temas => new() { "Vertical", "Horizontal" };
+
+	private async Task<string> CriarLinkNoMenuAsync(string slug, string rota, bool novaAba)
+	{
+		await using var escopo = factory.Services.CreateAsyncScope();
+		escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
+		var setor = await escopo.ServiceProvider.GetRequiredService<GetSetorBySlugHandler>().HandleAsync(slug);
+		var arvore = await escopo.ServiceProvider.GetRequiredService<IItemMenuRepository>().ListarPorSetorAsync(setor.Value.Id);
+		var criar = escopo.ServiceProvider.GetRequiredService<CriarItemMenuHandler>();
+
+		// O nó Links nasce com o setor.
+		var links = arvore.Single(i => i.Tipo == TipoDeItemMenu.Links);
+		(await criar.HandleAsync(new CriarItemMenuCommand(
+			setor.Value.Id, links.Id, "Portal", "portal", TipoDeItemMenu.Personalizado, rota, null, NovaAba: novaAba)))
+			.IsSuccess.Should().BeTrue();
+
+		return rota;
+	}
+
+	private async Task<string> MenuAsync(string tema)
+	{
+		var cliente = factory.WithWebHostBuilder(b => b.UseSetting("Intranet:Theme:Nome", tema)).CreateClient();
+		cliente.DefaultRequestHeaders.Add(SeccoHeaders.TenantId, factory.TenantAlfa.ToString());
+		cliente.DefaultRequestHeaders.Add(RolesDeTesteMiddleware.Header, "intranet-admin");
+
+		return WebUtility.HtmlDecode(await cliente.GetStringAsync("/"));
+	}
+
+	[Theory]
+	[MemberData(nameof(Temas))]
+	public async Task Menu_LinkComNovaAba_TemTargetERel(string tema)
+	{
+		var slug = await CriarSetorAsync();
+		var rota = await CriarLinkNoMenuAsync(slug, $"https://exemplo.test/{slug}", novaAba: true);
+
+		var menu = await MenuAsync(tema);
+
+		Regex.IsMatch(menu, $@"<a[^>]*href=""{Regex.Escape(rota)}""[^>]*target=""_blank""[^>]*rel=""noopener noreferrer""[^>]*>")
+			.Should().BeTrue("o link em nova aba abre fora da intranet sem vazar o opener");
+	}
+
+	[Theory]
+	[MemberData(nameof(Temas))]
+	public async Task Menu_LinkSemNovaAba_NaoTemTarget(string tema)
+	{
+		var slug = await CriarSetorAsync();
+		var rota = await CriarLinkNoMenuAsync(slug, $"https://exemplo.test/{slug}", novaAba: false);
+
+		var menu = await MenuAsync(tema);
+
+		var ancora = Regex.Match(menu, $@"<a[^>]*href=""{Regex.Escape(rota)}""[^>]*>");
+		ancora.Success.Should().BeTrue();
+		ancora.Value.Should().NotContain("target=").And.NotContain("rel=");
+	}
+
 	[Fact]
 	public async Task PersonalizadoComFilhos_SoAgrupa_EOFilhoComRotaRedireciona()
 	{

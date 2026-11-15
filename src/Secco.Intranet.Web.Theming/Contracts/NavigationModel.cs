@@ -13,13 +13,15 @@ namespace Secco.Intranet.Web.Theming.Contracts;
 /// </param>
 /// <param name="SetorSlug">Slug do setor, no item de nível 0 de um setor; define o matiz do ícone.</param>
 /// <param name="Filhos">Subitens, já na ordem; nulo ou vazio = folha.</param>
+/// <param name="NovaAba">Se o link abre em nova aba (<c>target="_blank" rel="noopener noreferrer"</c>); só vale com <paramref name="Url"/>.</param>
 public sealed record NavigationItemModel(
 	string Texto,
 	string? Icone,
 	string? Url,
 	bool Ativo = false,
 	string? SetorSlug = null,
-	IReadOnlyList<NavigationItemModel>? Filhos = null);
+	IReadOnlyList<NavigationItemModel>? Filhos = null,
+	bool NovaAba = false);
 
 /// <summary>Bloco de itens de menu separado por divisor.</summary>
 /// <param name="Titulo">Rótulo do grupo; <c>null</c> renderiza só o divisor.</param>
