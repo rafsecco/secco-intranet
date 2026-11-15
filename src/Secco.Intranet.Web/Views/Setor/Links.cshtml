@@ -1,0 +1,84 @@
+@using Secco.Intranet.Application.Links
+@using Secco.Intranet.Web.Models.Links
+@model GerenciarLinksViewModel
+@{
+	ViewData["Title"] = $"Gerenciar links · {Model.Setor.Nome}";
+
+	var acoes = new List<PageActionModel>
+	{
+		new("Novo link", Url.Action("Novo", "Links", new { slug = Model.Setor.Slug })!, "bi-plus-lg", Primaria: true),
+	};
+
+	var cabecalho = new PageHeaderModel("Gerenciar links", Model.Trilho, Model.Setor.Slug, acoes);
+
+	var vazio = new EmptyStateModel(
+		"bi-link-45deg",
+		"Nenhum link cadastrado.",
+		"Crie um grupo ou cadastre o primeiro link.");
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel mb-3">
+	<form method="post" class="d-flex flex-wrap gap-2 align-items-end"
+		  asp-controller="Links" asp-action="Grupos" asp-route-slug="@Model.Setor.Slug">
+		<div>
+			<label class="form-label" for="nome-do-grupo">Novo grupo</label>
+			<input class="form-control" id="nome-do-grupo" name="nome" maxlength="256" autocomplete="off" />
+		</div>
+		<button class="btn btn-outline-primary" type="submit">Criar grupo</button>
+	</form>
+</div>
+
+@if (Model.Links.Entradas.Count == 0)
+{
+	<partial name="_EmptyState" model="vazio" />
+}
+else
+{
+	<ul class="sc-list">
+		@foreach (var entrada in Model.Links.Entradas)
+		{
+			if (entrada.Grupo is { } grupo)
+			{
+				<li class="sc-list__item @SetorHue.Classe(Model.Setor.Slug)">
+					<span class="sc-list__icon" aria-hidden="true"><i class="bi bi-folder"></i></span>
+					<div class="sc-list__text">
+						<p class="sc-list__title">@grupo.Nome</p>
+						<span class="sc-list__sub"><span class="sc-meta">Grupo</span></span>
+					</div>
+					<partial name="_LinkAcoes" model="new LinkAcoesModel(Model.Setor.Slug, grupo.Id, grupo.Nome)" />
+				</li>
+
+				@foreach (var link in grupo.Links)
+				{
+					<li class="sc-list__item ms-4 @SetorHue.Classe(Model.Setor.Slug)">
+						<span class="sc-list__icon" aria-hidden="true"><i class="bi bi-link-45deg"></i></span>
+						<div class="sc-list__text">
+							<p class="sc-list__title">@link.Nome</p>
+							<span class="sc-list__sub">
+								<span class="sc-meta">@link.Rota</span>
+								<span class="text-body-secondary small">@(link.NovaAba ? "nova página" : "mesma página")</span>
+							</span>
+						</div>
+						<partial name="_LinkAcoes" model="new LinkAcoesModel(Model.Setor.Slug, link.Id, link.Nome)" />
+					</li>
+				}
+			}
+			else if (entrada.Link is { } solto)
+			{
+				<li class="sc-list__item @SetorHue.Classe(Model.Setor.Slug)">
+					<span class="sc-list__icon" aria-hidden="true"><i class="bi bi-link-45deg"></i></span>
+					<div class="sc-list__text">
+						<p class="sc-list__title">@solto.Nome</p>
+						<span class="sc-list__sub">
+							<span class="sc-meta">@solto.Rota</span>
+							<span class="text-body-secondary small">@(solto.NovaAba ? "nova página" : "mesma página")</span>
+						</span>
+					</div>
+					<partial name="_LinkAcoes" model="new LinkAcoesModel(Model.Setor.Slug, solto.Id, solto.Nome)" />
+				</li>
+			}
+		}
+	</ul>
+}

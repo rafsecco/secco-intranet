@@ -1,0 +1,33 @@
+@using Secco.Intranet.Web.Models.Links
+@model LinkAcoesModel
+
+<div class="sc-list__actions d-flex gap-1">
+	<form method="post" asp-controller="Links" asp-action="Mover" asp-route-slug="@Model.Slug" asp-route-id="@Model.Id">
+		<input type="hidden" name="paraCima" value="true" />
+		<button class="btn btn-outline-secondary btn-sm" type="submit" title="Subir @Model.Nome">
+			<i class="bi bi-arrow-up" aria-hidden="true"></i>
+			<span class="visually-hidden">Subir @Model.Nome</span>
+		</button>
+	</form>
+	<form method="post" asp-controller="Links" asp-action="Mover" asp-route-slug="@Model.Slug" asp-route-id="@Model.Id">
+		<input type="hidden" name="paraCima" value="false" />
+		<button class="btn btn-outline-secondary btn-sm" type="submit" title="Descer @Model.Nome">
+			<i class="bi bi-arrow-down" aria-hidden="true"></i>
+			<span class="visually-hidden">Descer @Model.Nome</span>
+		</button>
+	</form>
+	<a class="btn btn-outline-secondary btn-sm"
+	   asp-controller="Links" asp-action="Editar" asp-route-slug="@Model.Slug" asp-route-id="@Model.Id"
+	   title="Editar @Model.Nome">
+		<i class="bi bi-pencil" aria-hidden="true"></i>
+		Editar
+		<span class="visually-hidden">@Model.Nome</span>
+	</a>
+	<form method="post" asp-controller="Links" asp-action="Excluir" asp-route-slug="@Model.Slug" asp-route-id="@Model.Id">
+		<button class="btn btn-outline-danger btn-sm" type="submit" title="Excluir @Model.Nome">
+			<i class="bi bi-trash" aria-hidden="true"></i>
+			Excluir
+			<span class="visually-hidden">@Model.Nome</span>
+		</button>
+	</form>
+</div>
