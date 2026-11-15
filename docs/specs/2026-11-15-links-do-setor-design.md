@@ -70,7 +70,7 @@ Regras:
 | Link | Nome, endereço, grupo (opcional) e onde abre: mesma página ou nova |
 | Grupo | Só o nome |
 | Endereço | `http` ou `https` absoluto, ou caminho da própria intranet começando com `/`; mesma validação que o menu já aplica |
-| Onde abre | "Nova página" vem marcado para endereço externo e desmarcado para caminho da intranet; a pessoa pode trocar |
+| Onde abre | "Nova página" vem marcado em todo cadastro novo, de link do setor ou de item personalizado do admin; a pessoa pode desmarcar. Item que já existia continua abrindo na mesma página |
 | Níveis | Um nível de grupo abaixo de Links; grupo não entra em grupo |
 | Link sem grupo | Permitido, direto abaixo de Links |
 | Ordem | Subir e descer entre os irmãos; ao editar um link dá para trocá-lo de grupo |
