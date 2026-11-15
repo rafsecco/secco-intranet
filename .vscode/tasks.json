@@ -126,10 +126,11 @@
       "problemMatcher": []
     },
     {
+      // A versao do dotnet-ef fica fixada em dotnet-tools.json, na raiz, junto com a do EF Core.
       "label": "ef: instalar/atualizar dotnet-ef",
       "type": "process",
       "command": "dotnet",
-      "args": ["tool", "update", "--global", "dotnet-ef"],
+      "args": ["tool", "restore"],
       "problemMatcher": []
     }
   ],
