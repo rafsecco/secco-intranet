@@ -36,7 +36,7 @@ internal static class CamposDeLink
 
 		if (endereco.Length > LimiteRota)
 		{
-			return IntranetErrors.Menu.CampoMuitoLongo("A rota", LimiteRota);
+			return IntranetErrors.Menu.CampoMuitoLongo("O endereço", LimiteRota);
 		}
 
 		return CriarItemMenuHandler.RotaEhValida(endereco) ? null : IntranetErrors.Menu.RotaInvalida;
