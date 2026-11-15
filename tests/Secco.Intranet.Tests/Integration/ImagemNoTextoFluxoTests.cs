@@ -2,8 +2,11 @@ using System.Net;
 using System.Text.RegularExpressions;
 using AwesomeAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Secco.Intranet.Infrastructure.Contexts;
+using Secco.Intranet.Infrastructure.Diretorio;
+using Secco.SDK.Imaging;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.Intranet.Tests.Integration.TestAuthentication;
 using Secco.Intranet.Tests.Support;
@@ -126,6 +129,48 @@ public class ImagemNoTextoFluxoTests(IntranetWebFactory factory) : IClassFixture
 			resposta.Content.Headers.ContentType!.MediaType.Should().Be("image/webp");
 			resposta.Headers.GetValues("X-Content-Type-Options").Should().ContainSingle().Which.Should().Be("nosniff");
 		}
+	}
+
+	[Fact]
+	public async Task Publicar_DuasImagensDiferentesComOMesmoNome_CadaUmaGuardaOSeuConteudo()
+	{
+		// Colagem do Word: os dois arquivos chegam como "colada.png". Com o processador real, que lê
+		// o fluxo de cada um, para a segunda imagem não ser gravada no lugar da primeira.
+		var servicos = new ServiceCollection();
+		servicos.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
+		servicos.AddLogging();
+		servicos.AddSeccoImaging("Intranet:Imaging");
+		await using var provedor = servicos.BuildServiceProvider();
+		factory.ProcessadorDeImagem = new ProcessadorDeImagemDaSdk(provedor.GetRequiredService<ISeccoImageProcessor>());
+
+		var client = CriarClienteAdmin();
+		var slug = await NovoSetorAsync(client);
+		var token = await AuxiliaresDeHttp.TokenAsync(client, $"/{slug}/avisos");
+
+		using var conteudo = Multipart("Duas diferentes", "a ![um](nova-imagem:0) b ![dois](nova-imagem:1)", "1", token, arquivos: 0);
+		foreach (var (largura, altura) in new[] { (1800, 1400), (1500, 1700) })
+		{
+			var arquivo = new ByteArrayContent(Unit.ProcessadorDeImagemDaSdkTests.Png(largura, altura));
+			arquivo.Headers.ContentType = new("image/png");
+			conteudo.Add(arquivo, "Form.ImagensDoTexto", "colada.png");
+		}
+
+		(await client.PostAsync($"/{slug}/avisos", conteudo)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+		var id = await IdDoAvisoAsync(client, slug);
+		var html = await client.GetStringAsync($"/publicacoes/{id}");
+		var urls = Regex.Matches(html, @"<img[^>]*src=""(/publicacoes/[0-9a-fA-F-]{36}/imagens/[0-9a-fA-F-]{36})""")
+			.Select(m => m.Groups[1].Value)
+			.ToList();
+		urls.Should().HaveCount(2);
+
+		var dimensoes = new List<(int, int)>();
+		foreach (var url in urls)
+		{
+			dimensoes.Add(Unit.ProcessadorDeImagemDaSdkTests.DimensoesWebp(await client.GetByteArrayAsync(url)));
+		}
+
+		dimensoes.Should().Equal((1800, 1400), (1500, 1700));
 	}
 
 	[Fact]

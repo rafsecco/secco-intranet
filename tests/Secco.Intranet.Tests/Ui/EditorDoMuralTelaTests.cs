@@ -622,6 +622,62 @@ public class EditorDoMuralTelaTests(EditorDoMuralFixture f) : IClassFixture<Edit
 		await Expect(pagina.Locator(Avisos)).ToContainTextAsync(AvisoImagem);
 	}
 
+	/// <summary>
+	/// RTF fictício no formato do Word com figura flutuante: ela vem na propriedade <c>pib</c> de um
+	/// <c>\shp</c>, com a cópia no <c>\shprslt</c>, e a alinhada ao texto vem no <c>\shppict</c>.
+	/// </summary>
+	private static string RtfComFlutuanteEAlinhada(byte[] flutuante, byte[] alinhada)
+	{
+		var rtf = new System.Text.StringBuilder(@"{\rtf1\ansi\deff0 {\fonttbl{\f0 Calibri;}}\pard Texto ");
+		rtf.Append(@"{\shp{\*\shpinst\shpleft0\shptop0\shpright900\shpbottom900\shpwr2\shpwrk0{\sp{\sn shapeType}{\sv 75}}{\sp{\sn pib}{\sv {\pict\picscalex100\picscaley100\picw53\pich53\picwgoal1000\pichgoal1000\pngblip\bliptag676797345{\*\blipuid 28571ba13bd1dec8}");
+		rtf.Append("\r\n").Append(HexComQuebras(flutuante)).Append("}}}}");
+		rtf.Append(@"{\shprslt{\pard{\*\shppict{\pict\picw53\pich53\pngblip ").Append(HexComQuebras(flutuante)).Append("}}");
+		rtf.Append(@"{\nonshppict{\pict\picw53\pich53\wmetafile8 ").Append(HexComQuebras([1, 0, 9, 0, 0, 3, 0, 0, 0, 0])).Append("}}}}}");
+		rtf.Append(@"\par Meio {\*\shppict{\pict{\*\picprop{\sp{\sn shapeType}{\sv 75}}}\picw53\pich53\pngblip\bliptag266277087{\*\blipuid 0fdf10df18ff8f64}");
+		rtf.Append("\r\n").Append(HexComQuebras(alinhada)).Append("}}");
+		rtf.Append(@"{\nonshppict{\pict\picw53\pich53\wmetafile8 ").Append(HexComQuebras([1, 0, 9, 0, 0, 3, 0, 0, 0, 0])).Append("}}");
+
+		return rtf.Append('}').ToString();
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task ColarDoWord_FlutuanteNoRtfEAlinhadaEmbutida_CadaUmaComOSeuConteudo(string tema)
+	{
+		// O Word embute no HTML a imagem alinhada ao texto e deixa a flutuante só no RTF: a flutuante
+		// não pode receber os bytes da outra.
+		var pagina = await f.AbrirAvisosAsync(tema);
+		var (flutuante, alinhada) = (PngDeLargura(30), PngDeLargura(70));
+		var html = $"""<p><img src="file:///C:/x/clip_image001.png" align="left"> Antes</p><p><img src="data:image/png;base64,{Convert.ToBase64String(alinhada)}"> depois</p>""";
+
+		await ColarComRtfAsync(pagina, html, RtfComFlutuanteEAlinhada(flutuante, alinhada));
+
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(2);
+		await pagina.WaitForFunctionAsync(
+			"s => Array.from(document.querySelectorAll(s)).every(i => i.complete && i.naturalWidth > 0)", ImagemNoEditor);
+		var larguras = await pagina.Locator(ImagemNoEditor).EvaluateAllAsync<int[]>("is => is.map(i => i.naturalWidth)");
+		larguras.Should().Equal(30, 70);
+		await Expect(pagina.Locator(PendenteNoEditor)).ToHaveCountAsync(0);
+		f.ViolacoesDeCsp(pagina).Should().BeEmpty();
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task ColarDoWord_EmbutidaDiferenteDaDoRtf_FlutuanteViraPendente(string tema)
+	{
+		// Se a imagem embutida não bate com a figura do RTF na mesma posição, a ordem não é confiável.
+		var pagina = await f.AbrirAvisosAsync(tema);
+		var html = $"""<p><img src="file:///C:/x/clip_image001.png" align="left"> Antes</p><p><img src="data:image/png;base64,{Convert.ToBase64String(PngDeLargura(50))}"> depois</p>""";
+
+		await ColarComRtfAsync(pagina, html, RtfComFlutuanteEAlinhada(PngDeLargura(30), PngDeLargura(70)));
+
+		await Expect(pagina.Locator(PendenteNoEditor)).ToHaveCountAsync(1);
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(1);
+		await Expect(pagina.Locator(Avisos)).ToContainTextAsync(AvisoImagem);
+	}
+
 	[UiTheory]
 	[InlineData("Vertical")]
 	[InlineData("Horizontal")]

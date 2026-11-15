@@ -137,7 +137,7 @@ public class ProcessadorDeImagemDaSdkTests
 	}
 
 	/// <summary>Largura e altura de um WebP lido do cabeçalho (VP8, VP8L ou VP8X).</summary>
-	private static (int Largura, int Altura) DimensoesWebp(byte[] webp)
+	internal static (int Largura, int Altura) DimensoesWebp(byte[] webp)
 	{
 		System.Text.Encoding.ASCII.GetString(webp, 0, 4).Should().Be("RIFF");
 		System.Text.Encoding.ASCII.GetString(webp, 8, 4).Should().Be("WEBP");
@@ -155,7 +155,7 @@ public class ProcessadorDeImagemDaSdkTests
 	}
 
 	/// <summary>PNG RGB 8 bits com degradê: assinatura, IHDR, IDAT (zlib) e IEND, cada bloco com CRC.</summary>
-	private static byte[] Png(int largura, int altura)
+	internal static byte[] Png(int largura, int altura)
 	{
 		using var saida = new MemoryStream();
 		saida.Write([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);

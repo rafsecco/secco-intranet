@@ -388,24 +388,33 @@ function pendente(doc) {
   return botao;
 }
 
-// Cada <img> vira a imagem nova (arquivo registrado) ou o lugar de uma que nao veio. `file:` e o Word:
-// a N-esima corresponde a N-esima imagem do RTF, e so se as quantidades batem; imagem certa no lugar
-// errado e pior que nenhuma. `data:` de PNG, JPEG e WebP vira arquivo; o resto (http, https, ...) e
-// pendente.
+// Cada <img> vira a imagem nova (arquivo registrado) ou o lugar de uma que nao veio. `data:` de PNG,
+// JPEG e WebP vira arquivo; o resto (http, https, ...) e pendente. `file:` e o Word, que so manda os
+// bytes no RTF: a N-esima imagem do HTML (`file:` ou `data:`, que o Word mistura quando ha figura
+// flutuante) corresponde a N-esima figura do RTF. Isso so vale se as quantidades batem e se cada
+// `data:` tem o tamanho da figura do RTF na mesma posicao; imagem certa no lugar errado e pior que
+// nenhuma.
 function tratarImagens(doc, { rtf = [], aceitar } = {}, aviso) {
   const imgs = Array.from(doc.body.querySelectorAll('img'));
-  const doWord = imgs.filter((img) => /^file:/i.test((img.getAttribute('src') ?? '').trim()));
-  const casam = doWord.length === rtf.length;
+  const origem = (img) => (img.getAttribute('src') ?? '').trim();
+  const embutidas = new Map();
+
+  imgs.filter((img) => /^data:/i.test(origem(img))).forEach((img) => {
+    embutidas.set(img, arquivoDeDataUri(origem(img)));
+  });
+
+  const doWord = imgs.filter((img) => /^(?:file|data):/i.test(origem(img)));
+  const casam = doWord.length === rtf.length
+    && doWord.every((img, i) => !embutidas.has(img) || (embutidas.get(img) !== null && embutidas.get(img).size === rtf[i]?.size));
   let pendentes = false;
 
   imgs.forEach((img) => {
-    const src = (img.getAttribute('src') ?? '').trim();
     let arquivo = null;
 
-    if (/^file:/i.test(src)) {
+    if (embutidas.has(img)) {
+      arquivo = embutidas.get(img);
+    } else if (/^file:/i.test(origem(img))) {
       arquivo = casam ? rtf[doWord.indexOf(img)] : null;
-    } else if (/^data:/i.test(src)) {
-      arquivo = arquivoDeDataUri(src);
     }
 
     const marcador = arquivo && aceitar ? aceitar(arquivo) : null;

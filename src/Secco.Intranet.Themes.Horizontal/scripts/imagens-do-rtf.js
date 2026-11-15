@@ -1,11 +1,14 @@
 // Imagens de um RTF colado do Word. O HTML da area de transferencia aponta para `file:///...`, que o
-// navegador nao le; os bytes ficam no `text/rtf`, em hexadecimal, dentro de `{\pict ...}`. Cada imagem
-// vem duas vezes: no `\shppict` (PNG ou JPEG, a que interessa) e no `\nonshppict` (metafile, ignorado).
-// So PNG e JPEG entram, na ordem do RTF; o resto (WMF, EMF) nao e uma imagem que o editor aceite.
+// navegador nao le; os bytes ficam no `text/rtf`, em hexadecimal, dentro de `{\pict ...}`. A imagem
+// alinhada ao texto vem no `\shppict`; a flutuante (com quebra de texto), na propriedade `pib` de um
+// `\shp`. As copias que nao interessam ficam no `\nonshppict` e no `\shprslt` (metafile, ou a figura de
+// novo para quem nao le formas) e no `\listpicture` (marcador de lista com figura).
+// O resultado segue a ordem do RTF, com uma posicao por figura: a que nao e PNG nem JPEG (WMF, EMF)
+// vira null, para as seguintes nao trocarem de lugar.
 
 const LIMITE_RTF = 50 * 1024 * 1024;
-const ABERTURA_SHPPICT = /\{\\\*\\shppict(?![a-zA-Z])/g;
-const ABERTURA_PICT = /\{\\pict(?![a-zA-Z])/g;
+// Um grupo de copia (pulado inteiro) ou uma figura.
+const ABERTURA = /\{\\(?:(nonshppict|shprslt|\*\\listpicture)|pict)(?![a-zA-Z])/g;
 const TIPOS = { pngblip: 'image/png', jpegblip: 'image/jpeg' };
 const EXTENSOES = { 'image/png': 'png', 'image/jpeg': 'jpg' };
 
@@ -28,20 +31,24 @@ function fimDoGrupo(rtf, inicio) {
   return rtf.length;
 }
 
-// O texto de cada grupo que comeca na `abertura` (regex global), sem entrar nos grupos ja achados.
-function gruposDe(rtf, abertura) {
-  const grupos = [];
+// O texto de cada `{\pict ...}` fora dos grupos de copia, na ordem do RTF.
+function figurasDe(rtf) {
+  const figuras = [];
   let achado;
 
-  abertura.lastIndex = 0;
+  ABERTURA.lastIndex = 0;
 
-  while ((achado = abertura.exec(rtf)) !== null) {
+  while ((achado = ABERTURA.exec(rtf)) !== null) {
     const fim = fimDoGrupo(rtf, achado.index);
-    grupos.push(rtf.slice(achado.index, fim));
-    abertura.lastIndex = fim;
+
+    if (achado[1] === undefined) {
+      figuras.push(rtf.slice(achado.index, fim));
+    }
+
+    ABERTURA.lastIndex = fim;
   }
 
-  return grupos;
+  return figuras;
 }
 
 // O grupo filho (`{\*\picprop{\sp{\sn ..}}}`, `{\*\blipuid ..}`) vira espaco, de dentro para fora e em
@@ -81,8 +88,8 @@ const ASSINATURA = {
 
 /**
  * @param {string} rtf Conteudo de `text/rtf`.
- * @returns {File[]} As imagens PNG e JPEG dos `\pict` de `\shppict`, na ordem do RTF; vazio se o RTF
- *   passa de 50 MB.
+ * @returns {(File | null)[]} Uma posicao por figura do RTF, na ordem: o arquivo PNG ou JPEG, ou null
+ *   quando a figura e de outro tipo ou esta corrompida. Vazio se o RTF passa de 50 MB.
  */
 export function imagensDoRtf(rtf) {
   const texto = String(rtf ?? '');
@@ -91,27 +98,21 @@ export function imagensDoRtf(rtf) {
     return [];
   }
 
-  const arquivos = [];
+  return figurasDe(texto).map((pict, indice) => {
+    // Sem a abertura `{\pict`; a chave que fecha sai junto com o resto do que nao e hexadecimal.
+    const corpo = semGruposFilhos(pict.slice('{\\pict'.length));
+    const palavra = /\\(pngblip|jpegblip)/.exec(corpo)?.[1];
 
-  gruposDe(texto, ABERTURA_SHPPICT).forEach((figura) => {
-    gruposDe(figura.slice(1), ABERTURA_PICT).forEach((pict) => {
-      // Sem a abertura `{\pict`; a chave que fecha sai junto com o resto do que nao e hexadecimal.
-      const corpo = semGruposFilhos(pict.slice('{\\pict'.length));
-      const palavra = /\\(pngblip|jpegblip)/.exec(corpo)?.[1];
+    if (!palavra) {
+      return null;
+    }
 
-      if (!palavra) {
-        return;
-      }
+    const tipo = TIPOS[palavra];
+    const hex = corpo.replace(/\\[a-zA-Z]+-?\d*/g, ' ').replace(/[^0-9a-fA-F]/g, '');
+    const bytes = paraBytes(hex);
 
-      const tipo = TIPOS[palavra];
-      const hex = corpo.replace(/\\[a-zA-Z]+-?\d*/g, ' ').replace(/[^0-9a-fA-F]/g, '');
-      const bytes = paraBytes(hex);
-
-      if (confere(bytes, ASSINATURA[tipo])) {
-        arquivos.push(new File([bytes], `word-${arquivos.length + 1}.${EXTENSOES[tipo]}`, { type: tipo }));
-      }
-    });
+    return confere(bytes, ASSINATURA[tipo])
+      ? new File([bytes], `word-${indice + 1}.${EXTENSOES[tipo]}`, { type: tipo })
+      : null;
   });
-
-  return arquivos;
 }
