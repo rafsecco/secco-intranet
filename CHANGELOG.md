@@ -5,6 +5,11 @@ Mudanças que exigem ajuste de quem já roda a Intranet. O formato segue
 
 ## [Não lançado]
 
+## [0.1.0] - 2026-11-15
+
+Primeira versão marcada. As seções abaixo listam o que muda para quem já rodava a Intranet a partir
+da `main`.
+
 ### Quebras — Docker e dados da instalação
 
 Detalhes no [guia de deploy](docs/guia-de-deploy.md), no [README](README.md) e na
