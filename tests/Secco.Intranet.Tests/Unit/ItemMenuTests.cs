@@ -148,4 +148,75 @@ public class ItemMenuTests
 
 		item.NivelDeAcesso.Should().Be(NivelDeAcessoItemMenu.Escrita);
 	}
+
+	[Fact]
+	public void Construtor_SemInformar_NovaAbaFalso()
+	{
+		var item = new ItemMenu(SetorId, Guid.NewGuid(), "Nome", "slug", TipoDeItemMenu.Personalizado, "/destino", null, 0);
+
+		item.NovaAba.Should().BeFalse();
+	}
+
+	[Fact]
+	public void Construtor_TipoLinksComRota_Lanca()
+	{
+		var acao = () => new ItemMenu(SetorId, Guid.NewGuid(), "Links", "links", TipoDeItemMenu.Links, "/destino", null, 0);
+
+		acao.Should().Throw<DomainInvariantException>();
+	}
+
+	[Fact]
+	public void Construtor_SemRota_NovaAbaViraFalso()
+	{
+		var item = new ItemMenu(
+			SetorId, Guid.NewGuid(), "Nome", "slug", TipoDeItemMenu.Personalizado, null, null, 0, novaAba: true);
+
+		item.NovaAba.Should().BeFalse();
+	}
+
+	[Fact]
+	public void Editar_TrocaNomeSlugRotaENovaAba()
+	{
+		var item = new ItemMenu(SetorId, Guid.NewGuid(), "Nome", "slug", TipoDeItemMenu.Personalizado, null, null, 0);
+
+		item.Editar("Novo nome", "Novo-Slug", " https://exemplo.com ", novaAba: true);
+
+		item.Nome.Should().Be("Novo nome");
+		item.Slug.Should().Be("novo-slug");
+		item.Rota.Should().Be("https://exemplo.com");
+		item.NovaAba.Should().BeTrue();
+	}
+
+	[Fact]
+	public void Editar_SemRota_NovaAbaViraFalso()
+	{
+		var item = new ItemMenu(SetorId, Guid.NewGuid(), "Nome", "slug", TipoDeItemMenu.Personalizado, "/a", null, 0, novaAba: true);
+
+		item.Editar("Nome", "slug", null, novaAba: true);
+
+		item.Rota.Should().BeNull();
+		item.NovaAba.Should().BeFalse();
+	}
+
+	[Fact]
+	public void Editar_NomeVazio_Lanca()
+	{
+		var item = new ItemMenu(SetorId, Guid.NewGuid(), "Nome", "slug", TipoDeItemMenu.Personalizado, null, null, 0);
+
+		var acao = () => item.Editar(" ", "slug", null, novaAba: false);
+
+		acao.Should().Throw<DomainInvariantException>();
+	}
+
+	[Fact]
+	public void Reposicionar_TrocaPaiEOrdem()
+	{
+		var item = new ItemMenu(SetorId, Guid.NewGuid(), "Nome", "slug", TipoDeItemMenu.Links, null, null, 0);
+		var novoPai = Guid.NewGuid();
+
+		item.Reposicionar(novoPai, 3);
+
+		item.ParentId.Should().Be(novoPai);
+		item.Ordem.Should().Be(3);
+	}
 }

@@ -17,7 +17,7 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.14")
+                .HasAnnotation("ProductVersion", "10.0.15")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -330,6 +330,10 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
                         .HasColumnName("ds_nome");
+
+                    b.Property<bool>("NovaAba")
+                        .HasColumnType("boolean")
+                        .HasColumnName("fl_nova_aba");
 
                     b.Property<int>("Ordem")
                         .HasColumnType("integer")

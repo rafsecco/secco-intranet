@@ -13,11 +13,12 @@ public sealed record ItemMenuDto(
 	string? Icone,
 	int Ordem,
 	bool Ativo,
-	NivelDeAcessoItemMenu NivelDeAcesso = NivelDeAcessoItemMenu.Leitura)
+	NivelDeAcessoItemMenu NivelDeAcesso = NivelDeAcessoItemMenu.Leitura,
+	bool NovaAba = false)
 {
 	/// <summary>Converte a entidade.</summary>
 	public static ItemMenuDto FromEntity(ItemMenu item) =>
-		new(item.Id, item.ParentId, item.Nome, item.Slug, item.Tipo, item.Rota, item.Icone, item.Ordem, item.Ativo, item.NivelDeAcesso);
+		new(item.Id, item.ParentId, item.Nome, item.Slug, item.Tipo, item.Rota, item.Icone, item.Ordem, item.Ativo, item.NivelDeAcesso, item.NovaAba);
 }
 
 /// <summary>Pedido de criação de um item.</summary>

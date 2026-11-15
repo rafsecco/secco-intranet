@@ -20,6 +20,9 @@ public enum TipoDeItemMenu
 
 	/// <summary>Itens com data de vencimento do setor.</summary>
 	Vencimentos = 4,
+
+	/// <summary>Nó agrupador de links externos do setor — não tem rota própria, os filhos é que têm.</summary>
+	Links = 5,
 }
 
 /// <summary>
@@ -60,7 +63,8 @@ public sealed class ItemMenu : BaseEntity
 	/// <param name="icone">Classe do Bootstrap Icons; vazio/nulo = sem ícone.</param>
 	/// <param name="ordem">Posição entre irmãos.</param>
 	/// <param name="nivelDeAcesso">Quem vê o item no menu; a raiz fica sempre em <see cref="NivelDeAcessoItemMenu.Leitura"/>.</param>
-	/// <exception cref="DomainInvariantException">Nome/slug vazios, ícone fora do formato, ou nível inválido para o tipo.</exception>
+	/// <param name="novaAba">Abre a rota em nova aba; só vale quando há rota.</param>
+	/// <exception cref="DomainInvariantException">Nome/slug vazios, ícone fora do formato, nível inválido para o tipo, ou rota em um nó <c>Links</c>.</exception>
 	public ItemMenu(
 		Guid setorId,
 		Guid? parentId,
@@ -70,17 +74,10 @@ public sealed class ItemMenu : BaseEntity
 		string? rota,
 		string? icone,
 		int ordem,
-		NivelDeAcessoItemMenu nivelDeAcesso = NivelDeAcessoItemMenu.Leitura)
+		NivelDeAcessoItemMenu nivelDeAcesso = NivelDeAcessoItemMenu.Leitura,
+		bool novaAba = false)
 	{
-		if (string.IsNullOrWhiteSpace(nome))
-		{
-			throw new DomainInvariantException("Um item de menu exige nome não vazio.");
-		}
-
-		if (string.IsNullOrWhiteSpace(slug))
-		{
-			throw new DomainInvariantException("Um item de menu exige slug não vazio.");
-		}
+		ValidarNomeESlug(nome, slug);
 
 		if (!IconeBootstrap.TentarNormalizar(icone, out var iconeNormalizado))
 		{
@@ -89,12 +86,16 @@ public sealed class ItemMenu : BaseEntity
 
 		ValidarNivelDeAcesso(tipo, nivelDeAcesso);
 
+		var rotaNormalizada = NormalizarRota(rota);
+		ValidarRota(tipo, rotaNormalizada);
+
 		SetorId = setorId;
 		ParentId = parentId;
 		Nome = nome;
-		Slug = slug.Trim().ToLowerInvariant();
+		Slug = NormalizarSlug(slug);
 		Tipo = tipo;
-		Rota = string.IsNullOrWhiteSpace(rota) ? null : rota.Trim();
+		Rota = rotaNormalizada;
+		NovaAba = novaAba && rotaNormalizada is not null;
 		Icone = iconeNormalizado;
 		Ordem = ordem;
 		NivelDeAcesso = nivelDeAcesso;
@@ -132,6 +133,9 @@ public sealed class ItemMenu : BaseEntity
 	/// <summary>Quem vê o item no menu.</summary>
 	public NivelDeAcessoItemMenu NivelDeAcesso { get; private set; }
 
+	/// <summary>Abre a rota em nova aba; sempre falso quando não há rota.</summary>
+	public bool NovaAba { get; private set; }
+
 	/// <summary>Momento da criação.</summary>
 	public DateTimeOffset CreatedAt { get; private set; }
 
@@ -149,6 +153,34 @@ public sealed class ItemMenu : BaseEntity
 	/// <param name="ordem">Nova posição.</param>
 	public void DefinirOrdem(int ordem) => Ordem = ordem;
 
+	/// <summary>Troca nome, slug, rota e o modo de abertura do item.</summary>
+	/// <param name="nome">Novo rótulo.</param>
+	/// <param name="slug">Novo slug.</param>
+	/// <param name="rota">Nova rota; vazio/nulo = sem rota.</param>
+	/// <param name="novaAba">Abre a rota em nova aba; só vale quando há rota.</param>
+	/// <exception cref="DomainInvariantException">Nome/slug vazios, ou rota em um nó <c>Links</c>.</exception>
+	public void Editar(string nome, string slug, string? rota, bool novaAba)
+	{
+		ValidarNomeESlug(nome, slug);
+
+		var rotaNormalizada = NormalizarRota(rota);
+		ValidarRota(Tipo, rotaNormalizada);
+
+		Nome = nome;
+		Slug = NormalizarSlug(slug);
+		Rota = rotaNormalizada;
+		NovaAba = novaAba && rotaNormalizada is not null;
+	}
+
+	/// <summary>Muda o pai e a posição entre irmãos.</summary>
+	/// <param name="parentId">Novo pai.</param>
+	/// <param name="ordem">Nova posição.</param>
+	public void Reposicionar(Guid parentId, int ordem)
+	{
+		ParentId = parentId;
+		Ordem = ordem;
+	}
+
 	/// <summary>Troca quem vê o item no menu.</summary>
 	/// <param name="nivel">Novo nível.</param>
 	/// <exception cref="DomainInvariantException">Valor fora do enum, ou <c>Escrita</c> na raiz.</exception>
@@ -157,6 +189,31 @@ public sealed class ItemMenu : BaseEntity
 		ValidarNivelDeAcesso(Tipo, nivel);
 
 		NivelDeAcesso = nivel;
+	}
+
+	private static void ValidarNomeESlug(string nome, string slug)
+	{
+		if (string.IsNullOrWhiteSpace(nome))
+		{
+			throw new DomainInvariantException("Um item de menu exige nome não vazio.");
+		}
+
+		if (string.IsNullOrWhiteSpace(slug))
+		{
+			throw new DomainInvariantException("Um item de menu exige slug não vazio.");
+		}
+	}
+
+	private static string NormalizarSlug(string slug) => slug.Trim().ToLowerInvariant();
+
+	private static string? NormalizarRota(string? rota) => string.IsNullOrWhiteSpace(rota) ? null : rota.Trim();
+
+	private static void ValidarRota(TipoDeItemMenu tipo, string? rota)
+	{
+		if (tipo == TipoDeItemMenu.Links && rota is not null)
+		{
+			throw new DomainInvariantException("O nó Links não tem rota.");
+		}
 	}
 
 	private static void ValidarNivelDeAcesso(TipoDeItemMenu tipo, NivelDeAcessoItemMenu nivel)
