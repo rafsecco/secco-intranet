@@ -64,7 +64,8 @@
     });
   }
 
-  var AVISO_PENDENTES = 'Envie ou remova as imagens pendentes antes de publicar.';
+  var AVISO_LINK = 'Este endereço não pode virar link. Use um endereço http, https, mailto ou tel.';
+  var AVISO_PENDENTES ='Envie ou remova as imagens pendentes antes de publicar.';
   var editor;
   var posicaoPendente;
 
@@ -206,6 +207,8 @@
 
     if (aceito) {
       campoLink.hidden = true;
+    } else {
+      mostrarAvisos([AVISO_LINK]);
     }
   }
 

@@ -299,7 +299,7 @@ public class EditorDoMuralTelaTests(EditorDoMuralFixture f) : IClassFixture<Edit
 
 	private const string Avisos = ".sc-editor__avisos .alert";
 
-	private const string AvisoMesclada = "Esta tabela tinha células mescladas, que não são suportadas. Confira o resultado ou envie a tabela como imagem.";
+	private const string AvisoMesclada = "Esta tabela tinha células mescladas, que não são suportadas: o conteúdo foi repetido em cada célula. Confira o resultado ou envie a tabela como imagem.";
 
 	private const string AvisoAninhada = "Esta tabela tinha outra tabela dentro dela, o que não é suportado. Confira o resultado ou envie a tabela como imagem.";
 
@@ -430,7 +430,7 @@ public class EditorDoMuralTelaTests(EditorDoMuralFixture f) : IClassFixture<Edit
 	[UiTheory]
 	[InlineData("Vertical")]
 	[InlineData("Horizontal")]
-	public async Task Colar_CelulaMesclada_ExpandeEAvisa(string tema)
+	public async Task Colar_CelulaMesclada_RepeteOConteudoEAvisa(string tema)
 	{
 		var pagina = await f.AbrirAvisosAsync(tema);
 
@@ -445,7 +445,10 @@ public class EditorDoMuralTelaTests(EditorDoMuralFixture f) : IClassFixture<Edit
 		var linhas = LinhasDaTabela(await pagina.Locator(Corpo).InputValueAsync());
 		linhas.Should().HaveCount(3);
 		linhas.Select(Colunas).Should().OnlyContain(c => c == 3);
-		linhas[2].Should().MatchRegex(@"^\|\s*\|\s*F\s*\|\s*G\s*\|$");
+		// O Markdown não mescla: a célula mesclada repete o conteúdo em cada posição que ocupava.
+		linhas[0].Should().MatchRegex(@"^\|\s*Topo\s*\|\s*Topo\s*\|\s*B\s*\|$");
+		linhas[1].Should().MatchRegex(@"^\|\s*Lado\s*\|\s*D\s*\|\s*E\s*\|$");
+		linhas[2].Should().MatchRegex(@"^\|\s*Lado\s*\|\s*F\s*\|\s*G\s*\|$");
 		await Expect(pagina.Locator(Avisos)).ToHaveCountAsync(1);
 		await Expect(pagina.Locator(Avisos)).ToContainTextAsync(AvisoMesclada);
 	}
@@ -1364,6 +1367,55 @@ public class EditorDoMuralTelaTests(EditorDoMuralFixture f) : IClassFixture<Edit
 	private static async Task EsperarImagemCarregadaAsync(IPage pagina, string seletor) =>
 		await pagina.WaitForFunctionAsync(
 			"s => { const i = document.querySelector(s); return !!i && i.complete && i.naturalWidth > 0; }", seletor);
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Imagem_Arrastada_EntraNoTexto(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		await pagina.Locator(".sc-editor .ProseMirror").ClickAsync();
+
+		await pagina.EvaluateAsync(
+			"""
+			(base64) => {
+			  const alvo = document.querySelector('.sc-editor .ProseMirror');
+			  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+			  const dados = new DataTransfer();
+			  dados.items.add(new File([bytes], 'solta.png', { type: 'image/png' }));
+			  const area = alvo.getBoundingClientRect();
+			  alvo.dispatchEvent(new DragEvent('drop', {
+			    dataTransfer: dados, bubbles: true, cancelable: true, clientX: area.left + 10, clientY: area.top + 10,
+			  }));
+			}
+			""",
+			Convert.ToBase64String(PngValido()));
+
+		await Expect(pagina.Locator(ImagemNoEditor)).ToHaveCountAsync(1);
+		await EsperarImagemCarregadaAsync(pagina, ImagemNoEditor);
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().Contain("![](nova-imagem:0)");
+		f.ViolacoesDeCsp(pagina).Should().BeEmpty();
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Link_EsquemaProibido_AvisaENaoCriaLink(string tema)
+	{
+		var pagina = await f.AbrirAvisosAsync(tema);
+		var texto = pagina.Locator(".sc-editor .ProseMirror");
+		await texto.ClickAsync();
+		await pagina.Keyboard.TypeAsync("palavra");
+		await pagina.Keyboard.PressAsync("Control+a");
+
+		await pagina.Locator(".sc-editor__barra").GetByLabel("Link", new() { Exact = true }).ClickAsync();
+		await pagina.Locator(".sc-editor [aria-label='Endereço do link']").FillAsync("javascript:alert(1)");
+		await pagina.Locator(".sc-editor__link").GetByText("Aplicar").ClickAsync();
+
+		await Expect(pagina.Locator(Avisos)).ToContainTextAsync("Este endereço não pode virar link. Use um endereço http, https, mailto ou tel.");
+		await Expect(texto.Locator("a")).ToHaveCountAsync(0);
+		(await pagina.Locator(Corpo).InputValueAsync()).Should().NotContain("javascript:");
+	}
 
 	[UiTheory]
 	[InlineData("Vertical")]

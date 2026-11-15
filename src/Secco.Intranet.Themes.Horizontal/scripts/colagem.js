@@ -6,7 +6,7 @@
 
 import { LIMITE_BYTES } from './imagem-no-texto.js';
 
-export const AVISO_MESCLADA = 'Esta tabela tinha células mescladas, que não são suportadas. Confira o resultado ou envie a tabela como imagem.';
+export const AVISO_MESCLADA = 'Esta tabela tinha células mescladas, que não são suportadas: o conteúdo foi repetido em cada célula. Confira o resultado ou envie a tabela como imagem.';
 export const AVISO_ANINHADA = 'Esta tabela tinha outra tabela dentro dela, o que não é suportado. Confira o resultado ou envie a tabela como imagem.';
 export const AVISO_IMAGEM = 'Algumas imagens não vieram. Clique em cada uma para enviar o arquivo.';
 export const AVISO_TABELA_GRANDE = 'A tabela é grande demais: o limite é de 10000 células. Envie-a como imagem.';
@@ -261,8 +261,9 @@ function textoDaTabela(tabela) {
 
 const GRANDE = Symbol('grande');
 
-// Monta a grade de textos: cada celula ocupa a area do seu colspan/rowspan, o texto na primeira
-// posicao e as demais vazias. Devolve `null` se a tabela nao tem celula e GRANDE assim que as
+// Monta a grade de textos: cada celula ocupa a area do seu colspan/rowspan, com o conteudo repetido
+// em todas as posicoes (o Markdown nao mescla, e posicao vazia esconderia a que a celula pertence).
+// Devolve `null` se a tabela nao tem celula e GRANDE assim que as
 // posicoes escritas passam do LIMITE_CELULAS (a varredura para ali, sem terminar).
 function grade(tabela) {
   const ocupado = [];
@@ -291,7 +292,7 @@ function grade(tabela) {
         for (let dc = 0; dc < colunas; dc++) {
           escritas++;
           ocupado[l + dl][c + dc] = true;
-          celulas[l + dl][c + dc] = dl === 0 && dc === 0 ? celula : null;
+          celulas[l + dl][c + dc] = celula;
         }
       }
 

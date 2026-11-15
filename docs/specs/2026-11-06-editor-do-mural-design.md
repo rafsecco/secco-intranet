@@ -101,7 +101,7 @@ Roda antes de o conteúdo entrar no editor, para o que a pessoa vê ser o que o 
 | Tabela sem cabeçalho | Primeira linha como cabeçalho |
 | Título em célula | Texto em negrito |
 | Quebra, parágrafos ou lista em célula | Texto na mesma linha, separado por espaço |
-| Célula mesclada | Células normais, a primeira com o texto e as outras vazias, mais o aviso abaixo |
+| Célula mesclada | Células normais, com o conteúdo repetido em cada posição que a mesclada ocupava, mais o aviso abaixo |
 | Tabela dentro de tabela | Tabela externa com o texto da interna, mais o aviso abaixo |
 | `&nbsp;` isolado e parágrafo vazio | Removidos |
 | Imagem | Na etapa 1: descartada, mais o aviso abaixo. Desde a etapa 2: imagem no texto ou marcador, como descrito na etapa 2 |
@@ -113,7 +113,8 @@ A leitura do nível é feita ainda na string, antes de o `style` sair, e o aninh
 
 Os avisos aparecem junto ao editor até a pessoa fechá-los:
 
-- *"Esta tabela tinha células mescladas, que não são suportadas. Confira o resultado ou envie a tabela como imagem."*
+- *"Esta tabela tinha células mescladas, que não são suportadas: o conteúdo foi repetido em cada célula. Confira o resultado ou envie a tabela como imagem."*
+- *"Este endereço não pode virar link. Use um endereço http, https, mailto ou tel."* (endereço recusado no campo de link)
 - *"Algumas imagens não vieram. Clique em cada uma para enviar o arquivo."* (etapa 2; só quando sobra marcador)
 
 Se a saída em Markdown vier com colunas alinhadas por espaços, ela é compactada, porque esse preenchimento consome boa parte do limite. Se a extensão não permitir, a limpeza fica de fora: o limite de 20.000 já comporta o tamanho observado.
