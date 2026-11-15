@@ -1,7 +1,7 @@
 # Editor do Mural: colar do Word, tabela e imagem no texto — desenho do recurso
 
 **Data:** 2026-11-06
-**Estado:** etapas 1 e 2 entregues. A colagem do Word com várias imagens foi provada só com um RTF fictício, montado nos testes de tela, até que alguém a teste com o Word real
+**Estado:** etapas 1 e 2 entregues. A colagem do Word com várias imagens foi conferida com o Word real (build 16.0.20527) em documentos fictícios, com imagem alinhada ao texto e flutuante; os testes de tela usam RTF fictício no mesmo formato
 **Revisa:** "Imagem no meio do texto" e "Nenhum caminho deixa a imagem dentro do texto" de [2026-10-31-imagem-na-publicacao-design.md](2026-10-31-imagem-na-publicacao-design.md). A primeira deixa de estar fora do escopo; a segunda continua valendo para imagem embutida em base64.
 
 ## Problema
@@ -143,13 +143,13 @@ A colagem do VS Code, que manda `text/html` só com `div`, `span`, `br` e `meta`
 
 | Origem | Comportamento |
 |---|---|
-| Colagem do Word | Lê o `text/rtf` (guardado por um listener de `paste` em captura, porque o `transformPastedHTML` só recebe o HTML) e associa a N-ésima imagem `file://` do HTML à N-ésima imagem PNG ou JPEG do RTF, ignorando `\nonshppict` |
+| Colagem do Word | Lê o `text/rtf` (guardado por um listener de `paste` em captura, porque o `transformPastedHTML` só recebe o HTML) e associa a N-ésima imagem do HTML à N-ésima figura do RTF. O Word recente embute no HTML (`data:`) a imagem alinhada ao texto e deixa a flutuante como `file://`, com os bytes só no RTF (propriedade `pib` de um `\shp`); por isso as duas contam na posição, e as cópias em `\nonshppict`, `\shprslt` e `\listpicture` ficam de fora |
 | Colagem de `data:image/png`, `jpeg` ou `webp` | Vira arquivo pelo mesmo caminho, com os limites de 10 MB e de 10 imagens; fora deles, vira marcador |
 | Imagem copiada sozinha ou print | Usa o arquivo da área de transferência |
 | Botão "Imagem" ou arrastar | Abre o seletor de arquivo ou usa o arquivo solto |
 | Não recuperável | Fica um marcador visível no lugar: *"Esta imagem não veio. Clique para enviar o arquivo."* |
 
-**Não recuperável** inclui RTF sem imagem, só EMF ou WMF, RTF acima de 50 MB e imagem externa com `http`. Se o número de imagens do HTML e do RTF não bater, **todas** viram marcador, porque imagem certa no lugar errado é pior que imagem nenhuma.
+**Não recuperável** inclui RTF sem imagem, só EMF ou WMF, RTF acima de 50 MB e imagem externa com `http`. Se o número de imagens do HTML e de figuras do RTF não bater, ou se uma imagem embutida não tiver o tamanho da figura do RTF na mesma posição, **todas** as que dependem do RTF viram marcador, porque imagem certa no lugar errado é pior que imagem nenhuma.
 
 O formulário não envia enquanto houver marcador, e nunca salva `file://`, `blob:` ou `data:` no corpo.
 
