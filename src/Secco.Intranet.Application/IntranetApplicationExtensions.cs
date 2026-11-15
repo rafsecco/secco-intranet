@@ -5,6 +5,7 @@ using Secco.Intranet.Application.Bibliotecas;
 using Secco.Intranet.Application.Diretorio;
 using Secco.Intranet.Application.Documentos;
 using Secco.Intranet.Application.Inventario;
+using Secco.Intranet.Application.Links;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Setores;
@@ -86,6 +87,12 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<MoverPosicaoNoMenuHandler>();
 		services.AddScoped<RestaurarOrdemDoMenuHandler>();
 		services.AddScoped<ListarArvoresDosSetoresHandler>();
+		services.AddScoped<ListarLinksDoSetorHandler>();
+		services.AddScoped<CriarGrupoDeLinksHandler>();
+		services.AddScoped<CriarLinkHandler>();
+		services.AddScoped<EditarLinkHandler>();
+		services.AddScoped<MoverLinkHandler>();
+		services.AddScoped<ExcluirLinkHandler>();
 
 		services.AddScoped<ListarPessoasHandler>();
 		services.AddScoped<ObterPessoaHandler>();

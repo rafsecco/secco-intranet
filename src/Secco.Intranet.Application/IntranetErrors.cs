@@ -582,6 +582,22 @@ public static class IntranetErrors
 				"A rota precisa ser um caminho da própria intranet (começando com /) ou um endereço http/https completo.");
 	}
 
+	/// <summary>Erros dos links do setor.</summary>
+	public static class Links
+	{
+		/// <summary>Setor sem nó de links, ou item que não está debaixo dele (outro setor, outro tipo de item, o próprio nó).</summary>
+		public static readonly Error NotFound =
+			Error.NotFound("Intranet.Links.NotFound", "Links não encontrado neste setor.");
+
+		/// <summary>Grupo de destino que não é um grupo de links do setor.</summary>
+		public static readonly Error GrupoInvalido =
+			Error.Validation("Intranet.Links.GrupoInvalido", "Escolha um grupo deste setor.");
+
+		/// <summary>Link sem endereço.</summary>
+		public static readonly Error EnderecoRequired =
+			Error.Validation("Intranet.Links.EnderecoRequired", "Informe o endereço do link.");
+	}
+
 	/// <summary>Erros do recurso Vencimentos.</summary>
 	public static class Vencimentos
 	{

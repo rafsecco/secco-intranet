@@ -63,6 +63,9 @@ public static class VerbosDeAuditoria
 	/// <summary>Item da árvore desativado — tira o item (e o recurso, se for Documentos/Avisos) do ar.</summary>
 	public const string MenuItemDesativar = "menu.item-desativar";
 
+	/// <summary>Nome, endereço, grupo ou modo de abertura de um item da árvore alterados.</summary>
+	public const string MenuItemEditar = "menu.item-editar";
+
 	/// <summary>Item trocou de posição com um irmão.</summary>
 	public const string MenuItemMover = "menu.item-mover";
 

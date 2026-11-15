@@ -143,7 +143,7 @@ public sealed class CriarItemMenuHandler(IItemMenuRepository repository, ITrilha
 	/// (<c>//host</c> seria outro domínio), ou URL absoluta http/https. Qualquer outro esquema
 	/// (<c>javascript:</c>, <c>data:</c>, <c>ftp:</c>) é recusado.
 	/// </summary>
-	private static bool RotaEhValida(string rota) =>
+	internal static bool RotaEhValida(string rota) =>
 		(rota.StartsWith('/') && !rota.StartsWith("//", StringComparison.Ordinal) && !rota.StartsWith("/\\", StringComparison.Ordinal))
 		|| (Uri.TryCreate(rota, UriKind.Absolute, out var uri)
 			&& (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps));
