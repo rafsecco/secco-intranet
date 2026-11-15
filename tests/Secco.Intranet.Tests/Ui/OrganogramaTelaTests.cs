@@ -68,7 +68,9 @@ public class OrganogramaTelaTests(TelaFixture f) : IClassFixture<TelaFixture>
 
 		await Nome(pagina, "Bruno").ClickAsync();
 
-		await pagina.WaitForURLAsync(url => url.Contains("/diretorio/") && !url.Contains("organograma"));
+		// Confere o endereço atual, com nova tentativa: esperar o evento de navegação (WaitForURLAsync)
+		// falhava de vez em quando, porque a página já tinha navegado quando a espera começava.
+		await Expect(pagina).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/diretorio/[0-9a-f-]{36}$"));
 	}
 
 	[UiTheory]
