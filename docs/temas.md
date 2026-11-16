@@ -117,6 +117,15 @@ continuar alcançável. Uma terceira fica com o CSS do tema: o contêiner do men
 empilhamento (`sticky`), então ele precisa de `z-index` acima do conteúdo, senão o painel fica
 atrás dos cards.
 
+`NavigationItemModel.NovaAba` marca o link que deve abrir em outra aba (é o caso dos links do
+setor, que o `intranet-admin` ou quem escreve no setor cadastra). Quando for verdadeiro, o tema
+escreve `target="_blank" rel="noopener noreferrer"` no `<a>` do item; sem isso tudo abre na mesma
+página. Os dois temas publicados já fazem isso:
+
+```cshtml
+<a href="@item.Url" target="@(item.NovaAba ? "_blank" : null)" rel="@(item.NovaAba ? "noopener noreferrer" : null)">
+```
+
 **Organograma.** O core entrega a árvore pronta (`OrganogramaModel` → `NoOrganogramaModel`
 recursivo) e o tema desenha. Para que CSS e testes de adotantes tenham onde se agarrar, os dois
 temas publicados usam os mesmos ganchos: `sc-org` (contêiner), `sc-org__no` (cada pessoa, um

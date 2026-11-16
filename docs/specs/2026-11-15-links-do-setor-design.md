@@ -1,6 +1,6 @@
 # Links do setor — design
 
-**Estado:** aprovada em 2026-11-15; implementação pendente.
+**Estado:** entregue em 2026-11-16.
 
 Primeiro dos três projetos que saíram do item "Ferramentas do dia a dia" do [roadmap](../roadmap.md). Os outros dois, Reserva de sala e o motor de processos, têm conversa e spec próprias, nessa ordem.
 

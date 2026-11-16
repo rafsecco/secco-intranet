@@ -252,7 +252,14 @@ processos (maior risco técnico) só entra com a base já sólida.
       em bind mounts e backup e restauração no [guia](guia-de-deploy.md#backup-e-restauração) —
       [ADR-0014](adr/secco-intranet-adrs.md), [spec](specs/2026-11-06-docker-e-dados-design.md), plano em
       [plans/2026-11-06-docker-e-dados.md](plans/2026-11-06-docker-e-dados.md)
-- [ ] Ferramentas do dia a dia (reserva de sala, links rápidos)
+- [x] Links do setor — nó `Links` no menu de cada setor (criado junto com o setor), com grupos e
+      links que aparecem direto no menu principal; cada link abre na mesma página ou em nova aba
+      (`target="_blank" rel="noopener noreferrer"`). Quem escreve no setor gerencia pela tela
+      `/{slug}/links`: criar, editar, excluir e reordenar. Migration `ItemMenuNovaAba`.
+      [Spec](specs/2026-11-15-links-do-setor-design.md); plano em
+      [plans/2026-11-15-links-do-setor.md](plans/2026-11-15-links-do-setor.md)
+- [ ] Reserva de sala — salas cadastradas pelo `intranet-admin`, item fixo no menu, com sincronização
+      de agenda a definir
 
 ## Fase 3 — Controle de processos (v1 simples)
 

@@ -5,6 +5,20 @@ Mudanças que exigem ajuste de quem já roda a Intranet. O formato segue
 
 ## [Não lançado]
 
+### Quebras — Links do setor
+
+Detalhes na [spec dos links do setor](docs/specs/2026-11-15-links-do-setor-design.md).
+
+**Banco:**
+
+- A migration `ItemMenuNovaAba` acrescenta a coluna `fl_nova_aba` à tabela `tb_itens_menu`. Rode o
+  `migrate` antes de subir a versão nova.
+
+**Tema próprio (fork):**
+
+- `NavigationItemModel` ganhou o parâmetro `NovaAba`. Quando for verdadeiro, o tema precisa escrever
+  `target="_blank" rel="noopener noreferrer"` no link do menu; sem isso tudo abre na mesma página.
+
 ## [0.1.0] - 2026-11-15
 
 Primeira versão marcada. As seções abaixo listam o que muda para quem já rodava a Intranet a partir
