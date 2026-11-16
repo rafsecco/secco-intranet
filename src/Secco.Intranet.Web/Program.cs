@@ -7,6 +7,7 @@ using Secco.Intranet.Web;
 using Secco.Intranet.Web.Auditoria;
 using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Conteudo;
+using Secco.Intranet.Web.Diretorio;
 using Secco.Intranet.Web.Exportacao;
 using Secco.Intranet.Web.Hosting;
 using Secco.Intranet.Web.Navigation;
@@ -98,6 +99,9 @@ builder.Services.AddIntranetProxyForwarding(builder.Configuration);
 // Cabeçalhos de segurança (ADR-0057 da plataforma): CSP sem script nem estilo inline, nosniff,
 // Referrer-Policy, Permissions-Policy, frame-ancestors e HSTS. Ver IntranetSecurityHeadersExtensions.
 builder.Services.AddIntranetSecurityHeaders();
+
+// Botão de chat do Diretório (Intranet:Chat:*): só monta o endereço do provedor, nunca o chama.
+builder.Services.AddIntranetChat(builder.Configuration);
 
 var app = builder.Build();
 
