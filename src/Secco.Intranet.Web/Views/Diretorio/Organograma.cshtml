@@ -1,6 +1,7 @@
 @using Secco.Intranet.Web.Models.Diretorio
 @using Secco.Intranet.Application.Diretorio
 @model OrganogramaViewModel
+@inject Secco.Intranet.Web.Diretorio.ILinkDeChat Chat
 @functions {
 	private NoOrganogramaModel Mapear(NoDoOrganograma no) => new(
 		no.Pessoa.Nome,
@@ -8,7 +9,8 @@
 		Url.Action("Pessoa", new { id = no.Pessoa.UsuarioId })!,
 		new AvatarModel(Iniciais.De(no.Pessoa.Nome), no.Pessoa.TemFoto ? $"/diretorio/{no.Pessoa.UsuarioId}/foto" : null),
 		no.Pessoa.GestorInativo,
-		[.. no.Equipe.Select(Mapear)]);
+		[.. no.Equipe.Select(Mapear)],
+		Chat.Para(no.Pessoa.Email, no.Pessoa.UsuarioId, User));
 }
 @{
 	ViewData["Title"] = "Organograma";

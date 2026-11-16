@@ -1298,6 +1298,30 @@ html.sc-js .sc-nav__sub.is-open {
     text-align: center;
   }
 
+  // Botao de chat: ultimo item do cartao, discreto, com foco visivel.
+  &__chat {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-left: auto;
+    border-radius: var(--bs-border-radius-sm);
+    color: var(--sc-text-muted);
+    text-decoration: none;
+    transition: background-color .15s ease, color .15s ease;
+  }
+
+  &__chat:hover {
+    background-color: var(--sc-surface);
+    color: var(--sc-primary);
+  }
+
+  &__chat:focus-visible {
+    outline: 2px solid var(--sc-primary);
+    outline-offset: 2px;
+  }
+
   // Seta de recolher/expandir: so o gestor tem.
   &__no > details > summary > .sc-org__contagem::after {
     content: "";

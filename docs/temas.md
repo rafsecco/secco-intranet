@@ -136,6 +136,24 @@ no teclado. Os temas oficiais ficam no básico: linhas feitas só de CSS, rolage
 dentro do painel e lista recuada abaixo de 768px. Efeitos como destacar o ramo sob o mouse,
 mostrar só os gestores ou animar as linhas são decisão do tema.
 
+`NoOrganogramaModel.ChatUrl` traz o endereço da conversa com a pessoa; é nulo quando o chat não
+está configurado, a pessoa não tem e-mail ou quem vê é ela mesma (o core decide, o tema só
+desenha quando vier preenchido). Os temas publicados escrevem o botão como último item do cartão,
+com a classe `sc-org__chat`, abrindo em outra aba:
+
+```cshtml
+@if (!string.IsNullOrWhiteSpace(Model.ChatUrl))
+{
+	<a class="sc-org__chat" href="@Model.ChatUrl" target="_blank" rel="noopener noreferrer"
+	   title="Conversar com @Model.Nome no Teams">
+		<i class="bi bi-chat-dots" aria-hidden="true"></i>
+		<span class="visually-hidden">Conversar com @Model.Nome no Teams</span>
+	</a>
+}
+```
+
+O botão fica dentro do `<summary>` de quem tem equipe; clicar nele navega e não recolhe a equipe.
+
 **Lista de documentos.** O core entrega a árvore pronta (`ListaDeDocumentosModel` →
 `ItemDaListaDeDocumentosModel`, dois níveis) com URL, ícone, etiqueta, detalhe e badge já
 calculados, e sem os grupos vazios; o tema só desenha, sem botões. O ícone do grupo é escolha do

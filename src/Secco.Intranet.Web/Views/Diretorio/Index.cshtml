@@ -1,5 +1,6 @@
 @using Secco.Intranet.Web.Models.Diretorio
 @model DiretorioViewModel
+@inject Secco.Intranet.Web.Diretorio.ILinkDeChat Chat
 @{
     ViewData["Title"] = "Diretório";
 
@@ -84,6 +85,14 @@ else
                                 }
                             </p>
                         </div>
+                        @if (Chat.Para(pessoa.Email, pessoa.UsuarioId, User) is { } chatUrl)
+                        {
+                            <a class="btn btn-sm btn-outline-secondary ms-auto align-self-start" href="@chatUrl" target="_blank" rel="noopener noreferrer"
+                               title="Conversar com @pessoa.Nome no @Chat.NomeDoProvedor">
+                                <i class="bi bi-chat-dots" aria-hidden="true"></i>
+                                <span class="visually-hidden">Conversar com @pessoa.Nome no @Chat.NomeDoProvedor</span>
+                            </a>
+                        }
                     </div>
                 </article>
             </div>

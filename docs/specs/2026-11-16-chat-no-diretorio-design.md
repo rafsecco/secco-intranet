@@ -1,6 +1,6 @@
 # Link de chat no Diretório — design
 
-**Estado:** aprovada em 2026-11-16; implementação pendente.
+**Estado:** entregue em 2026-11-16.
 
 ## Por quê
 

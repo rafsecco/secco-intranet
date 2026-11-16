@@ -5,6 +5,16 @@ Mudanças que exigem ajuste de quem já roda a Intranet. O formato segue
 
 ## [Não lançado]
 
+### Quebras — Link de chat no Diretório
+
+Detalhes na [spec do link de chat](docs/specs/2026-11-16-chat-no-diretorio-design.md).
+
+**Tema próprio (fork):**
+
+- `NoOrganogramaModel` ganhou o parâmetro opcional `ChatUrl`, e o cartão do Organograma ganhou a
+  classe `sc-org__chat`. Tema que não desenha o botão continua funcionando, só não o mostra no
+  Organograma.
+
 ### Quebras — Links do setor
 
 Detalhes na [spec dos links do setor](docs/specs/2026-11-15-links-do-setor-design.md).

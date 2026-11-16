@@ -134,4 +134,55 @@ public class OrganogramaTelaTests(TelaFixture f) : IClassFixture<TelaFixture>
 			await Expect(Nome(pagina, quem)).ToBeVisibleAsync();
 		}
 	}
+
+	/// <summary>Responde vazio às requisições ao Teams, para o teste não sair para a internet.</summary>
+	private static Task BloquearTeamsAsync(IPage pagina) =>
+		pagina.Context.RouteAsync(new System.Text.RegularExpressions.Regex(@"^https://teams\.microsoft\.com/"), rota =>
+			rota.FulfillAsync(new RouteFulfillOptions { Status = 200, ContentType = "text/html", Body = "<!doctype html><title>teams</title>" }));
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Chat_CliqueNoBotao_AbreOutraPaginaENaoRecolheAEquipe(string tema)
+	{
+		var pagina = await AbrirOrganogramaAsync(tema);
+		await BloquearTeamsAsync(pagina);
+		var botao = pagina.Locator($"{Raiz} > details > summary a.sc-org__chat");
+		await Expect(botao).ToHaveCountAsync(1);
+		await Expect(botao).ToHaveAttributeAsync("rel", "noopener noreferrer");
+		await Expect(pagina.Locator(".sc-org details[open]")).ToHaveCountAsync(2);
+		var origem = pagina.Url;
+
+		var popup = await pagina.RunAndWaitForPopupAsync(async () => await botao.ClickAsync());
+
+		await Expect(popup).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(@"^https://teams\.microsoft\.com/l/chat/0/0\?users=chefe-"));
+		await Expect(pagina.Locator(".sc-org details[open]")).ToHaveCountAsync(2);
+		await Expect(Nome(pagina, "Ana")).ToBeVisibleAsync();
+		pagina.Url.Should().Be(origem, "a página de origem não navega quando o chat abre em outra aba");
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Chat_SemViolacaoDeCsp(string tema)
+	{
+		var pagina = await AbrirOrganogramaAsync(tema);
+		var violacoes = new List<string>();
+		pagina.Console += (_, mensagem) =>
+		{
+			if (mensagem.Text.Contains("Content Security Policy", StringComparison.OrdinalIgnoreCase))
+			{
+				lock (violacoes)
+				{
+					violacoes.Add(mensagem.Text);
+				}
+			}
+		};
+
+		await pagina.ReloadAsync();
+
+		await Expect(pagina.Locator("a.sc-org__chat").First).ToBeVisibleAsync();
+		violacoes.Should().BeEmpty();
+		f.ErrosDeScript(pagina).Should().BeEmpty();
+	}
 }

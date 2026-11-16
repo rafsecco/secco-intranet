@@ -1,7 +1,9 @@
 @using Secco.Intranet.Web.Models.Diretorio
 @model PessoaViewModel
+@inject Secco.Intranet.Web.Diretorio.ILinkDeChat Chat
 @{
     var pessoa = Model.Detalhe.Pessoa;
+    var chatUrl = Chat.Para(pessoa.Email, pessoa.UsuarioId, User);
 
     ViewData["Title"] = pessoa.Nome;
 
@@ -31,6 +33,14 @@
                 <partial name="_Badge" model="@(new BadgeModel(pessoa.SetorNome, pessoa.SetorAtivo ? BadgeVariante.Setor : BadgeVariante.Neutro, pessoa.SetorSlug))" />
             }
         </div>
+        @if (chatUrl is not null)
+        {
+            <a class="btn btn-sm btn-outline-secondary ms-auto" href="@chatUrl" target="_blank" rel="noopener noreferrer"
+               title="Conversar com @pessoa.Nome no @Chat.NomeDoProvedor">
+                <i class="bi bi-chat-dots" aria-hidden="true"></i>
+                <span class="visually-hidden">Conversar com @pessoa.Nome no @Chat.NomeDoProvedor</span>
+            </a>
+        }
     </div>
 
     <dl class="row mb-0">

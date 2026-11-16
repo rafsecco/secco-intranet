@@ -64,6 +64,10 @@ processos (maior risco técnico) só entra com a base já sólida.
       SecureGate ([#30](https://github.com/rafsecco/secco-platform/issues/30)) —
       [spec](specs/2026-10-04-nome-de-exibicao-na-plataforma-design.md). A foto saiu do MVP: ver
       Fase 3
+- [x] Link de chat no Diretório (Teams) — botão de conversa no Organograma, na página da pessoa
+      e na lista, montado a partir do e-mail, ligado por `Intranet:Chat:Provedor` —
+      [spec](specs/2026-11-16-chat-no-diretorio-design.md),
+      [plano](plans/2026-11-16-chat-no-diretorio.md)
 - [x] Repositório de documentos por setor: upload cifrado em envelope, visibilidade por
       documento (só o setor ou a empresa toda), download autorizado e arquivamento (o
       registro e o arquivo permanecem) — ADR-0005

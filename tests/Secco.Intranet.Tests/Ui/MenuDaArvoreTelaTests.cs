@@ -108,6 +108,8 @@ public sealed class TelaFixture : IAsyncLifetime
 			// ambiente de testes é Testing, então liga-se aqui — sem isso a tela sobe sem estilo nem script.
 			var app = _fabrica.WithWebHostBuilder(builder => builder
 				.UseSetting("Intranet:Theme:Nome", tema)
+				// Chat ligado: o organograma ganha o botão de conversa nos cartões.
+				.UseSetting("Intranet:Chat:Provedor", "Teams")
 				.UseStaticWebAssets());
 			// Porta livre escolhida pelo sistema: as duas aplicações (uma por tema) sobem juntas.
 			app.UseKestrel(kestrel => kestrel.Listen(System.Net.IPAddress.Loopback, 0));
