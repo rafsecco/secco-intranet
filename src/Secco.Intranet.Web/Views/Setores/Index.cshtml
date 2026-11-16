@@ -53,7 +53,7 @@ else
         @foreach (var setor in Model.Page.Items)
         {
             <li class="sc-list__item @SetorHue.Classe(setor.Slug)">
-                <span class="sc-list__icon" aria-hidden="true"><i class="bi bi-diagram-3"></i></span>
+                <span class="sc-list__icon" aria-hidden="true"><i class="bi @setor.Icone"></i></span>
                 <div class="sc-list__text">
                     <p class="sc-list__title">
                         <a class="text-reset text-decoration-none" asp-action="Details" asp-route-id="@setor.Id">@setor.Nome</a>
