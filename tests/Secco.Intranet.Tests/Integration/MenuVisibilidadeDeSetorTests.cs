@@ -31,14 +31,14 @@ public class MenuVisibilidadeDeSetorTests(IntranetWebFactory factory) : IClassFi
 
 	public Task DisposeAsync() => Task.CompletedTask;
 
-	private async Task<string> CriarSetorAsync(string slug)
+	private async Task<string> CriarSetorAsync(string slug, bool comLinks = true)
 	{
 		using var escopo = factory.Services.CreateScope();
 		escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
 
 		var criado = await escopo.ServiceProvider
 			.GetRequiredService<CreateSetorHandler>()
-			.HandleAsync(new CreateSetorCommand($"Setor {slug}", slug));
+			.HandleAsync(new CreateSetorCommand($"Setor {slug}", slug, HabilitarLinks: comLinks));
 
 		criado.IsSuccess.Should().BeTrue();
 
@@ -196,11 +196,34 @@ public class MenuVisibilidadeDeSetorTests(IntranetWebFactory factory) : IClassFi
 	[Fact]
 	public async Task SoEscrita_EmSetorSemItemRestrito_OSetorNaoAparece()
 	{
-		var slug = await CriarSetorAsync($"menu-{Guid.NewGuid():N}"[..20]);
+		// Sem o nó Links: ele conta como item restrito, por causa do "Gerenciar links".
+		var slug = await CriarSetorAsync($"menu-{Guid.NewGuid():N}"[..20], comLinks: false);
 
 		var html = await ClienteCom(IntranetPermissoes.Setor.Write(slug)).GetStringAsync("/");
 
 		html.Should().NotContain($"Setor {slug}");
+	}
+
+	[Fact]
+	public async Task SoEscrita_EmSetorComLinks_VeSoGerenciarLinks()
+	{
+		var slug = await CriarSetorAsync($"menu-{Guid.NewGuid():N}"[..20]);
+
+		var html = await ClienteCom(IntranetPermissoes.Setor.Write(slug)).GetStringAsync("/");
+
+		html.Should().Contain($"href=\"/{slug}/links\"");
+		html.Should().NotContain($"href=\"/{slug}/avisos\"").And.NotContain($"href=\"/{slug}/documentos\"");
+	}
+
+	[Fact]
+	public async Task SoLeitura_EmSetorComLinks_NaoVeGerenciarLinks()
+	{
+		var slug = await CriarSetorAsync($"menu-{Guid.NewGuid():N}"[..20]);
+
+		var html = await ClienteCom(IntranetPermissoes.Setor.Read(slug)).GetStringAsync("/");
+
+		html.Should().Contain($"href=\"/{slug}/avisos\"");
+		html.Should().NotContain($"href=\"/{slug}/links\"");
 	}
 
 	private static void AssertarArvore(string html, string slug)

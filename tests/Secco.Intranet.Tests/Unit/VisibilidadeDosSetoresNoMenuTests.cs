@@ -64,6 +64,45 @@ public class VisibilidadeDosSetoresNoMenuTests
 		permissoes.Consultas.Should().NotContain(consulta => consulta.Acao == "write");
 	}
 
+	private static IReadOnlyList<ItemMenuDto> ArvoreComLinks() =>
+	[
+		new(Guid.NewGuid(), Guid.NewGuid(), "Links", "links", TipoDeItemMenu.Links, null, null, 0, true),
+	];
+
+	[Fact]
+	public async Task SetorComNoLinks_ConsultaAEscrita_EQuemEscreveEntraEmComEscrita()
+	{
+		// "Gerenciar links" só aparece para quem escreve: sem a consulta, a entrada nunca apareceria.
+		var setor = Setor("financeiro");
+		var permissoes = new PermissoesFalsas { Leitura = ["financeiro"], Escrita = ["financeiro"] };
+
+		var visibilidade = await Resolver(permissoes, [setor], new() { [setor.Id] = ArvoreComLinks() });
+
+		visibilidade.ComEscrita.Should().Contain(setor.Id);
+	}
+
+	[Fact]
+	public async Task SetorComNoLinks_QuemSoLe_NaoEntraEmComEscrita()
+	{
+		var setor = Setor("financeiro");
+		var permissoes = new PermissoesFalsas { Leitura = ["financeiro"] };
+
+		var visibilidade = await Resolver(permissoes, [setor], new() { [setor.Id] = ArvoreComLinks() });
+
+		visibilidade.Setores.Should().Equal(setor);
+		visibilidade.ComEscrita.Should().BeEmpty();
+	}
+
+	[Fact]
+	public async Task SetorComNoLinks_ModoAberto_EntraEmComEscrita()
+	{
+		var setor = Setor("financeiro");
+
+		var visibilidade = await Resolver(new PermissoesFalsas(), [setor], new() { [setor.Id] = ArvoreComLinks() }, modoAberto: true);
+
+		visibilidade.ComEscrita.Should().Contain(setor.Id);
+	}
+
 	[Fact]
 	public async Task ConsultaAEscrita_SoNosSetoresComItemRestrito()
 	{

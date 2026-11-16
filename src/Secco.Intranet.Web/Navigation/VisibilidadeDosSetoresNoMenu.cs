@@ -77,10 +77,11 @@ public static class VisibilidadeDosSetoresNoMenu
 
 	private static VisibilidadeDosSetores Vazia => new([], new HashSet<Guid>(), new HashSet<Guid>());
 
+	// O nó Links conta como restrito: a entrada "Gerenciar links" dele só aparece para quem escreve.
 	private static bool TemItemRestrito(SetorDto setor, IReadOnlyDictionary<Guid, IReadOnlyList<ItemMenuDto>>? arvores) =>
 		arvores is not null
 		&& arvores.TryGetValue(setor.Id, out var itens)
-		&& itens.Any(item => item.NivelDeAcesso == NivelDeAcessoItemMenu.Escrita);
+		&& itens.Any(item => item.NivelDeAcesso == NivelDeAcessoItemMenu.Escrita || item.Tipo == TipoDeItemMenu.Links);
 
 	private static async Task<IReadOnlySet<string>> EscritaAsync(
 		IPermissoesDeSetor permissoes,
