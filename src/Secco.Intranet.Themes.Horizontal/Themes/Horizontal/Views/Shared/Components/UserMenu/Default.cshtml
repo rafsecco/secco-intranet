@@ -5,13 +5,16 @@
         @Model.Iniciais
     </button>
     <ul class="dropdown-menu dropdown-menu-end">
-        @if (Model.Autenticado)
+        @* O nome aparece sempre (visitante inclusive): o menu nunca abre vazio. *@
+        <li><h6 class="dropdown-header">@Model.Nome</h6></li>
+        @if (Model.Autenticado && Model.UrlPerfil is not null)
         {
-            <li><h6 class="dropdown-header">@Model.Nome</h6></li>
-            @if (Model.UrlPerfil is not null)
-            {
-                <li><a class="dropdown-item" href="@Model.UrlPerfil">Meu perfil</a></li>
-            }
+            <li><a class="dropdown-item" href="@Model.UrlPerfil">Meu perfil</a></li>
+        }
+
+        @if (!Model.AutenticacaoHabilitada)
+        {
+            <li><span class="dropdown-item-text text-body-secondary small">Sem login configurado nesta instalação.</span></li>
         }
 
         @if (Model.AutenticacaoHabilitada)
