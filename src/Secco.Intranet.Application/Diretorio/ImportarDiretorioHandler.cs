@@ -32,7 +32,8 @@ public enum StatusDaLinha
 /// <param name="Email">E-mail da linha (vazio se a linha nem chegou a ter).</param>
 /// <param name="Status">O que acontece com ela.</param>
 /// <param name="Erro">Motivo, quando <see cref="StatusDaLinha.Erro"/>.</param>
-public sealed record LinhaDoRelatorio(int Numero, string Email, StatusDaLinha Status, string? Erro);
+/// <param name="Aviso">Observação que não impede a linha (ex.: colunas ignoradas porque o valor vem do Entra).</param>
+public sealed record LinhaDoRelatorio(int Numero, string Email, StatusDaLinha Status, string? Erro, string? Aviso = null);
 
 /// <summary>Relatório da pré-visualização ou da aplicação.</summary>
 /// <param name="Linhas">Uma entrada por linha do arquivo, em ordem.</param>
@@ -195,9 +196,13 @@ public sealed class ImportarDiretorioHandler(
 
 		var todosOsPerfis = await perfis.ListarTodosAsync(cancellationToken).ConfigureAwait(false);
 		var perfilPorUsuario = todosOsPerfis.GroupBy(perfil => perfil.UsuarioId).ToDictionary(grupo => grupo.Key, grupo => grupo.First());
-		var mapaDeGestores = todosOsPerfis
-			.Where(perfil => perfil.GestorUsuarioId is not null)
-			.ToDictionary(perfil => perfil.UsuarioId, perfil => perfil.GestorUsuarioId!.Value);
+
+		// Gestor efetivo (Entra ou manual): o ciclo se mede no grafo que as pessoas de fato veem.
+		var pessoas = MontadorDePessoas.Montar(ativos.Value, todosOsPerfis, todosOsSetores);
+		var travasPorUsuario = pessoas.ToDictionary(pessoa => pessoa.UsuarioId, pessoa => (pessoa.CargoDoEntra, pessoa.SetorDoEntra, pessoa.GestorDoEntra));
+		var mapaDeGestores = pessoas
+			.Where(pessoa => pessoa.GestorUsuarioId is not null)
+			.ToDictionary(pessoa => pessoa.UsuarioId, pessoa => pessoa.GestorUsuarioId!.Value);
 
 		var planejadas = new List<LinhaPlanejada>();
 		var vistos = new HashSet<Guid>();
@@ -209,7 +214,7 @@ public sealed class ImportarDiretorioHandler(
 
 		foreach (var linha in leitura.Value.Linhas)
 		{
-			planejadas.Add(Planejar(linha, porEmail, setorPorSlug, perfilPorUsuario, mapaDeGestores, vistos));
+			planejadas.Add(Planejar(linha, porEmail, setorPorSlug, perfilPorUsuario, travasPorUsuario, mapaDeGestores, vistos));
 		}
 
 		return planejadas.OrderBy(linha => linha.Relatorio.Numero).ToList();
@@ -220,6 +225,7 @@ public sealed class ImportarDiretorioHandler(
 		Dictionary<string, UsuarioParaDiretorio> porEmail,
 		Dictionary<string, Guid> setorPorSlug,
 		Dictionary<Guid, PerfilColaborador> perfilPorUsuario,
+		Dictionary<Guid, (bool Cargo, bool Setor, bool Gestor)> travasPorUsuario,
 		Dictionary<Guid, Guid> mapaDeGestores,
 		HashSet<Guid> vistos)
 	{
@@ -232,6 +238,41 @@ public sealed class ImportarDiretorioHandler(
 		{
 			return Rejeitada(linha.Numero, linha.Email, "e-mail repetido no arquivo.");
 		}
+
+		// Coluna cujo valor vem do Entra é tratada como ausente: não valida nem aplica, e o valor guardado
+		// no perfil fica. O aviso só cita as colunas que o CSV de fato trouxe preenchidas.
+		travasPorUsuario.TryGetValue(usuario.Id, out var trava);
+
+		var ignoradas = new List<string>(3);
+
+		if (trava.Cargo && linha.Cargo is not null)
+		{
+			ignoradas.Add("cargo");
+		}
+
+		if (trava.Setor && linha.SetorSlug is not null)
+		{
+			ignoradas.Add("setor");
+		}
+
+		if (trava.Gestor && linha.GestorEmail is not null)
+		{
+			ignoradas.Add("gestor");
+		}
+
+		var aviso = ignoradas.Count switch
+		{
+			0 => null,
+			1 => $"{ignoradas[0]} vem do Entra; coluna ignorada",
+			_ => $"{string.Join(", ", ignoradas)} vêm do Entra; colunas ignoradas",
+		};
+
+		linha = linha with
+		{
+			Cargo = trava.Cargo ? null : linha.Cargo,
+			SetorSlug = trava.Setor ? null : linha.SetorSlug,
+			GestorEmail = trava.Gestor ? null : linha.GestorEmail,
+		};
 
 		if ((linha.Nome?.Length ?? 0) > NomeDeExibicao.MaxLength
 			|| (linha.Cargo?.Length ?? 0) > PerfilColaborador.CargoMaxLength
@@ -296,7 +337,7 @@ public sealed class ImportarDiretorioHandler(
 			: atual is null && mudouLocal ? StatusDaLinha.Criar : StatusDaLinha.Atualizar;
 
 		return new LinhaPlanejada(
-			new LinhaDoRelatorio(linha.Numero, linha.Email, status, null),
+			new LinhaDoRelatorio(linha.Numero, linha.Email, status, null, aviso),
 			usuario.Id,
 			nomeNovo,
 			linha.Cargo,

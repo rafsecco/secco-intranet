@@ -314,4 +314,90 @@ public class ImportarDiretorioHandlerTests
 		relatorio.Value.Linhas.Single(l => l.Email == "carla@x.com").Status.Should().Be(StatusDaLinha.Criar, "linha sem nome segue normal");
 		relatorio.Value.Linhas.Single(l => l.Email == "bruno@x.com").Erro.Should().Contain("não foi possível gravar o nome");
 	}
+
+	private static Ambiente MontarComEntra(Action<UsuariosParaDiretorioFalso> usuarios)
+	{
+		var ambiente = Montar(setores =>
+		{
+			setores.Com("Financeiro", "financeiro");
+			setores.Com("RH", "rh");
+		});
+		ambiente.Usuarios.Usuarios.Clear();
+		usuarios(ambiente.Usuarios);
+
+		return ambiente;
+	}
+
+	[Fact]
+	public async Task Importar_ColunaDoEntra_IgnoradaComAviso()
+	{
+		var ambiente = MontarComEntra(u => u
+			.Com(Ana, "ana@x.com", entra: new AtributosDoEntra("Gerente", "Financeiro", null, Bruno))
+			.Com(Bruno, "bruno@x.com", entra: new AtributosDoEntra("Diretor", null, null, null))
+			.Com(Carla, "carla@x.com"));
+
+		var resultado = await ambiente.Handler.AplicarAsync(new ImportarDiretorioCommand(
+			Cabecalho + "ana@x.com;;Outro;2100;rh;carla@x.com\nbruno@x.com;;Outro;;;\ncarla@x.com;;Analista;;;\n"));
+
+		var linhas = resultado.Value.Linhas;
+		linhas.Single(l => l.Email == "ana@x.com").Aviso.Should().Be("cargo, setor, gestor vêm do Entra; colunas ignoradas");
+		linhas.Single(l => l.Email == "bruno@x.com").Aviso.Should().Be("cargo vem do Entra; coluna ignorada");
+		linhas.Single(l => l.Email == "carla@x.com").Aviso.Should().BeNull();
+		var ana = ambiente.Perfis.Perfis.Single(p => p.UsuarioId == Ana);
+		ana.Ramal.Should().Be("2100", "a coluna livre segue valendo");
+		ana.Cargo.Should().BeNull();
+		ana.SetorId.Should().BeNull();
+		ana.GestorUsuarioId.Should().BeNull();
+		ambiente.Perfis.Perfis.Should().NotContain(p => p.UsuarioId == Bruno);
+	}
+
+	[Fact]
+	public async Task Importar_ColunaDoEntraVazia_SemAviso()
+	{
+		var ambiente = MontarComEntra(u => u
+			.Com(Ana, "ana@x.com", entra: new AtributosDoEntra("Gerente", null, null, null)));
+
+		var resultado = await ambiente.Handler.PrevisualizarAsync(new ImportarDiretorioCommand(Cabecalho + "ana@x.com;;;2100;;\n"));
+
+		resultado.Value.Linhas.Single().Aviso.Should().BeNull();
+	}
+
+	[Fact]
+	public async Task Importar_SemEntra_RelatorioIgualAoDeHoje()
+	{
+		var ambiente = Montar(setores => setores.Com("Financeiro", "financeiro"));
+
+		var resultado = await ambiente.Handler.PrevisualizarAsync(new ImportarDiretorioCommand(
+			Cabecalho + "ana@x.com;Ana;Controller;2100;financeiro;\nbruno@x.com;;;;;ana@x.com\n"));
+
+		resultado.Value.Linhas.Should().OnlyContain(l => l.Aviso == null && l.Status == StatusDaLinha.Criar);
+	}
+
+	[Fact]
+	public async Task Importar_GestorQueFechaCicloComEntra_Rejeita()
+	{
+		// No Entra, Bruno é gerido por Ana: o CSV não pode pôr Bruno como gestor de Ana.
+		var ambiente = MontarComEntra(u => u
+			.Com(Ana, "ana@x.com")
+			.Com(Bruno, "bruno@x.com", entra: new AtributosDoEntra(null, null, null, Ana)));
+
+		var resultado = await ambiente.Handler.PrevisualizarAsync(new ImportarDiretorioCommand(Cabecalho + "ana@x.com;;;;;bruno@x.com\n"));
+
+		var linha = resultado.Value.Linhas.Single();
+		linha.Status.Should().Be(StatusDaLinha.Erro);
+		linha.Erro.Should().Contain("ciclo");
+	}
+
+	[Fact]
+	public async Task Importar_SoColunasTravadas_SemAlteracaoComAviso()
+	{
+		var ambiente = MontarComEntra(u => u
+			.Com(Ana, "ana@x.com", entra: new AtributosDoEntra("Gerente", null, null, null)));
+
+		var resultado = await ambiente.Handler.PrevisualizarAsync(new ImportarDiretorioCommand(Cabecalho + "ana@x.com;;Outro;;;\n"));
+
+		var linha = resultado.Value.Linhas.Single();
+		linha.Status.Should().Be(StatusDaLinha.SemAlteracao);
+		linha.Aviso.Should().Be("cargo vem do Entra; coluna ignorada");
+	}
 }
