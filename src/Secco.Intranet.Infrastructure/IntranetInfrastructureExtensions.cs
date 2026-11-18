@@ -74,6 +74,7 @@ public static class IntranetInfrastructureExtensions
 		services.AddSingleton(sp => BindSection(sp, NotificacaoOptions.SectionKey, new NotificacaoOptions()));
 		services.AddSingleton(sp => BindSection(sp, AuditoriaOptions.SectionKey, new AuditoriaOptions()));
 		services.AddSingleton(sp => BindSection(sp, VencimentosOptions.SectionKey, new VencimentosOptions()));
+		services.AddSingleton(sp => BindSection(sp, SalasOptions.SectionKey, new SalasOptions()));
 
 		// A cifragem em envelope nao depende do tenant: uma instancia serve a aplicacao toda.
 		services.AddSingleton<EnvelopeCipher>();

@@ -162,6 +162,15 @@ public static class VerbosDeAuditoria
 	/// <summary>Sala excluída, com as reservas passadas dela.</summary>
 	public const string SalaExcluir = "sala.excluir";
 
+	/// <summary>Reserva de sala criada.</summary>
+	public const string ReservaCriar = "reserva.criar";
+
+	/// <summary>Reserva de sala alterada (horário, sala, título ou convidados).</summary>
+	public const string ReservaAlterar = "reserva.alterar";
+
+	/// <summary>Reserva de sala cancelada.</summary>
+	public const string ReservaCancelar = "reserva.cancelar";
+
 	/// <summary>
 	/// Listagem exportada em Excel ou PDF, registrada antes do envio (ADR-0013). Um verbo só para
 	/// todo relatório: o <c>RecursoId</c> diz qual foi.
@@ -201,6 +210,9 @@ public static class RecursosDeAuditoria
 
 	/// <summary>Sala de reunião.</summary>
 	public const string Sala = "sala";
+
+	/// <summary>Reserva de sala.</summary>
+	public const string Reserva = "reserva";
 
 	/// <summary>Exportação de uma listagem; o <c>RecursoId</c> é a chave do relatório.</summary>
 	public const string Exportacao = "exportacao";

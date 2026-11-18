@@ -686,5 +686,48 @@ public static class IntranetErrors
 		/// <summary>Exclusão de sala com reserva que ainda não terminou.</summary>
 		public static readonly Error TemReservaFutura =
 			Error.Validation("Intranet.Salas.TemReservaFutura", "Esta sala tem reservas futuras. Desative-a em vez de excluir.");
+		/// <summary>Título da reserva ausente ou vazio.</summary>
+		public static readonly Error TituloRequired =
+			Error.Validation("Intranet.Salas.TituloRequired", "O título da reserva é obrigatório.");
+
+		/// <summary>Título da reserva acima do limite.</summary>
+		public static Error TituloTooLong(int limit) =>
+			Error.Validation("Intranet.Salas.TituloTooLong", $"O título da reserva excede o limite de {limit} caracteres.");
+
+		/// <summary>Descrição da reserva acima do limite.</summary>
+		public static Error DescricaoTooLong(int limit) =>
+			Error.Validation("Intranet.Salas.DescricaoTooLong", $"A descrição da reserva excede o limite de {limit} caracteres.");
+
+		/// <summary>Fim antes do início, minuto fora do passo ou hora local inexistente ou ambígua.</summary>
+		public static readonly Error HorarioInvalido =
+			Error.Validation("Intranet.Salas.HorarioInvalido", "Horário inválido. Use horas de 15 em 15 minutos, com o fim depois do início.");
+
+		/// <summary>Início da reserva já passou.</summary>
+		public static readonly Error NoPassado =
+			Error.Validation("Intranet.Salas.NoPassado", "Não é possível reservar um horário que já começou.");
+
+		/// <summary>Convidado que não é usuário ativo do Diretório.</summary>
+		public static readonly Error ConvidadoInvalido =
+			Error.Validation("Intranet.Salas.ConvidadoInvalido", "Há convidado que não é uma pessoa ativa do Diretório.");
+
+		/// <summary>Convidados acima do limite.</summary>
+		public static Error ConvidadosDemais(int limit) =>
+			Error.Validation("Intranet.Salas.ConvidadosDemais", $"Uma reserva aceita até {limit} convidados.");
+
+		/// <summary>Outra reserva ocupa o horário na mesma sala.</summary>
+		public static Error Conflito(string quem, TimeOnly inicio, TimeOnly fim) =>
+			Error.Conflict("Intranet.Salas.Conflito", $"Sala ocupada das {inicio:HH\\:mm} às {fim:HH\\:mm} por {quem}.");
+
+		/// <summary>Reserva inexistente ou que a pessoa não pode mexer.</summary>
+		public static readonly Error ReservaNotFound =
+			Error.NotFound("Intranet.Salas.ReservaNotFound", "Reserva não encontrada.");
+
+		/// <summary>Alteração ou cancelamento de reserva que já começou.</summary>
+		public static readonly Error JaComecou =
+			Error.Validation("Intranet.Salas.JaComecou", "Esta reserva já começou e não pode mais ser alterada.");
+
+		/// <summary>Falha ao consultar o Diretório.</summary>
+		public static readonly Error DiretorioIndisponivel =
+			Error.Failure("Intranet.Salas.DiretorioIndisponivel", "Não foi possível consultar o Diretório agora. Tente de novo.");
 	}
 }

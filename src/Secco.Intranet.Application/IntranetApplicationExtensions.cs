@@ -124,6 +124,16 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ListarSalasHandler>();
 		services.AddScoped<ObterSalaHandler>();
 
+		services.AddSingleton<RelogioDeSalas>();
+		services.TryAddSingleton<IEspelhamentoLigado, EspelhamentoDesligado>();
+		services.AddScoped<ReservarSalaHandler>();
+		services.AddScoped<AlterarReservaHandler>();
+		services.AddScoped<CancelarReservaHandler>();
+		services.AddScoped<ObterReservaHandler>();
+		services.AddScoped<ListarOcupacaoDoDiaHandler>();
+		services.AddScoped<ListarMinhasReservasHandler>();
+		services.AddScoped<ListarConvidadosPossiveisHandler>();
+
 		return services;
 	}
 }
