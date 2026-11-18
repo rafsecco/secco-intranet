@@ -23,9 +23,9 @@ public sealed class UsuariosParaDiretorioFalso : IUsuariosParaDiretorio
 	public int Esquecimentos { get; private set; }
 
 	/// <summary>Acrescenta um usuário ativo, com o nome de exibição que a plataforma teria.</summary>
-	public UsuariosParaDiretorioFalso Com(Guid id, string email, string? nome = null)
+	public UsuariosParaDiretorioFalso Com(Guid id, string email, string? nome = null, AtributosDoEntra? entra = null)
 	{
-		Usuarios.Add(new UsuarioParaDiretorio(id, email, nome));
+		Usuarios.Add(new UsuarioParaDiretorio(id, email, nome, entra));
 
 		return this;
 	}

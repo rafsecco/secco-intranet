@@ -259,6 +259,83 @@ public class EscritaDoDiretorioHandlersTests
 		existente.GestorUsuarioId.Should().BeNull();
 	}
 
+	// --- Campos do Entra ---
+
+	[Fact]
+	public async Task Editar_CampoDoEntra_PostDiferente_MantemValorGuardado()
+	{
+		var setores = new SetoresFalsos();
+		var financeiro = setores.Com("Financeiro", "financeiro");
+		var outro = setores.Com("Outro", "outro");
+		var guardado = new PerfilColaborador(Ana);
+		guardado.EditarDadosFuncionais("Cargo local", outro.Id, Carla);
+		var perfis = new PerfisColaboradorFalso().Com(guardado);
+		var usuarios = new UsuariosParaDiretorioFalso()
+			.Com(Ana, "ana@x.com", entra: new AtributosDoEntra("Controller", "Financeiro", null, Bruno))
+			.Com(Bruno, "bruno@x.com").Com(Carla, "carla@x.com");
+		var trilha = new TrilhaDeAcessoFalsa();
+
+		var resultado = await Funcionais(usuarios, perfis, setores, trilha)
+			.HandleAsync(new EditarDadosFuncionaisCommand(Ana, "Postado", financeiro.Id, Fora));
+
+		resultado.IsSuccess.Should().BeTrue("os valores postados de campo travado são ignorados, inclusive na validação");
+		guardado.Cargo.Should().Be("Cargo local");
+		guardado.SetorId.Should().Be(outro.Id);
+		guardado.GestorUsuarioId.Should().Be(Carla);
+		trilha.Registros.Should().BeEmpty();
+	}
+
+	[Fact]
+	public async Task Editar_CampoSemEntra_AplicaComoHoje()
+	{
+		var setores = new SetoresFalsos();
+		var financeiro = setores.Com("Financeiro", "financeiro");
+		var usuarios = new UsuariosParaDiretorioFalso()
+			.Com(Ana, "ana@x.com", entra: new AtributosDoEntra(null, null, "123", null)).Com(Bruno, "bruno@x.com");
+		var perfis = new PerfisColaboradorFalso();
+
+		var resultado = await Funcionais(usuarios, perfis, setores, new TrilhaDeAcessoFalsa())
+			.HandleAsync(new EditarDadosFuncionaisCommand(Ana, "Controller", financeiro.Id, Bruno));
+
+		resultado.IsSuccess.Should().BeTrue();
+		var perfil = perfis.Perfis.Single();
+		perfil.Cargo.Should().Be("Controller");
+		perfil.SetorId.Should().Be(financeiro.Id);
+		perfil.GestorUsuarioId.Should().Be(Bruno);
+	}
+
+	[Fact]
+	public async Task Editar_GestorManualFechaCicloComGestorDoEntra_Recusa()
+	{
+		// Bruno reporta a Ana por conta do Entra (nada guardado): Ana a Bruno fecharia o ciclo.
+		var usuarios = new UsuariosParaDiretorioFalso()
+			.Com(Ana, "ana@x.com").Com(Bruno, "bruno@x.com", entra: new AtributosDoEntra(null, null, null, Ana));
+		var perfis = new PerfisColaboradorFalso();
+
+		var resultado = await Funcionais(usuarios, perfis, new SetoresFalsos(), new TrilhaDeAcessoFalsa())
+			.HandleAsync(new EditarDadosFuncionaisCommand(Ana, null, null, Bruno));
+
+		resultado.Error.Should().Be(IntranetErrors.Diretorio.GestorCriariaCiclo);
+	}
+
+	[Fact]
+	public async Task Editar_SoCampoTravadoNoPost_NaoGeraTrilha()
+	{
+		var guardado = new PerfilColaborador(Ana);
+		guardado.EditarDadosFuncionais("Local", null, null);
+		var perfis = new PerfisColaboradorFalso().Com(guardado);
+		var usuarios = new UsuariosParaDiretorioFalso()
+			.Com(Ana, "ana@x.com", entra: new AtributosDoEntra("Do Entra", null, null, null));
+		var trilha = new TrilhaDeAcessoFalsa();
+
+		var resultado = await Funcionais(usuarios, perfis, new SetoresFalsos(), trilha)
+			.HandleAsync(new EditarDadosFuncionaisCommand(Ana, "Outro", null, null));
+
+		resultado.IsSuccess.Should().BeTrue();
+		guardado.Cargo.Should().Be("Local");
+		trilha.Registros.Should().BeEmpty();
+	}
+
 	[Fact]
 	public async Task Contato_NomeIgualAoAtual_NaoChamaAPlataforma()
 	{

@@ -35,11 +35,6 @@ public sealed class EditarDadosFuncionaisHandler(
 	{
 		ArgumentNullException.ThrowIfNull(command);
 
-		if ((command.Cargo?.Trim().Length ?? 0) > PerfilColaborador.CargoMaxLength)
-		{
-			return Result.Failure(IntranetErrors.Diretorio.CargoTooLong(PerfilColaborador.CargoMaxLength));
-		}
-
 		var ativos = await usuarios.ListarAtivosAsync(cancellationToken).ConfigureAwait(false);
 
 		if (ativos.IsFailure)
@@ -52,12 +47,26 @@ public sealed class EditarDadosFuncionaisHandler(
 			return Result.Failure(IntranetErrors.Diretorio.PessoaNaoEncontrada);
 		}
 
-		var gestor = command.GestorUsuarioId == Guid.Empty ? null : command.GestorUsuarioId;
-		var setor = command.SetorId == Guid.Empty ? null : command.SetorId;
+		var todosOsSetores = await ListarPessoasHandler.CarregarSetoresAsync(setores, cancellationToken).ConfigureAwait(false);
+		var todosOsPerfis = await perfis.ListarTodosAsync(cancellationToken).ConfigureAwait(false);
+		var pessoas = MontadorDePessoas.Montar(ativos.Value, todosOsPerfis, todosOsSetores);
+		var editada = pessoas.First(candidata => candidata.UsuarioId == command.UsuarioId);
+		var armazenado = todosOsPerfis.FirstOrDefault(perfil => perfil.UsuarioId == command.UsuarioId);
 
-		if (gestor is { } gestorId)
+		// Campo do Entra é só leitura: o valor postado nunca vale, e o guardado fica intacto como reserva
+		// para quando o Entra esvaziar o campo.
+		var cargo = editada.CargoDoEntra ? armazenado?.Cargo : command.Cargo;
+		var setor = editada.SetorDoEntra ? armazenado?.SetorId : (command.SetorId == Guid.Empty ? null : command.SetorId);
+		var gestor = editada.GestorDoEntra ? armazenado?.GestorUsuarioId : (command.GestorUsuarioId == Guid.Empty ? null : command.GestorUsuarioId);
+
+		if (!editada.CargoDoEntra && (command.Cargo?.Trim().Length ?? 0) > PerfilColaborador.CargoMaxLength)
 		{
-			var erroDeGestor = await ValidarGestorAsync(command.UsuarioId, gestorId, ativos.Value, cancellationToken).ConfigureAwait(false);
+			return Result.Failure(IntranetErrors.Diretorio.CargoTooLong(PerfilColaborador.CargoMaxLength));
+		}
+
+		if (!editada.GestorDoEntra && gestor is { } gestorId)
+		{
+			var erroDeGestor = ValidarGestor(command.UsuarioId, gestorId, ativos.Value, pessoas);
 
 			if (erroDeGestor is not null)
 			{
@@ -65,20 +74,19 @@ public sealed class EditarDadosFuncionaisHandler(
 			}
 		}
 
-		if (setor is { } setorId)
+		if (!editada.SetorDoEntra && setor is { } setorId)
 		{
-			var atual = await perfis.GetByUsuarioIdAsync(command.UsuarioId, cancellationToken).ConfigureAwait(false);
 			var encontrado = await setores.GetByIdAsync(setorId, cancellationToken).ConfigureAwait(false);
 
 			// Setor desativado depois da lotação: quem já estava lá pode ser editado sem trocar de setor.
-			if (encontrado is null || (!encontrado.Ativo && atual?.SetorId != setorId))
+			if (encontrado is null || (!encontrado.Ativo && armazenado?.SetorId != setorId))
 			{
 				return Result.Failure(IntranetErrors.Diretorio.SetorInvalido);
 			}
 		}
 
 		var campos = await EdicaoDePerfil
-			.AplicarAsync(perfis, command.UsuarioId, perfil => perfil.EditarDadosFuncionais(command.Cargo, setor, gestor), cancellationToken)
+			.AplicarAsync(perfis, command.UsuarioId, perfil => perfil.EditarDadosFuncionais(cargo, setor, gestor), cancellationToken)
 			.ConfigureAwait(false);
 
 		if (campos.Count > 0)
@@ -95,8 +103,8 @@ public sealed class EditarDadosFuncionaisHandler(
 		return Result.Success();
 	}
 
-	private async Task<Error?> ValidarGestorAsync(
-		Guid usuarioId, Guid gestorId, IReadOnlyList<UsuarioParaDiretorio> ativos, CancellationToken cancellationToken)
+	private static Error? ValidarGestor(
+		Guid usuarioId, Guid gestorId, IReadOnlyList<UsuarioParaDiretorio> ativos, IReadOnlyList<PessoaDto> pessoas)
 	{
 		if (gestorId == usuarioId)
 		{
@@ -108,10 +116,10 @@ public sealed class EditarDadosFuncionaisHandler(
 			return IntranetErrors.Diretorio.GestorInvalido;
 		}
 
-		var todos = await perfis.ListarTodosAsync(cancellationToken).ConfigureAwait(false);
-		var mapa = todos
-			.Where(perfil => perfil.GestorUsuarioId is not null)
-			.ToDictionary(perfil => perfil.UsuarioId, perfil => perfil.GestorUsuarioId!.Value);
+		// Grafo do gestor efetivo (Entra ou manual); a edição candidata entra por cima em CriariaCiclo.
+		var mapa = pessoas
+			.Where(pessoa => pessoa.GestorUsuarioId is not null)
+			.ToDictionary(pessoa => pessoa.UsuarioId, pessoa => pessoa.GestorUsuarioId!.Value);
 
 		return RegrasDeGestor.CriariaCiclo(mapa, usuarioId, gestorId) ? IntranetErrors.Diretorio.GestorCriariaCiclo : null;
 	}

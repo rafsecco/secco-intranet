@@ -10,6 +10,8 @@
         pessoa.Email,
         Acoes: new[] { new PageActionModel("Voltar", Url.Action("Pessoa", new { id = pessoa.UsuarioId })!, "bi-arrow-left") });
 
+    var seloDoEntra = new BadgeModel("vem do Entra", BadgeVariante.Neutro);
+
     var foto = new EnviarFotoViewModel(Url.Action("EnviarFoto", new { id = pessoa.UsuarioId })!, Url.Action("RemoverFoto", new { id = pessoa.UsuarioId })!, pessoa.TemFoto);
 }
 
@@ -32,6 +34,14 @@
         <input class="form-control" id="Ramal" name="Ramal" value="@Model.Form.Ramal" maxlength="20" />
     </div>
 
+    @if (!string.IsNullOrWhiteSpace(pessoa.Telefone))
+    {
+        <div class="sc-form__field">
+            <label class="form-label" for="Telefone">Telefone <partial name="_Badge" model="seloDoEntra" /></label>
+            <input class="form-control" id="Telefone" value="@pessoa.Telefone" disabled />
+        </div>
+    }
+
     <div class="sc-form__field">
         <label class="form-label" for="Sobre">Sobre</label>
         <textarea class="form-control" id="Sobre" name="Sobre" rows="3" maxlength="500">@Model.Form.Sobre</textarea>
@@ -40,17 +50,17 @@
     <h2 class="h6 mt-4">Dados funcionais</h2>
 
     <div class="sc-form__field">
-        <label class="form-label" for="Cargo">Cargo</label>
-        <input class="form-control" id="Cargo" name="Cargo" value="@Model.Form.Cargo" maxlength="120" />
+        <label class="form-label" for="Cargo">Cargo @if (pessoa.CargoDoEntra) { <partial name="_Badge" model="seloDoEntra" /> }</label>
+        <input class="form-control" id="Cargo" name="Cargo" value="@(pessoa.CargoDoEntra ? pessoa.Cargo : Model.Form.Cargo)" maxlength="120" disabled="@pessoa.CargoDoEntra" />
     </div>
 
     <div class="sc-form__field">
-        <label class="form-label" for="SetorId">Setor de lotação</label>
-        <select class="form-select" id="SetorId" name="SetorId">
+        <label class="form-label" for="SetorId">Setor de lotação @if (pessoa.SetorDoEntra) { <partial name="_Badge" model="seloDoEntra" /> }</label>
+        <select class="form-select" id="SetorId" name="SetorId" disabled="@pessoa.SetorDoEntra">
             <option value="">Sem setor</option>
             @foreach (var setor in Model.Dados.SetoresAtivos)
             {
-                <option value="@setor.Id" selected="@(setor.Id == Model.Form.SetorId)">@setor.Nome</option>
+                <option value="@setor.Id" selected="@(setor.Id == (pessoa.SetorDoEntra ? pessoa.SetorId : Model.Form.SetorId))">@setor.Nome</option>
             }
             @if (Model.Form.SetorId is { } atual && Model.Dados.SetoresAtivos.All(setor => setor.Id != atual))
             {
@@ -60,12 +70,12 @@
     </div>
 
     <div class="sc-form__field">
-        <label class="form-label" for="GestorUsuarioId">Reporta a</label>
-        <select class="form-select" id="GestorUsuarioId" name="GestorUsuarioId">
+        <label class="form-label" for="GestorUsuarioId">Reporta a @if (pessoa.GestorDoEntra) { <partial name="_Badge" model="seloDoEntra" /> }</label>
+        <select class="form-select" id="GestorUsuarioId" name="GestorUsuarioId" disabled="@pessoa.GestorDoEntra">
             <option value="">Ninguém</option>
             @foreach (var gestor in Model.Dados.GestoresPossiveis)
             {
-                <option value="@gestor.UsuarioId" selected="@(gestor.UsuarioId == Model.Form.GestorUsuarioId)">@gestor.Nome</option>
+                <option value="@gestor.UsuarioId" selected="@(gestor.UsuarioId == (pessoa.GestorDoEntra ? pessoa.GestorUsuarioId : Model.Form.GestorUsuarioId))">@gestor.Nome</option>
             }
         </select>
         <div class="form-text">Não é possível criar um ciclo (A reporta a B e B reporta a A).</div>

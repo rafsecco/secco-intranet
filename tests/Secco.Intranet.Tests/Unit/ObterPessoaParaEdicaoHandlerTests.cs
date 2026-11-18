@@ -34,4 +34,21 @@ public class ObterPessoaParaEdicaoHandlerTests
 
 		resultado.Error.Should().Be(IntranetErrors.Diretorio.PessoaNaoEncontrada);
 	}
+
+	[Fact]
+	public async Task ObterParaEdicao_ExpoeMarcadores()
+	{
+		var usuarios = new UsuariosParaDiretorioFalso()
+			.Com(Ana, "ana@x.com", entra: new AtributosDoEntra("Controller", null, "555", Bruno))
+			.Com(Bruno, "bruno@x.com");
+
+		var resultado = await new ObterPessoaParaEdicaoHandler(usuarios, new PerfisColaboradorFalso(), new SetoresFalsos()).HandleAsync(Ana);
+
+		var pessoa = resultado.Value.Pessoa;
+		pessoa.CargoDoEntra.Should().BeTrue();
+		pessoa.GestorDoEntra.Should().BeTrue();
+		pessoa.SetorDoEntra.Should().BeFalse();
+		pessoa.Cargo.Should().Be("Controller");
+		pessoa.Telefone.Should().Be("555");
+	}
 }
