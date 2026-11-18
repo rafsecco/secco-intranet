@@ -1,3 +1,5 @@
+using Secco.Intranet.Application.Diretorio;
+
 namespace Secco.Intranet.Infrastructure.Diretorio;
 
 /// <summary>
@@ -26,4 +28,22 @@ internal static class PessoasDeDesenvolvimento
 		new(GabrielaId, "gabriela.lopes@exemplo.local", "Gabriela Lopes", "Controller", "2405", "financeiro", AnaId),
 		new(HenriqueId, "henrique.salles@exemplo.local", "Henrique Salles", "Gerente de Tecnologia", "2201", "infraestrutura", AnaId),
 	];
+
+	private static readonly Guid BrunoId = Guid.Parse("0dee0000-0000-7000-8000-000000000002");
+	private static readonly Guid DiegoId = Guid.Parse("0dee0000-0000-7000-8000-000000000004");
+	private static readonly Guid ElisaId = Guid.Parse("0dee0000-0000-7000-8000-000000000005");
+
+	/// <summary>
+	/// Atributos que o Entra devolveria para algumas pessoas: departamentos que casam com setores
+	/// semeados ("Infraestrutura", "Financeiro"), um que não casa com nenhum ("Contabilidade"),
+	/// um telefone e uma árvore de gestores (Bruno e Elisa respondem a Henrique, que responde a Ana).
+	/// </summary>
+	public static readonly IReadOnlyDictionary<Guid, AtributosDoEntra> AtributosDoEntra = new Dictionary<Guid, AtributosDoEntra>
+	{
+		[HenriqueId] = new("Gerente de Tecnologia", "Infraestrutura", "+55 11 4000-2201", AnaId),
+		[BrunoId] = new(null, "Infraestrutura", null, HenriqueId),
+		[ElisaId] = new(null, "infraestrutura", null, HenriqueId),
+		[GabrielaId] = new(null, "Financeiro", null, AnaId),
+		[DiegoId] = new(null, "Contabilidade", null, GabrielaId),
+	};
 }

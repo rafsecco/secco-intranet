@@ -39,3 +39,7 @@ public sealed record EditarPessoaViewModel(PessoaParaEdicaoDto Dados, EditarPess
 /// <param name="AcaoRemover">URL que remove a foto.</param>
 /// <param name="TemFoto">Se já há foto; só então o botão de remover aparece.</param>
 public sealed record EnviarFotoViewModel(string AcaoEnviar, string AcaoRemover, bool TemFoto);
+
+/// <summary>Modelo da página de importação.</summary>
+/// <param name="DepartamentosSemSetor">Departamentos do Entra que não casam com nenhum setor.</param>
+public sealed record ImportarViewModel(IReadOnlyList<DepartamentoSemSetorDto> DepartamentosSemSetor);

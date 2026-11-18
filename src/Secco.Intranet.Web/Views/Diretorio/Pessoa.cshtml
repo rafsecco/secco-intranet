@@ -50,6 +50,12 @@
         <dt class="col-sm-3">Ramal</dt>
         <dd class="col-sm-9"><span class="sc-meta">@(pessoa.Ramal ?? "—")</span></dd>
 
+        @if (pessoa.Telefone is not null)
+        {
+            <dt class="col-sm-3">Telefone</dt>
+            <dd class="col-sm-9"><span class="sc-meta">@pessoa.Telefone</span></dd>
+        }
+
         <dt class="col-sm-3">Reporta a</dt>
         <dd class="col-sm-9">
             @if (Model.Detalhe.Gestor is { } gestor)

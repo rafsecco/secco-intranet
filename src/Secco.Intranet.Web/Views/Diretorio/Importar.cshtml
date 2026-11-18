@@ -1,5 +1,10 @@
+@using Secco.Intranet.Application.Diretorio
+@using Secco.Intranet.Web.Models.Diretorio
+@model ImportarViewModel?
 @{
     ViewData["Title"] = "Importar diretório";
+
+    var semSetor = Model?.DepartamentosSemSetor ?? [];
 
     var cabecalho = new PageHeaderModel(
         "Importar diretório",
@@ -32,3 +37,26 @@
         <li>Até 5.000 linhas e 1 MB.</li>
     </ul>
 </div>
+
+@if (semSetor.Count > 0)
+{
+    <div class="sc-panel mt-3" data-secao="departamentos-sem-setor">
+        <h2 class="h6">Departamentos do Entra sem setor</h2>
+        <p class="sc-meta">Para vincular, crie um setor com o mesmo nome do departamento ou renomeie um existente. Maiúsculas e acentos não contam.</p>
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr><th>Departamento</th><th>Pessoas</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var departamento in semSetor)
+                {
+                    <tr>
+                        <td>@departamento.Departamento</td>
+                        <td>@departamento.Pessoas</td>
+                        <td>@if (departamento.Ambiguo){<span class="text-muted small">nome casa com mais de um setor</span>}</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

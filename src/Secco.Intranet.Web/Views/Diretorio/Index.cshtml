@@ -83,6 +83,11 @@ else
                                     <br />
                                     <text>Ramal @pessoa.Ramal</text>
                                 }
+                                @if (!string.IsNullOrWhiteSpace(pessoa.Telefone))
+                                {
+                                    <br />
+                                    <text>Telefone @pessoa.Telefone</text>
+                                }
                             </p>
                         </div>
                         @if (Chat.Para(pessoa.Email, pessoa.UsuarioId, User) is { } chatUrl)

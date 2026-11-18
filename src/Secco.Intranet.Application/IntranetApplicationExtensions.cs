@@ -99,6 +99,7 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<EditarContatoHandler>();
 		services.AddScoped<EditarDadosFuncionaisHandler>();
 		services.AddScoped<ObterPessoaParaEdicaoHandler>();
+		services.AddScoped<ListarDepartamentosSemSetorHandler>();
 		services.AddScoped<MontarOrganogramaHandler>();
 		services.AddScoped<ImportarDiretorioHandler>();
 		services.AddScoped<FotoDoColaboradorHandler>();

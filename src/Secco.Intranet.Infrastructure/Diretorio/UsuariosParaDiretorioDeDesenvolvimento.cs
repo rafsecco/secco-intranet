@@ -14,7 +14,8 @@ public sealed class UsuariosParaDiretorioDeDesenvolvimento : IUsuariosParaDireto
 	public Task<Result<IReadOnlyList<UsuarioParaDiretorio>>> ListarAtivosAsync(CancellationToken cancellationToken = default)
 	{
 		IReadOnlyList<UsuarioParaDiretorio> usuarios =
-			[.. PessoasDeDesenvolvimento.Todas.Select(pessoa => new UsuarioParaDiretorio(pessoa.Id, pessoa.Email, pessoa.Nome))];
+			[.. PessoasDeDesenvolvimento.Todas.Select(pessoa => new UsuarioParaDiretorio(
+				pessoa.Id, pessoa.Email, pessoa.Nome, PessoasDeDesenvolvimento.AtributosDoEntra.GetValueOrDefault(pessoa.Id)))];
 
 		return Task.FromResult(Result.Success(usuarios));
 	}

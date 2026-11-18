@@ -25,6 +25,7 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="editarDadosFuncionais">Edição de cargo, setor e gestor.</param>
 /// <param name="montarOrganograma">Organograma por gestor.</param>
 /// <param name="importar">Importação CSV.</param>
+/// <param name="listarDepartamentosSemSetor">Departamentos do Entra sem setor, para a página de importação.</param>
 /// <param name="fotoDoColaborador">Envio, remoção e consulta da foto.</param>
 /// <param name="arquivos">Armazenamento cifrado, de onde a foto sai.</param>
 /// <param name="authorizationService">Serviço de autorização do framework (ADR-0021).</param>
@@ -39,6 +40,7 @@ public sealed class DiretorioController(
 	EditarDadosFuncionaisHandler editarDadosFuncionais,
 	MontarOrganogramaHandler montarOrganograma,
 	ImportarDiretorioHandler importar,
+	ListarDepartamentosSemSetorHandler listarDepartamentosSemSetor,
 	FotoDoColaboradorHandler fotoDoColaborador,
 	IArquivoStore arquivos,
 	IAuthorizationService authorizationService,
@@ -94,9 +96,16 @@ public sealed class DiretorioController(
 	}
 
 	/// <summary>Formulário de importação CSV.</summary>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
 	[HttpGet("importar")]
 	[ExigeNivelNoDiretorio(NivelDeAcessoAoDiretorio.Administrador)]
-	public IActionResult Importar() => View();
+	public async Task<IActionResult> Importar(CancellationToken cancellationToken = default)
+	{
+		// Falhou a leitura: a página abre sem a seção, a importação não depende dela.
+		var departamentos = await listarDepartamentosSemSetor.HandleAsync(cancellationToken);
+
+		return View(new ImportarViewModel(departamentos.IsSuccess ? departamentos.Value : []));
+	}
 
 	/// <summary>Lê o arquivo e mostra o que aconteceria. <b>Não grava.</b></summary>
 	/// <param name="arquivo">CSV enviado.</param>
