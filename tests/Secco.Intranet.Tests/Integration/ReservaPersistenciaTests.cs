@@ -245,4 +245,43 @@ public class ReservaPersistenciaTests(IntranetWebFactory factory) : IClassFixtur
 		var remover = async () => await salas.SaveChangesAsync();
 		await remover.Should().ThrowAsync<DbUpdateException>("a sala com reservas não pode ser apagada");
 	}
+
+	[Fact]
+	public async Task NomeEmUso_IgnoraMaiusculas()
+	{
+		var sala = await CriarSalaAsync();
+
+		await using var escopo = NovoEscopo();
+		var salas = escopo.ServiceProvider.GetRequiredService<ISalaRepository>();
+
+		(await salas.NomeEmUsoAsync(sala.Nome.ToUpperInvariant(), null)).Should().BeTrue();
+		(await salas.NomeEmUsoAsync(sala.Nome.ToLowerInvariant(), sala.Id)).Should().BeFalse();
+	}
+
+	[Fact]
+	public async Task RemoverReservasDaSala_ApagaReservasEConvidados_ESalaPodeSerExcluida()
+	{
+		var sala = await CriarSalaAsync();
+		var outra = await CriarSalaAsync();
+		var convidado = new ConvidadoDaReserva(Guid.NewGuid(), "Ana Teste", null);
+		var reserva = NovaReserva(sala.Id, Agora.AddDays(-2), convidados: [convidado]);
+		var reservaDaOutra = NovaReserva(outra.Id, Agora.AddDays(-2));
+		await GravarAsync(reserva);
+		await GravarAsync(reservaDaOutra);
+
+		await using (var exclusao = NovoEscopo())
+		{
+			var salas = exclusao.ServiceProvider.GetRequiredService<ISalaRepository>();
+			await salas.RemoverReservasDaSalaAsync(sala.Id);
+			salas.Remover((await salas.GetAsync(sala.Id))!);
+			await salas.SaveChangesAsync();
+		}
+
+		await using var leitura = NovoEscopo();
+		var contexto = leitura.ServiceProvider.GetRequiredService<IntranetDbContext>();
+		(await contexto.Salas.AnyAsync(s => s.Id == sala.Id)).Should().BeFalse();
+		(await contexto.Reservas.AnyAsync(r => r.Id == reserva.Id)).Should().BeFalse();
+		(await contexto.ConvidadosDasReservas.CountAsync(c => c.ReservaId == reserva.Id)).Should().Be(0);
+		(await contexto.Reservas.AnyAsync(r => r.Id == reservaDaOutra.Id)).Should().BeTrue("as reservas de outra sala ficam");
+	}
 }

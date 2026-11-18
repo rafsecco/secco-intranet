@@ -20,6 +20,9 @@ public interface ISalaRepository
 	/// <summary>Indica se a sala tem alguma reserva que ainda não terminou em <paramref name="agora"/>.</summary>
 	Task<bool> TemReservaFuturaAsync(Guid salaId, DateTimeOffset agora, CancellationToken ct = default);
 
+	/// <summary>Apaga de imediato todas as reservas da sala (os convidados vão pela cascata do banco).</summary>
+	Task RemoverReservasDaSalaAsync(Guid salaId, CancellationToken ct = default);
+
 	/// <summary>Marca a sala para remoção; a gravação é feita por <see cref="SaveChangesAsync"/>.</summary>
 	void Remover(Sala sala);
 

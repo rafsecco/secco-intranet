@@ -153,6 +153,15 @@ public static class VerbosDeAuditoria
 	/// <summary>Vencimento encerrado voltou a ser acompanhado.</summary>
 	public const string VencimentoReativar = "vencimento.reativar";
 
+	/// <summary>Sala de reunião criada.</summary>
+	public const string SalaCriar = "sala.criar";
+
+	/// <summary>Dados ou situação (ativa ou não) da sala alterados.</summary>
+	public const string SalaEditar = "sala.editar";
+
+	/// <summary>Sala excluída, com as reservas passadas dela.</summary>
+	public const string SalaExcluir = "sala.excluir";
+
 	/// <summary>
 	/// Listagem exportada em Excel ou PDF, registrada antes do envio (ADR-0013). Um verbo só para
 	/// todo relatório: o <c>RecursoId</c> diz qual foi.
@@ -189,6 +198,9 @@ public static class RecursosDeAuditoria
 
 	/// <summary>Item de vencimento de um setor.</summary>
 	public const string Vencimento = "vencimento";
+
+	/// <summary>Sala de reunião.</summary>
+	public const string Sala = "sala";
 
 	/// <summary>Exportação de uma listagem; o <c>RecursoId</c> é a chave do relatório.</summary>
 	public const string Exportacao = "exportacao";

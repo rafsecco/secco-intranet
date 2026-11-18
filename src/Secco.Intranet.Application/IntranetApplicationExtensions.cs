@@ -9,6 +9,7 @@ using Secco.Intranet.Application.Links;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Publicacoes;
 using Secco.Intranet.Application.Setores;
+using Secco.Intranet.Application.Salas;
 using Secco.Intranet.Application.Vencimentos;
 
 namespace Secco.Intranet.Application;
@@ -116,6 +117,12 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ObterVencimentoHandler>();
 		services.AddScoped<ListarResponsaveisPossiveisHandler>();
 		services.AddScoped<ProcessarAvisosDeVencimentoHandler>();
+
+		services.AddScoped<CriarSalaHandler>();
+		services.AddScoped<EditarSalaHandler>();
+		services.AddScoped<ExcluirSalaHandler>();
+		services.AddScoped<ListarSalasHandler>();
+		services.AddScoped<ObterSalaHandler>();
 
 		return services;
 	}

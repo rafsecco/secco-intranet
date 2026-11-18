@@ -647,4 +647,44 @@ public static class IntranetErrors
 				"Intranet.Vencimentos.ResponsavelSemAcesso",
 				"O responsável precisa ter acesso ao setor do vencimento.");
 	}
+
+	/// <summary>Erros do recurso Salas.</summary>
+	public static class Salas
+	{
+		/// <summary>Sala inexistente.</summary>
+		public static readonly Error NotFound =
+			Error.NotFound("Intranet.Salas.NotFound", "Sala não encontrada.");
+
+		/// <summary>Nome ausente ou vazio.</summary>
+		public static readonly Error NomeRequired =
+			Error.Validation("Intranet.Salas.NomeRequired", "O nome da sala é obrigatório.");
+
+		/// <summary>Nome acima do limite.</summary>
+		public static Error NomeTooLong(int limit) =>
+			Error.Validation("Intranet.Salas.NomeTooLong", $"O nome da sala excede o limite de {limit} caracteres.");
+
+		/// <summary>Outra sala já usa o nome, sem diferenciar maiúsculas.</summary>
+		public static readonly Error NomeEmUso =
+			Error.Validation("Intranet.Salas.NomeEmUso", "Já existe uma sala com esse nome.");
+
+		/// <summary>Capacidade zero ou negativa.</summary>
+		public static readonly Error CapacidadeInvalida =
+			Error.Validation("Intranet.Salas.CapacidadeInvalida", "A capacidade deve ser maior que zero.");
+
+		/// <summary>Localização acima do limite.</summary>
+		public static Error LocalizacaoTooLong(int limit) =>
+			Error.Validation("Intranet.Salas.LocalizacaoTooLong", $"A localização excede o limite de {limit} caracteres.");
+
+		/// <summary>Recursos acima do limite.</summary>
+		public static Error RecursosTooLong(int limit) =>
+			Error.Validation("Intranet.Salas.RecursosTooLong", $"Os recursos excedem o limite de {limit} caracteres.");
+
+		/// <summary>E-mail da agenda malformado ou acima do limite.</summary>
+		public static readonly Error EmailInvalido =
+			Error.Validation("Intranet.Salas.EmailInvalido", "O e-mail da sala na agenda é inválido.");
+
+		/// <summary>Exclusão de sala com reserva que ainda não terminou.</summary>
+		public static readonly Error TemReservaFutura =
+			Error.Validation("Intranet.Salas.TemReservaFutura", "Esta sala tem reservas futuras. Desative-a em vez de excluir.");
+	}
 }

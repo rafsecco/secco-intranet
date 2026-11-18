@@ -38,13 +38,19 @@ internal sealed class SalaRepository(IntranetDbContext context) : ISalaRepositor
 	public async Task<bool> NomeEmUsoAsync(string nome, Guid? ignorarId, CancellationToken ct = default) =>
 		await context.Salas
 			.AsNoTracking()
-			.AnyAsync(sala => sala.Nome == nome && (ignorarId == null || sala.Id != ignorarId), ct)
+			.AnyAsync(sala => sala.Nome.ToLower() == nome.ToLower() && (ignorarId == null || sala.Id != ignorarId), ct)
 			.ConfigureAwait(false);
 
 	public async Task<bool> TemReservaFuturaAsync(Guid salaId, DateTimeOffset agora, CancellationToken ct = default) =>
 		await context.Reservas
 			.AsNoTracking()
 			.AnyAsync(reserva => reserva.SalaId == salaId && reserva.Fim > agora, ct)
+			.ConfigureAwait(false);
+
+	public async Task RemoverReservasDaSalaAsync(Guid salaId, CancellationToken ct = default) =>
+		await context.Reservas
+			.Where(reserva => reserva.SalaId == salaId)
+			.ExecuteDeleteAsync(ct)
 			.ConfigureAwait(false);
 
 	public void Remover(Sala sala) => context.Salas.Remove(sala);
