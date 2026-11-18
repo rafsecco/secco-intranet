@@ -35,7 +35,7 @@ public class UsuariosParaDiretorioTests
 
 		public Func<IReadOnlyList<UsuarioParaDiretorio>>? Resposta { get; set; }
 
-		public Task<IReadOnlyList<UsuarioParaDiretorio>> ListarAtivosAsync(CancellationToken cancellationToken)
+		public Task<IReadOnlyList<UsuarioParaDiretorio>> ListarAtivosAsync(Guid tenantId, CancellationToken cancellationToken)
 		{
 			Leituras++;
 
@@ -287,5 +287,39 @@ public class UsuariosParaDiretorioTests
 		var lidos = await new UsuariosParaDiretorioDeDesenvolvimento().ListarAtivosAsync();
 
 		lidos.Value.Single(u => u.Id == PessoasDeDesenvolvimento.AnaId).Nome.Should().Be("Ana Ribeiro");
+	}
+
+	private sealed class SecureGateRecusaDiretorio : HttpMessageHandler
+	{
+		protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+		{
+			if (request.RequestUri!.AbsolutePath.StartsWith("/connect/token", StringComparison.Ordinal))
+			{
+				return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+				{
+					Content = new StringContent("""{"access_token":"tok","expires_in":3600}""", System.Text.Encoding.UTF8, "application/json"),
+				});
+			}
+
+			return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.BadRequest)
+			{
+				Content = new StringContent("""{"title":"Tenant divergente","status":400}""", System.Text.Encoding.UTF8, "application/problem+json"),
+			});
+		}
+	}
+
+	[Fact]
+	public async Task Listar_SecureGateRecusaTenantDivergente_CaiParaGestao()
+	{
+		var gestao = new ContadorDeListagens().ComUsuario(Ana, "ana@x.com");
+		var baseUrl = new Uri("https://securegate.exemplo.local/");
+		var handler = LeitorDoDiretorioDoSecureGate.CriarHandler(baseUrl.ToString(), "c", "s", new Secco.SDK.ClientCredentials.SeccoAccessTokenStore());
+		handler.InnerHandler = new SecureGateRecusaDiretorio();
+		var leitor = new LeitorDoDiretorioDoSecureGate(new HttpClient(handler) { BaseAddress = baseUrl });
+
+		var resultado = await Montar(gestao, leitor: leitor).ListarAtivosAsync();
+
+		resultado.Value.Select(u => u.Id).Should().Equal(Ana);
+		gestao.Listagens.Should().Be(1);
 	}
 }

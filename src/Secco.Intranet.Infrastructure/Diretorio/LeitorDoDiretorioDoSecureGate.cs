@@ -8,8 +8,9 @@ namespace Secco.Intranet.Infrastructure.Diretorio;
 internal interface ILeitorDoDiretorio
 {
 	/// <summary>Lê todas as páginas e devolve só as pessoas ativas; lança em qualquer falha (sem lista parcial).</summary>
+	/// <param name="tenantId">Tenant da requisição; vai em <c>X-Tenant-Id</c> para o SecureGate conferir com o token.</param>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
-	Task<IReadOnlyList<UsuarioParaDiretorio>> ListarAtivosAsync(CancellationToken cancellationToken);
+	Task<IReadOnlyList<UsuarioParaDiretorio>> ListarAtivosAsync(Guid tenantId, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -26,6 +27,7 @@ internal sealed class LeitorDoDiretorioDoSecureGate(HttpClient httpClient) : ILe
 	/// <summary>Scope pedido: só leitura do diretório (least privilege).</summary>
 	internal const string Scope = "directory:read";
 
+	private const string CabecalhoDeTenant = "X-Tenant-Id";
 	private const string OrigemDiretorio = "directory";
 	private const int TamanhoDaPagina = 100;
 
@@ -39,8 +41,13 @@ internal sealed class LeitorDoDiretorioDoSecureGate(HttpClient httpClient) : ILe
 		new(baseUrl, clientId, clientSecret, Scope, store);
 
 	/// <inheritdoc />
-	public async Task<IReadOnlyList<UsuarioParaDiretorio>> ListarAtivosAsync(CancellationToken cancellationToken)
+	public async Task<IReadOnlyList<UsuarioParaDiretorio>> ListarAtivosAsync(Guid tenantId, CancellationToken cancellationToken)
 	{
+		// O token é do tenant da credencial; o cabeçalho é o do tenant da requisição. Se divergirem, o
+		// SecureGate recusa (400) e o adaptador cai para a gestão — nunca serve tenant alheio. Só Guid "D".
+		httpClient.DefaultRequestHeaders.Remove(CabecalhoDeTenant);
+		httpClient.DefaultRequestHeaders.Add(CabecalhoDeTenant, tenantId.ToString("D"));
+
 		var client = new SecureGateClient(httpClient);
 		List<DirectoryPersonDto> lidas = [];
 

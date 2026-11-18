@@ -97,7 +97,7 @@ internal sealed partial class UsuariosParaDiretorioDoSecureGate(
 
 		try
 		{
-			return await leitor.ListarAtivosAsync(cancellationToken).ConfigureAwait(false);
+			return await leitor.ListarAtivosAsync(tenantContext.TenantId!.Value, cancellationToken).ConfigureAwait(false);
 		}
 		catch (Exception ex) when (!cancellationToken.IsCancellationRequested
 			&& (ex is HttpRequestException or ApiException or TaskCanceledException or JsonException or KeyNotFoundException or InvalidOperationException))

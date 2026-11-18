@@ -10,6 +10,7 @@ namespace Secco.Intranet.Tests.Unit;
 
 public class LeitorDoDiretorioDoSecureGateTests
 {
+	private static readonly Guid TenantDaRequisicao = Guid.NewGuid();
 	private static readonly Uri Base = new("https://securegate.exemplo.local/");
 
 	private sealed record Pessoa(
@@ -29,6 +30,8 @@ public class LeitorDoDiretorioDoSecureGateTests
 
 		public string? CorpoDoToken { get; private set; }
 
+		public List<string?> CabecalhosDeTenant { get; } = [];
+
 		/// <summary>Página (1-based) que deve falhar com 500.</summary>
 		public int? FalhaNaPagina { get; init; }
 
@@ -43,6 +46,8 @@ public class LeitorDoDiretorioDoSecureGateTests
 
 				return Json("""{"access_token":"tok","expires_in":3600}""");
 			}
+
+			CabecalhosDeTenant.Add(request.Headers.TryGetValues("X-Tenant-Id", out var valores) ? valores.Single() : null);
 
 			var consulta = System.Web.HttpUtility.ParseQueryString(request.RequestUri.Query);
 			var pagina = int.Parse(consulta["page"] ?? "1");
@@ -100,7 +105,7 @@ public class LeitorDoDiretorioDoSecureGateTests
 	{
 		var servidor = new ServidorFalso(Pessoas(150));
 
-		var lidas = await Montar(servidor).ListarAtivosAsync(CancellationToken.None);
+		var lidas = await Montar(servidor).ListarAtivosAsync(TenantDaRequisicao, CancellationToken.None);
 
 		lidas.Should().HaveCount(150);
 		servidor.Requisicoes.Count(r => r.StartsWith("/api/v1/directory/people", StringComparison.Ordinal)).Should().Be(2);
@@ -112,7 +117,7 @@ public class LeitorDoDiretorioDoSecureGateTests
 		var ativa = new Pessoa(Guid.NewGuid(), "a@x.com");
 		var inativa = new Pessoa(Guid.NewGuid(), "i@x.com", IsActive: false);
 
-		var lidas = await Montar(new ServidorFalso([ativa, inativa])).ListarAtivosAsync(CancellationToken.None);
+		var lidas = await Montar(new ServidorFalso([ativa, inativa])).ListarAtivosAsync(TenantDaRequisicao, CancellationToken.None);
 
 		lidas.Select(u => u.Id).Should().Equal(ativa.Id);
 	}
@@ -124,7 +129,7 @@ public class LeitorDoDiretorioDoSecureGateTests
 		var doDiretorio = new Pessoa(Guid.NewGuid(), "d@x.com", JobTitle: "Analista", Department: "TI", BusinessPhone: "123", ManagerId: gestor, AttributesSource: "directory");
 		var semOrigem = new Pessoa(Guid.NewGuid(), "s@x.com", JobTitle: "Analista", Department: "TI", BusinessPhone: "123", ManagerId: gestor);
 
-		var lidas = await Montar(new ServidorFalso([doDiretorio, semOrigem])).ListarAtivosAsync(CancellationToken.None);
+		var lidas = await Montar(new ServidorFalso([doDiretorio, semOrigem])).ListarAtivosAsync(TenantDaRequisicao, CancellationToken.None);
 
 		var com = lidas.Single(u => u.Id == doDiretorio.Id).Entra;
 		com.Should().NotBeNull();
@@ -140,7 +145,7 @@ public class LeitorDoDiretorioDoSecureGateTests
 	{
 		var pessoa = new Pessoa(Guid.NewGuid(), "b@x.com", JobTitle: "   ", Department: "  TI  ", BusinessPhone: "", AttributesSource: "directory");
 
-		var lidas = await Montar(new ServidorFalso([pessoa])).ListarAtivosAsync(CancellationToken.None);
+		var lidas = await Montar(new ServidorFalso([pessoa])).ListarAtivosAsync(TenantDaRequisicao, CancellationToken.None);
 
 		var entra = lidas.Single().Entra!;
 		entra.Cargo.Should().BeNull();
@@ -153,7 +158,7 @@ public class LeitorDoDiretorioDoSecureGateTests
 	{
 		var servidor = new ServidorFalso(Pessoas(1));
 
-		await Montar(servidor).ListarAtivosAsync(CancellationToken.None);
+		await Montar(servidor).ListarAtivosAsync(TenantDaRequisicao, CancellationToken.None);
 
 		servidor.CorpoDoToken.Should().Contain("scope=directory%3Aread");
 	}
@@ -163,8 +168,20 @@ public class LeitorDoDiretorioDoSecureGateTests
 	{
 		var servidor = new ServidorFalso(Pessoas(150)) { FalhaNaPagina = 2 };
 
-		var acao = () => Montar(servidor).ListarAtivosAsync(CancellationToken.None);
+		var acao = () => Montar(servidor).ListarAtivosAsync(TenantDaRequisicao, CancellationToken.None);
 
 		await acao.Should().ThrowAsync<Exception>("o leitor nunca devolve lista parcial");
+	}
+
+	[Fact]
+	public async Task Listar_EnviaXTenantIdDoTenantDaRequisicao()
+	{
+		var servidor = new ServidorFalso(Pessoas(150));
+
+		await Montar(servidor).ListarAtivosAsync(TenantDaRequisicao, CancellationToken.None);
+
+		servidor.CabecalhosDeTenant.Should().HaveCount(2);
+		servidor.CabecalhosDeTenant.Should().AllBeEquivalentTo(TenantDaRequisicao.ToString("D"),
+			"as duas páginas precisam carregar o tenant, para o SecureGate recusar divergência com o token");
 	}
 }
