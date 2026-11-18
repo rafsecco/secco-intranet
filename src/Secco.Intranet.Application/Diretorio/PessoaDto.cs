@@ -20,6 +20,10 @@ namespace Secco.Intranet.Application.Diretorio;
 /// mostrar, use <see cref="Nome"/>, que cai no e-mail.
 /// </param>
 /// <param name="TemFoto">Se a pessoa tem foto; sem ela, a tela mostra as iniciais.</param>
+/// <param name="Telefone">Telefone comercial, só do Entra (o ramal é separado e local).</param>
+/// <param name="CargoDoEntra">Se o cargo efetivo vem do Entra (a tela o trava).</param>
+/// <param name="SetorDoEntra">Se o setor efetivo vem do departamento do Entra.</param>
+/// <param name="GestorDoEntra">Se o gestor efetivo vem do Entra.</param>
 public sealed record PessoaDto(
 	Guid UsuarioId,
 	string Email,
@@ -36,4 +40,8 @@ public sealed record PessoaDto(
 	bool GestorInativo,
 	bool TemPerfil,
 	string? NomeDeExibicao = null,
-	bool TemFoto = false);
+	bool TemFoto = false,
+	string? Telefone = null,
+	bool CargoDoEntra = false,
+	bool SetorDoEntra = false,
+	bool GestorDoEntra = false);

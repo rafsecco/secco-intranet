@@ -41,14 +41,24 @@ public static class MontadorDePessoas
 			{
 				perfilPorUsuario.TryGetValue(usuario.Id, out var perfil);
 
-				SetorDto? setor = perfil?.SetorId is { } setorId && setorPorId.TryGetValue(setorId, out var encontrado)
-					? encontrado
-					: null;
+				var entra = usuario.Entra;
+
+				var cargoDoEntra = entra?.Cargo is not null;
+				var cargo = entra?.Cargo ?? perfil?.Cargo;
+
+				var setorDoEntra = CasadorDeDepartamento.Casar(entra?.Departamento, setores);
+				SetorDto? setor = setorDoEntra
+					?? (perfil?.SetorId is { } setorId && setorPorId.TryGetValue(setorId, out var encontrado)
+						? encontrado
+						: null);
+
+				var gestorDoEntra = entra?.GestorUsuarioId is not null;
+				var gestorEfetivo = entra?.GestorUsuarioId ?? perfil?.GestorUsuarioId;
 
 				string? gestorNome = null;
 				var gestorInativo = false;
 
-				if (perfil?.GestorUsuarioId is { } gestorId)
+				if (gestorEfetivo is { } gestorId)
 				{
 					if (usuarioPorId.TryGetValue(gestorId, out var gestor))
 					{
@@ -64,19 +74,23 @@ public static class MontadorDePessoas
 					usuario.Id,
 					usuario.Email,
 					NomeDe(usuario),
-					perfil?.Cargo,
+					cargo,
 					perfil?.Ramal,
 					perfil?.Sobre,
 					setor?.Id,
 					setor?.Nome,
 					setor?.Slug,
 					setor?.Ativo ?? false,
-					perfil?.GestorUsuarioId,
+					gestorEfetivo,
 					gestorNome,
 					gestorInativo,
 					perfil is not null,
 					NomeDeExibicao.Normalizar(usuario.Nome),
-					perfil?.TemFoto ?? false);
+					perfil?.TemFoto ?? false,
+					entra?.Telefone,
+					cargoDoEntra,
+					setorDoEntra is not null,
+					gestorDoEntra);
 			}),
 		];
 	}

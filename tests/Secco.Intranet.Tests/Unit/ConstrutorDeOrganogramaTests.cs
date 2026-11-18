@@ -113,4 +113,23 @@ public class ConstrutorDeOrganogramaTests
 	}
 
 	private static int Contar(IEnumerable<NoDoOrganograma> nos) => nos.Sum(no => 1 + Contar(no.Equipe));
+
+	[Fact]
+	public void Construir_SoComGestoresDoEntra_MontaArvore()
+	{
+		var ana = Guid.NewGuid();
+		var bruno = Guid.NewGuid();
+		var usuarios = new UsuarioParaDiretorio[]
+		{
+			new(ana, "ana@x.com", "Ana"),
+			new(bruno, "bruno@x.com", "Bruno", new AtributosDoEntra(null, null, null, ana)),
+		};
+
+		var pessoas = MontadorDePessoas.Montar(usuarios, [], []);
+		var organograma = ConstrutorDeOrganograma.Construir(pessoas);
+
+		var raiz = organograma.Raizes.Should().ContainSingle().Subject;
+		raiz.Pessoa.Nome.Should().Be("Ana");
+		Nomes(raiz.Equipe).Should().Equal("Bruno");
+	}
 }
