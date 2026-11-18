@@ -65,6 +65,21 @@ public class SlugsReservadosTests(IntranetWebFactory factory) : IClassFixture<In
 		factory.Services.GetRequiredService<ISlugsReservadosDeBiblioteca>().Contem("nova").Should().BeTrue();
 
 	[Fact]
+	public async Task Salas_EhSlugReservado()
+	{
+		using var escopo = factory.Services.CreateScope();
+		escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
+
+		var resultado = await escopo.ServiceProvider
+			.GetRequiredService<CreateSetorHandler>()
+			.HandleAsync(new CreateSetorCommand("Salas", "salas"));
+
+		Reservados.Contem("salas").Should().BeTrue();
+		resultado.IsFailure.Should().BeTrue();
+		resultado.Error.Code.Should().Be("Intranet.Setor.SlugReservado");
+	}
+
+	[Fact]
 	public void SlugComum_NaoEReservado() => Reservados.Contem("financeiro").Should().BeFalse();
 
 	[Fact]

@@ -168,6 +168,38 @@ public class NavegacaoETemaTests
 			.Should().Contain(item => item.Texto == "Diretório" && item.Ativo);
 	}
 
+	[Fact]
+	public void Salas_ComMostrarSalas_VemDepoisDoDiretorio()
+	{
+		var menu = IntranetNavigation.Build(
+			new NavigationRequest([], "/", MostrarAdministracao: false, MostrarDiretorio: true, MostrarInventario: false, MostrarSalas: true));
+
+		var principais = menu.Grupos[0].Itens.Select(item => item.Texto).ToList();
+
+		principais.Should().Equal("Mural", "Diretório", "Salas");
+		menu.Grupos[0].Itens[2].Icone.Should().Be("bi-door-open");
+		menu.Grupos[0].Itens[2].Url.Should().Be("/salas");
+	}
+
+	[Fact]
+	public void Salas_SemMostrarSalas_NaoAparece()
+	{
+		var menu = IntranetNavigation.Build(
+			new NavigationRequest([], "/", MostrarAdministracao: false, MostrarDiretorio: true, MostrarInventario: false));
+
+		menu.Grupos.SelectMany(grupo => grupo.Itens).Should().NotContain(item => item.Texto == "Salas");
+	}
+
+	[Fact]
+	public void Salas_CaminhoDeGestao_ItemAtivo()
+	{
+		var menu = IntranetNavigation.Build(
+			new NavigationRequest([], "/salas/gerenciar/nova", MostrarAdministracao: true, MostrarDiretorio: false, MostrarInventario: false, MostrarSalas: true));
+
+		menu.Grupos.SelectMany(grupo => grupo.Itens)
+			.Should().Contain(item => item.Texto == "Salas" && item.Ativo);
+	}
+
 	private static ItemMenuDto No(
 		Guid? pai, string nome, string slug, TipoDeItemMenu tipo, int ordem = 0, string? rota = null,
 		NivelDeAcessoItemMenu nivel = NivelDeAcessoItemMenu.Leitura) =>

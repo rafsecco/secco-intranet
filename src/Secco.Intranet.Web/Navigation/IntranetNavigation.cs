@@ -11,6 +11,7 @@ namespace Secco.Intranet.Web.Navigation;
 /// <param name="CaminhoAtual">Caminho da requisição, usado para marcar o item ativo.</param>
 /// <param name="MostrarAdministracao">Se o grupo de administração deve aparecer.</param>
 /// <param name="MostrarDiretorio">Se o item Diretório deve aparecer (nível de acesso de Usuário ou acima).</param>
+/// <param name="MostrarSalas">Se o item Salas deve aparecer (usuário autenticado, ou o modo aberto de desenvolvimento).</param>
 /// <param name="MostrarInventario">Se o item de menu do Inventário deve aparecer.</param>
 /// <param name="Arvores">Itens ativos da árvore de cada setor, por SetorId (de <c>ListarArvoresDosSetoresHandler</c>); setor sem entrada não aparece.</param>
 /// <param name="ItensExtras">Itens extras de projetos externos que o usuário pode ver.</param>
@@ -31,7 +32,8 @@ public sealed record NavigationRequest(
 	ISlugsReservados? SlugsReservados = null,
 	IReadOnlyList<BibliotecaDto>? Bibliotecas = null,
 	IReadOnlySet<Guid>? SetoresComEscrita = null,
-	IReadOnlySet<Guid>? SetoresSemLeitura = null);
+	IReadOnlySet<Guid>? SetoresSemLeitura = null,
+	bool MostrarSalas = false);
 
 /// <summary>
 /// Montagem do menu. O Mural é o único item fixo que fala com a empresa toda; a seção Setores
@@ -47,7 +49,7 @@ public static class IntranetNavigation
 
 		var caminho = string.IsNullOrWhiteSpace(request.CaminhoAtual) ? "/" : request.CaminhoAtual;
 
-		var padrao = PrincipalNaOrdemPadrao(request.MostrarDiretorio, request.ItensExtras ?? [], request.Bibliotecas);
+		var padrao = PrincipalNaOrdemPadrao(request.MostrarDiretorio, request.ItensExtras ?? [], request.Bibliotecas, request.MostrarSalas);
 
 		var principais = OrdemDoMenu.Ordenar(padrao, entrada => entrada.Chave, request.Posicoes?.Principal)
 			.Select(entrada => new NavigationItemModel(
@@ -99,14 +101,15 @@ public static class IntranetNavigation
 	}
 
 	/// <summary>
-	/// Entradas do grupo principal na ordem padrão: Mural, Diretório (se pedido), as bibliotecas por
+	/// Entradas do grupo principal na ordem padrão: Mural, Diretório (se pedido), Salas (se pedido), as bibliotecas por
 	/// nome e os extras por <see cref="ItemExtraDoMenu.Ordem"/> e depois <see cref="ItemExtraDoMenu.Rotulo"/>.
 	/// </summary>
 	/// <param name="incluirDiretorio">Se o Diretório entra.</param>
 	/// <param name="extras">Itens extras visíveis.</param>
 	/// <param name="bibliotecas">Bibliotecas que entram no menu; nulo = nenhuma.</param>
+	/// <param name="incluirSalas">Se o item Salas entra, logo depois do Diretório.</param>
 	public static IReadOnlyList<EntradaDoMenuPrincipal> PrincipalNaOrdemPadrao(
-		bool incluirDiretorio, IEnumerable<ItemExtraDoMenu> extras, IEnumerable<BibliotecaDto>? bibliotecas = null)
+		bool incluirDiretorio, IEnumerable<ItemExtraDoMenu> extras, IEnumerable<BibliotecaDto>? bibliotecas = null, bool incluirSalas = false)
 	{
 		ArgumentNullException.ThrowIfNull(extras);
 
@@ -118,6 +121,11 @@ public static class IntranetNavigation
 		if (incluirDiretorio)
 		{
 			entradas.Add(new EntradaDoMenuPrincipal(CatalogoDeItensDoMenuPrincipal.ChaveDiretorio, "Diretório", "bi-people", "/diretorio"));
+		}
+
+		if (incluirSalas)
+		{
+			entradas.Add(new EntradaDoMenuPrincipal(CatalogoDeItensDoMenuPrincipal.ChaveSalas, "Salas", "bi-door-open", "/salas"));
 		}
 
 		entradas.AddRange((bibliotecas ?? [])

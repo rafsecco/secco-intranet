@@ -116,7 +116,7 @@ public sealed class MenuController(
 		var extras = catalogo.Criar(HttpContext.RequestServices).Select(ItemExtraDoMenu.De);
 		var bibliotecas = await listarBibliotecas.HandleAsync(new ListarBibliotecasQuery(SomenteAtivas: true), cancellationToken);
 		var principal = IntranetNavigation.PrincipalNaOrdemPadrao(
-			incluirDiretorio: true, extras, bibliotecas.IsSuccess ? bibliotecas.Value : null);
+			incluirDiretorio: true, extras, bibliotecas.IsSuccess ? bibliotecas.Value : null, incluirSalas: true);
 
 		return [.. OrdemDoMenu.Ordenar(principal, entrada => entrada.Chave, posicoes.Principal)
 			.Select(entrada => new LinhaDaOrdem(entrada.Chave, entrada.Rotulo, entrada.Icone))];

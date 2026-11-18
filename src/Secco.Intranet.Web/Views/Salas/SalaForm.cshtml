@@ -1,0 +1,67 @@
+@using Secco.Intranet.Web.Models.Salas
+@model SalaFormViewModel
+@{
+	var editando = Model.Id is not null;
+	var titulo = editando ? $"Editar {Model.Nome}" : "Nova sala";
+	ViewData["Title"] = titulo;
+
+	var cabecalho = new PageHeaderModel(
+		titulo,
+		"Nome, onde fica, o que oferece e se aceita reservas.");
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel sc-form">
+	<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+	<form method="post" asp-action="@(editando ? "Editar" : "Nova")" asp-route-id="@Model.Id">
+		<div class="sc-form__field">
+			<label class="form-label" asp-for="Nome">Nome</label>
+			<input class="form-control" asp-for="Nome" autocomplete="off" />
+			<span class="text-danger" asp-validation-for="Nome"></span>
+		</div>
+
+		<div class="sc-form__field">
+			<label class="form-label" asp-for="Localizacao">Localização</label>
+			<input class="form-control" asp-for="Localizacao" autocomplete="off" />
+			<span class="text-danger" asp-validation-for="Localizacao"></span>
+		</div>
+
+		<div class="sc-form__field">
+			<label class="form-label" asp-for="Capacidade">Capacidade</label>
+			<input class="form-control" asp-for="Capacidade" type="number" min="1" autocomplete="off" />
+			<span class="text-danger" asp-validation-for="Capacidade"></span>
+		</div>
+
+		<div class="sc-form__field">
+			<label class="form-label" asp-for="Recursos">Recursos</label>
+			<input class="form-control" asp-for="Recursos" autocomplete="off" />
+			<span class="text-danger" asp-validation-for="Recursos"></span>
+		</div>
+
+		<div class="sc-form__field">
+			<label class="form-label" asp-for="EmailNaAgenda">E-mail da sala na agenda</label>
+			<input class="form-control" asp-for="EmailNaAgenda" type="email" autocomplete="off" />
+			<div class="form-text">Opcional. Endereço do recurso da sala na agenda externa.</div>
+			<span class="text-danger" asp-validation-for="EmailNaAgenda"></span>
+		</div>
+
+		<div class="sc-form__field">
+			<label class="form-label" asp-for="Ordem">Ordem</label>
+			<input class="form-control" asp-for="Ordem" type="number" autocomplete="off" />
+			<span class="text-danger" asp-validation-for="Ordem"></span>
+		</div>
+
+		<div class="form-check">
+			<input class="form-check-input" asp-for="Ativa" />
+			<label class="form-check-label" asp-for="Ativa">Ativa</label>
+			<div class="form-text">Sala inativa não aceita reservas novas.</div>
+		</div>
+
+		<div class="sc-form__actions">
+			<button class="btn btn-primary" type="submit">Salvar sala</button>
+			<a class="btn btn-outline-secondary" asp-action="Gerenciar">Cancelar</a>
+		</div>
+	</form>
+</div>

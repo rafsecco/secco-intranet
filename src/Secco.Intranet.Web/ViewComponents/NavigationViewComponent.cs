@@ -80,6 +80,7 @@ public sealed class NavigationViewComponent(
 			MostrarAdministracao: modoAberto || AcessoAdministrativo.SomenteIntranetAdmin(HttpContext.User),
 			MostrarDiretorio: modoAberto
 				|| await AcessoAoDiretorio.NivelAsync(authorizationService, HttpContext.User).ConfigureAwait(false) != NivelDeAcessoAoDiretorio.Nenhum,
+			MostrarSalas: modoAberto || HttpContext.User.Identity?.IsAuthenticated == true,
 			MostrarInventario: modoAberto
 				|| AcessoAdministrativo.TemAcesso(HttpContext.User, AcessoAdministrativo.RoleInventarioAdmin)
 				|| (await authorizationService.AuthorizeAsync(HttpContext.User, IntranetPermissoes.Inventario.Read).ConfigureAwait(false)).Succeeded,

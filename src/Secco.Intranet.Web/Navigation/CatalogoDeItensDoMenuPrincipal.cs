@@ -18,6 +18,9 @@ public sealed partial class CatalogoDeItensDoMenuPrincipal
 	/// <summary>Chave reservada ao item fixo Diretório.</summary>
 	public const string ChaveDiretorio = "diretorio";
 
+	/// <summary>Chave reservada ao item fixo Salas.</summary>
+	public const string ChaveSalas = "salas";
+
 	/// <summary>Prefixo das chaves das bibliotecas no menu; extra nenhum pode usá-lo.</summary>
 	public const string PrefixoDeBiblioteca = "biblioteca-";
 
@@ -125,7 +128,7 @@ public sealed partial class CatalogoDeItensDoMenuPrincipal
 			return "a chave deve ter de 1 a 64 caracteres em [a-z0-9-]";
 		}
 
-		if (chave is ChaveMural or ChaveDiretorio)
+		if (chave is ChaveMural or ChaveDiretorio or ChaveSalas)
 		{
 			return $"a chave '{chave}' é reservada aos itens fixos";
 		}

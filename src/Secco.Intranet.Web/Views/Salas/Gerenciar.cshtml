@@ -1,0 +1,61 @@
+@model IReadOnlyList<Secco.Intranet.Application.Salas.SalaDto>
+@{
+	ViewData["Title"] = "Salas";
+
+	var novaSala = new PageActionModel("Nova sala", Url.Action("Nova")!, "bi-plus-lg", Primaria: true);
+
+	var cabecalho = new PageHeaderModel(
+		"Salas",
+		"Cadastro das salas de reunião. Sala inativa deixa de aceitar reservas novas.",
+		Acoes: new[] { novaSala });
+
+	var vazio = new EmptyStateModel(
+		"bi-door-open",
+		"Nenhuma sala cadastrada",
+		"Cadastre a primeira sala para que as pessoas possam reservá-la.",
+		novaSala);
+
+	var badgeAtiva = new BadgeModel("Ativa", BadgeVariante.Neutro);
+	var badgeInativa = new BadgeModel("Inativa", BadgeVariante.Aviso);
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+@if (Model.Count == 0)
+{
+	<partial name="_EmptyState" model="vazio" />
+}
+else
+{
+	<div class="sc-panel">
+		<table class="table table-sm align-middle mb-0">
+			<thead>
+				<tr>
+					<th>Nome</th>
+					<th>Localização</th>
+					<th>Capacidade</th>
+					<th>Situação</th>
+					<th><span class="visually-hidden">Ações</span></th>
+				</tr>
+			</thead>
+			<tbody>
+				@foreach (var sala in Model)
+				{
+					<tr>
+						<td>@sala.Nome</td>
+						<td>@sala.Localizacao</td>
+						<td>@sala.Capacidade</td>
+						<td><partial name="_Badge" model="sala.Ativa ? badgeAtiva : badgeInativa" /></td>
+						<td class="text-end">
+							<a class="btn btn-sm btn-outline-secondary" asp-action="Editar" asp-route-id="@sala.Id">Editar</a>
+							<form method="post" asp-action="Excluir" asp-route-id="@sala.Id" class="d-inline"
+								  data-confirmar="Excluir a sala &quot;@sala.Nome&quot;? Não dá para desfazer.">
+								<button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
+							</form>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
