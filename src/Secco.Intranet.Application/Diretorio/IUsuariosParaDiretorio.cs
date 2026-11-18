@@ -6,7 +6,8 @@ namespace Secco.Intranet.Application.Diretorio;
 /// <param name="Id">Id no SecureGate.</param>
 /// <param name="Email">E-mail.</param>
 /// <param name="Nome">Nome de exibição (o <c>displayName</c> do SecureGate); nulo quando não definido.</param>
-public sealed record UsuarioParaDiretorio(Guid Id, string Email, string? Nome = null);
+/// <param name="Entra">Atributos lidos do Entra ID; nulo quando a fonte não os traz ou a origem não é o diretório.</param>
+public sealed record UsuarioParaDiretorio(Guid Id, string Email, string? Nome = null, AtributosDoEntra? Entra = null);
 
 /// <summary>
 /// Fonte de identidade do diretório: os usuários <b>ativos</b> do tenant atual. Falha de

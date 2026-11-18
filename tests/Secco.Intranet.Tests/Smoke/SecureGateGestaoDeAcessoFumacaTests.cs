@@ -399,7 +399,8 @@ public class SecureGateGestaoDeAcessoFumacaTests(FumacaFixture f) : IClassFixtur
 		(await f.Gestao.DesativarUsuarioAsync(desativado)).IsSuccess.Should().BeTrue();
 
 		var fonte = new UsuariosParaDiretorioDoSecureGate(
-			f.Gestao, new MemoryCache(new MemoryCacheOptions()), new TenantFixoDaFumaca(f.Tenant));
+			f.Gestao, new MemoryCache(new MemoryCacheOptions()), new TenantFixoDaFumaca(f.Tenant), null,
+			NullLogger<UsuariosParaDiretorioDoSecureGate>.Instance);
 
 		var resultado = await fonte.ListarAtivosAsync();
 

@@ -26,6 +26,7 @@ using Secco.Intranet.Infrastructure.Vencimentos;
 using Secco.LogStream.Client;
 using Secco.NotificationHub.Client;
 using Secco.SDK.AspNetCore.Tenancy;
+using Secco.SDK.ClientCredentials;
 using Secco.SDK.EntityFrameworkCore.Migrations;
 using Secco.SDK.EntityFrameworkCore.Seeding;
 using Secco.SDK.Imaging;
@@ -172,6 +173,7 @@ public static class IntranetInfrastructureExtensions
 		});
 
 		services.AddScoped(CriarGestaoDeAcesso);
+		AddLeitorDoDiretorio(services);
 
 		services.AddMemoryCache();
 		services.AddScoped<IDevelopmentDataSeeder, DiretorioDesenvolvimentoSeeder>();
@@ -233,6 +235,44 @@ public static class IntranetInfrastructureExtensions
 		return serviceProvider.GetRequiredService<IHostEnvironment>().IsDevelopment()
 			? new UsuariosParaDiretorioDeDesenvolvimento()
 			: new UsuariosParaDiretorioIndisponivel();
+	}
+
+	/// <summary>
+	/// Leitor do diretório do SecureGate (<c>directory:read</c>): <c>HttpClient</c> nomeado e token
+	/// store próprios, separados do client de <c>securegate:tenant-manage</c>, para o token deste
+	/// carregar só o scope de leitura. URL e credenciais são as que o client de gestão já usa.
+	/// </summary>
+	private static void AddLeitorDoDiretorio(IServiceCollection services)
+	{
+		var tokenStore = new SeccoAccessTokenStore();
+
+		services.AddHttpClient(LeitorDoDiretorioDoSecureGate.NomeDoHttpClient)
+			.ConfigureHttpClient((serviceProvider, client) =>
+			{
+				var baseUrl = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>().BaseUrl;
+
+				if (!string.IsNullOrWhiteSpace(baseUrl))
+				{
+					client.BaseAddress = new Uri(baseUrl, UriKind.Absolute);
+				}
+			})
+			.ConfigureAdditionalHttpMessageHandlers((handlers, serviceProvider) =>
+			{
+				if (!SecureGateTenantManagement.EstaDisponivel(serviceProvider))
+				{
+					return;
+				}
+
+				var baseUrl = serviceProvider.GetRequiredService<SecureGateClientCredentialsOptions>().BaseUrl!;
+				var secao = serviceProvider.GetRequiredService<IConfiguration>().GetSection("Secco:SecureGate:TenantManagement");
+
+				handlers.Add(LeitorDoDiretorioDoSecureGate.CriarHandler(
+					baseUrl, secao["ClientId"] ?? string.Empty, secao["ClientSecret"] ?? string.Empty, tokenStore));
+			});
+
+		services.AddScoped<ILeitorDoDiretorio>(serviceProvider => new LeitorDoDiretorioDoSecureGate(
+			serviceProvider.GetRequiredService<IHttpClientFactory>()
+				.CreateClient(LeitorDoDiretorioDoSecureGate.NomeDoHttpClient)));
 	}
 
 	private static IGestaoDeAcesso CriarGestaoDeAcesso(IServiceProvider serviceProvider)
