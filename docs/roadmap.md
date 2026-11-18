@@ -68,6 +68,12 @@ processos (maior risco técnico) só entra com a base já sólida.
       e na lista, montado a partir do e-mail, ligado por `Intranet:Chat:Provedor` —
       [spec](specs/2026-11-16-chat-no-diretorio-design.md),
       [plano](plans/2026-11-16-chat-no-diretorio.md)
+- [x] Atributos do Entra no Diretório (ADR-0015) — cargo, setor (pelo nome do departamento),
+      telefone e gestor vindos do Entra pela API de diretório do SecureGate (ADR-0059 da
+      plataforma), só leitura na edição ("vem do Entra"), CSV ignorando as colunas travadas,
+      Organograma montado pelo gestor do Entra e lista de departamentos sem setor na importação —
+      [spec](specs/2026-11-17-atributos-do-entra-no-diretorio-design.md),
+      [plano](plans/2026-11-17-atributos-do-entra-no-diretorio.md)
 - [x] Repositório de documentos por setor: upload cifrado em envelope, visibilidade por
       documento (só o setor ou a empresa toda), download autorizado e arquivamento (o
       registro e o arquivo permanecem) — ADR-0005

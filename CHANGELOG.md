@@ -5,6 +5,25 @@ Mudanças que exigem ajuste de quem já roda a Intranet. O formato segue
 
 ## [Não lançado]
 
+### Atributos do Entra no Diretório
+
+Detalhes na [spec](docs/specs/2026-11-17-atributos-do-entra-no-diretorio-design.md) e na ADR-0015.
+
+**Dependências:** `Secco.SecureGate.Client` 0.25.0, `Secco.SharedKernel` 0.7.12,
+`Secco.SDK.AspNetCore` 0.10.2 e `Secco.SDK.ClientCredentials` 0.1.22.
+
+**SecureGate:** o Diretório passa a ler as pessoas com o escopo `directory:read` do client de gestão
+(`Secco:SecureGate:TenantManagement`), que o guia de deploy já mandava conceder. Sem ele, nada
+quebra: o Diretório volta à leitura de antes, sem os atributos do Entra, e avisa no log. Para ter os
+atributos, o SecureGate precisa da versão com a ADR-0059 e do `User.Read.All` concedido no Entra
+(ver o README do SecureGate).
+
+**Comportamento:** cargo, setor e gestor que vêm do Entra ficam só leitura na edição da pessoa e são
+ignorados (com aviso na linha) na importação por CSV. Os valores manuais guardados não são apagados.
+
+**Tema próprio (fork):** `PessoaDto` ganhou `Telefone`, `CargoDoEntra`, `SetorDoEntra` e
+`GestorDoEntra` (opcionais, no fim); `LinhaDoRelatorio` ganhou `Aviso`.
+
 ### Quebras — Link de chat no Diretório
 
 Detalhes na [spec do link de chat](docs/specs/2026-11-16-chat-no-diretorio-design.md).

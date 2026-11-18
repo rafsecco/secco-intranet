@@ -115,6 +115,19 @@ desse client é registrada pelo próprio SecureGate, no banco dele, antes de aco
 plataforma): não depende do LogStream nem de `SecureGate:Audit`. Se a gravação falhar, a escrita recebe
 `503` e não acontece. Quem lê essa trilha é o operador, no AdminPortal (seção "Trilha" do tenant).
 
+**O `directory:read` desse client alimenta o Diretório e o Organograma (ADR-0015).** A Intranet pede um
+token só com esse escopo e lê as pessoas pela API de diretório.
+
+- **Sem o escopo:** o Diretório continua funcionando pela leitura de antes, sem os atributos do Entra, e
+  o log avisa ("Leitura do diretório do SecureGate falhou … usando a gestão de acesso").
+- **Para o Organograma se montar a partir do Entra,** o SecureGate precisa de três coisas:
+  - a versão com a ADR-0059 da plataforma;
+  - o grupo de provisionamento marcado;
+  - o `User.Read.All` concedido no Entra (ver o README do SecureGate).
+- **Campos do Entra:** cargo, setor e gestor que vêm de lá ficam só leitura no Diretório.
+- **Setor:** casa quando o nome do setor na Intranet é igual ao departamento do Entra. Maiúsculas e
+  acentos não contam. Os departamentos que não casam aparecem em `/diretorio/importar`.
+
 Na configuração **do SecureGate** (não da Intranet), com os secrets por variável de ambiente
 (`SecureGate__PlatformClients__0__ClientSecret`, `SecureGate__PlatformClients__1__ClientSecret`):
 

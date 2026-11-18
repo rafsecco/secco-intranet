@@ -5,7 +5,7 @@
 > Para mudar uma decisão, cria-se uma nova ADR que **substitui** a anterior — ADRs nunca são editadas retroativamente nem apagadas.
 > Decisões da plataforma (multi-tenancy, `Result<T>`, nomenclatura de banco...) estão em `secco-platform/docs/adr/secco-platform-adrs.md` — este documento cobre apenas decisões específicas deste produto.
 
-**Última atualização:** 2026-11-06 (ADR-0014 adicionada)
+**Última atualização:** 2026-11-18 (ADR-0015 adicionada)
 
 ---
 
@@ -717,3 +717,52 @@ tem bancos por tenant (ADR-0005), e o conjunto de chaves é da instalação, nã
 - O backup da pasta é opcional: perdê-la só obriga todos a entrar de novo. Quem a tem forja a sessão
   de qualquer pessoa, então a cópia que existir precisa ser cifrada ([guia](../guia-de-deploy.md#backup-e-restauração)).
 - Mais de uma réplica exige a pasta compartilhada.
+
+---
+
+## ADR-0015: Atributos do Entra no Diretório
+
+**Status:** Aceita
+**Data:** 2026-11-18
+
+### Contexto
+O SecureGate passou a entregar pela API de diretório (`directory:read`) cargo, departamento, telefone
+comercial e gestor sincronizados do Entra ID (ADR-0059 da plataforma). Na Intranet, esses dados
+viviam só no `PerfilColaborador`, digitados à mão ou importados por CSV. Quem tem o Entra mantinha
+dois cadastros do mesmo dado, e o da Intranet desatualizava.
+
+### Decisão
+1. **O Diretório lê as pessoas pela API de diretório**, com a credencial do client de gestão e um
+   token só com `directory:read`, mandando `X-Tenant-Id` do tenant da requisição (o SecureGate
+   recusa se divergir do tenant do token). **Qualquer falha** dessa leitura cai para a leitura de
+   antes (`securegate:tenant-manage`), sem os atributos do Entra e com aviso no log; nunca se usa
+   uma lista parcial.
+2. **Precedência por campo.** Quando o Entra traz cargo, gestor ou um departamento que casa com um
+   setor, o valor do Entra vale e fica só leitura na edição ("vem do Entra"); quando não traz, vale
+   o `PerfilColaborador`, editável e importável como antes.
+3. **Nada do Entra é gravado no banco da Intranet.** O `PerfilColaborador` nunca é sobrescrito: se o
+   Entra esvaziar um campo, o valor manual guardado volta a valer. O servidor não aplica valor
+   postado para campo travado.
+4. **Departamento → setor pelo nome:** casa com o único setor **ativo** de mesmo nome, ignorando
+   maiúsculas, acentos e espaços nas pontas. Nenhum ou mais de um setor → não casa, e o
+   departamento aparece na lista "Departamentos do Entra sem setor" da página de importação.
+5. **Telefone ao lado do Ramal.** O telefone comercial do Entra é um campo novo, só leitura; o Ramal
+   segue da Intranet.
+6. **O ciclo de gestor** (edição e CSV) é validado no grafo do gestor efetivo, com as arestas do
+   Entra.
+
+### Alternativas descartadas
+- **Mapeamento departamento → setor configurável por tenant:** mais robusto quando a TI não
+  padroniza nomes, mas custa entidade, migration nos dois engines, tela e permissão. Adiado até
+  aparecer um nome que não dá para alinhar.
+- **Telefone do Entra no lugar do Ramal:** o `businessPhones` traz o número completo, não o ramal, e
+  substituir apagaria o ramal de quem tem os dois.
+- **Criar setor a partir de departamento:** setor é Role no SecureGate (ADR-0001); criar papel a
+  partir de texto do diretório do cliente é decisão de autoridade, não de cadastro.
+
+### Consequências
+- Com o SecureGate ligado ao Entra (e o `User.Read.All` concedido lá), o Organograma se monta sem
+  cadastro manual.
+- O admin alinha o nome dos setores com os departamentos do Entra; a lista de sem setor mostra as
+  divergências.
+- Com o SecureGate instável, o Diretório mostra os dados manuais em vez de "indisponível".

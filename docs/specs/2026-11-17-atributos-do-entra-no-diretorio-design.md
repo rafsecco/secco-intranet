@@ -1,6 +1,6 @@
 # Atributos do Entra no Diretório — design
 
-**Estado:** desenho aprovado, a implementar.
+**Estado:** entregue em 2026-11-18. Decisão registrada na ADR-0015.
 
 ## Por quê
 
@@ -45,7 +45,8 @@ O usuário escolheu a 1 nos dois casos.
 | Assunto | Regra |
 |---|---|
 | Fonte das pessoas | `GET /api/v1/directory/people` (`directory:read`), paginado até o fim (100 por página), com a credencial de `Secco:SecureGate:TenantManagement`, que o guia de deploy já manda criar com `directory:read`. Entram as pessoas com `isActive = true`, como o filtro de hoje (`Situacao != Desativado`). |
-| Sem `directory:read` concedido | Instalação antiga, cujo client não tem o escopo: a emissão do token é recusada. O Diretório **cai para a leitura de hoje** (`securegate:tenant-manage`), sem atributos do Entra, e registra um aviso no log uma vez por processo. Nada quebra. Outras falhas (SecureGate fora) continuam virando "indisponível", como hoje. |
+| Falha da leitura do diretório | **Qualquer** falha (escopo `directory:read` não concedido, SecureGate fora, resposta inválida, tenant divergente) faz o Diretório **cair para a leitura de hoje** (`securegate:tenant-manage`), sem atributos do Entra, com um aviso no log uma vez por processo. Nunca se usa uma lista parcial. Só vira "indisponível" se a leitura de hoje também falhar. Decisão do plano: a recusa do token chega como `HttpRequestException` genérica do `SeccoClientCredentialsHandler`, sem status distinguível. |
+| Tenant | A leitura manda `X-Tenant-Id` com o tenant da requisição; o SecureGate recusa (400) se divergir do tenant do token, e a leitura cai para a de hoje (achado da revisão de segurança). |
 | Origem | O atributo só conta como "do Entra" quando `attributesSource == "directory"` **e** o campo veio preenchido. O SecureGate já manda nulo para membro de outro tenant (ADR-0059). |
 | Cargo | Entra preenchido → vale e fica só leitura. Senão → `PerfilColaborador.Cargo`. |
 | Gestor | Entra preenchido (`managerId`) → vale e fica só leitura. Senão → `PerfilColaborador.GestorUsuarioId`. Gestor que não está entre as pessoas ativas continua contando como "gestor inativo", como hoje. |
