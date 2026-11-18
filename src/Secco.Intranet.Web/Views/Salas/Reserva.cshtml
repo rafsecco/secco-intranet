@@ -1,0 +1,70 @@
+@using System.Globalization
+@using Secco.Intranet.Domain.Salas
+@model Secco.Intranet.Web.Models.Salas.ReservaDetalheViewModel
+@{
+	var reserva = Model.Reserva;
+	ViewData["Title"] = reserva.Titulo;
+
+	var invariante = CultureInfo.InvariantCulture;
+	var dia = reserva.Dia.ToString("yyyy-MM-dd", invariante);
+
+	var cabecalho = new PageHeaderModel(
+		reserva.Titulo,
+		$"{reserva.SalaNome}, {reserva.Dia.ToString("dd/MM/yyyy", invariante)}, das {reserva.Inicio.ToString("HH:mm", invariante)} às {reserva.Fim.ToString("HH:mm", invariante)}.");
+
+	var espelhamento = reserva.Espelhamento switch
+	{
+		EstadoDoEspelhamento.Aguardando => "Aguardando envio para a agenda",
+		EstadoDoEspelhamento.Espelhada => "Enviada para a agenda",
+		EstadoDoEspelhamento.Falhou => $"Falha ao enviar para a agenda: {reserva.MotivoDaFalha}",
+		_ => null,
+	};
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel sc-form">
+	<dl class="sc-salas__detalhe">
+		<dt>Sala</dt>
+		<dd>@reserva.SalaNome</dd>
+
+		<dt>Dia</dt>
+		<dd>@reserva.Dia.ToString("dd/MM/yyyy", invariante)</dd>
+
+		<dt>Horário</dt>
+		<dd>@reserva.Inicio.ToString("HH:mm", invariante) &ndash; @reserva.Fim.ToString("HH:mm", invariante)</dd>
+
+		<dt>Reservado por</dt>
+		<dd>@reserva.ReservadoPor.Nome</dd>
+
+		@if (reserva.Convidados.Count > 0)
+		{
+			<dt>Convidados</dt>
+			<dd>@string.Join(", ", reserva.Convidados.Select(convidado => convidado.Nome))</dd>
+		}
+
+		@if (!string.IsNullOrWhiteSpace(reserva.Descricao))
+		{
+			<dt>Descrição</dt>
+			<dd class="sc-salas__descricao">@reserva.Descricao</dd>
+		}
+
+		@if (Model.VeEspelhamento && espelhamento is not null)
+		{
+			<dt>Agenda externa</dt>
+			<dd>@espelhamento</dd>
+		}
+	</dl>
+
+	<div class="sc-form__actions">
+		@if (reserva.PodeAlterar)
+		{
+			<a class="btn btn-primary" asp-action="Alterar" asp-route-id="@reserva.Id">Alterar</a>
+			<form method="post" asp-action="Cancelar" asp-route-id="@reserva.Id" class="d-inline"
+				  data-confirmar="Cancelar a reserva &quot;@reserva.Titulo&quot;?">
+				<button class="btn btn-outline-danger" type="submit">Cancelar reserva</button>
+			</form>
+		}
+		<a class="btn btn-outline-secondary" asp-action="Index" asp-route-data="@dia" asp-route-sala="@reserva.SalaId">Voltar à grade</a>
+	</div>
+</div>

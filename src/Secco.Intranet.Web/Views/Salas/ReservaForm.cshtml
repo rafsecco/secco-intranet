@@ -1,0 +1,114 @@
+@using System.Globalization
+@model Secco.Intranet.Web.Models.Salas.ReservaFormViewModel
+@{
+	var alterando = Model.Id is not null;
+	var titulo = alterando ? "Alterar reserva" : "Nova reserva";
+	ViewData["Title"] = titulo;
+
+	var invariante = CultureInfo.InvariantCulture;
+	var data = Model.Data?.ToString("yyyy-MM-dd", invariante);
+	var inicio = Model.Inicio?.ToString("HH:mm", invariante);
+	var fim = Model.Fim?.ToString("HH:mm", invariante);
+
+	var cabecalho = new PageHeaderModel(
+		titulo,
+		"Escolha a sala, o horário (de 15 em 15 minutos) e quem vai participar.");
+
+	var semSalas = new EmptyStateModel(
+		"bi-door-open",
+		"Nenhuma sala disponível",
+		"Não há salas ativas para reservar no momento.");
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+@if (Model.Salas.Count == 0)
+{
+	<partial name="_EmptyState" model="semSalas" />
+}
+else
+{
+	<div class="sc-panel sc-form">
+		@* Lista os erros à mão: o resumo do tag helper emite um style="display:none" que a CSP barra. *@
+		@if (!ViewData.ModelState.IsValid)
+		{
+			<ul class="text-danger" role="alert">
+				@foreach (var erro in ViewData.ModelState.Values.SelectMany(estado => estado.Errors))
+				{
+					<li>@erro.ErrorMessage</li>
+				}
+			</ul>
+		}
+
+		<form method="post" asp-action="@(alterando ? "Alterar" : "Reservar")" asp-route-id="@Model.Id">
+			<div class="sc-form__field">
+				<label class="form-label" for="reserva-sala">Sala</label>
+				<select class="form-select" id="reserva-sala" name="SalaId">
+					@foreach (var sala in Model.Salas)
+					{
+						<option value="@sala.Id" selected="@(sala.Id == Model.SalaId)">@sala.Nome</option>
+					}
+				</select>
+			</div>
+
+			<div class="sc-form__field">
+				<label class="form-label" for="reserva-data">Dia</label>
+				<input class="form-control" id="reserva-data" type="date" name="Data" value="@data" required />
+			</div>
+
+			<div class="sc-salas__horas">
+				<div class="sc-form__field">
+					<label class="form-label" for="reserva-inicio">Início</label>
+					<input class="form-control" id="reserva-inicio" type="time" step="900" name="Inicio" value="@inicio" required />
+				</div>
+				<div class="sc-form__field">
+					<label class="form-label" for="reserva-fim">Fim</label>
+					<input class="form-control" id="reserva-fim" type="time" step="900" name="Fim" value="@fim" required />
+				</div>
+			</div>
+
+			<div class="sc-form__field">
+				<label class="form-label" for="reserva-titulo">Título</label>
+				<input class="form-control" id="reserva-titulo" name="Titulo" value="@Model.Titulo" maxlength="120" autocomplete="off" required />
+			</div>
+
+			<div class="sc-form__field">
+				<label class="form-label" for="reserva-descricao">Descrição</label>
+				<textarea class="form-control" id="reserva-descricao" name="Descricao" rows="3" maxlength="1000">@Model.Descricao</textarea>
+			</div>
+
+			@if (Model.Pessoas.Count > 0)
+			{
+				<fieldset class="sc-form__field">
+					<legend class="form-label">Convidados</legend>
+					<div class="sc-salas__convidados" data-salas-convidados>
+						@foreach (var pessoa in Model.Pessoas)
+						{
+							<div class="form-check sc-salas__convidado">
+								<input class="form-check-input" type="checkbox" name="Convidados" id="convidado-@pessoa.UsuarioId" value="@pessoa.UsuarioId"
+									   checked="@Model.Convidados.Contains(pessoa.UsuarioId)" />
+								<label class="form-check-label" for="convidado-@pessoa.UsuarioId">@pessoa.Nome</label>
+							</div>
+						}
+					</div>
+				</fieldset>
+			}
+
+			<div class="sc-form__actions">
+				<button class="btn btn-primary" type="submit">@(alterando ? "Salvar alterações" : "Reservar")</button>
+				@if (alterando)
+				{
+					<a class="btn btn-outline-secondary" asp-action="Reserva" asp-route-id="@Model.Id">Voltar</a>
+				}
+				else
+				{
+					<a class="btn btn-outline-secondary" asp-action="Index" asp-route-data="@data" asp-route-sala="@Model.SalaId">Cancelar</a>
+				}
+			</div>
+		</form>
+	</div>
+}
+
+@section Scripts {
+	<script src="~/_content/Secco.Intranet.Themes.Vertical/js/salas.js" asp-append-version="true"></script>
+}

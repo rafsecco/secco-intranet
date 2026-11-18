@@ -1,0 +1,143 @@
+@using System.Globalization
+@model Secco.Intranet.Web.Models.Salas.GradeDoDiaViewModel
+@{
+	ViewData["Title"] = "Salas";
+
+	var invariante = CultureInfo.InvariantCulture;
+	var dia = Model.Dia.ToString("yyyy-MM-dd", invariante);
+	var anterior = Model.Dia.AddDays(-1).ToString("yyyy-MM-dd", invariante);
+	var seguinte = Model.Dia.AddDays(1).ToString("yyyy-MM-dd", invariante);
+
+	var novaReserva = new PageActionModel(
+		"Nova reserva", Url.Action("Reservar", new { sala = Model.SalaEmFoco, data = dia })!, "bi-plus-lg", Primaria: true);
+	var minhas = new PageActionModel("Minhas reservas", Url.Action("Minhas")!, "bi-calendar-check");
+
+	var cabecalho = new PageHeaderModel(
+		"Salas",
+		"Quem está com cada sala, de 15 em 15 minutos.",
+		Acoes: Model.Colunas.Count == 0 ? new[] { minhas } : new[] { minhas, novaReserva });
+
+	var vazio = new EmptyStateModel(
+		"bi-door-open",
+		"Nenhuma sala cadastrada",
+		Model.PodeGerenciarSalas
+			? "Cadastre a primeira sala para que as pessoas possam reservá-la."
+			: "Peça a quem administra a intranet para cadastrar as salas.",
+		Model.PodeGerenciarSalas ? new PageActionModel("Cadastrar sala", Url.Action("Nova")!, "bi-plus-lg", Primaria: true) : null);
+
+	var linhas = new List<TimeOnly>();
+
+	for (var hora = Model.Abre; hora < Model.Fecha && linhas.Count < 96; hora = hora.AddMinutes(15))
+	{
+		linhas.Add(hora);
+
+		if (hora.AddMinutes(15) < hora)
+		{
+			break;
+		}
+	}
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+@if (Model.Colunas.Count == 0)
+{
+	<partial name="_EmptyState" model="vazio" />
+}
+else
+{
+	<div class="sc-salas">
+		<div class="sc-salas__dia">
+			<a class="btn btn-outline-secondary" asp-action="Index" asp-route-data="@anterior" asp-route-sala="@Model.SalaEmFoco" aria-label="Dia anterior">
+				<i class="bi bi-chevron-left" aria-hidden="true"></i>
+			</a>
+			<form method="get" asp-action="Index" class="sc-salas__escolher-dia">
+				<label class="visually-hidden" for="salas-data">Dia</label>
+				<input class="form-control" id="salas-data" type="date" name="data" value="@dia" />
+				<input type="hidden" name="sala" value="@Model.SalaEmFoco" />
+				<button class="btn btn-outline-secondary" type="submit">Ir</button>
+			</form>
+			<a class="btn btn-outline-secondary" asp-action="Index" asp-route-data="@seguinte" asp-route-sala="@Model.SalaEmFoco" aria-label="Próximo dia">
+				<i class="bi bi-chevron-right" aria-hidden="true"></i>
+			</a>
+		</div>
+
+		<nav class="sc-salas__abas" aria-label="Salas">
+			@foreach (var coluna in Model.Colunas)
+			{
+				<a class="sc-salas__aba @(coluna.Sala.Id == Model.SalaEmFoco ? "is-active" : null)"
+				   asp-action="Index" asp-route-data="@dia" asp-route-sala="@coluna.Sala.Id"
+				   aria-current="@(coluna.Sala.Id == Model.SalaEmFoco ? "page" : null)">@coluna.Sala.Nome</a>
+			}
+		</nav>
+
+		<div class="sc-panel sc-salas__painel">
+			<table class="sc-salas__grade">
+				<thead>
+					<tr>
+						<th class="sc-salas__canto" scope="col"><span class="visually-hidden">Hora</span></th>
+						@foreach (var coluna in Model.Colunas)
+						{
+							<th scope="col" class="sc-salas__sala @(coluna.Sala.Id == Model.SalaEmFoco ? null : "sc-salas__fora")">
+								@coluna.Sala.Nome
+								@if (coluna.Sala.Capacidade is { } capacidade)
+								{
+									<span class="sc-salas__capacidade">@capacidade lugares</span>
+								}
+							</th>
+						}
+					</tr>
+				</thead>
+				<tbody>
+					@foreach (var linha in linhas)
+					{
+						var cheia = linha.Minute == 0;
+						<tr class="sc-salas__linha @(cheia ? "sc-salas__linha--hora" : null)">
+							<th scope="row" class="sc-salas__hora">@(cheia ? linha.ToString("HH:mm", invariante) : null)</th>
+							@foreach (var coluna in Model.Colunas)
+							{
+								var celula = coluna.Celulas.FirstOrDefault(c => c.Hora == linha);
+
+								if (celula is null)
+								{
+									// Coberta por uma reserva que abriu mais acima.
+									continue;
+								}
+
+								var fora = coluna.Sala.Id == Model.SalaEmFoco ? null : "sc-salas__fora";
+								var hora = celula.Hora.ToString("HH:mm", invariante);
+
+								if (celula.Reserva is { } reserva)
+								{
+									<td rowspan="@celula.Linhas" class="sc-salas__reserva @fora">
+										<a class="sc-salas__reserva-link" asp-action="Reserva" asp-route-id="@reserva.Id">
+											<strong class="sc-salas__titulo">@reserva.Titulo</strong>
+											<span class="sc-salas__horario">@reserva.Inicio.ToString("HH:mm", invariante) &ndash; @reserva.Fim.ToString("HH:mm", invariante)</span>
+											<span class="sc-salas__quem">@reserva.ReservadoPor.Nome</span>
+										</a>
+									</td>
+								}
+								else if (celula.Livre)
+								{
+									<td class="sc-salas__livre @fora">
+										<a class="sc-salas__livre-link" asp-action="Reservar" asp-route-sala="@coluna.Sala.Id" asp-route-data="@dia" asp-route-inicio="@hora">
+											<span class="visually-hidden">Reservar @coluna.Sala.Nome às @hora</span>
+										</a>
+									</td>
+								}
+								else
+								{
+									<td class="sc-salas__passado @fora"></td>
+								}
+							}
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	</div>
+}
+
+@section Scripts {
+	<script src="~/_content/Secco.Intranet.Themes.Vertical/js/salas.js" asp-append-version="true"></script>
+}
