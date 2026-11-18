@@ -525,6 +525,227 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                     b.ToTable("tb_publicacoes");
                 });
 
+            modelBuilder.Entity("Secco.Intranet.Domain.Salas.ConvidadoDaReserva", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id_pk_convidado_da_reserva");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("ds_email");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("ds_nome");
+
+                    b.Property<Guid>("ReservaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id_fk_reserva");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_convidados_das_reservas");
+
+                    b.HasIndex("ReservaId")
+                        .HasDatabaseName("idx_convidados_das_reservas_id_fk_reserva");
+
+                    b.HasIndex("UsuarioId")
+                        .HasDatabaseName("idx_convidados_das_reservas_usuario_id");
+
+                    b.ToTable("tb_convidados_das_reservas");
+                });
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Salas.ExclusaoDeEventoPendente", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id_pk_exclusao_de_evento_pendente");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dt_created_at");
+
+                    b.Property<string>("EventoExternoId")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("ds_evento_externo_id");
+
+                    b.Property<bool>("Falhou")
+                        .HasColumnType("boolean")
+                        .HasColumnName("fl_falhou");
+
+                    b.Property<string>("MotivoDaFalha")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("ds_motivo_da_falha");
+
+                    b.Property<DateTimeOffset?>("ProximaTentativaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dt_proxima_tentativa_em");
+
+                    b.Property<int>("Tentativas")
+                        .HasColumnType("integer")
+                        .HasColumnName("nr_tentativas");
+
+                    b.HasKey("Id")
+                        .HasName("pk_exclusoes_de_evento_pendentes");
+
+                    b.HasIndex("Falhou", "ProximaTentativaEm")
+                        .HasDatabaseName("idx_exclusoes_de_evento_pendentes_fl_falhou_dt_proxima_tentativa_em");
+
+                    b.ToTable("tb_exclusoes_de_evento_pendentes");
+                });
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Salas.Reserva", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id_pk_reserva");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dt_created_at");
+
+                    b.Property<string>("Descricao")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("ds_descricao");
+
+                    b.Property<int>("Espelhamento")
+                        .HasColumnType("integer")
+                        .HasColumnName("ie_espelhamento");
+
+                    b.Property<string>("EventoExternoId")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("ds_evento_externo_id");
+
+                    b.Property<DateTimeOffset>("Fim")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dt_fim");
+
+                    b.Property<DateTimeOffset>("Inicio")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dt_inicio");
+
+                    b.Property<string>("MotivoDaFalha")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("ds_motivo_da_falha");
+
+                    b.Property<DateTimeOffset?>("ProximaTentativaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dt_proxima_tentativa_em");
+
+                    b.Property<string>("ReservadoPorEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("ds_reservado_por_email");
+
+                    b.Property<Guid>("ReservadoPorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reservado_por_id");
+
+                    b.Property<string>("ReservadoPorNome")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("ds_reservado_por_nome");
+
+                    b.Property<Guid>("SalaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id_fk_sala");
+
+                    b.Property<int>("TentativasDeEspelhamento")
+                        .HasColumnType("integer")
+                        .HasColumnName("nr_tentativas_de_espelhamento");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("ds_titulo");
+
+                    b.Property<int>("Versao")
+                        .HasColumnType("integer")
+                        .HasColumnName("nr_versao");
+
+                    b.HasKey("Id")
+                        .HasName("pk_reservas");
+
+                    b.HasIndex("Espelhamento", "ProximaTentativaEm")
+                        .HasDatabaseName("idx_reservas_ie_espelhamento_dt_proxima_tentativa_em");
+
+                    b.HasIndex("SalaId", "Inicio")
+                        .HasDatabaseName("idx_reservas_id_fk_sala_dt_inicio");
+
+                    b.ToTable("tb_reservas");
+                });
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Salas.Sala", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id_pk_sala");
+
+                    b.Property<bool>("Ativa")
+                        .HasColumnType("boolean")
+                        .HasColumnName("fl_ativa");
+
+                    b.Property<int?>("Capacidade")
+                        .HasColumnType("integer")
+                        .HasColumnName("nr_capacidade");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dt_created_at");
+
+                    b.Property<string>("EmailNaAgenda")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("ds_email_na_agenda");
+
+                    b.Property<string>("Localizacao")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("ds_localizacao");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("ds_nome");
+
+                    b.Property<int>("Ordem")
+                        .HasColumnType("integer")
+                        .HasColumnName("nr_ordem");
+
+                    b.Property<string>("Recursos")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("ds_recursos");
+
+                    b.HasKey("Id")
+                        .HasName("pk_salas");
+
+                    b.HasIndex("Nome")
+                        .IsUnique()
+                        .HasDatabaseName("uk_salas_ds_nome");
+
+                    b.ToTable("tb_salas");
+                });
+
             modelBuilder.Entity("Secco.Intranet.Domain.Setores.Setor", b =>
                 {
                     b.Property<Guid>("Id")
@@ -801,6 +1022,26 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .HasConstraintName("fk_publicacoes_setor");
                 });
 
+            modelBuilder.Entity("Secco.Intranet.Domain.Salas.ConvidadoDaReserva", b =>
+                {
+                    b.HasOne("Secco.Intranet.Domain.Salas.Reserva", null)
+                        .WithMany("Convidados")
+                        .HasForeignKey("ReservaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_convidados_das_reservas_reserva");
+                });
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Salas.Reserva", b =>
+                {
+                    b.HasOne("Secco.Intranet.Domain.Salas.Sala", null)
+                        .WithMany()
+                        .HasForeignKey("SalaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_reservas_sala");
+                });
+
             modelBuilder.Entity("Secco.Intranet.Domain.Vencimentos.AvisoDeVencimentoEnviado", b =>
                 {
                     b.HasOne("Secco.Intranet.Domain.Vencimentos.ItemVencimento", null)
@@ -829,6 +1070,11 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_renovacoes_de_vencimento_item_vencimento");
+                });
+
+            modelBuilder.Entity("Secco.Intranet.Domain.Salas.Reserva", b =>
+                {
+                    b.Navigation("Convidados");
                 });
 #pragma warning restore 612, 618
         }

@@ -57,15 +57,23 @@ public sealed class BancosDeMigracaoFixture : IAsyncLifetime
 
 	public Task InitializeAsync() => Task.CompletedTask;
 
-	public async Task<IntranetDbContext> CriarContextoAsync(IntranetDatabaseProvider provider)
+	public async Task<IntranetDbContext> CriarContextoAsync(IntranetDatabaseProvider provider) =>
+		(await CriarFabricaDeContextosAsync(provider))();
+
+	/// <summary>
+	/// Reserva um banco novo e devolve a fábrica de contextos que apontam para ele — para os testes
+	/// que precisam de várias conexões ao mesmo banco (concorrência). O banco ainda está vazio.
+	/// </summary>
+	public async Task<Func<IntranetDbContext>> CriarFabricaDeContextosAsync(IntranetDatabaseProvider provider)
 	{
 		var (_, connectionString) = await _bancos[provider].Value;
 
 		// Banco novo por teste: "do zero" não pode depender da ordem de execução.
 		var builder = new DbConnectionStringBuilder { ConnectionString = connectionString };
 		builder["Database"] = $"migracao_{Guid.NewGuid():N}";
+		var conexao = builder.ConnectionString;
 
-		return new IntranetDbContext(IntranetDatabaseProviderConfigurator.CreateOptions(provider, builder.ConnectionString));
+		return () => new IntranetDbContext(IntranetDatabaseProviderConfigurator.CreateOptions(provider, conexao));
 	}
 
 	public async Task DisposeAsync()

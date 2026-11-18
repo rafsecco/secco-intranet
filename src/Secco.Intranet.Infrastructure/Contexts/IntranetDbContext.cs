@@ -5,6 +5,7 @@ using Secco.Intranet.Domain.Documentos;
 using Secco.Intranet.Domain.Inventario;
 using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Domain.Publicacoes;
+using Secco.Intranet.Domain.Salas;
 using Secco.Intranet.Domain.Setores;
 using Secco.Intranet.Domain.Vencimentos;
 using Secco.SDK.EntityFrameworkCore;
@@ -54,6 +55,18 @@ public sealed class IntranetDbContext(DbContextOptions<IntranetDbContext> option
 
 	/// <summary>Marcos de aviso já tratados por item e ciclo.</summary>
 	public DbSet<AvisoDeVencimentoEnviado> AvisosDeVencimentoEnviados => Set<AvisoDeVencimentoEnviado>();
+
+	/// <summary>Salas de reunião reserváveis (tabela <c>tb_salas</c>).</summary>
+	public DbSet<Sala> Salas => Set<Sala>();
+
+	/// <summary>Reservas de sala (tabela <c>tb_reservas</c>).</summary>
+	public DbSet<Reserva> Reservas => Set<Reserva>();
+
+	/// <summary>Convidados das reservas.</summary>
+	public DbSet<ConvidadoDaReserva> ConvidadosDasReservas => Set<ConvidadoDaReserva>();
+
+	/// <summary>Eventos da agenda externa que ainda precisam ser excluídos.</summary>
+	public DbSet<ExclusaoDeEventoPendente> ExclusoesDeEventoPendentes => Set<ExclusaoDeEventoPendente>();
 
 	/// <inheritdoc />
 	protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -22,7 +22,7 @@ public sealed class ConvidadoDaReserva : BaseEntity
 	/// <summary>Reserva a que o convidado pertence (coluna <c>id_fk_reserva</c>)</summary>
 	public Guid ReservaId { get; internal set; }
 
-	/// <summary>Usuário convidado (coluna <c>id_fk_usuario</c>)</summary>
+	/// <summary>Usuário convidado (coluna <c>usuario_id</c>, sem FK: a identidade vive no SecureGate)</summary>
 	public Guid UsuarioId { get; private set; }
 
 	/// <summary>Nome do convidado no momento do convite (coluna <c>ds_nome</c>)</summary>

@@ -81,7 +81,7 @@ public sealed class Reserva : BaseEntity
 	/// <summary>Descrição livre (coluna <c>ds_descricao</c>)</summary>
 	public string? Descricao { get; private set; }
 
-	/// <summary>Usuário dono da reserva (coluna <c>id_fk_reservado_por</c>)</summary>
+	/// <summary>Usuário dono da reserva (coluna <c>reservado_por_id</c>, sem FK: a identidade vive no SecureGate)</summary>
 	public Guid ReservadoPorId { get; private set; }
 
 	/// <summary>Nome do dono no momento da reserva (coluna <c>ds_reservado_por_nome</c>)</summary>
@@ -96,7 +96,7 @@ public sealed class Reserva : BaseEntity
 	/// <summary>Versão da reserva; nasce em 1 e sobe a cada <see cref="Alterar"/> (coluna <c>nr_versao</c>)</summary>
 	public int Versao { get; private set; }
 
-	/// <summary>Situação do espelhamento na agenda externa (coluna <c>cd_espelhamento</c>)</summary>
+	/// <summary>Situação do espelhamento na agenda externa (coluna <c>ie_espelhamento</c>)</summary>
 	public EstadoDoEspelhamento Espelhamento { get; private set; }
 
 	/// <summary>Identificador do evento na agenda externa, quando já criado (coluna <c>ds_evento_externo_id</c>)</summary>
