@@ -5,14 +5,12 @@ Mudanças que exigem ajuste de quem já roda a Intranet. O formato segue
 
 ## [Não lançado]
 
-**Pacotes da plataforma:** `Secco.SecureGate.Client` 0.26.0, `Secco.SharedKernel` 0.7.13, `Secco.SDK.AspNetCore` 0.10.3 e `Secco.SDK.ClientCredentials` 0.1.23.
-
 ### Atributos do Entra no Diretório
 
 Detalhes na [spec](docs/specs/2026-11-17-atributos-do-entra-no-diretorio-design.md) e na ADR-0015.
 
-**Dependências:** `Secco.SecureGate.Client` 0.25.0, `Secco.SharedKernel` 0.7.12,
-`Secco.SDK.AspNetCore` 0.10.2 e `Secco.SDK.ClientCredentials` 0.1.22.
+**Dependências:** `Secco.SecureGate.Client` 0.26.0, `Secco.SharedKernel` 0.7.13,
+`Secco.SDK.AspNetCore` 0.10.3 e `Secco.SDK.ClientCredentials` 0.1.23.
 
 **SecureGate:** o Diretório passa a ler as pessoas com o escopo `directory:read` do client de gestão
 (`Secco:SecureGate:TenantManagement`), que o guia de deploy já mandava conceder. Sem ele, nada
