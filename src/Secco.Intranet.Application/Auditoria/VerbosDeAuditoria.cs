@@ -75,6 +75,15 @@ public static class VerbosDeAuditoria
 	/// <summary>Item personalizado excluído — irreversível.</summary>
 	public const string MenuItemExcluir = "menu.item-excluir";
 
+	/// <summary>Link do menu principal criado.</summary>
+	public const string MenuLinkCriar = "menu.link-criar";
+
+	/// <summary>Rótulo, URL, ícone ou modo de abertura de um link do menu principal alterados.</summary>
+	public const string MenuLinkEditar = "menu.link-editar";
+
+	/// <summary>Link do menu principal excluído — irreversível.</summary>
+	public const string MenuLinkExcluir = "menu.link-excluir";
+
 	/// <summary>Reconciliação em lote das árvores de menu dos setores antigos.</summary>
 	public const string MenuReconciliar = "menu.reconciliar";
 
