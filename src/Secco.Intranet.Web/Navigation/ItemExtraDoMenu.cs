@@ -24,5 +24,6 @@ public sealed record ItemExtraDoMenu(string Chave, string Rotulo, string? Icone,
 /// <param name="Chave">Chave de posição.</param>
 /// <param name="Rotulo">Texto exibido.</param>
 /// <param name="Icone">Classe do ícone, se houver.</param>
-/// <param name="Url">Caminho do destino.</param>
-public sealed record EntradaDoMenuPrincipal(string Chave, string Rotulo, string? Icone, string Url);
+/// <param name="Url">Caminho do destino, ou URL absoluta no caso de um link do menu.</param>
+/// <param name="NovaAba">Se o destino abre em nova aba.</param>
+public sealed record EntradaDoMenuPrincipal(string Chave, string Rotulo, string? Icone, string Url, bool NovaAba = false);

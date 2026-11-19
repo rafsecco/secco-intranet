@@ -718,4 +718,80 @@ public class NavegacaoETemaTests
 		itens.Single(item => item.Texto == "TIC").Ativo.Should().BeTrue();
 		itens.Single(item => item.Texto == "TI").Ativo.Should().BeFalse();
 	}
+
+	private static LinkDoMenuPrincipalDto LinkDoMenu(string rotulo, string url, bool novaAba = true, Guid? id = null)
+	{
+		var linkId = id ?? Guid.NewGuid();
+
+		return new LinkDoMenuPrincipalDto(linkId, LinkDoMenuPrincipal.PrefixoDaChave + linkId.ToString("D"), rotulo, url, "bi-link-45deg", novaAba);
+	}
+
+	private static IReadOnlyList<NavigationItemModel> ItensPrincipais(NavigationModel menu) =>
+		menu.Grupos.Single(grupo => grupo.Titulo is null).Itens;
+
+	[Fact]
+	public void Build_LinkDoMenu_EntraDepoisDosExtrasComNovaAba()
+	{
+		var menu = IntranetNavigation.Build(new NavigationRequest(
+			[], "/", false, false, false,
+			ItensExtras: [Extra("institucional", "Institucional")],
+			LinksDoMenu: [LinkDoMenu("Abrir um chamado", "https://suporte.exemplo.com.br")]));
+
+		var itens = ItensPrincipais(menu);
+
+		itens.Select(item => item.Texto).Should().Equal("Mural", "Institucional", "Abrir um chamado");
+		itens[^1].NovaAba.Should().BeTrue();
+		itens[^1].Url.Should().Be("https://suporte.exemplo.com.br");
+	}
+
+	[Fact]
+	public void Build_LinksDoMenu_OrdenadosPorRotulo()
+	{
+		var menu = IntranetNavigation.Build(new NavigationRequest(
+			[], "/", false, false, false,
+			LinksDoMenu: [LinkDoMenu("zeta", "/z"), LinkDoMenu("Beta", "/b"), LinkDoMenu("alfa", "/a")]));
+
+		Principal(menu).Should().Equal("Mural", "alfa", "Beta", "zeta");
+	}
+
+	[Fact]
+	public void Build_PosicaoSalvaDoLink_LevaParaEntreMuralEDiretorio()
+	{
+		var link = LinkDoMenu("Abrir um chamado", "https://suporte.exemplo.com.br");
+		var posicoes = Posicoes(new Dictionary<string, int> { ["mural"] = 0, [link.Chave] = 1, ["diretorio"] = 2 });
+
+		var menu = IntranetNavigation.Build(new NavigationRequest(
+			[], "/", false, MostrarDiretorio: true, false, Posicoes: posicoes, LinksDoMenu: [link]));
+
+		Principal(menu).Should().Equal("Mural", "Abrir um chamado", "Diretório");
+	}
+
+	[Fact]
+	public void Build_LinkExterno_NuncaAtivo()
+	{
+		var menu = IntranetNavigation.Build(new NavigationRequest(
+			[], "/", false, false, false, LinksDoMenu: [LinkDoMenu("Abrir um chamado", "https://suporte.exemplo.com.br")]));
+
+		ItensPrincipais(menu).Single(item => item.Texto == "Abrir um chamado").Ativo.Should().BeFalse();
+	}
+
+	[Fact]
+	public void Build_LinkLocal_AtivoPeloPrefixo()
+	{
+		var menu = IntranetNavigation.Build(new NavigationRequest(
+			[], "/diretorio/organograma", false, false, false,
+			LinksDoMenu: [LinkDoMenu("Organograma", "/diretorio/organograma", novaAba: false)]));
+
+		ItensPrincipais(menu).Single(item => item.Texto == "Organograma").Ativo.Should().BeTrue();
+	}
+
+	[Fact]
+	public void Build_ItensFixos_NovaAbaFalso()
+	{
+		var menu = IntranetNavigation.Build(new NavigationRequest(
+			[], "/", false, MostrarDiretorio: true, false,
+			ItensExtras: [Extra("institucional", "Institucional")], Bibliotecas: [Biblioteca("TI", "ti")]));
+
+		ItensPrincipais(menu).Should().OnlyContain(item => !item.NovaAba);
+	}
 }

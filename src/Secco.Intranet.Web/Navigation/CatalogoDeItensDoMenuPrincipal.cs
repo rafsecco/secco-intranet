@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
+using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Web.Extensibility;
 
 namespace Secco.Intranet.Web.Navigation;
@@ -133,6 +134,11 @@ public sealed partial class CatalogoDeItensDoMenuPrincipal
 		if (chave.StartsWith(PrefixoDeBiblioteca, StringComparison.Ordinal))
 		{
 			return $"o prefixo '{PrefixoDeBiblioteca}' é reservado às bibliotecas";
+		}
+
+		if (chave.StartsWith(LinkDoMenuPrincipal.PrefixoDaChave, StringComparison.Ordinal))
+		{
+			return $"o prefixo '{LinkDoMenuPrincipal.PrefixoDaChave}' é reservado aos links do menu";
 		}
 
 		if (string.IsNullOrWhiteSpace(item.Rotulo))
