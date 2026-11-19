@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Secco.Intranet.Application;
 using Secco.Intranet.Application.Bibliotecas;
 using Secco.Intranet.Application.Menu;
 using Secco.Intranet.Application.Setores;
@@ -24,6 +25,10 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="buscarSetores">Setores ativos do tenant.</param>
 /// <param name="catalogo">Itens extras registrados pelos projetos externos.</param>
 /// <param name="listarBibliotecas">Bibliotecas do tenant.</param>
+/// <param name="listarLinks">Links do menu principal.</param>
+/// <param name="criarLink">Cria um link do menu principal.</param>
+/// <param name="editarLink">Edita um link do menu principal.</param>
+/// <param name="excluirLink">Exclui um link do menu principal.</param>
 [SomenteIntranetAdmin]
 public sealed class MenuController(
 	ObterPosicoesDoMenuHandler obterPosicoes,
@@ -31,17 +36,24 @@ public sealed class MenuController(
 	RestaurarOrdemDoMenuHandler restaurarOrdem,
 	SearchSetoresHandler buscarSetores,
 	CatalogoDeItensDoMenuPrincipal catalogo,
-	ListarBibliotecasHandler listarBibliotecas) : Controller
+	ListarBibliotecasHandler listarBibliotecas,
+	ListarLinksDoMenuPrincipalHandler listarLinks,
+	CriarLinkDoMenuPrincipalHandler criarLink,
+	EditarLinkDoMenuPrincipalHandler editarLink,
+	ExcluirLinkDoMenuPrincipalHandler excluirLink) : Controller
 {
+	private const string ViewDoFormulario = "LinkForm";
+
 	/// <summary>As duas listas na ordem efetiva.</summary>
 	/// <param name="cancellationToken">Token de cancelamento.</param>
 	[HttpGet]
 	public async Task<IActionResult> Index(CancellationToken cancellationToken = default)
 	{
-		var principal = await LinhasAsync(GrupoDoMenu.Principal, cancellationToken);
-		var setores = await LinhasAsync(GrupoDoMenu.Setores, cancellationToken);
+		var links = await LinksAsync(cancellationToken);
+		var principal = await LinhasAsync(GrupoDoMenu.Principal, links, cancellationToken);
+		var setores = await LinhasAsync(GrupoDoMenu.Setores, links, cancellationToken);
 
-		return View(new MenuOrdemViewModel(principal, setores));
+		return View(new MenuOrdemViewModel(principal, setores, links));
 	}
 
 	/// <summary>Move um item para cima ou para baixo no grupo.</summary>
@@ -58,7 +70,7 @@ public sealed class MenuController(
 			return BadRequest();
 		}
 
-		var linhas = await LinhasAsync(grupo, cancellationToken);
+		var linhas = await LinhasAsync(grupo, await LinksAsync(cancellationToken), cancellationToken);
 		var resultado = await moverPosicao.HandleAsync(
 			grupo, [.. linhas.Select(linha => linha.Chave)], chave ?? string.Empty, paraCima, cancellationToken);
 
@@ -82,6 +94,129 @@ public sealed class MenuController(
 		return Voltar(resultado, "Ordem padrão restaurada.");
 	}
 
+	/// <summary>Formulário de link novo; a caixa "nova aba" vem marcada.</summary>
+	[HttpGet("/menu/links/novo")]
+	public IActionResult NovoLink() => View(ViewDoFormulario, new LinkDoMenuFormViewModel { NovaAba = true });
+
+	/// <summary>Cria um link do menu principal.</summary>
+	/// <param name="form">Dados do formulário.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost("/menu/links/novo")]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> NovoLink(LinkDoMenuFormViewModel form, CancellationToken cancellationToken = default)
+	{
+		ArgumentNullException.ThrowIfNull(form);
+
+		var criado = await criarLink.HandleAsync(
+			new CriarLinkDoMenuPrincipalCommand(form.Rotulo, form.Url, form.Icone, form.NovaAba), cancellationToken);
+
+		return criado.IsFailure ? Recusar(form, criado.Error) : Concluir("Link criado.");
+	}
+
+	/// <summary>Formulário de edição de um link.</summary>
+	/// <param name="id">Link a editar.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpGet("/menu/links/{id:guid}/editar")]
+	public async Task<IActionResult> EditarLink(Guid id, CancellationToken cancellationToken = default)
+	{
+		var link = (await LinksAsync(cancellationToken)).FirstOrDefault(l => l.Id == id);
+
+		return link is null ? NotFound() : View(ViewDoFormulario, LinkDoMenuFormViewModel.De(link));
+	}
+
+	/// <summary>Grava a edição de um link.</summary>
+	/// <param name="id">Link a editar.</param>
+	/// <param name="form">Dados do formulário.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost("/menu/links/{id:guid}/editar")]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> EditarLink(Guid id, LinkDoMenuFormViewModel form, CancellationToken cancellationToken = default)
+	{
+		ArgumentNullException.ThrowIfNull(form);
+
+		var editado = await editarLink.HandleAsync(
+			new EditarLinkDoMenuPrincipalCommand(id, form.Rotulo, form.Url, form.Icone, form.NovaAba), cancellationToken);
+
+		if (editado.IsFailure)
+		{
+			form.Id = id;
+
+			return Recusar(form, editado.Error);
+		}
+
+		return Concluir("Link salvo.");
+	}
+
+	/// <summary>Exclui um link do menu principal.</summary>
+	/// <param name="id">Link a excluir.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost("/menu/links/{id:guid}/excluir")]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> ExcluirLink(Guid id, CancellationToken cancellationToken = default)
+	{
+		var excluido = await excluirLink.HandleAsync(id, cancellationToken);
+
+		if (excluido.IsFailure && excluido.Error == IntranetErrors.LinksDoMenu.NotFound)
+		{
+			return NotFound();
+		}
+
+		return excluido.IsFailure ? Voltar(excluido, null) : Concluir("Link excluído.");
+	}
+
+	private RedirectToActionResult Concluir(string mensagem)
+	{
+		TempData[FeedbackViewComponent.ChaveDaMensagem] = mensagem;
+
+		return RedirectToAction(nameof(Index));
+	}
+
+	/// <summary>Reapresenta o formulário com a mensagem no campo do erro (<see cref="CampoDoErro"/>); link inexistente vira 404.</summary>
+	private IActionResult Recusar(LinkDoMenuFormViewModel form, Error erro)
+	{
+		if (erro == IntranetErrors.LinksDoMenu.NotFound)
+		{
+			return NotFound();
+		}
+
+		var campo = CampoDoErro(erro);
+
+		ModelState.AddModelError(campo, erro.Description);
+
+		return View(ViewDoFormulario, form);
+	}
+
+	/// <summary>
+	/// Campo do formulário que leva a mensagem, pelo <c>Error.Code</c>. <c>CampoMuitoLongo</c> divide um
+	/// código só entre rótulo e URL, então a descrição ("O rótulo ..." / "A URL ...") desempata.
+	/// </summary>
+	private static string CampoDoErro(Error erro)
+	{
+		if (erro.Code == IntranetErrors.Menu.CampoMuitoLongo(string.Empty, 0).Code)
+		{
+			return erro.Description.StartsWith("O rótulo", StringComparison.Ordinal) ? nameof(LinkDoMenuFormViewModel.Rotulo) : nameof(LinkDoMenuFormViewModel.Url);
+		}
+
+		if (erro.Code == IntranetErrors.LinksDoMenu.RotuloRequired.Code)
+		{
+			return nameof(LinkDoMenuFormViewModel.Rotulo);
+		}
+
+		if (erro.Code == IntranetErrors.LinksDoMenu.UrlRequired.Code || erro.Code == IntranetErrors.Menu.RotaInvalida.Code)
+		{
+			return nameof(LinkDoMenuFormViewModel.Url);
+		}
+
+		return erro.Code == IntranetErrors.Menu.IconeInvalido.Code ? nameof(LinkDoMenuFormViewModel.Icone) : string.Empty;
+	}
+
+	private async Task<IReadOnlyList<LinkDoMenuPrincipalDto>> LinksAsync(CancellationToken cancellationToken)
+	{
+		var links = await listarLinks.HandleAsync(cancellationToken);
+
+		return links.IsSuccess ? links.Value : [];
+	}
+
 	private RedirectToActionResult Voltar(Result resultado, string? sucesso)
 	{
 		if (resultado.IsFailure)
@@ -97,7 +232,8 @@ public sealed class MenuController(
 	}
 
 	/// <summary>Linhas do grupo na ordem efetiva (padrão + posições salvas). Principal sem gate: lista tudo o que existe.</summary>
-	private async Task<IReadOnlyList<LinhaDaOrdem>> LinhasAsync(GrupoDoMenu grupo, CancellationToken cancellationToken)
+	private async Task<IReadOnlyList<LinhaDaOrdem>> LinhasAsync(
+		GrupoDoMenu grupo, IReadOnlyList<LinkDoMenuPrincipalDto> links, CancellationToken cancellationToken)
 	{
 		var posicoes = await obterPosicoes.HandleAsync(cancellationToken);
 
@@ -116,7 +252,7 @@ public sealed class MenuController(
 		var extras = catalogo.Criar(HttpContext.RequestServices).Select(ItemExtraDoMenu.De);
 		var bibliotecas = await listarBibliotecas.HandleAsync(new ListarBibliotecasQuery(SomenteAtivas: true), cancellationToken);
 		var principal = IntranetNavigation.PrincipalNaOrdemPadrao(
-			incluirDiretorio: true, extras, bibliotecas.IsSuccess ? bibliotecas.Value : null);
+			incluirDiretorio: true, extras, bibliotecas.IsSuccess ? bibliotecas.Value : null, links);
 
 		return [.. OrdemDoMenu.Ordenar(principal, entrada => entrada.Chave, posicoes.Principal)
 			.Select(entrada => new LinhaDaOrdem(entrada.Chave, entrada.Rotulo, entrada.Icone))];
