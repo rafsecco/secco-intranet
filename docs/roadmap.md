@@ -268,6 +268,11 @@ processos (maior risco técnico) só entra com a base já sólida.
       `/{slug}/links`: criar, editar, excluir e reordenar. Migration `ItemMenuNovaAba`.
       [Spec](specs/2026-11-15-links-do-setor-design.md); plano em
       [plans/2026-11-15-links-do-setor.md](plans/2026-11-15-links-do-setor.md)
+- [x] Links do menu principal — o `intranet-admin` cadastra links (rótulo, URL local ou `http`/`https`,
+      ícone e nova aba) no card **Links** de `/menu`; aparecem no grupo principal para todos, depois
+      dos extras, e entram na ordenação. Migration `LinksDoMenuPrincipal`.
+      [Spec](specs/2026-11-18-links-do-menu-principal-design.md); plano em
+      [plans/2026-11-18-links-do-menu-principal.md](plans/2026-11-18-links-do-menu-principal.md)
 - [ ] Reserva de sala — salas cadastradas pelo `intranet-admin`, item fixo no menu, com sincronização
       de agenda a definir
 

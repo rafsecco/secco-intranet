@@ -5,6 +5,19 @@ Mudanças que exigem ajuste de quem já roda a Intranet. O formato segue
 
 ## [Não lançado]
 
+### Links do menu principal
+
+Detalhes na [spec](docs/specs/2026-11-18-links-do-menu-principal-design.md) e na ADR-0016.
+
+O `intranet-admin` cadastra, edita e exclui links no card **Links** de `/menu`; eles aparecem no
+grupo principal do menu para todos, depois dos extras, e entram na ordenação.
+
+**Banco:** rodar o `migrate` antes de subir a versão (migration `LinksDoMenuPrincipal`, tabela
+`tb_links_do_menu_principal`).
+
+**Extensões (RCL):** item de menu principal cuja chave comece com `link-` deixa de aparecer, com
+aviso no log; troque a chave.
+
 ### Atributos do Entra no Diretório
 
 Detalhes na [spec](docs/specs/2026-11-17-atributos-do-entra-no-diretorio-design.md) e na ADR-0015.

@@ -5,7 +5,7 @@
 > Para mudar uma decisão, cria-se uma nova ADR que **substitui** a anterior — ADRs nunca são editadas retroativamente nem apagadas.
 > Decisões da plataforma (multi-tenancy, `Result<T>`, nomenclatura de banco...) estão em `secco-platform/docs/adr/secco-platform-adrs.md` — este documento cobre apenas decisões específicas deste produto.
 
-**Última atualização:** 2026-11-18 (ADR-0015 adicionada)
+**Última atualização:** 2026-11-18 (ADR-0016 adicionada)
 
 ---
 
@@ -766,3 +766,40 @@ dois cadastros do mesmo dado, e o da Intranet desatualizava.
 - O admin alinha o nome dos setores com os departamentos do Entra; a lista de sem setor mostra as
   divergências.
 - Com o SecureGate instável, o Diretório mostra os dados manuais em vez de "indisponível".
+
+---
+
+## ADR-0016: Links do menu principal cadastrados pelo admin
+
+**Status:** Aceita
+**Data:** 2026-11-18
+
+### Contexto
+O grupo principal do menu só tinha itens de código: Mural, Diretório, bibliotecas e os extras de RCL
+(`IItemDeMenuPrincipal`). Atalho para um sistema externo da empresa toda (chamado, webmail) exigia
+publicar código, ou criar um setor só para ele.
+
+### Decisão
+1. **Link é dado do tenant**, em tabela própria (`LinkDoMenuPrincipal`: rótulo, URL, ícone e nova
+   aba), cadastrado só pelo `intranet-admin` em `/menu`, com trilha de auditoria (`menu.link-*`).
+2. **Folha visível a todos** os usuários autenticados do tenant, no grupo principal, depois dos
+   extras e por rótulo, até o admin reordenar.
+3. **Chave `link-{id}`**, com o prefixo `link-` reservado no catálogo (como `biblioteca-`): item de
+   RCL com chave assim fica fora do menu, com aviso no log. Excluir o link apaga a posição salva.
+4. **URL** pela regra `RotaEhValida`: caminho local (`/...`, nunca `//` nem `/\`) ou `http`/`https`.
+5. **Nova aba** pelo `NovaAba` do `NavigationItemModel`, marcada por padrão no cadastro.
+6. **`IItemDeMenuPrincipal` continua** sendo o caminho para item em código, com rota própria e gate
+   de visibilidade.
+
+### Alternativas descartadas
+- **`ItemMenu` com setor nulo:** evita tabela, mas `ItemMenu` tem FK obrigatória para setor, slug
+  único entre irmãos, tipos, nível de acesso e reconciliação dos setores; todo handler da árvore
+  teria de ignorar esses itens.
+- **Lista JSON na configuração do tenant:** sem migration, mas sem id estável por link para a chave
+  de posição e a trilha, e com edição concorrente de uma lista inteira.
+
+### Consequências
+- O admin mantém atalhos da empresa toda sem deploy; o menu ganha uma terceira fonte no grupo
+  principal.
+- Migration nova nos dois engines (`LinksDoMenuPrincipal`).
+- RCL que usava chave começando por `link-` precisa trocá-la.

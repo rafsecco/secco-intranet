@@ -1,6 +1,6 @@
 # Links do menu principal — design
 
-**Estado:** em aprovação.
+**Estado:** entregue em 2026-11-18.
 
 ## Por quê
 
