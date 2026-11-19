@@ -186,23 +186,16 @@ public sealed class MenuController(
 		return View(ViewDoFormulario, form);
 	}
 
-	/// <summary>
-	/// Campo do formulário que leva a mensagem, pelo <c>Error.Code</c>. <c>CampoMuitoLongo</c> divide um
-	/// código só entre rótulo e URL, então a descrição ("O rótulo ..." / "A URL ...") desempata.
-	/// </summary>
+	/// <summary>Campo do formulário que leva a mensagem, pelo <c>Error.Code</c>.</summary>
 	private static string CampoDoErro(Error erro)
 	{
-		if (erro.Code == IntranetErrors.Menu.CampoMuitoLongo(string.Empty, 0).Code)
-		{
-			return erro.Description.StartsWith("O rótulo", StringComparison.Ordinal) ? nameof(LinkDoMenuFormViewModel.Rotulo) : nameof(LinkDoMenuFormViewModel.Url);
-		}
-
-		if (erro.Code == IntranetErrors.LinksDoMenu.RotuloRequired.Code)
+		if (erro.Code == IntranetErrors.LinksDoMenu.RotuloRequired.Code || erro.Code == IntranetErrors.LinksDoMenu.RotuloMuitoLongo.Code)
 		{
 			return nameof(LinkDoMenuFormViewModel.Rotulo);
 		}
 
-		if (erro.Code == IntranetErrors.LinksDoMenu.UrlRequired.Code || erro.Code == IntranetErrors.Menu.RotaInvalida.Code)
+		if (erro.Code == IntranetErrors.LinksDoMenu.UrlRequired.Code || erro.Code == IntranetErrors.LinksDoMenu.UrlMuitoLonga.Code
+			|| erro.Code == IntranetErrors.Menu.RotaInvalida.Code)
 		{
 			return nameof(LinkDoMenuFormViewModel.Url);
 		}

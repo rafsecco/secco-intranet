@@ -204,6 +204,42 @@ public class LinksDoMenuPrincipalTests(IntranetWebFactory factory) : IClassFixtu
 	}
 
 	[Fact]
+	public async Task Criar_RotuloDe257_MensagemNoCampoRotulo()
+	{
+		var rotulo = new string('r', 257);
+
+		var resposta = await CriarLinkAsync(Admin(), rotulo);
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+		var corpo = await resposta.Content.ReadAsStringAsync();
+		MensagemDoCampo(corpo, "Rotulo").Should().Be(IntranetErrors.LinksDoMenu.RotuloMuitoLongo.Description);
+		MensagemDoCampo(corpo, "Url").Should().BeEmpty();
+		(await Comum().GetStringAsync("/")).Should().NotContain(rotulo);
+	}
+
+	[Fact]
+	public async Task Criar_UrlDe513_MensagemNoCampoUrl()
+	{
+		var rotulo = Rotulo();
+		var url = "https://exemplo.com.br/" + new string('a', 513 - 23);
+
+		var resposta = await CriarLinkAsync(Admin(), rotulo, url);
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+		var corpo = await resposta.Content.ReadAsStringAsync();
+		MensagemDoCampo(corpo, "Url").Should().Be(IntranetErrors.LinksDoMenu.UrlMuitoLonga.Description);
+		MensagemDoCampo(corpo, "Rotulo").Should().BeEmpty();
+		(await Comum().GetStringAsync("/")).Should().NotContain(rotulo);
+	}
+
+	private static string MensagemDoCampo(string html, string campo)
+	{
+		var m = Regex.Match(html, $"data-valmsg-for=\"{campo}\"[^>]*>([^<]*)<");
+
+		return m.Success ? WebUtility.HtmlDecode(m.Groups[1].Value) : string.Empty;
+	}
+
+	[Fact]
 	public async Task Link_ApareceNaOrdenacaoEPodeSubirEntreOsFixos()
 	{
 		var rotulo = Rotulo();

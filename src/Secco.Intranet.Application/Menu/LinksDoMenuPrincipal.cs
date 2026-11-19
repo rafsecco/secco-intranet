@@ -63,7 +63,7 @@ internal static class CamposDeLinkDoMenuPrincipal
 
 		if (rotuloAparado.Length > LimiteRotulo)
 		{
-			return Result.Failure<CamposValidadosDoLink>(IntranetErrors.Menu.CampoMuitoLongo("O rótulo", LimiteRotulo));
+			return Result.Failure<CamposValidadosDoLink>(IntranetErrors.LinksDoMenu.RotuloMuitoLongo);
 		}
 
 		var urlAparada = url?.Trim() ?? string.Empty;
@@ -75,10 +75,11 @@ internal static class CamposDeLinkDoMenuPrincipal
 
 		if (urlAparada.Length > LimiteUrl)
 		{
-			return Result.Failure<CamposValidadosDoLink>(IntranetErrors.Menu.CampoMuitoLongo("A URL", LimiteUrl));
+			return Result.Failure<CamposValidadosDoLink>(IntranetErrors.LinksDoMenu.UrlMuitoLonga);
 		}
 
-		if (!CriarItemMenuHandler.RotaEhValida(urlAparada))
+		// Navegadores descartam tab e quebra de linha: "/	/host" viraria "//host" (protocolo relativo).
+		if (urlAparada.Any(char.IsControl) || !CriarItemMenuHandler.RotaEhValida(urlAparada))
 		{
 			return Result.Failure<CamposValidadosDoLink>(IntranetErrors.Menu.RotaInvalida);
 		}

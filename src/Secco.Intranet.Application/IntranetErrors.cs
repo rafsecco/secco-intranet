@@ -596,6 +596,14 @@ public static class IntranetErrors
 		/// <summary>Link sem URL.</summary>
 		public static readonly Error UrlRequired =
 			Error.Validation("Intranet.LinksDoMenu.UrlRequired", "Informe a URL do link.");
+
+		/// <summary>Rótulo acima do limite de caracteres.</summary>
+		public static readonly Error RotuloMuitoLongo =
+			Error.Validation("Intranet.LinksDoMenu.RotuloMuitoLongo", "O rótulo excede o limite de 256 caracteres.");
+
+		/// <summary>URL acima do limite de caracteres.</summary>
+		public static readonly Error UrlMuitoLonga =
+			Error.Validation("Intranet.LinksDoMenu.UrlMuitoLonga", "A URL excede o limite de 512 caracteres.");
 	}
 
 	/// <summary>Erros dos links do setor.</summary>

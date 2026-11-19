@@ -86,6 +86,8 @@ public class LinksDoMenuPrincipalHandlersTests
 	[InlineData("JavaScript:alert(1)")]
 	[InlineData("//outro.host")]
 	[InlineData("/\\outro.host")]
+	[InlineData("/\t/outro.host")]
+	[InlineData("/\n/outro.host")]
 	[InlineData("ftp://x")]
 	[InlineData("data:text/html,x")]
 	[InlineData("suporte.exemplo.com.br")]
@@ -126,19 +128,19 @@ public class LinksDoMenuPrincipalHandlersTests
 	}
 
 	[Fact]
-	public async Task Criar_RotuloDe257_CampoMuitoLongo()
+	public async Task Criar_RotuloDe257_RotuloMuitoLongo()
 	{
 		var resultado = await CriarAsync(new string('a', 257), "/diretorio");
 
-		resultado.Error.Should().Be(IntranetErrors.Menu.CampoMuitoLongo("O rótulo", 256));
+		resultado.Error.Should().Be(IntranetErrors.LinksDoMenu.RotuloMuitoLongo);
 	}
 
 	[Fact]
-	public async Task Criar_UrlDe513_CampoMuitoLongo()
+	public async Task Criar_UrlDe513_UrlMuitoLonga()
 	{
 		var resultado = await CriarAsync("Chamado", "https://exemplo.com.br/" + new string('a', 513 - 23));
 
-		resultado.Error.Should().Be(IntranetErrors.Menu.CampoMuitoLongo("A URL", 512));
+		resultado.Error.Should().Be(IntranetErrors.LinksDoMenu.UrlMuitoLonga);
 	}
 
 	[Theory]
