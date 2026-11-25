@@ -17,7 +17,7 @@ Duas regras sustentam esta lista:
 
 | Demanda | O que trava | Issue |
 |---|---|---|
-| _(nenhuma)_ | | |
+| Cifragem de arquivo em streaming no SDK (envelope AES-256-GCM em blocos, chave por arquivo embrulhada pela chave mestra) | Nada travado: o `EnvelopeCipher` próprio ([ADR-0005](adr/secco-intranet-adrs.md)) segue em uso até a entrega, e então o produto migra para o SDK | [#54](https://github.com/rafsecco/secco-platform/issues/54) |
 
 ## Descartadas
 
