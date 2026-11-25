@@ -10,6 +10,14 @@ Mudanças que exigem ajuste de quem já roda a Intranet. O formato segue
 - `Secco.SharedKernel` 0.7.13 → 0.7.14
 - `Secco.SDK.EntityFrameworkCore` 0.6.0 → 0.7.0
 
+### Endereços com caractere de controle
+
+Links do setor e item personalizado do menu passam a recusar endereço com caractere de controle
+(tab, quebra de linha) em qualquer posição, como os links do menu principal já faziam. O navegador
+descarta esses caracteres, e `/<TAB>/outro.host` passava por caminho local para virar
+`//outro.host`, outro domínio. A regra mora num lugar só (`RotaEhValida`). Um link já gravado com
+esse caractere segue funcionando até ser editado.
+
 ### Cifragem dos arquivos
 
 Detalhes na [spec](docs/specs/2026-11-25-cifragem-de-arquivo-pelo-sdk-design.md) e na ADR-0005.

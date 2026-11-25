@@ -247,6 +247,10 @@ public class CriarItemMenuHandlerTests
 	[InlineData("javascript:alert(1)", false)]
 	[InlineData("relativo-sem-barra", false)]
 	[InlineData("ftp://x/y", false)]
+	[InlineData("/\t/outro-dominio.com", false)]
+	[InlineData("/\n/outro-dominio.com", false)]
+	[InlineData("/\r\n/outro-dominio.com", false)]
+	[InlineData("https://outro-dominio.com/\tx", false)]
 	public async Task Rota_SoCaminhoLocalOuHttp(string rota, bool aceita)
 	{
 		var repo = new ItemMenuRepositorioFalso();

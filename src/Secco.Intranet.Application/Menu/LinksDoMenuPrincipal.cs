@@ -78,8 +78,7 @@ internal static class CamposDeLinkDoMenuPrincipal
 			return Result.Failure<CamposValidadosDoLink>(IntranetErrors.LinksDoMenu.UrlMuitoLonga);
 		}
 
-		// Navegadores descartam tab e quebra de linha: "/	/host" viraria "//host" (protocolo relativo).
-		if (urlAparada.Any(char.IsControl) || !CriarItemMenuHandler.RotaEhValida(urlAparada))
+		if (!CriarItemMenuHandler.RotaEhValida(urlAparada))
 		{
 			return Result.Failure<CamposValidadosDoLink>(IntranetErrors.Menu.RotaInvalida);
 		}

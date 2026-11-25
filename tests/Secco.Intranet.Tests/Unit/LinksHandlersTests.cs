@@ -122,6 +122,9 @@ public class LinksHandlersTests
 	[InlineData("javascript:alert(1)")]
 	[InlineData("ftp://x")]
 	[InlineData("exemplo.com")]
+	[InlineData("/\t/exemplo.com")]
+	[InlineData("/\n/exemplo.com")]
+	[InlineData("https://exemplo.com/\tx")]
 	public async Task Criar_EnderecoInvalido_RotaInvalida(string endereco)
 	{
 		var c = new Cenario();
