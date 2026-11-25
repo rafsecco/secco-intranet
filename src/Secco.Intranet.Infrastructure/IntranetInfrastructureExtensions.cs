@@ -78,6 +78,7 @@ public static class IntranetInfrastructureExtensions
 		// A cifragem de arquivo (SDK, em envelope) nao depende do tenant: uma instancia serve a aplicacao toda.
 		services.AddSingleton<ISeccoFileCipher>(sp => CifradorDeArquivos.Criar(
 			sp.GetRequiredService<ChaveMestraOptions>(), sp.GetRequiredService<IHostEnvironment>()));
+		services.AddSingleton<ReembrulhoDeChavesDeArquivo>();
 
 		// Ja o armazenamento depende: o caminho sai do tenant da requisicao (ADR-0005).
 		services.AddScoped<IArquivoStore, SistemaArquivosArquivoStore>();
