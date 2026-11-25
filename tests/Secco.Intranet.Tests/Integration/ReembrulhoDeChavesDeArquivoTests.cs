@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Security.Cryptography;
 using AwesomeAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +10,7 @@ using Secco.Intranet.Domain.Diretorio;
 using Secco.Intranet.Domain.Documentos;
 using Secco.Intranet.Domain.Publicacoes;
 using Secco.Intranet.Domain.Setores;
+using Secco.Intranet.Infrastructure;
 using Secco.Intranet.Infrastructure.Armazenamento;
 using Secco.Intranet.Infrastructure.Contexts;
 using Secco.SDK.AspNetCore.Tenancy;
@@ -40,20 +42,36 @@ public class ReembrulhoDeChavesDeArquivoTests(IntranetWebFactory factory) : ICla
 	private readonly string _chaveB = NovaChave();
 	private readonly string _chaveC = NovaChave();
 
+	private IntranetDatabaseProvider _provider;
+	private string _connectionString = string.Empty;
+
 	public async Task InitializeAsync()
 	{
 		await factory.EnsureDatabaseMigratedAsync();
 
-		// As linhas dos testes anteriores têm chaves de outros cifradores e sujariam as contagens.
-		using var escopo = NovoEscopo();
-		var contexto = escopo.ServiceProvider.GetRequiredService<IntranetDbContext>();
-		await contexto.ImagensNoTexto.ExecuteDeleteAsync();
-		await contexto.Publicacoes.ExecuteDeleteAsync();
-		await contexto.Documentos.ExecuteDeleteAsync();
-		await contexto.PerfisColaboradores.ExecuteDeleteAsync();
+		// Banco próprio: os de tenant da fábrica são compartilhados com as outras classes de teste,
+		// que rodam em paralelo, e as chaves das linhas delas são do cifrador da fábrica.
+		using var escopo = factory.Services.CreateScope();
+		var catalogo = escopo.ServiceProvider.GetRequiredService<ITenantCatalog>();
+		_provider = escopo.ServiceProvider.GetRequiredService<IntranetDatabaseOptions>().Provider;
+		var tenant = (await catalogo.ListAsync()).First(t => t.TenantId == factory.TenantAlfa);
+
+		var builder = new DbConnectionStringBuilder { ConnectionString = tenant.ConnectionString };
+		builder["Database"] = $"intranet_reembrulho_{Guid.NewGuid():N}";
+		_connectionString = builder.ConnectionString;
+
+		await using var contexto = NovoContexto();
+		await contexto.Database.MigrateAsync();
 	}
 
-	public Task DisposeAsync() => Task.CompletedTask;
+	public async Task DisposeAsync()
+	{
+		await using var contexto = NovoContexto();
+		await contexto.Database.EnsureDeletedAsync();
+	}
+
+	private IntranetDbContext NovoContexto() =>
+		new(IntranetDatabaseProviderConfigurator.CreateOptions(_provider, _connectionString));
 
 	private static string NovaChave() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
@@ -61,14 +79,6 @@ public class ReembrulhoDeChavesDeArquivoTests(IntranetWebFactory factory) : ICla
 		CifradorDeArquivos.Criar(
 			new ChaveMestraOptions { ChaveAtiva = ativa, ChavesAposentadas = [.. aposentadas] },
 			new AmbienteFalso());
-
-	private IServiceScope NovoEscopo()
-	{
-		var escopo = factory.Services.CreateScope();
-		escopo.ServiceProvider.SetTenant(factory.TenantAlfa);
-
-		return escopo;
-	}
 
 	private static async Task<(string Chave, byte[] Cifrado)> CifrarAsync(ISeccoFileCipher cifrador)
 	{
@@ -88,33 +98,39 @@ public class ReembrulhoDeChavesDeArquivoTests(IntranetWebFactory factory) : ICla
 		return destino.ToArray();
 	}
 
-	private sealed record Linhas(Guid DocumentoId, Guid PublicacaoId, Guid ImagemId, Guid PerfilId);
+	private sealed record Linhas(Guid? DocumentoId, Guid? PublicacaoId, Guid? ImagemId, Guid PerfilId);
 
 	private sealed record Chaves(string? Documento, string? Publicacao, string? Imagem, string? Perfil);
 
-	/// <summary>Uma linha em cada tabela, todas com a mesma chave embrulhada.</summary>
-	private async Task<Linhas> CriarLinhasAsync(string chave)
+	/// <summary>Uma linha em cada tabela (ou só o perfil), todas com a mesma chave embrulhada.</summary>
+	private async Task<Linhas> CriarLinhasAsync(string chave, bool apenasPerfil = false)
 	{
-		using var escopo = NovoEscopo();
-		var contexto = escopo.ServiceProvider.GetRequiredService<IntranetDbContext>();
+		using var contexto = NovoContexto();
 
-		var slug = $"reemb-{Guid.NewGuid():N}"[..20];
-		var setor = new Setor($"Setor {slug}", slug);
-		contexto.Setores.Add(setor);
+		Documento? documento = null;
+		Publicacao? publicacao = null;
+		ImagemNoTexto? imagem = null;
 
-		var documento = new Documento(
-			DonoDeDocumento.DoSetor(setor.Id), "Doc", null, "a.pdf", "application/pdf", 10,
-			Visibilidade.Setor, $"t/{Guid.NewGuid():N}", chave, "quem", null, 0);
-		contexto.Documentos.Add(documento);
+		if (!apenasPerfil)
+		{
+			var slug = $"reemb-{Guid.NewGuid():N}"[..20];
+			var setor = new Setor($"Setor {slug}", slug);
+			contexto.Setores.Add(setor);
 
-		var publicacao = new Publicacao(
-			setor.Id, "Aviso", null, TipoPublicacao.Aviso, Visibilidade.Empresa,
-			PrioridadePublicacao.Normal, DateTimeOffset.UtcNow, null, "teste");
-		publicacao.DefinirImagem($"p/{Guid.NewGuid():N}", chave, null);
-		contexto.Publicacoes.Add(publicacao);
+			documento = new Documento(
+				DonoDeDocumento.DoSetor(setor.Id), "Doc", null, "a.pdf", "application/pdf", 10,
+				Visibilidade.Setor, $"t/{Guid.NewGuid():N}", chave, "quem", null, 0);
+			contexto.Documentos.Add(documento);
 
-		var imagem = new ImagemNoTexto(publicacao.Id, $"i/{Guid.NewGuid():N}", chave);
-		contexto.ImagensNoTexto.Add(imagem);
+			publicacao = new Publicacao(
+				setor.Id, "Aviso", null, TipoPublicacao.Aviso, Visibilidade.Empresa,
+				PrioridadePublicacao.Normal, DateTimeOffset.UtcNow, null, "teste");
+			publicacao.DefinirImagem($"p/{Guid.NewGuid():N}", chave, null);
+			contexto.Publicacoes.Add(publicacao);
+
+			imagem = new ImagemNoTexto(publicacao.Id, $"i/{Guid.NewGuid():N}", chave);
+			contexto.ImagensNoTexto.Add(imagem);
+		}
 
 		var perfil = new PerfilColaborador(Guid.NewGuid());
 		perfil.DefinirFoto($"f/{Guid.NewGuid():N}", chave);
@@ -122,25 +138,23 @@ public class ReembrulhoDeChavesDeArquivoTests(IntranetWebFactory factory) : ICla
 
 		await contexto.SaveChangesAsync();
 
-		return new Linhas(documento.Id, publicacao.Id, imagem.Id, perfil.Id);
+		return new Linhas(documento?.Id, publicacao?.Id, imagem?.Id, perfil.Id);
 	}
 
 	private async Task<Chaves> LerChavesAsync(Linhas linhas)
 	{
-		using var escopo = NovoEscopo();
-		var contexto = escopo.ServiceProvider.GetRequiredService<IntranetDbContext>();
+		using var contexto = NovoContexto();
 
 		return new Chaves(
-			(await contexto.Documentos.AsNoTracking().SingleAsync(d => d.Id == linhas.DocumentoId)).ChaveEmbrulhada,
-			(await contexto.Publicacoes.AsNoTracking().SingleAsync(p => p.Id == linhas.PublicacaoId)).ImagemChaveEmbrulhada,
-			(await contexto.ImagensNoTexto.AsNoTracking().SingleAsync(i => i.Id == linhas.ImagemId)).ChaveEmbrulhada,
-			(await contexto.PerfisColaboradores.AsNoTracking().SingleAsync(p => p.Id == linhas.PerfilId)).FotoChaveEmbrulhada);
+			linhas.DocumentoId is { } d ? (await contexto.Documentos.AsNoTracking().SingleAsync(x => x.Id == d)).ChaveEmbrulhada : null,
+			linhas.PublicacaoId is { } p ? (await contexto.Publicacoes.AsNoTracking().SingleAsync(x => x.Id == p)).ImagemChaveEmbrulhada : null,
+			linhas.ImagemId is { } i ? (await contexto.ImagensNoTexto.AsNoTracking().SingleAsync(x => x.Id == i)).ChaveEmbrulhada : null,
+			(await contexto.PerfisColaboradores.AsNoTracking().SingleAsync(x => x.Id == linhas.PerfilId)).FotoChaveEmbrulhada);
 	}
 
 	private async Task<ResultadoDoReembrulho> ReembrulharAsync(ISeccoFileCipher cifrador)
 	{
-		using var escopo = NovoEscopo();
-		var contexto = escopo.ServiceProvider.GetRequiredService<IntranetDbContext>();
+		using var contexto = NovoContexto();
 
 		return await new ReembrulhoDeChavesDeArquivo(cifrador).ReembrulharAsync(contexto);
 	}
@@ -189,15 +203,15 @@ public class ReembrulhoDeChavesDeArquivoTests(IntranetWebFactory factory) : ICla
 		var (chaveA, _) = await CifrarAsync(Cifrador(_chaveA));
 		var (chaveC, _) = await CifrarAsync(Cifrador(_chaveC));
 		var comA = await CriarLinhasAsync(chaveA);
-		var comC = await CriarLinhasAsync(chaveC);
+		var comC = await CriarLinhasAsync(chaveC, apenasPerfil: true);
 		var cifradorB = Cifrador(_chaveB, _chaveA);
 
 		var resultado = await ReembrulharAsync(cifradorB);
 
-		resultado.SemChaveConhecida.Should().Be(4);
+		resultado.SemChaveConhecida.Should().Be(1);
 		resultado.Reembrulhadas.Should().Be(4);
 
-		(await LerChavesAsync(comC)).Should().Be(new Chaves(chaveC, chaveC, chaveC, chaveC));
+		(await LerChavesAsync(comC)).Should().Be(new Chaves(null, null, null, chaveC));
 
 		var lidaA = await LerChavesAsync(comA);
 		cifradorB.IsKeyWrappedWithActiveKey(lidaA.Documento!).Should().BeTrue();
@@ -211,9 +225,8 @@ public class ReembrulhoDeChavesDeArquivoTests(IntranetWebFactory factory) : ICla
 		Guid arquivadoId;
 		Guid grupoId;
 
-		using (var escopo = NovoEscopo())
+		using (var contexto = NovoContexto())
 		{
-			var contexto = escopo.ServiceProvider.GetRequiredService<IntranetDbContext>();
 			var slug = $"reemb-{Guid.NewGuid():N}"[..20];
 			var setor = new Setor($"Setor {slug}", slug);
 			contexto.Setores.Add(setor);
@@ -236,8 +249,7 @@ public class ReembrulhoDeChavesDeArquivoTests(IntranetWebFactory factory) : ICla
 		resultado.Reembrulhadas.Should().Be(1);
 		resultado.SemChaveConhecida.Should().Be(0);
 
-		using var leitura = NovoEscopo();
-		var lido = leitura.ServiceProvider.GetRequiredService<IntranetDbContext>();
+		using var lido = NovoContexto();
 		var depoisArquivado = await lido.Documentos.AsNoTracking().SingleAsync(d => d.Id == arquivadoId);
 		var depoisGrupo = await lido.Documentos.AsNoTracking().SingleAsync(d => d.Id == grupoId);
 
@@ -251,9 +263,8 @@ public class ReembrulhoDeChavesDeArquivoTests(IntranetWebFactory factory) : ICla
 	{
 		Guid imagemId;
 
-		using (var escopo = NovoEscopo())
+		using (var contexto = NovoContexto())
 		{
-			var contexto = escopo.ServiceProvider.GetRequiredService<IntranetDbContext>();
 			var slug = $"reemb-{Guid.NewGuid():N}"[..20];
 			var setor = new Setor($"Setor {slug}", slug);
 			contexto.Setores.Add(setor);
@@ -276,9 +287,8 @@ public class ReembrulhoDeChavesDeArquivoTests(IntranetWebFactory factory) : ICla
 		resultado.Reembrulhadas.Should().Be(0);
 		resultado.SemChaveConhecida.Should().Be(0);
 
-		using var leitura = NovoEscopo();
-		var depois = await leitura.ServiceProvider.GetRequiredService<IntranetDbContext>()
-			.ImagensNoTexto.AsNoTracking().SingleAsync(i => i.Id == imagemId);
+		using var leitura = NovoContexto();
+		var depois = await leitura.ImagensNoTexto.AsNoTracking().SingleAsync(i => i.Id == imagemId);
 		depois.ChaveEmbrulhada.Should().BeEmpty();
 	}
 
@@ -290,8 +300,7 @@ public class ReembrulhoDeChavesDeArquivoTests(IntranetWebFactory factory) : ICla
 		var (chaveNova, _) = await CifrarAsync(Cifrador(_chaveB));
 		var linhas = await CriarLinhasAsync(chaveA);
 
-		using var escopo = NovoEscopo();
-		var contexto = escopo.ServiceProvider.GetRequiredService<IntranetDbContext>();
+		using var contexto = NovoContexto();
 
 		// Entre a leitura e a gravação, outro processo trocou o arquivo do perfil.
 		await contexto.PerfisColaboradores.Where(p => p.Id == linhas.PerfilId)
