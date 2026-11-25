@@ -63,9 +63,10 @@ A cifragem só protege se a chave mestra for bem guardada, e isso é responsabil
 - **Troca de chave:** a chave nova passa a ser a ativa e a atual vai para as aposentadas. O
   `migrate` de cada deploy reembrulha, para a chave ativa, as chaves dos arquivos que ainda dependem
   de uma aposentada, em todos os tenants. Ele regrava só as chaves no banco, nenhum arquivo. A
-  aposentada sai da configuração quando um `migrate` não reembrulha mais nada. Se alguma chave de
-  arquivo não abre com nenhuma chave configurada, o `migrate` falha e aponta no log. O procedimento
-  está no guia de deploy, na seção [Troca da chave mestra](guia-de-deploy.md#troca-da-chave-mestra).
+  aposentada só sai da configuração depois que todos os containers estiverem na configuração nova e
+  um `migrate` terminar com código 0 sem reembrulhar nenhuma chave em nenhum tenant. Se alguma chave
+  de arquivo não abre com nenhuma chave configurada, o `migrate` falha e aponta no log. O
+  procedimento está no guia de deploy, na seção [Troca da chave mestra](guia-de-deploy.md#troca-da-chave-mestra).
 - **Pasta fora da área pública:** a pasta de armazenamento fica fora da pasta pública da
   aplicação.
 - **HTTPS:** a proteção no caminho entre o navegador e o servidor vem do HTTPS da instalação, que a

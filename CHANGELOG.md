@@ -41,8 +41,9 @@ reembrulhadas e as "sem chave conhecida", nunca chave nem caminho.
 retirada cedo demais), o tenant conta como falho, o `migrate` sai com código 1 e o seed de referência
 não roda. Os demais tenants e as outras chaves do tenant são reembrulhados mesmo assim.
 
-**Procedimento:** o guia de deploy ganha a seção "Troca da chave mestra". A aposentada pode sair da
-configuração quando um `migrate` terminar com código 0 sem reembrulhar nenhuma chave.
+**Procedimento:** o guia de deploy ganha a seção "Troca da chave mestra". A aposentada só pode sair da
+configuração depois que todos os containers estiverem na configuração nova e um `migrate` terminar
+com código 0 sem reembrulhar nenhuma chave em nenhum tenant.
 
 ### Quebras — Cifragem dos arquivos
 
