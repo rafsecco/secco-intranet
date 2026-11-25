@@ -24,9 +24,25 @@ Detalhes na [spec](docs/specs/2026-11-25-cifragem-de-arquivo-pelo-sdk-design.md)
 
 A cifragem dos arquivos (documentos, imagens do Mural, fotos do Diretório) passa a ser a do
 `Secco.SDK.EntityFrameworkCore` (`ISeccoFileCipher`, ADR-0061 da plataforma, secco-platform#54):
-formato `SECCOENC` v1, blocos de 64 KiB. O `EnvelopeCipher` próprio saiu. Não há ferramenta de
-troca da chave mestra: uma chave em `ChavesAposentadas` continua necessária enquanto existir arquivo
-cifrado com ela.
+formato `SECCOENC` v1, blocos de 64 KiB. O `EnvelopeCipher` próprio saiu. A troca da chave
+mestra está na seção "Troca da chave mestra", abaixo.
+
+### Troca da chave mestra
+
+Detalhes na [spec](docs/specs/2026-11-25-troca-da-chave-mestra-design.md) e na ADR-0005.
+
+O `migrate` passa a reembrulhar, em todos os tenants, as chaves dos arquivos (documentos, imagem de
+destaque e imagem no texto do Mural, foto do Diretório) embrulhadas por uma chave aposentada para a
+chave ativa, logo depois das migrations de cada tenant. Nenhum arquivo é lido nem regravado, só a
+coluna da chave, e não há migration de banco. O log traz, por tenant, a tabela, as chaves
+reembrulhadas e as "sem chave conhecida", nunca chave nem caminho.
+
+**Falha:** se uma chave de arquivo não abre com nenhuma chave configurada (em geral, uma aposentada
+retirada cedo demais), o tenant conta como falho, o `migrate` sai com código 1 e o seed de referência
+não roda. Os demais tenants e as outras chaves do tenant são reembrulhados mesmo assim.
+
+**Procedimento:** o guia de deploy ganha a seção "Troca da chave mestra". A aposentada pode sair da
+configuração quando um `migrate` terminar com código 0 sem reembrulhar nenhuma chave.
 
 ### Quebras — Cifragem dos arquivos
 

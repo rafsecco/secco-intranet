@@ -1,6 +1,6 @@
 # Troca da chave mestra — design
 
-**Estado:** proposta.
+**Estado:** entregue em 2026-11-25.
 
 ## Por quê
 

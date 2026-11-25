@@ -7,11 +7,11 @@ namespace Secco.Intranet.Infrastructure.Armazenamento;
 /// desenvolvimento embutida para não exigir configuração em DEV.
 /// </summary>
 /// <remarks>
-/// Como a cifragem é em envelope, trocar esta chave mexe apenas na coluna
-/// <c>ds_chave_embrulhada</c> de cada documento — nenhum arquivo é reescrito. É também o que
-/// torna viável guardá-la num KMS: o que passa pelo serviço são 32 bytes, não o arquivo.
-/// Ainda não existe rotina que converta as chaves embrulhadas dos arquivos já gravados; até
-/// existir, uma chave aposentada não pode ser retirada.
+/// Como a cifragem é em envelope, trocar esta chave mexe apenas nas colunas das chaves embrulhadas
+/// (documento, imagem de destaque, imagem no texto e foto) — nenhum arquivo é reescrito. É também
+/// o que torna viável guardá-la num KMS: o que passa pelo serviço são 32 bytes, não o arquivo.
+/// O <c>migrate</c> reembrulha para a chave ativa, em todos os tenants, as chaves dos arquivos já
+/// gravados; uma chave aposentada pode ser retirada quando um <c>migrate</c> não reembrulha mais nada.
 /// </remarks>
 public sealed class ChaveMestraOptions
 {
@@ -32,8 +32,8 @@ public sealed class ChaveMestraOptions
 
 	/// <summary>
 	/// Chaves aposentadas (base64, 32 bytes cada), mantidas <b>só para decifrar</b> os arquivos
-	/// cifrados antes da troca. Não há rotina que reembrulhe as chaves desses arquivos, então
-	/// uma chave aposentada não pode ser retirada.
+	/// cifrados antes da troca. O <c>migrate</c> reembrulha as chaves desses arquivos para a ativa;
+	/// a aposentada pode ser retirada quando um <c>migrate</c> não reembrulha mais nada.
 	/// </summary>
 	public IList<string> ChavesAposentadas { get; set; } = [];
 }

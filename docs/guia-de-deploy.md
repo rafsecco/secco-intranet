@@ -273,7 +273,7 @@ Convenção ASP.NET Core: `__` no nome da variável vira `:` na chave de configu
 | `Intranet__Notificacao__HubUrl` | Não | URL do `Secco.NotificationHub`. Vazia = sino/e-mail de notificação não são enviados. |
 | `Intranet__Notificacao__UrlBase` | Recomendada se `HubUrl` estiver definida | URL pública da Intranet (ex.: `https://intranet.suaempresa.com`, sem barra final) — sem ela, o link da notificação por e-mail fica relativo e não abre fora do navegador já logado. |
 | `Intranet__Documentos__Chave__ChaveAtiva` | Sim, fora de Development | Chave mestra que embrulha as chaves dos documentos cifrados: base64 de 32 bytes, por exemplo `openssl rand -base64 32`. Sem ela a aplicação não sobe. **Perder a chave é perder todos os documentos**: guarde-a fora do host. A chave de desenvolvimento embutida só vale em `Development`. |
-| `Intranet__Documentos__Chave__ChavesAposentadas__0` (e `__1`, ...) | Não | Chaves mestras antigas (base64, 32 bytes), usadas só para decifrar durante a rotação. Mantenha cada uma enquanto existir arquivo cifrado com ela, porque ainda não há ferramenta que reembrulhe as chaves dos arquivos antigos. |
+| `Intranet__Documentos__Chave__ChavesAposentadas__0` (e `__1`, ...) | Não | Chaves mestras antigas (base64, 32 bytes), usadas só para decifrar durante a rotação. O `migrate` reembrulha as chaves dos arquivos para a ativa, e a aposentada sai quando nada mais depende dela (ver "Troca da chave mestra"). |
 | `Intranet__Documentos__Armazenamento__Raiz` | Não (a imagem define `/var/lib/intranet/documentos`) | Pasta onde ficam os arquivos cifrados: documentos, fotos e imagens do Mural. Faça o bind mount dela: sem isso, recriar o container apaga os arquivos. |
 | `Intranet__ProtecaoDeDados__PastaDasChaves` | Não (a imagem define `/var/lib/intranet/chaves`) | Pasta das chaves do DataProtection, que protegem cookie de sessão, antiforgery e TempData. Faça o bind mount dela: sem isso, recriar o container desconecta todo mundo. Vazia, vale o padrão do framework. ADR-0014. |
 | `Intranet__Documentos__TamanhoMaximoBytes` | Não (padrão 25 MB, `26214400`) | Tamanho máximo aceito por documento enviado. |
@@ -416,6 +416,33 @@ Não há mecanismo de rollback automático de migration — se precisar reverter
 `dotnet ef database update <migration-anterior>` manual, contra a connection string de cada
 tenant (`--project src/Secco.Intranet.Migrations.SqlServer` ou `.Postgres`).
 
+## Troca da chave mestra
+
+A chave de cada arquivo é embrulhada pela chave mestra. Trocar a mestra não regrava nenhum arquivo:
+o `migrate` reembrulha, para a chave ativa, só a coluna da chave de cada documento, imagem de
+destaque, imagem no texto e foto, em todos os tenants. Os arquivos continuam como estão na pasta.
+
+1. Gere a chave nova (base64, 32 bytes). Ponha a atual em
+   `Intranet__Documentos__Chave__ChavesAposentadas__0` (as anteriores seguem em `__1`, ...) e a
+   nova em `Intranet__Documentos__Chave__ChaveAtiva`.
+2. Faça o deploy normal, com o `migrate` antes de subir a aplicação (ver "Atualização (rollout)").
+   O `migrate` reembrulha o que encontrar.
+3. Durante o deploy, o container antigo ainda grava arquivos com a chave antiga. Depois que todos os
+   containers estiverem na configuração nova, rode o `migrate` de novo.
+4. Quando um `migrate` terminar com código 0 e sem nenhuma chave reembrulhada em nenhum tenant, a
+   aposentada pode sair da configuração.
+5. Guarde a chave retirada no cofre enquanto existir backup que dependa dela (ver "Backup e
+   restauração").
+
+No log do `migrate`, por tenant, aparecem a tabela, quantas chaves foram reembrulhadas e quantas
+ficaram "sem chave conhecida". Tenant sem nada a fazer não gera linha. O log não traz chave,
+connection string nem caminho de arquivo.
+
+**Código de saída 1 e "sem chave conhecida":** a chave de um arquivo que nenhuma chave configurada
+abre faz o tenant falhar. O `migrate` termina com código 1 e o seed de referência não roda. Costuma
+ser uma aposentada retirada cedo demais: recoloque-a em `ChavesAposentadas` e rode de novo. As outras
+chaves do tenant são reembrulhadas mesmo assim, e os outros tenants não são afetados.
+
 ## Backup e restauração
 
 Quatro peças, cada uma copiada do seu jeito:
@@ -468,17 +495,16 @@ a janela não é zero: um backup estrito pede a aplicação parada ou um horári
 
 **Rotação da chave mestra:** um backup antigo pode estar embrulhado com uma chave já aposentada.
 Guarde cada chave enquanto existir backup que dependa dela, mesmo depois de tirá-la de
-`Intranet__Documentos__Chave__ChavesAposentadas__*`. Ainda não há ferramenta que converta as
-chaves dos arquivos, então uma chave aposentada continua necessária enquanto existir arquivo
-cifrado com ela.
+`Intranet__Documentos__Chave__ChavesAposentadas__*`. O `migrate` só reembrulha o banco em uso, não
+os backups (ver "Troca da chave mestra").
 
 ### Restaurar
 
 Nesta ordem:
 
 1. **Configure as chaves mestras**: `Intranet__Documentos__Chave__ChaveAtiva` e, se o backup for de
-   antes de uma rotação, a chave da época em `ChavesAposentadas` (ainda não há ferramenta que
-   converta as chaves dos arquivos, então ela segue necessária).
+   antes de uma rotação, a chave da época em `ChavesAposentadas`. O `migrate` do passo 5 reembrulha as chaves dos
+   arquivos para a ativa (ver "Troca da chave mestra").
 2. **Restaure o banco.** Em outro servidor, o usuário do banco fica órfão e precisa ser religado ao
    login:
 

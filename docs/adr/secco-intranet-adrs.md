@@ -223,7 +223,7 @@ conteúdo estático nem têm endereço adivinhável — toda leitura passa por
 - Como a cifragem acontece na aplicação, um backend em nuvem enxerga apenas texto cifrado:
   trocar de armazenamento deixa de ser uma decisão de confiança.
 - Trocar a chave mestra só precisa reembrulhar a coluna da chave embrulhada — nenhum arquivo é
-  reescrito. A rotina que faz isso ainda não existe (ver roadmap). É também o que torna KMS viável: o que trafega são 32 bytes, não o documento.
+  reescrito. O `migrate` faz esse reembrulho em todos os tenants (2026-11-25). É também o que torna KMS viável: o que trafega são 32 bytes, não o documento.
 - Blocos de 64 KiB, e não um bloco único, porque GCM só autentica no fim da mensagem: um
   bloco único obrigaria a carregar o arquivo inteiro em memória antes de confiar em qualquer
   byte.

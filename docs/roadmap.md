@@ -340,10 +340,10 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [x] Avaliar trocar o embrulho de chave do `EnvelopeCipher` pelo `ISeccoSecretCipher` do
       `Secco.SDK.EntityFrameworkCore` (2026-11-25): o SDK 0.7.0 cobriu o embrulho e o conteúdo
       (`ISeccoFileCipher`, secco-platform#54), e o `EnvelopeCipher` saiu
-- [ ] Rotina de troca da chave mestra. Percorre o banco de cada tenant e reembrulha com
-      `RewrapKey` as chaves que `IsKeyWrappedWithActiveKey` aponta como antigas, nas quatro
-      colunas de chave (documento, imagem de destaque, imagem no texto, foto). É o que permite
-      descartar uma chave aposentada
+- [x] Rotina de troca da chave mestra (2026-11-25). O `migrate` percorre o banco de cada tenant
+      e reembrulha com `RewrapKey` as chaves que `IsKeyWrappedWithActiveKey` aponta como antigas,
+      nas quatro colunas de chave (documento, imagem de destaque, imagem no texto, foto). É o que
+      permite descartar uma chave aposentada
 - [ ] Padronizar o separador das tabelas em toda a documentação. Hoje o repositório usa a
       forma compacta (`|---|`) de ponta a ponta, e a regra `MD060` do markdownlint está
       desligada em `.vscode/settings.json` por isso. Se a padronização acontecer, a regra
