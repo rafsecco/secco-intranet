@@ -67,10 +67,11 @@ public sealed class DocumentosController(
 		{
 			await documento.EscreverConteudo(Response.Body, cancellationToken).ConfigureAwait(false);
 		}
-		catch (Exception falha) when (falha is not OperationCanceledException)
+		catch (Exception falha) when (falha is not OperationCanceledException && Response.HasStarted)
 		{
 			// Blocos anteriores já foram enviados com o Content-Length do conteúdo íntegro: a única
 			// resposta honesta é derrubar a conexão, para o cliente não tomar o corpo parcial por completo.
+			// Se nada saiu ainda (arquivo ausente, cabeçalho inválido), a exceção segue e vira erro 500.
 			// Só o tipo da exceção: a mensagem de falhas de I/O costuma trazer o caminho absoluto.
 			logger.LogError("Falha ao entregar o documento {DocumentoId}; a conexão foi abortada ({TipoDaFalha}).", id, falha.GetType().Name);
 
