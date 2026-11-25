@@ -1,10 +1,10 @@
-using Xunit;
 using System.Security.Cryptography;
 using AwesomeAssertions;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Secco.Intranet.Infrastructure.Armazenamento;
 using Secco.SDK.EntityFrameworkCore.Cryptography;
+using Xunit;
 
 namespace Secco.Intranet.Tests.Unit;
 
@@ -93,7 +93,9 @@ public sealed class CifradorDeArquivosTests
 
 		var acao = () => CifradorDeArquivos.Criar(options, new AmbienteFalso("Production"));
 
-		acao.Should().Throw<ChaveMestraException>();
+		acao.Should().Throw<ChaveMestraException>()
+			.WithMessage("*Chave mestra*")
+			.WithInnerException<SeccoSecretCipherException>();
 	}
 
 	[Fact]

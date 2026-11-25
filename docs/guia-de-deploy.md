@@ -468,14 +468,17 @@ a janela não é zero: um backup estrito pede a aplicação parada ou um horári
 
 **Rotação da chave mestra:** um backup antigo pode estar embrulhado com uma chave já aposentada.
 Guarde cada chave enquanto existir backup que dependa dela, mesmo depois de tirá-la de
-`Intranet__Documentos__Chave__ChavesAposentadas__*`.
+`Intranet__Documentos__Chave__ChavesAposentadas__*`. Ainda não há ferramenta que converta as
+chaves dos arquivos, então uma chave aposentada continua necessária enquanto existir arquivo
+cifrado com ela.
 
 ### Restaurar
 
 Nesta ordem:
 
 1. **Configure as chaves mestras**: `Intranet__Documentos__Chave__ChaveAtiva` e, se o backup for de
-   antes de uma rotação, a chave da época em `ChavesAposentadas`.
+   antes de uma rotação, a chave da época em `ChavesAposentadas` (ainda não há ferramenta que
+   converta as chaves dos arquivos, então ela segue necessária).
 2. **Restaure o banco.** Em outro servidor, o usuário do banco fica órfão e precisa ser religado ao
    login:
 

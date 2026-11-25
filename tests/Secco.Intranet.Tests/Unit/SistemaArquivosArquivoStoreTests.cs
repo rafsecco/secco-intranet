@@ -155,8 +155,43 @@ public sealed class SistemaArquivosArquivoStoreTests : IDisposable
 		var gravado = await store.GravarAsync(entrada);
 		var caminho = CaminhoNoDisco(gravado);
 		var bytes = await File.ReadAllBytesAsync(caminho);
-		bytes[20] ^= 0xFF;
+		// Cabeçalho tem 9 bytes: o byte 100 está dentro do texto cifrado do primeiro bloco.
+		bytes[100] ^= 0xFF;
 		await File.WriteAllBytesAsync(caminho, bytes);
+
+		using var saida = new MemoryStream();
+		var ler = () => store.EscreverEmAsync(gravado.CaminhoRelativo, gravado.ChaveEmbrulhada, saida);
+
+		await ler.Should().ThrowAsync<SeccoSecretCipherException>();
+	}
+
+	[Fact]
+	public async Task Ler_BlocoPosteriorAdulterado_Falha()
+	{
+		var store = CriarStore();
+		using var entrada = new MemoryStream(new byte[(3 * 65536) + 7]);
+		var gravado = await store.GravarAsync(entrada);
+		var caminho = CaminhoNoDisco(gravado);
+		var bytes = await File.ReadAllBytesAsync(caminho);
+		bytes[^50] ^= 0xFF;
+		await File.WriteAllBytesAsync(caminho, bytes);
+
+		using var saida = new MemoryStream();
+		var ler = () => store.EscreverEmAsync(gravado.CaminhoRelativo, gravado.ChaveEmbrulhada, saida);
+
+		await ler.Should().ThrowAsync<SeccoSecretCipherException>();
+	}
+
+	[Fact]
+	public async Task Ler_ArquivoSemOUltimoBloco_Falha()
+	{
+		var store = CriarStore();
+		using var entrada = new MemoryStream(new byte[(3 * 65536) + 7]);
+		var gravado = await store.GravarAsync(entrada);
+		var caminho = CaminhoNoDisco(gravado);
+		var bytes = await File.ReadAllBytesAsync(caminho);
+		// Corta no fim do terceiro bloco cheio: cabeçalho de 9 bytes + 3 blocos de 65536 + 16 (tag).
+		await File.WriteAllBytesAsync(caminho, bytes[..(9 + (3 * (65536 + 16)))]);
 
 		using var saida = new MemoryStream();
 		var ler = () => store.EscreverEmAsync(gravado.CaminhoRelativo, gravado.ChaveEmbrulhada, saida);
@@ -202,6 +237,9 @@ public sealed class SistemaArquivosArquivoStoreTests : IDisposable
 		var gravado = await store.GravarAsync(entrada);
 
 		gravado.Tamanho.Should().Be(1000);
+		using var saida = new MemoryStream();
+		await store.EscreverEmAsync(gravado.CaminhoRelativo, gravado.ChaveEmbrulhada, saida);
+		saida.ToArray().Should().Equal(new byte[1000]);
 	}
 
 	[Fact]
