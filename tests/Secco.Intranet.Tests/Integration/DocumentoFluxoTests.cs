@@ -134,7 +134,7 @@ public class DocumentoFluxoTests(IntranetWebFactory factory) : IClassFixture<Int
 
 		texto.Should().NotContain("marcador-secreto-do-teste-de-documento", "o conteúdo em repouso precisa estar cifrado");
 		texto.Should().NotStartWith("%PDF", "nem a assinatura do formato pode vazar");
-		texto.Should().StartWith("SCCOFILE", "o cabeçalho do formato cifrado identifica o arquivo");
+		texto.Should().StartWith("SECCOENC", "o cabeçalho do formato cifrado do SDK identifica o arquivo");
 	}
 
 	[Fact]

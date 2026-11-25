@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Secco.SDK.EntityFrameworkCore.Cryptography;
 
 namespace Secco.Intranet.Infrastructure.Armazenamento;
 
@@ -15,7 +16,7 @@ internal sealed class ValidacaoChaveMestraHostedService(IServiceProvider service
 	public Task StartAsync(CancellationToken cancellationToken)
 	{
 		using var scope = serviceProvider.CreateScope();
-		_ = scope.ServiceProvider.GetRequiredService<EnvelopeCipher>();
+		_ = scope.ServiceProvider.GetRequiredService<ISeccoFileCipher>();
 
 		return Task.CompletedTask;
 	}

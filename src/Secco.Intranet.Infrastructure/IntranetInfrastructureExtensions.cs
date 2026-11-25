@@ -27,6 +27,7 @@ using Secco.LogStream.Client;
 using Secco.NotificationHub.Client;
 using Secco.SDK.AspNetCore.Tenancy;
 using Secco.SDK.ClientCredentials;
+using Secco.SDK.EntityFrameworkCore.Cryptography;
 using Secco.SDK.EntityFrameworkCore.Migrations;
 using Secco.SDK.EntityFrameworkCore.Seeding;
 using Secco.SDK.Imaging;
@@ -74,8 +75,9 @@ public static class IntranetInfrastructureExtensions
 		services.AddSingleton(sp => BindSection(sp, AuditoriaOptions.SectionKey, new AuditoriaOptions()));
 		services.AddSingleton(sp => BindSection(sp, VencimentosOptions.SectionKey, new VencimentosOptions()));
 
-		// A cifragem em envelope nao depende do tenant: uma instancia serve a aplicacao toda.
-		services.AddSingleton<EnvelopeCipher>();
+		// A cifragem de arquivo (SDK, em envelope) nao depende do tenant: uma instancia serve a aplicacao toda.
+		services.AddSingleton<ISeccoFileCipher>(sp => CifradorDeArquivos.Criar(
+			sp.GetRequiredService<ChaveMestraOptions>(), sp.GetRequiredService<IHostEnvironment>()));
 
 		// Ja o armazenamento depende: o caminho sai do tenant da requisicao (ADR-0005).
 		services.AddScoped<IArquivoStore, SistemaArquivosArquivoStore>();
