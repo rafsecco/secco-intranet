@@ -5,6 +5,11 @@ Mudanças que exigem ajuste de quem já roda a Intranet. O formato segue
 
 ## [Não lançado]
 
+### Pacotes da plataforma
+
+- `Secco.SharedKernel` 0.7.13 → 0.7.14
+- `Secco.SDK.EntityFrameworkCore` 0.6.0 → 0.7.0
+
 ### Links do menu principal
 
 Detalhes na [spec](docs/specs/2026-11-18-links-do-menu-principal-design.md) e na ADR-0016.
