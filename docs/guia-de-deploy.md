@@ -426,7 +426,9 @@ destaque, imagem no texto e foto, em todos os tenants. Os arquivos continuam com
    `Intranet__Documentos__Chave__ChavesAposentadas__0` (as anteriores seguem em `__1`, ...) e a
    nova em `Intranet__Documentos__Chave__ChaveAtiva`.
 2. Faça o deploy normal, com o `migrate` antes de subir a aplicação (ver "Atualização (rollout)").
-   O `migrate` reembrulha o que encontrar.
+   O `migrate` reembrulha o que encontrar. Ele precisa da mesma configuração de chaves da aplicação
+   (`Intranet__Documentos__Chave__ChaveAtiva` e `ChavesAposentadas`): fora de Development, sem a
+   chave ativa ele para antes de tocar em qualquer tenant.
 3. Durante o deploy, o container antigo ainda grava arquivos com a chave antiga. Depois que todos os
    containers estiverem na configuração nova, rode o `migrate` de novo.
 4. Quando um `migrate` terminar com código 0 e sem nenhuma chave reembrulhada em nenhum tenant, a
@@ -503,8 +505,8 @@ os backups (ver "Troca da chave mestra").
 Nesta ordem:
 
 1. **Configure as chaves mestras**: `Intranet__Documentos__Chave__ChaveAtiva` e, se o backup for de
-   antes de uma rotação, a chave da época em `ChavesAposentadas`. O `migrate` do passo 5 reembrulha as chaves dos
-   arquivos para a ativa (ver "Troca da chave mestra").
+   antes de uma rotação, a chave da época em `ChavesAposentadas`. O próximo `migrate` reembrulha as
+   chaves dos arquivos para a ativa (ver "Troca da chave mestra").
 2. **Restaure o banco.** Em outro servidor, o usuário do banco fica órfão e precisa ser religado ao
    login:
 

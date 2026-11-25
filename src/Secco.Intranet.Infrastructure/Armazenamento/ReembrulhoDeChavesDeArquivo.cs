@@ -30,6 +30,11 @@ internal sealed record ResultadoDoReembrulho(IReadOnlyList<ContagemDaColuna> Col
 /// Só as chaves mudam: nenhum arquivo é lido nem regravado.
 /// </summary>
 /// <param name="cipher">Cifrador de arquivos com a chave ativa e as aposentadas.</param>
+/// <remarks>
+/// As quatro colunas são processadas sem transação de propósito: cada troca só acontece se a chave
+/// lida ainda for a mesma, então uma passada interrompida deixa cada linha antiga (ainda legível pela
+/// chave aposentada) ou nova, e o próximo <c>migrate</c> converge.
+/// </remarks>
 internal sealed class ReembrulhoDeChavesDeArquivo(ISeccoFileCipher cipher)
 {
 	/// <summary>Passa as quatro colunas de chave embrulhada e troca as que não estão em dia.</summary>
