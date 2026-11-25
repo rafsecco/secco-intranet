@@ -337,12 +337,13 @@ processos (maior risco técnico) só entra com a base já sólida.
 - [ ] Automação opcional de clonagem de perfis admin/user por setor, se um caso de uso
       concreto justificar (ver ADR-0001)
 - [ ] Pesquisas de clima organizacional, outros extras
-- [ ] Avaliar trocar o embrulho de chave do `EnvelopeCipher` pelo `ISeccoSecretCipher` do
-      `Secco.SDK.EntityFrameworkCore` 0.4.0. O SDK promoveu o mesmo formato `secco-enc:v1:`
-      que este produto implementou por conta própria — e o changelog da plataforma cita
-      justamente esta duplicação. O formato é idêntico, então a troca não migra dado; o que
-      precisa de cuidado é a cifragem do **conteúdo** em blocos, que é nossa e não tem
-      equivalente lá
+- [x] Avaliar trocar o embrulho de chave do `EnvelopeCipher` pelo `ISeccoSecretCipher` do
+      `Secco.SDK.EntityFrameworkCore` (2026-11-25): o SDK 0.7.0 cobriu o embrulho e o conteúdo
+      (`ISeccoFileCipher`, secco-platform#54), e o `EnvelopeCipher` saiu
+- [ ] Rotina de troca da chave mestra. Percorre o banco de cada tenant e reembrulha com
+      `RewrapKey` as chaves que `IsKeyWrappedWithActiveKey` aponta como antigas, nas quatro
+      colunas de chave (documento, imagem de destaque, imagem no texto, foto). É o que permite
+      descartar uma chave aposentada
 - [ ] Padronizar o separador das tabelas em toda a documentação. Hoje o repositório usa a
       forma compacta (`|---|`) de ponta a ponta, e a regra `MD060` do markdownlint está
       desligada em `.vscode/settings.json` por isso. Se a padronização acontecer, a regra

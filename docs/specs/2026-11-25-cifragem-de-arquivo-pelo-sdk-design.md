@@ -1,6 +1,6 @@
 # Cifragem de arquivo pelo SDK — design
 
-**Estado:** proposta.
+**Estado:** entregue em 2026-11-25.
 
 ## Por quê
 

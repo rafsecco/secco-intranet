@@ -204,7 +204,7 @@ arquivos. O caminho é montado dentro da implementação a partir do tenant corr
 que pode ser renomeado. Backends em nuvem (S3, Blob, GCS) implementam a mesma porta.
 
 **Cifragem em envelope**: cada arquivo recebe uma chave própria; o conteúdo é cifrado com
-ela em blocos de 1 MiB de AES-256-GCM, cada bloco com nonce e tag próprios e o índice mais a
+ela em blocos de 64 KiB de AES-256-GCM, cada bloco com nonce e tag próprios e o índice mais a
 marca de último bloco como dado associado. A chave do arquivo é embrulhada por uma chave
 mestra e guardada na coluna `ds_chave_embrulhada`, no formato versionado `secco-enc:v1:` já
 adotado pela plataforma (ADR-0025). A origem da chave mestra fica atrás de
@@ -215,12 +215,16 @@ empresa toda; `{slug}-user` lê o que é do setor. Arquivos **nunca** são servi
 conteúdo estático nem têm endereço adivinhável — toda leitura passa por
 `GET /documentos/{id}/download`, que avalia a visibilidade e faz streaming decifrado.
 
+**Atualização (2026-11-25):** a cifragem passou a ser a do `Secco.SDK.EntityFrameworkCore`
+(`ISeccoFileCipher`, ADR-0061 da plataforma), formato `SECCOENC` v1, construção STREAM; o
+`EnvelopeCipher` próprio saiu.
+
 ### Consequências
 - Como a cifragem acontece na aplicação, um backend em nuvem enxerga apenas texto cifrado:
   trocar de armazenamento deixa de ser uma decisão de confiança.
 - Rotacionar a chave mestra reescreve só a coluna da chave embrulhada — nenhum arquivo é
   reescrito. É também o que torna KMS viável: o que trafega são 32 bytes, não o documento.
-- Blocos de 1 MiB, e não um bloco único, porque GCM só autentica no fim da mensagem: um
+- Blocos de 64 KiB, e não um bloco único, porque GCM só autentica no fim da mensagem: um
   bloco único obrigaria a carregar o arquivo inteiro em memória antes de confiar em qualquer
   byte.
 - Documento inexistente e documento fora do alcance devolvem o **mesmo** erro: distinguir os

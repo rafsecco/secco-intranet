@@ -19,9 +19,10 @@ fora.
 Todo arquivo é gravado cifrado, e a cifragem é feita pela própria aplicação, antes de o arquivo
 chegar ao disco. Ela não depende de o disco ou o serviço de armazenamento serem cifrados.
 
-- **Algoritmo:** AES-256-GCM.
+- **Algoritmo:** AES-256-GCM. A cifragem vem do SDK da plataforma (`Secco.SDK.EntityFrameworkCore`,
+  ADR-0061 da plataforma), não de código próprio.
 - **Uma chave por arquivo:** cada arquivo recebe uma chave própria de 256 bits, sorteada no envio.
-- **Integridade:** o conteúdo é cifrado em blocos de 1 MiB, e cada bloco é autenticado. Um arquivo
+- **Integridade:** o conteúdo é cifrado em blocos de 64 KiB, e cada bloco é autenticado. Um arquivo
   alterado, truncado ou com blocos trocados de lugar não é aberto. A aplicação recusa em vez de
   entregar conteúdo adulterado.
 - **Chave mestra:** a chave de cada arquivo é cifrada por uma chave mestra, também AES-256-GCM, e
@@ -59,9 +60,11 @@ A cifragem só protege se a chave mestra for bem guardada, e isso é responsabil
 - **Guardar num cofre:** fora do servidor e separada do backup. Chave guardada junto do backup é o
   mesmo que não cifrar.
 - **Perder a chave é perder todos os arquivos.** Não há como recuperar.
-- **Troca de chave:** uma chave nova passa a cifrar, e as antigas ficam só para ler o que ainda não
-  foi convertido. A troca regrava apenas as chaves dos arquivos no banco, sem regravar nenhum
-  arquivo.
+- **Troca de chave:** uma chave nova cifra os arquivos novos, e as antigas, nas aposentadas,
+  continuam necessárias para ler os arquivos anteriores. Ainda não há ferramenta que converta as
+  chaves dos arquivos antigos para a chave nova, então uma chave aposentada não pode ser descartada
+  enquanto existir arquivo cifrado com ela. Quando a ferramenta existir, ela regrava só as chaves no
+  banco, não os arquivos.
 - **Pasta fora da área pública:** a pasta de armazenamento fica fora da pasta pública da
   aplicação.
 - **HTTPS:** a proteção no caminho entre o navegador e o servidor vem do HTTPS da instalação, que a

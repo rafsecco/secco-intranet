@@ -10,6 +10,21 @@ Mudanças que exigem ajuste de quem já roda a Intranet. O formato segue
 - `Secco.SharedKernel` 0.7.13 → 0.7.14
 - `Secco.SDK.EntityFrameworkCore` 0.6.0 → 0.7.0
 
+### Cifragem dos arquivos
+
+Detalhes na [spec](docs/specs/2026-11-25-cifragem-de-arquivo-pelo-sdk-design.md) e na ADR-0005.
+
+A cifragem dos arquivos (documentos, imagens do Mural, fotos do Diretório) passa a ser a do
+`Secco.SDK.EntityFrameworkCore` (`ISeccoFileCipher`, ADR-0061 da plataforma, secco-platform#54):
+formato `SECCOENC` v1, blocos de 64 KiB. O `EnvelopeCipher` próprio saiu. Não há ferramenta de
+troca da chave mestra: uma chave em `ChavesAposentadas` continua necessária enquanto existir arquivo
+cifrado com ela.
+
+### Quebras — Cifragem dos arquivos
+
+**Arquivos:** os gravados antes, no formato antigo (`SCCOFILE`), não abrem mais. Para limpar, apague
+os arquivos e os registros que apontam para eles, ou zere o banco e a pasta de armazenamento de dev.
+
 ### Links do menu principal
 
 Detalhes na [spec](docs/specs/2026-11-18-links-do-menu-principal-design.md) e na ADR-0016.
