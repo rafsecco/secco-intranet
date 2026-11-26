@@ -56,6 +56,8 @@ public sealed class FormatoDeDatas
 
 		DicaDeData = Dica(PadraoDeData);
 		DicaDeDataEHora = $"{DicaDeData} hh:mm";
+		MascaraDeData = Regex.Replace(PadraoDeData, "[dMy]", "9");
+		MascaraDeDataEHora = $"{MascaraDeData} 99:99";
 		MensagemDeDataInvalida = $"Informe uma data válida no formato {DicaDeData}.";
 		MensagemDeDataEHoraInvalida = $"Informe data e hora válidas no formato {DicaDeDataEHora}.";
 	}
@@ -74,6 +76,12 @@ public sealed class FormatoDeDatas
 
 	/// <summary>Dica do campo de data e hora (ex.: <c>dd/mm/aaaa hh:mm</c>).</summary>
 	public string DicaDeDataEHora { get; }
+
+	/// <summary>Máscara do campo de data para o script do tema: <c>9</c> é dígito, o resto é separador (ex.: <c>99/99/9999</c>).</summary>
+	public string MascaraDeData { get; }
+
+	/// <summary>Máscara do campo de data e hora (ex.: <c>99/99/9999 99:99</c>).</summary>
+	public string MascaraDeDataEHora { get; }
 
 	/// <summary>Mensagem para data que não pôde ser lida.</summary>
 	public string MensagemDeDataInvalida { get; }

@@ -136,4 +136,33 @@
       }
     }
   });
+
+  // Campo com mascara (<input data-mascara="99/99/9999">): enquanto a pessoa digita, so os digitos
+  // contam e os separadores entram sozinhos ("26112030" vira "26/11/2030"). O servidor gera a
+  // mascara a partir da cultura configurada. Apagar nao reformata, para cada Backspace tirar um
+  // caractere so; editar no meio do texto tambem nao. Sem JS o campo aceita o texto como veio.
+  function mascarar(mascara, valor) {
+    var digitos = valor.replace(/\D/g, '');
+    var saida = '';
+    var i = 0;
+    var k = 0;
+    for (; k < mascara.length && i < digitos.length; k++) {
+      saida += mascara.charAt(k) === '9' ? digitos.charAt(i++) : mascara.charAt(k);
+    }
+    // Grupo completo: o separador seguinte ja aparece.
+    while (k < mascara.length && mascara.charAt(k) !== '9' && digitos.length > 0) {
+      saida += mascara.charAt(k++);
+    }
+    return saida;
+  }
+
+  document.addEventListener('input', function (evento) {
+    var campo = evento.target;
+    var mascara = campo && campo.getAttribute && campo.getAttribute('data-mascara');
+    if (!mascara || campo.selectionStart !== campo.value.length) { return; }
+    if (typeof evento.inputType === 'string' && evento.inputType.indexOf('delete') === 0) { return; }
+
+    var formatado = mascarar(mascara, campo.value);
+    if (formatado !== campo.value) { campo.value = formatado; }
+  });
 })();

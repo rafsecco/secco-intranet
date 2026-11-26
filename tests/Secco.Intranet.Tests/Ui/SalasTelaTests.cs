@@ -102,6 +102,31 @@ public class SalasTelaTests(TelaFixture f) : IClassFixture<TelaFixture>
 	[UiTheory]
 	[InlineData("Vertical")]
 	[InlineData("Horizontal")]
+	public async Task CampoDeData_MascaraPoeAsBarras_EBackspaceApaga(string tema)
+	{
+		var pagina = await f.AbrirSalasAsync(tema, $"/salas/reservar?sala={f.SalaAId}&data={DiaDaReserva}");
+		var campo = pagina.Locator("#reserva-data");
+		await campo.FillAsync(string.Empty);
+
+		await campo.PressSequentiallyAsync("26");
+		await Expect(campo).ToHaveValueAsync("26/");
+
+		await campo.PressSequentiallyAsync("112030");
+		await Expect(campo).ToHaveValueAsync("26/11/2030");
+
+		await campo.PressAsync("End");
+		for (var i = 0; i < 5; i++)
+		{
+			await campo.PressAsync("Backspace");
+		}
+
+		await Expect(campo).ToHaveValueAsync("26/11");
+		f.ErrosDeScript(pagina).Should().BeEmpty();
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
 	public async Task Capacidade_AcompanhaASalaEAvisaQuandoLota(string tema)
 	{
 		var pagina = await f.AbrirSalasAsync(tema, $"/salas/reservar?sala={f.SalaBId}&data={DiaDaReserva}");

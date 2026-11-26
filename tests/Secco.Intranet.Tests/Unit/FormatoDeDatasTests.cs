@@ -19,6 +19,8 @@ public class FormatoDeDatasTests
 		PtBr.Hora(new TimeOnly(14, 0)).Should().Be("14:00");
 		PtBr.DicaDeData.Should().Be("dd/mm/aaaa");
 		PtBr.DicaDeDataEHora.Should().Be("dd/mm/aaaa hh:mm");
+		PtBr.MascaraDeData.Should().Be("99/99/9999");
+		PtBr.MascaraDeDataEHora.Should().Be("99/99/9999 99:99");
 		PtBr.DiaPorExtenso(new DateOnly(2030, 1, 3)).Should().Be("Quinta-feira, 03/01/2030");
 	}
 
@@ -56,6 +58,7 @@ public class FormatoDeDatasTests
 	{
 		EnUs.Data(new DateOnly(2030, 1, 3)).Should().Be("01/03/2030");
 		EnUs.DicaDeData.Should().Be("mm/dd/yyyy");
+		new FormatoDeDatas("de-DE").MascaraDeData.Should().Be("99.99.9999");
 		EnUs.TentarLerData("01/03/2030", out var data).Should().BeTrue();
 		data.Should().Be(new DateOnly(2030, 1, 3));
 		EnUs.DiaPorExtenso(new DateOnly(2030, 1, 3)).Should().Be("Thursday, 01/03/2030");

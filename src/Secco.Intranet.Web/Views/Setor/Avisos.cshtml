@@ -124,13 +124,13 @@
                 <div class="col-md-4">
                     <label class="form-label" asp-for="Form.PublicadoEm">Entra no ar em</label>
                     <input class="form-control" type="text" asp-for="Form.PublicadoEm" value="@CampoDeData.Valor(ViewData.ModelState, "Form.PublicadoEm", Formato.DataEHora(Model.Form.PublicadoEm))"
-                           placeholder="@Formato.DicaDeDataEHora" maxlength="16" autocomplete="off" />
+                           placeholder="@Formato.DicaDeDataEHora" data-mascara="@Formato.MascaraDeDataEHora" inputmode="numeric" maxlength="16" autocomplete="off" />
                 </div>
 
                 <div class="col-md-4">
                     <label class="form-label" asp-for="Form.ExpiraEm">Sai do ar em</label>
                     <input class="form-control" type="text" asp-for="Form.ExpiraEm" value="@CampoDeData.Valor(ViewData.ModelState, "Form.ExpiraEm", Formato.DataEHora(Model.Form.ExpiraEm))"
-                           placeholder="@Formato.DicaDeDataEHora" maxlength="16" autocomplete="off" />
+                           placeholder="@Formato.DicaDeDataEHora" data-mascara="@Formato.MascaraDeDataEHora" inputmode="numeric" maxlength="16" autocomplete="off" />
                 </div>
 
                 <div class="col-12">

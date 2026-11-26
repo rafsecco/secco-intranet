@@ -62,7 +62,7 @@ O `intranet-admin` cadastra as salas em `/salas/gerenciar`; qualquer pessoa loga
 
 ### Datas nos formulários
 
-Os campos de data das salas, dos vencimentos e dos avisos do setor deixam de usar o seletor do navegador, que mostra o formato do idioma do navegador (mm/dd/aaaa, AM/PM), e passam a ser texto no padrão da cultura configurada em `Intranet__Formatos__Cultura` (padrão `pt-BR`: dd/mm/aaaa e 24 horas). O formato aaaa-mm-dd continua aceito. Data que não pode ser lida volta com o texto digitado e a mensagem do formato esperado. Na reserva de sala, início e fim viram listas de 15 em 15 minutos, a grade mostra o dia por extenso, o formulário mostra a capacidade da sala com aviso quando os participantes passam dela, e o `intranet-admin` ganha o atalho "Gerenciar salas".
+Os campos de data das salas, dos vencimentos e dos avisos do setor deixam de usar o seletor do navegador, que mostra o formato do idioma do navegador (mm/dd/aaaa, AM/PM), e passam a ser texto no padrão da cultura configurada em `Intranet__Formatos__Cultura` (padrão `pt-BR`: dd/mm/aaaa e 24 horas). O formato aaaa-mm-dd continua aceito. Ao digitar, os separadores entram sozinhos (26112030 vira 26/11/2030), por uma máscara gerada da mesma cultura. Data que não pode ser lida volta com o texto digitado e a mensagem do formato esperado. Na reserva de sala, início e fim viram listas de 15 em 15 minutos, a grade mostra o dia por extenso, o formulário mostra a capacidade da sala com aviso quando os participantes passam dela, e o `intranet-admin` ganha o atalho "Gerenciar salas".
 
 **Correção:** a aplicação não subia em Development sem provedor de agenda configurado (o processamento do espelhamento era registrado sem a agenda).
 

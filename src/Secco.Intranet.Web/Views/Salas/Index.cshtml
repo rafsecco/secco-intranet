@@ -73,7 +73,7 @@ else
 			<form method="get" asp-action="Index" class="sc-salas__escolher-dia">
 				<label class="visually-hidden" for="salas-data">Ir para o dia (@Formato.DicaDeData)</label>
 				<input class="form-control" id="salas-data" name="data" value="@diaMostrado"
-					   inputmode="numeric" placeholder="@Formato.DicaDeData" maxlength="10" autocomplete="off" />
+					   inputmode="numeric" placeholder="@Formato.DicaDeData" data-mascara="@Formato.MascaraDeData" maxlength="10" autocomplete="off" />
 				<input type="hidden" name="sala" value="@Model.SalaEmFoco" />
 				<button class="btn btn-outline-secondary" type="submit">Ir</button>
 			</form>
