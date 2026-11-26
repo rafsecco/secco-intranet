@@ -117,6 +117,69 @@ public partial class ReservaDeSalaTelasTests(IntranetWebFactory factory) : IClas
 	}
 
 	[Fact]
+	public async Task Reservar_DataNoFormatoBrasileiro_Grava()
+	{
+		var sala = await CriarSalaAsync();
+		var dia = DateOnly.ParseExact(DiaUnico(), "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+		var ana = CriarCliente(Ana);
+
+		var resposta = await ReservarAsync(ana, sala.Id, dia.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture), "Data brasileira");
+
+		resposta.EnsureSuccessStatusCode();
+		var html = AuxiliaresDeHttp.Decodificar(await ana.GetStringAsync($"/salas?data={dia:yyyy-MM-dd}"));
+		html.Should().Contain("Data brasileira");
+	}
+
+	[Fact]
+	public async Task Reservar_DataInvalida_MostraErroENaoGrava()
+	{
+		var sala = await CriarSalaAsync();
+		var ana = CriarCliente(Ana);
+
+		var html = await TextoAsync(await ReservarAsync(ana, sala.Id, "31/02/2030", "Nunca grava"));
+
+		html.Should().Contain("dd/mm/aaaa");
+	}
+
+	[Fact]
+	public async Task Grade_MostraODiaEmPortugues_ECamposSemFormatoDoNavegador()
+	{
+		var ana = CriarCliente(Ana);
+		await CriarSalaAsync();
+
+		var grade = AuxiliaresDeHttp.Decodificar(await ana.GetStringAsync("/salas?data=2030-01-03"));
+		var formulario = AuxiliaresDeHttp.Decodificar(await ana.GetStringAsync("/salas/reservar?data=2030-01-03&inicio=14:00"));
+
+		grade.Should().Contain("Quinta-feira, 03/01/2030").And.Contain("value=\"03/01/2030\"");
+		formulario.Should().Contain("value=\"03/01/2030\"").And.Contain("<option value=\"14:00\" selected=\"selected\">14:00</option>");
+		(grade + formulario).Should().NotContain("type=\"date\"").And.NotContain("type=\"time\"");
+	}
+
+	[Fact]
+	public async Task Formulario_MostraACapacidadeDaSala_SemAvisoQuandoCabe()
+	{
+		var sala = await CriarSalaAsync();
+		var ana = CriarCliente(Ana);
+
+		var html = AuxiliaresDeHttp.Decodificar(await ana.GetStringAsync($"/salas/reservar?sala={sala.Id}"));
+
+		html.Should().Contain("Capacidade: 8 pessoas.").And.Contain("data-capacidade=\"8\"");
+		Regex.IsMatch(html, "data-salas-lotacao hidden").Should().BeTrue("com só quem reserva, a sala de 8 lugares não lota");
+	}
+
+	[Fact]
+	public async Task Grade_AdminVeGerenciarSalas_UsuarioNaoVe()
+	{
+		await CriarSalaAsync();
+
+		var admin = AuxiliaresDeHttp.Decodificar(await CriarCliente(Ana, admin: true).GetStringAsync("/salas"));
+		var usuario = AuxiliaresDeHttp.Decodificar(await CriarCliente(Bruno).GetStringAsync("/salas"));
+
+		admin.Should().Contain("href=\"/salas/gerenciar\"");
+		usuario.Should().NotContain("href=\"/salas/gerenciar\"");
+	}
+
+	[Fact]
 	public async Task Grade_MostraSalasAtivasEAReserva()
 	{
 		var ativa = await CriarSalaAsync();
@@ -152,7 +215,7 @@ public partial class ReservaDeSalaTelasTests(IntranetWebFactory factory) : IClas
 	{
 		await CriarSalaAsync();
 		await using var escopo = factory.Services.CreateAsyncScope();
-		var hoje = escopo.ServiceProvider.GetRequiredService<RelogioDeSalas>().Hoje().ToString("yyyy-MM-dd");
+		var hoje = escopo.ServiceProvider.GetRequiredService<RelogioDeSalas>().Hoje().ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
 
 		var resposta = await CriarCliente(Ana).GetAsync("/salas?data=isso-nao-e-data");
 		var html = await TextoAsync(resposta);

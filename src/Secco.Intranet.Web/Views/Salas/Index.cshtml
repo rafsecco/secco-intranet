@@ -7,15 +7,33 @@
 	var dia = Model.Dia.ToString("yyyy-MM-dd", invariante);
 	var anterior = Model.Dia.AddDays(-1).ToString("yyyy-MM-dd", invariante);
 	var seguinte = Model.Dia.AddDays(1).ToString("yyyy-MM-dd", invariante);
+	var diaMostrado = Model.Dia.ToString("dd/MM/yyyy", invariante);
+
+	// Dia por extenso em português, qualquer que seja a cultura do servidor: "Quinta-feira, 26/11/2026".
+	var semana = Model.Dia.ToString("dddd", CultureInfo.GetCultureInfo("pt-BR"));
+	var diaPorExtenso = $"{char.ToUpperInvariant(semana[0])}{semana[1..]}, {diaMostrado}";
 
 	var novaReserva = new PageActionModel(
 		"Nova reserva", Url.Action("Reservar", new { sala = Model.SalaEmFoco, data = dia })!, "bi-plus-lg", Primaria: true);
 	var minhas = new PageActionModel("Minhas reservas", Url.Action("Minhas")!, "bi-calendar-check");
+	var gerenciar = new PageActionModel("Gerenciar salas", Url.Action("Gerenciar")!, "bi-gear");
+
+	var acoes = new List<PageActionModel>();
+	if (Model.PodeGerenciarSalas)
+	{
+		acoes.Add(gerenciar);
+	}
+
+	acoes.Add(minhas);
+	if (Model.Colunas.Count > 0)
+	{
+		acoes.Add(novaReserva);
+	}
 
 	var cabecalho = new PageHeaderModel(
 		"Salas",
 		"Quem está com cada sala, de 15 em 15 minutos.",
-		Acoes: Model.Colunas.Count == 0 ? new[] { minhas } : new[] { minhas, novaReserva });
+		Acoes: acoes);
 
 	var vazio = new EmptyStateModel(
 		"bi-door-open",
@@ -51,15 +69,17 @@ else
 			<a class="btn btn-outline-secondary" asp-action="Index" asp-route-data="@anterior" asp-route-sala="@Model.SalaEmFoco" aria-label="Dia anterior">
 				<i class="bi bi-chevron-left" aria-hidden="true"></i>
 			</a>
-			<form method="get" asp-action="Index" class="sc-salas__escolher-dia">
-				<label class="visually-hidden" for="salas-data">Dia</label>
-				<input class="form-control" id="salas-data" type="date" name="data" value="@dia" />
-				<input type="hidden" name="sala" value="@Model.SalaEmFoco" />
-				<button class="btn btn-outline-secondary" type="submit">Ir</button>
-			</form>
+			<h2 class="sc-salas__titulo-do-dia">@diaPorExtenso</h2>
 			<a class="btn btn-outline-secondary" asp-action="Index" asp-route-data="@seguinte" asp-route-sala="@Model.SalaEmFoco" aria-label="Próximo dia">
 				<i class="bi bi-chevron-right" aria-hidden="true"></i>
 			</a>
+			<form method="get" asp-action="Index" class="sc-salas__escolher-dia">
+				<label class="visually-hidden" for="salas-data">Ir para o dia (dd/mm/aaaa)</label>
+				<input class="form-control" id="salas-data" name="data" value="@diaMostrado"
+					   inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" autocomplete="off" />
+				<input type="hidden" name="sala" value="@Model.SalaEmFoco" />
+				<button class="btn btn-outline-secondary" type="submit">Ir</button>
+			</form>
 		</div>
 
 		<nav class="sc-salas__abas" aria-label="Salas">

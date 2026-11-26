@@ -75,7 +75,7 @@ public class SalasTelaTests(TelaFixture f) : IClassFixture<TelaFixture>
 
 		await Expect(pagina).ToHaveURLAsync(new Regex("inicio=14(:|%3A)00$", RegexOptions.IgnoreCase));
 		await Expect(pagina.Locator("#reserva-sala")).ToHaveValueAsync(f.SalaBId.ToString());
-		await Expect(pagina.Locator("#reserva-data")).ToHaveValueAsync(DiaDaReserva);
+		await Expect(pagina.Locator("#reserva-data")).ToHaveValueAsync(f.DiaDaReservaFicticia.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture));
 		await Expect(pagina.Locator("#reserva-inicio")).ToHaveValueAsync("14:00");
 		await Expect(pagina.Locator("#reserva-fim")).ToHaveValueAsync("15:00");
 	}
@@ -96,6 +96,39 @@ public class SalasTelaTests(TelaFixture f) : IClassFixture<TelaFixture>
 		var bloco = pagina.Locator("td.sc-salas__reserva", new() { HasTextString = titulo });
 		await Expect(bloco).ToBeVisibleAsync();
 		await Expect(bloco).ToHaveAttributeAsync("rowspan", "4");
+		f.ErrosDeScript(pagina).Should().BeEmpty();
+	}
+
+	[UiTheory]
+	[InlineData("Vertical")]
+	[InlineData("Horizontal")]
+	public async Task Capacidade_AcompanhaASalaEAvisaQuandoLota(string tema)
+	{
+		var pagina = await f.AbrirSalasAsync(tema, $"/salas/reservar?sala={f.SalaBId}&data={DiaDaReserva}");
+		var capacidade = pagina.Locator("[data-salas-capacidade]");
+		var aviso = pagina.Locator("[data-salas-lotacao]");
+		await Expect(capacidade).ToHaveTextAsync("Capacidade: 4 pessoas.");
+		await Expect(aviso).ToBeHiddenAsync();
+
+		var caixas = pagina.Locator("input[name='Convidados']");
+		var convidados = await caixas.CountAsync();
+		convidados.Should().BeGreaterThanOrEqualTo(4, "a Sala B tem 4 lugares e quem reserva ocupa um");
+		for (var i = 0; i < convidados; i++)
+		{
+			await caixas.Nth(i).CheckAsync();
+		}
+
+		await Expect(aviso).ToBeVisibleAsync();
+		await Expect(aviso).ToContainTextAsync($"{convidados + 1} participantes");
+
+		await pagina.Locator("#reserva-sala").SelectOptionAsync(f.SalaAId.ToString());
+
+		await Expect(capacidade).ToHaveTextAsync("Capacidade: 8 pessoas.");
+		if (convidados + 1 <= 8)
+		{
+			await Expect(aviso).ToBeHiddenAsync();
+		}
+
 		f.ErrosDeScript(pagina).Should().BeEmpty();
 	}
 

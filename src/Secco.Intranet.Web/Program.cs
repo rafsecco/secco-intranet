@@ -28,7 +28,9 @@ using Secco.SDK.Logging;
 // Intranet é um cliente humano (cookie de sessão), não um resource server.
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllersWithViews();
+// Datas chegam como dd/mm/aaaa (o que as telas mostram) ou aaaa-mm-dd (links), sem depender da cultura do servidor.
+builder.Services.AddControllersWithViews(opcoes =>
+	opcoes.ModelBinderProviders.Insert(0, new Secco.Intranet.Web.Hosting.DataBrasileiraModelBinderProvider()));
 
 // A página do setor mora na raiz (/{slug}/…): a restrição recusa os slugs reservados, que vêm
 // das rotas registradas — uma RCL referenciada reserva os dela sem editar o core.

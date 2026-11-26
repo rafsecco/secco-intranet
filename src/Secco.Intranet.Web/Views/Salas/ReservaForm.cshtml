@@ -7,8 +7,18 @@
 
 	var invariante = CultureInfo.InvariantCulture;
 	var data = Model.Data?.ToString("yyyy-MM-dd", invariante);
+	var dataMostrada = Model.Data?.ToString("dd/MM/yyyy", invariante);
 	var inicio = Model.Inicio?.ToString("HH:mm", invariante);
 	var fim = Model.Fim?.ToString("HH:mm", invariante);
+
+	// Horas de 15 em 15 minutos: lista em vez do campo nativo, que mostra AM/PM conforme o idioma do navegador.
+	var horas = Enumerable.Range(0, 96).Select(passo => new TimeOnly(passo / 4, passo % 4 * 15)).ToList();
+	var horasDeInicio = horas;
+	var horasDeFim = horas.Skip(1).ToList();
+
+	var salaEscolhida = Model.Salas.FirstOrDefault(sala => sala.Id == Model.SalaId) ?? Model.Salas.FirstOrDefault();
+	var participantes = Model.Convidados.Count + 1;
+	var lotada = salaEscolhida?.Capacidade is { } lugares && participantes > lugares;
 
 	var cabecalho = new PageHeaderModel(
 		titulo,
@@ -46,24 +56,42 @@ else
 				<select class="form-select" id="reserva-sala" name="SalaId">
 					@foreach (var sala in Model.Salas)
 					{
-						<option value="@sala.Id" selected="@(sala.Id == Model.SalaId)">@sala.Nome</option>
+						<option value="@sala.Id" selected="@(sala.Id == Model.SalaId)" data-capacidade="@sala.Capacidade">@sala.Nome</option>
 					}
 				</select>
+				<div class="form-text" id="reserva-capacidade" data-salas-capacidade>@Capacidade(salaEscolhida?.Capacidade)</div>
+				<div class="alert alert-warning mt-2 mb-0" role="status" data-salas-lotacao hidden="@(!lotada)">
+					@Lotacao(participantes, salaEscolhida?.Capacidade)
+				</div>
 			</div>
 
 			<div class="sc-form__field">
 				<label class="form-label" for="reserva-data">Dia</label>
-				<input class="form-control" id="reserva-data" type="date" name="Data" value="@data" required />
+				<input class="form-control" id="reserva-data" name="Data" value="@dataMostrada" required
+					   inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" autocomplete="off" aria-describedby="reserva-data-ajuda" />
+				<div class="form-text" id="reserva-data-ajuda">Formato dd/mm/aaaa.</div>
 			</div>
 
 			<div class="sc-salas__horas">
 				<div class="sc-form__field">
 					<label class="form-label" for="reserva-inicio">Início</label>
-					<input class="form-control" id="reserva-inicio" type="time" step="900" name="Inicio" value="@inicio" required />
+					<select class="form-select" id="reserva-inicio" name="Inicio" required>
+						@foreach (var hora in horasDeInicio)
+						{
+							var texto = hora.ToString("HH:mm", invariante);
+							<option value="@texto" selected="@(texto == inicio)">@texto</option>
+						}
+					</select>
 				</div>
 				<div class="sc-form__field">
 					<label class="form-label" for="reserva-fim">Fim</label>
-					<input class="form-control" id="reserva-fim" type="time" step="900" name="Fim" value="@fim" required />
+					<select class="form-select" id="reserva-fim" name="Fim" required>
+						@foreach (var hora in horasDeFim)
+						{
+							var texto = hora.ToString("HH:mm", invariante);
+							<option value="@texto" selected="@(texto == fim)">@texto</option>
+						}
+					</select>
 				</div>
 			</div>
 
@@ -107,6 +135,16 @@ else
 			</div>
 		</form>
 	</div>
+}
+
+@functions {
+	private static string Capacidade(int? lugares) =>
+		lugares is { } total ? $"Capacidade: {total} {(total == 1 ? "pessoa" : "pessoas")}." : "Capacidade não informada.";
+
+	private static string Lotacao(int participantes, int? lugares) =>
+		lugares is { } total
+			? $"A reserva tem {participantes} participantes, mais do que a capacidade da sala ({total} {(total == 1 ? "pessoa" : "pessoas")})."
+			: string.Empty;
 }
 
 @section Scripts {

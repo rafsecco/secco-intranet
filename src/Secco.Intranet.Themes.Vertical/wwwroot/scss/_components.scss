@@ -1509,9 +1509,20 @@ html.sc-js .sc-nav__sub.is-open {
     margin-bottom: 1rem;
   }
 
+  &__titulo-do-dia {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+
   &__escolher-dia {
     display: flex;
     gap: .5rem;
+    margin-left: auto;
+
+    .form-control {
+      width: 8.5rem;
+    }
   }
 
   &__abas {
