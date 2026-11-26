@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Secco.Intranet.Application.Salas;
 using Secco.Intranet.Application.Salas.Agenda;
+using Secco.Intranet.Infrastructure.Salas.Microsoft;
 
 namespace Secco.Intranet.Infrastructure.Salas;
 
@@ -12,6 +13,7 @@ namespace Secco.Intranet.Infrastructure.Salas;
 public static class AgendaServiceCollectionExtensions
 {
 	private const string Microsoft = "Microsoft";
+	private const string NomeDoHttpClientDoToken = "agenda-microsoft-token";
 
 	private const string ChaveDoProvedor = AgendaOptions.SectionKey + ":Provedor";
 	private const string ChaveDoIntervalo = AgendaOptions.SectionKey + ":IntervaloEmSegundos";
@@ -44,11 +46,22 @@ public static class AgendaServiceCollectionExtensions
 		{
 			services.RemoveAll<IEspelhamentoLigado>();
 			services.AddSingleton<IEspelhamentoLigado, EspelhamentoLigado>();
-			services.AddSingleton<IAgendaExterna, AgendaMicrosoftProvisoria>();
+			AdicionarAgendaDoMicrosoft(services);
 			services.AddHostedService<EspelhamentoWorker>();
 		}
 
 		return services;
+	}
+
+	// O token fica num singleton, para o cache valer entre as chamadas; o tempo limite de 30 s vale para
+	// o pedido do token e para as chamadas à agenda.
+	private static void AdicionarAgendaDoMicrosoft(IServiceCollection services)
+	{
+		services.AddHttpClient(NomeDoHttpClientDoToken, cliente => cliente.Timeout = TimeSpan.FromSeconds(30));
+		services.AddSingleton(provider => new TokenDoMicrosoft(
+			provider.GetRequiredService<IHttpClientFactory>().CreateClient(NomeDoHttpClientDoToken),
+			provider.GetRequiredService<AgendaOptions>()));
+		services.AddHttpClient<IAgendaExterna, AgendaDoMicrosoft>(cliente => cliente.Timeout = TimeSpan.FromSeconds(30));
 	}
 
 	/// <summary>Valida a configuração com uma mensagem por chave inválida, sem nunca citar o valor do segredo.</summary>
