@@ -38,7 +38,7 @@
 		<dd class="col-sm-9"><partial name="_Badge" model="etiqueta" /></dd>
 
 		<dt class="col-sm-3">Vence em</dt>
-		<dd class="col-sm-9"><span class="sc-meta">@detalhe.DataVencimento.ToString("dd/MM/yyyy")</span></dd>
+		<dd class="col-sm-9"><span class="sc-meta">@Formato.Data(detalhe.DataVencimento)</span></dd>
 
 		<dt class="col-sm-3">Responsável</dt>
 		<dd class="col-sm-9">
@@ -78,7 +78,7 @@
 				<div class="row g-3 align-items-end">
 					<div class="col-md-4">
 						<label class="form-label" for="novaData">Nova data de vencimento</label>
-						<input class="form-control" type="date" id="novaData" name="novaData" required />
+						<input class="form-control" id="novaData" name="novaData" required inputmode="numeric" placeholder="@Formato.DicaDeData" maxlength="10" autocomplete="off" />
 					</div>
 					<div class="col-md-4">
 						<button class="btn btn-primary" type="submit">Reativar</button>
@@ -95,7 +95,7 @@
 				<div class="row g-3 align-items-end">
 					<div class="col-md-4">
 						<label class="form-label" for="novaData">Nova data de vencimento</label>
-						<input class="form-control" type="date" id="novaData" name="novaData" required />
+						<input class="form-control" id="novaData" name="novaData" required inputmode="numeric" placeholder="@Formato.DicaDeData" maxlength="10" autocomplete="off" />
 					</div>
 					<div class="col-md-5">
 						<label class="form-label" for="observacao">Observação (opcional)</label>
@@ -132,7 +132,7 @@
 			<ul class="mb-0">
 				@foreach (var (marco, data) in detalhe.ProximosAvisos)
 				{
-					<li>@Marco(marco) <span class="sc-meta">@data.ToString("dd/MM/yyyy")</span></li>
+					<li>@Marco(marco) <span class="sc-meta">@Formato.Data(data)</span></li>
 				}
 			</ul>
 		}
@@ -152,8 +152,8 @@
 			@foreach (var renovacao in detalhe.Renovacoes)
 			{
 				<li>
-					<span class="sc-meta">@renovacao.DataAnterior.ToString("dd/MM/yyyy") → @renovacao.DataNova.ToString("dd/MM/yyyy")</span>
-					por @renovacao.RenovadoPor em @renovacao.RenovadoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+					<span class="sc-meta">@Formato.Data(renovacao.DataAnterior) → @Formato.Data(renovacao.DataNova)</span>
+					por @renovacao.RenovadoPor em @Formato.DataEHora(renovacao.RenovadoEm.ToLocalTime().DateTime)
 					@if (!string.IsNullOrWhiteSpace(renovacao.Observacao))
 					{
 						<span class="text-body-secondary"> — @renovacao.Observacao</span>
@@ -178,7 +178,7 @@
 			{
 				<li>
 					@Marco(aviso.Marco): @Resultado(aviso.Resultado)
-					<span class="sc-meta">@aviso.TratadoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+					<span class="sc-meta">@Formato.DataEHora(aviso.TratadoEm.ToLocalTime().DateTime)</span>
 				</li>
 			}
 		</ul>

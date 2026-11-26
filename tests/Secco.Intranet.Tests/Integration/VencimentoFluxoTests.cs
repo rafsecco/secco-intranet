@@ -171,6 +171,58 @@ public class VencimentoFluxoTests(IntranetWebFactory factory) : IClassFixture<In
 		}
 	}
 
+	/// <summary>Data daqui a <paramref name="dias"/> dias como a tela mostra e pede (dd/mm/aaaa).</summary>
+	private static string DataNaTela(int dias) =>
+		DateOnly.ParseExact(Data(dias), "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)
+			.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+
+	[Fact]
+	public async Task Formulario_CampoDeTextoNoFormatoBrasileiro_SemSeletorDoNavegador()
+	{
+		var slug = await CriarSetorAsync();
+
+		var html = Decodificar(await CriarCliente().GetStringAsync($"/{slug}/vencimentos/novo"));
+
+		html.Should().Contain("placeholder=\"dd/mm/aaaa\"").And.NotContain("type=\"date\"");
+	}
+
+	[Fact]
+	public async Task Cadastrar_ERenovar_ComDataNoFormatoBrasileiro()
+	{
+		var slug = await CriarSetorAsync();
+		var client = CriarCliente();
+		var token = await TokenAsync(client, $"/{slug}/vencimentos/novo");
+
+		var criado = await client.PostAsync($"/{slug}/vencimentos/novo", Form(
+			("Form.Titulo", "Alvará"), ("Form.DataVencimento", DataNaTela(10)), ("Form.Antecedencias", "7"),
+			("__RequestVerificationToken", token)));
+
+		criado.StatusCode.Should().Be(HttpStatusCode.OK);
+		var id = Guid.Parse(criado.RequestMessage!.RequestUri!.Segments.Last());
+		Decodificar(await criado.Content.ReadAsStringAsync()).Should().Contain(DataNaTela(10));
+
+		token = await TokenAsync(client, $"/{slug}/vencimentos/{id}");
+		var renovado = await client.PostAsync($"/{slug}/vencimentos/{id}/renovar", Form(
+			("novaData", DataNaTela(120)), ("__RequestVerificationToken", token)));
+
+		Decodificar(await renovado.Content.ReadAsStringAsync()).Should().Contain(DataNaTela(120));
+	}
+
+	[Fact]
+	public async Task Cadastrar_DataInvalida_VoltaComOTextoDigitadoEAMensagem()
+	{
+		var slug = await CriarSetorAsync();
+		var client = CriarCliente();
+		var token = await TokenAsync(client, $"/{slug}/vencimentos/novo");
+
+		var resposta = await client.PostAsync($"/{slug}/vencimentos/novo", Form(
+			("Form.Titulo", "Alvará"), ("Form.DataVencimento", "31/02/2031"), ("Form.Antecedencias", "7"),
+			("__RequestVerificationToken", token)));
+
+		var html = Decodificar(await resposta.Content.ReadAsStringAsync());
+		html.Should().Contain("Informe uma data válida no formato dd/mm/aaaa.").And.Contain("value=\"31/02/2031\"");
+	}
+
 	[Fact]
 	public async Task Criar_Renovar_Encerrar_FluxoCompleto()
 	{

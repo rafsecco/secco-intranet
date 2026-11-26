@@ -7,7 +7,7 @@
 
 	var invariante = CultureInfo.InvariantCulture;
 	var data = Model.Data?.ToString("yyyy-MM-dd", invariante);
-	var dataMostrada = Model.Data?.ToString("dd/MM/yyyy", invariante);
+	var dataMostrada = CampoDeData.Valor(ViewData.ModelState, "Data", Formato.Data(Model.Data));
 	var inicio = Model.Inicio?.ToString("HH:mm", invariante);
 	var fim = Model.Fim?.ToString("HH:mm", invariante);
 
@@ -68,8 +68,8 @@ else
 			<div class="sc-form__field">
 				<label class="form-label" for="reserva-data">Dia</label>
 				<input class="form-control" id="reserva-data" name="Data" value="@dataMostrada" required
-					   inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" autocomplete="off" aria-describedby="reserva-data-ajuda" />
-				<div class="form-text" id="reserva-data-ajuda">Formato dd/mm/aaaa.</div>
+					   inputmode="numeric" placeholder="@Formato.DicaDeData" maxlength="10" autocomplete="off" aria-describedby="reserva-data-ajuda" />
+				<div class="form-text" id="reserva-data-ajuda">Formato @Formato.DicaDeData.</div>
 			</div>
 
 			<div class="sc-salas__horas">

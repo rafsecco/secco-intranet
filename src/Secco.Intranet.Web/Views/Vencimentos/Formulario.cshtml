@@ -28,7 +28,8 @@
 
 			<div class="col-md-4">
 				<label class="form-label" asp-for="Form.DataVencimento">Data de vencimento</label>
-				<input class="form-control" type="date" asp-for="Form.DataVencimento" />
+				<input class="form-control" type="text" asp-for="Form.DataVencimento" value="@CampoDeData.Valor(ViewData.ModelState, "Form.DataVencimento", Formato.Data(Model.Form.DataVencimento))"
+					   inputmode="numeric" placeholder="@Formato.DicaDeData" maxlength="10" autocomplete="off" />
 				<span class="text-danger" asp-validation-for="Form.DataVencimento"></span>
 			</div>
 

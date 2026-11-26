@@ -60,6 +60,18 @@ O `intranet-admin` cadastra as salas em `/salas/gerenciar`; qualquer pessoa loga
 
 **Banco:** rodar o `migrate` antes de subir a versão (migration `SalasEReservas`, gerada em 2026-11-25, depois da `LinksDoMenuPrincipal`; tabelas `tb_salas`, `tb_reservas`, `tb_convidados_das_reservas` e `tb_exclusoes_de_evento_pendentes`).
 
+### Datas nos formulários
+
+Os campos de data das salas, dos vencimentos e dos avisos do setor deixam de usar o seletor do navegador, que mostra o formato do idioma do navegador (mm/dd/aaaa, AM/PM), e passam a ser texto no padrão da cultura configurada em `Intranet__Formatos__Cultura` (padrão `pt-BR`: dd/mm/aaaa e 24 horas). O formato aaaa-mm-dd continua aceito. Data que não pode ser lida volta com o texto digitado e a mensagem do formato esperado. Na reserva de sala, início e fim viram listas de 15 em 15 minutos, a grade mostra o dia por extenso, o formulário mostra a capacidade da sala com aviso quando os participantes passam dela, e o `intranet-admin` ganha o atalho "Gerenciar salas".
+
+**Correção:** a aplicação não subia em Development sem provedor de agenda configurado (o processamento do espelhamento era registrado sem a agenda).
+
+### Quebras — Datas nos formulários
+
+**Integração por formulário:** quem envia datas aos formulários sem passar pela tela precisa usar dd/mm/aaaa (data e hora: dd/mm/aaaa hh:mm) ou o ISO aaaa-mm-dd(Thh:mm). Outros formatos que o leitor padrão aceitava, como mm/dd/aaaa, deixam de valer.
+
+**Tema próprio (fork):** os campos `Form.DataVencimento`, `novaData`, `Form.PublicadoEm` e `Form.ExpiraEm` são texto, sem `type="date"`/`datetime-local`; script de tema que dependa do seletor nativo precisa ser revisto. `_ViewImports` passa a injetar `FormatoDeDatas` como `Formato`.
+
 ### Quebras — Reserva de sala
 
 **Setores:** o slug `salas` passa a ser reservado. Um setor com esse slug sai do menu até ser renomeado.

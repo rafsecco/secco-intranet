@@ -10,7 +10,7 @@
 
 	var cabecalho = new PageHeaderModel(
 		reserva.Titulo,
-		$"{reserva.SalaNome}, {reserva.Dia.ToString("dd/MM/yyyy", invariante)}, das {reserva.Inicio.ToString("HH:mm", invariante)} às {reserva.Fim.ToString("HH:mm", invariante)}.");
+		$"{reserva.SalaNome}, {Formato.Data(reserva.Dia)}, das {reserva.Inicio.ToString("HH:mm", invariante)} às {reserva.Fim.ToString("HH:mm", invariante)}.");
 
 	var espelhamento = reserva.Espelhamento switch
 	{
@@ -29,7 +29,7 @@
 		<dd>@reserva.SalaNome</dd>
 
 		<dt>Dia</dt>
-		<dd>@reserva.Dia.ToString("dd/MM/yyyy", invariante)</dd>
+		<dd>@Formato.Data(reserva.Dia)</dd>
 
 		<dt>Horário</dt>
 		<dd>@reserva.Inicio.ToString("HH:mm", invariante) &ndash; @reserva.Fim.ToString("HH:mm", invariante)</dd>

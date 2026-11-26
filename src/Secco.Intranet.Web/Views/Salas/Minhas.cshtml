@@ -40,7 +40,7 @@ else
 				@foreach (var reserva in Model)
 				{
 					<tr>
-						<td>@reserva.Dia.ToString("dd/MM/yyyy", invariante)</td>
+						<td>@Formato.Data(reserva.Dia)</td>
 						<td>@reserva.Inicio.ToString("HH:mm", invariante) &ndash; @reserva.Fim.ToString("HH:mm", invariante)</td>
 						<td>@reserva.SalaNome</td>
 						<td><a asp-action="Reserva" asp-route-id="@reserva.Id">@reserva.Titulo</a></td>

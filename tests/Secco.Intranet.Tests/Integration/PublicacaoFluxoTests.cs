@@ -69,6 +69,34 @@ public class PublicacaoFluxoTests(IntranetWebFactory factory) : IClassFixture<In
 	}
 
 	[Fact]
+	public async Task Publicar_DataEHoraNoFormatoBrasileiro_EntraNoAr()
+	{
+		var client = CriarCliente();
+		var slug = $"avisos-{Guid.NewGuid():N}"[..20];
+		var titulo = $"Comunicado {Guid.NewGuid():N}"[..24];
+		await CriarSetorAsync(client, slug);
+
+		var formulario = await client.GetStringAsync($"/{slug}/avisos");
+		formulario.Should().Contain("placeholder=\"dd/mm/aaaa hh:mm\"").And.NotContain("datetime-local");
+
+		var token = await TokenAsync(client, $"/{slug}/avisos");
+		var resposta = await client.PostAsync($"/{slug}/avisos", new FormUrlEncodedContent(
+		[
+			new KeyValuePair<string, string>("Form.Titulo", titulo),
+			new KeyValuePair<string, string>("Form.Corpo", "Corpo."),
+			new KeyValuePair<string, string>("Form.Tipo", "0"),
+			new KeyValuePair<string, string>("Form.Visibilidade", "1"),
+			new KeyValuePair<string, string>("Form.Prioridade", "0"),
+			new KeyValuePair<string, string>(
+				"Form.PublicadoEm", DateTime.Now.AddMinutes(-5).ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture)),
+			new KeyValuePair<string, string>("__RequestVerificationToken", token),
+		]));
+
+		resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+		(await client.GetStringAsync("/")).Should().Contain(titulo);
+	}
+
+	[Fact]
 	public async Task Publicada_ApareceNoMuralComOCorpoRenderizado()
 	{
 		var client = CriarCliente();

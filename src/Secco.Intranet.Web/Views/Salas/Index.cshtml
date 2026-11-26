@@ -7,11 +7,8 @@
 	var dia = Model.Dia.ToString("yyyy-MM-dd", invariante);
 	var anterior = Model.Dia.AddDays(-1).ToString("yyyy-MM-dd", invariante);
 	var seguinte = Model.Dia.AddDays(1).ToString("yyyy-MM-dd", invariante);
-	var diaMostrado = Model.Dia.ToString("dd/MM/yyyy", invariante);
-
-	// Dia por extenso em português, qualquer que seja a cultura do servidor: "Quinta-feira, 26/11/2026".
-	var semana = Model.Dia.ToString("dddd", CultureInfo.GetCultureInfo("pt-BR"));
-	var diaPorExtenso = $"{char.ToUpperInvariant(semana[0])}{semana[1..]}, {diaMostrado}";
+	var diaMostrado = Formato.Data(Model.Dia);
+	var diaPorExtenso = Formato.DiaPorExtenso(Model.Dia);
 
 	var novaReserva = new PageActionModel(
 		"Nova reserva", Url.Action("Reservar", new { sala = Model.SalaEmFoco, data = dia })!, "bi-plus-lg", Primaria: true);
@@ -74,9 +71,9 @@ else
 				<i class="bi bi-chevron-right" aria-hidden="true"></i>
 			</a>
 			<form method="get" asp-action="Index" class="sc-salas__escolher-dia">
-				<label class="visually-hidden" for="salas-data">Ir para o dia (dd/mm/aaaa)</label>
+				<label class="visually-hidden" for="salas-data">Ir para o dia (@Formato.DicaDeData)</label>
 				<input class="form-control" id="salas-data" name="data" value="@diaMostrado"
-					   inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" autocomplete="off" />
+					   inputmode="numeric" placeholder="@Formato.DicaDeData" maxlength="10" autocomplete="off" />
 				<input type="hidden" name="sala" value="@Model.SalaEmFoco" />
 				<button class="btn btn-outline-secondary" type="submit">Ir</button>
 			</form>
