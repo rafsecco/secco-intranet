@@ -79,11 +79,21 @@ public sealed class ReservaRepositorioFalso : IReservaRepository
 				.Where(r => r.Fim > agora && (r.ReservadoPorId == usuarioId || r.Convidados.Any(c => c.UsuarioId == usuarioId)))
 				.OrderBy(r => r.Inicio)]);
 
-	public Task<IReadOnlyList<Reserva>> ListarParaEspelharAsync(DateTimeOffset agora, int limite, CancellationToken ct = default) =>
-		Task.FromResult<IReadOnlyList<Reserva>>([
-			.. Reservas
-				.Where(r => r.Espelhamento == EstadoDoEspelhamento.Aguardando && (r.ProximaTentativaEm is null || r.ProximaTentativaEm <= agora))
-				.Take(limite)]);
+	public Task<IReadOnlyList<Reserva>> ListarParaEspelharAsync(DateTimeOffset agora, int limite, CancellationToken ct = default)
+	{
+		var lote = Reservas
+			.Where(r => r.Espelhamento == EstadoDoEspelhamento.Aguardando && (r.ProximaTentativaEm is null || r.ProximaTentativaEm <= agora))
+			.Take(limite)
+			.ToList();
+
+		// Guarda o que o "banco" tem de cada uma, para o recarregamento desfazer o que o handler mudou em memória.
+		foreach (var reserva in lote)
+		{
+			_noBanco[reserva] = CamposDoEspelhamento.Select(c => c.GetValue(reserva)).ToArray();
+		}
+
+		return Task.FromResult<IReadOnlyList<Reserva>>(lote);
+	}
 
 	public void Remover(Reserva reserva) => Reservas.Remove(reserva);
 
@@ -103,15 +113,55 @@ public sealed class ReservaRepositorioFalso : IReservaRepository
 
 	public void RemoverExclusaoPendente(ExclusaoDeEventoPendente pendencia) => Exclusoes.Remove(pendencia);
 
+	/// <summary>Quantas gravações seguintes falham por conflito de versão (a alteração fica pendente até <see cref="RecarregarAsync"/>).</summary>
+	public int ConflitosForcados { get; set; }
+
+	/// <summary>Quantas vezes <see cref="RecarregarAsync"/> foi chamado.</summary>
+	public int Recarregadas { get; private set; }
+
+	private static readonly System.Reflection.PropertyInfo[] CamposDoEspelhamento =
+	[
+		.. new[] { nameof(Reserva.Espelhamento), nameof(Reserva.EventoExternoId), nameof(Reserva.MotivoDaFalha), nameof(Reserva.TentativasDeEspelhamento), nameof(Reserva.ProximaTentativaEm) }
+			.Select(nome => typeof(Reserva).GetProperty(nome)!),
+	];
+
+	private readonly Dictionary<Reserva, object?[]> _noBanco = [];
+
+	private bool _alteracaoPendente;
+
 	public Task<bool> TentarGravarAsync(CancellationToken ct = default)
 	{
+		if (ConflitosForcados > 0)
+		{
+			ConflitosForcados--;
+			_alteracaoPendente = true;
+		}
+
+		if (_alteracaoPendente)
+		{
+			return Task.FromResult(false);
+		}
+
 		Gravacoes++;
 
 		return Task.FromResult(true);
 	}
 
-	public Task<bool> RecarregarAsync(Reserva reserva, CancellationToken ct = default) =>
-		Task.FromResult(Reservas.Contains(reserva));
+	public Task<bool> RecarregarAsync(Reserva reserva, CancellationToken ct = default)
+	{
+		Recarregadas++;
+		_alteracaoPendente = false;
+
+		if (_noBanco.TryGetValue(reserva, out var valores))
+		{
+			for (var i = 0; i < CamposDoEspelhamento.Length; i++)
+			{
+				CamposDoEspelhamento[i].SetValue(reserva, valores[i]);
+			}
+		}
+
+		return Task.FromResult(Reservas.Contains(reserva));
+	}
 
 	public Task SaveChangesAsync(CancellationToken ct = default)
 	{

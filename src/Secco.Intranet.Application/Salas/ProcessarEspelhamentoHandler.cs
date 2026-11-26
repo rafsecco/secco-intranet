@@ -25,7 +25,7 @@ public sealed partial class ProcessarEspelhamentoHandler(
 	public const int TamanhoDoLote = 20;
 
 	// Quantas vezes a gravação do evento criado é refeita quando a reserva muda de novo no meio.
-	private const int MaximoDeConflitos = 5;
+	internal const int MaximoDeConflitos = 5;
 
 	private const string MotivoInesperado = "Falha inesperada ao falar com a agenda.";
 
@@ -139,6 +139,9 @@ public sealed partial class ProcessarEspelhamentoHandler(
 				return;
 			}
 		}
+
+		// Desistiu: descarta a alteração não gravada para que ela não contamine a gravação do próximo item do ciclo.
+		await reservas.RecarregarAsync(reserva, ct).ConfigureAwait(false);
 
 		LogConflitosDemais(logger, reserva.Id);
 	}

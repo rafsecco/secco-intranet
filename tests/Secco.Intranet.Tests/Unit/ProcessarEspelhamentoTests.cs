@@ -107,6 +107,25 @@ public class ProcessarEspelhamentoTests
 	}
 
 	[Fact]
+	public async Task ConflitoEsgotado_NaoContaminaOsProximosItensDoCiclo()
+	{
+		var conflitante = NovaReserva("Conflitante");
+		var outra = NovaReserva("Outra");
+		_reservas.Exclusoes.Add(new ExclusaoDeEventoPendente("evt-sobra"));
+
+		// A primeira gravação e as cinco refeitas conflitam: o handler desiste da primeira reserva.
+		_reservas.ConflitosForcados = 1 + ProcessarEspelhamentoHandler.MaximoDeConflitos;
+
+		var tratadas = await Handler().HandleAsync();
+
+		tratadas.Should().Be(3);
+		_reservas.Recarregadas.Should().Be(ProcessarEspelhamentoHandler.MaximoDeConflitos + 1, "o último recarregamento descarta a alteração pendente");
+		outra.Espelhamento.Should().Be(EstadoDoEspelhamento.Espelhada, "a falha da primeira não pode ser atribuída a esta");
+		_agenda.Chamadas.Should().Contain(c => c.Operacao == "apagar" && c.EventoId == "evt-sobra");
+		_reservas.Exclusoes.Should().BeEmpty();
+	}
+
+	[Fact]
 	public async Task FalhaDefinitiva_MarcaFalhouComMotivo()
 	{
 		var reserva = NovaReserva();
