@@ -157,7 +157,7 @@ internal sealed class AgendaDoMicrosoft(HttpClient http, TokenDoMicrosoft token,
 
 				if (resposta.StatusCode == HttpStatusCode.Unauthorized && tentativa == 0)
 				{
-					token.Descartar();
+					token.Descartar(acesso.Valor);
 					continue;
 				}
 

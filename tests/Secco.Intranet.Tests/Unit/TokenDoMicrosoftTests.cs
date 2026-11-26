@@ -41,6 +41,18 @@ public class TokenDoMicrosoftTests
 		}
 	}
 
+	// Entrega sempre um cliente sobre o mesmo manipulador gravador e anota os nomes pedidos.
+	internal sealed class FabricaFalsa(HttpMessageHandler manipulador) : IHttpClientFactory
+	{
+		public List<string> Nomes { get; } = [];
+
+		public HttpClient CreateClient(string name)
+		{
+			Nomes.Add(name);
+			return new HttpClient(manipulador, disposeHandler: false);
+		}
+	}
+
 	internal sealed class RelogioFalso(DateTimeOffset inicio) : TimeProvider
 	{
 		private DateTimeOffset _agora = inicio;
@@ -62,6 +74,9 @@ public class TokenDoMicrosoftTests
 		}
 	};
 
+	internal static TokenDoMicrosoft Criar(HttpMessageHandler manipulador, AgendaOptions? opcoes = null, TimeProvider? relogio = null) =>
+		new(new FabricaFalsa(manipulador), opcoes ?? Opcoes(), relogio);
+
 	internal static string RespostaDeToken(string token = "token-1", int expira = 3600) =>
 		$$"""{"token_type":"Bearer","expires_in":{{expira}},"access_token":"{{token}}"}""";
 
@@ -69,7 +84,7 @@ public class TokenDoMicrosoftTests
 	public async Task Token_PedeComCredenciaisDeCliente()
 	{
 		var manipulador = new ManipuladorGravador().Responde(HttpStatusCode.OK, RespostaDeToken());
-		var token = new TokenDoMicrosoft(new HttpClient(manipulador), Opcoes());
+		var token = Criar(manipulador);
 
 		var resultado = await token.ObterAsync(CancellationToken.None);
 
@@ -85,13 +100,30 @@ public class TokenDoMicrosoftTests
 	}
 
 	[Fact]
+	public async Task Token_PegaClienteDaFabricaAPedido()
+	{
+		var manipulador = new ManipuladorGravador()
+			.Responde(HttpStatusCode.OK, RespostaDeToken("token-1", 3600))
+			.Responde(HttpStatusCode.OK, RespostaDeToken("token-2", 3600));
+		var fabrica = new FabricaFalsa(manipulador);
+		var relogio = new RelogioFalso(new DateTimeOffset(2030, 1, 1, 12, 0, 0, TimeSpan.Zero));
+		var token = new TokenDoMicrosoft(fabrica, Opcoes(), relogio);
+
+		await token.ObterAsync(CancellationToken.None);
+		relogio.Avanca(TimeSpan.FromHours(1));
+		await token.ObterAsync(CancellationToken.None);
+
+		fabrica.Nomes.Should().HaveCount(2).And.AllBeEquivalentTo(TokenDoMicrosoft.NomeDoHttpClient);
+	}
+
+	[Fact]
 	public async Task Token_ReusaAteVencer()
 	{
 		var relogio = new RelogioFalso(new DateTimeOffset(2030, 1, 1, 12, 0, 0, TimeSpan.Zero));
 		var manipulador = new ManipuladorGravador()
 			.Responde(HttpStatusCode.OK, RespostaDeToken("token-1", 3600))
 			.Responde(HttpStatusCode.OK, RespostaDeToken("token-2", 3600));
-		var token = new TokenDoMicrosoft(new HttpClient(manipulador), Opcoes(), relogio);
+		var token = Criar(manipulador, relogio: relogio);
 
 		(await token.ObterAsync(CancellationToken.None)).Valor.Should().Be("token-1");
 		relogio.Avanca(TimeSpan.FromMinutes(58));
@@ -110,12 +142,32 @@ public class TokenDoMicrosoftTests
 		var manipulador = new ManipuladorGravador()
 			.Responde(HttpStatusCode.OK, RespostaDeToken("token-1"))
 			.Responde(HttpStatusCode.OK, RespostaDeToken("token-2"));
-		var token = new TokenDoMicrosoft(new HttpClient(manipulador), Opcoes());
+		var token = Criar(manipulador);
 
 		await token.ObterAsync(CancellationToken.None);
-		token.Descartar();
+		token.Descartar("token-1");
 
 		(await token.ObterAsync(CancellationToken.None)).Valor.Should().Be("token-2");
+	}
+
+	[Fact]
+	public async Task Token_DescartarOUltimoRecusado_MantemTokenJaRenovado()
+	{
+		var relogio = new RelogioFalso(new DateTimeOffset(2030, 1, 1, 12, 0, 0, TimeSpan.Zero));
+		var manipulador = new ManipuladorGravador()
+			.Responde(HttpStatusCode.OK, RespostaDeToken("token-1", 3600))
+			.Responde(HttpStatusCode.OK, RespostaDeToken("token-2", 3600));
+		var token = Criar(manipulador, relogio: relogio);
+
+		(await token.ObterAsync(CancellationToken.None)).Valor.Should().Be("token-1");
+		relogio.Avanca(TimeSpan.FromHours(1));
+		(await token.ObterAsync(CancellationToken.None)).Valor.Should().Be("token-2");
+
+		// A agenda recusou o token-1 tarde demais: o token-2, já renovado, não pode ser descartado.
+		token.Descartar("token-1");
+
+		(await token.ObterAsync(CancellationToken.None)).Valor.Should().Be("token-2");
+		manipulador.Pedidos.Should().HaveCount(2);
 	}
 
 	[Theory]
@@ -125,7 +177,7 @@ public class TokenDoMicrosoftTests
 	{
 		var corpo = $$"""{"error":"invalid_client","error_description":"AADSTS7000215: segredo {{Segredo}} invalido"}""";
 		var manipulador = new ManipuladorGravador().Responde(codigo, corpo);
-		var token = new TokenDoMicrosoft(new HttpClient(manipulador), Opcoes());
+		var token = Criar(manipulador);
 
 		var resultado = await token.ObterAsync(CancellationToken.None);
 
@@ -139,7 +191,7 @@ public class TokenDoMicrosoftTests
 	[InlineData(HttpStatusCode.ServiceUnavailable)]
 	public async Task Token_ServicoFora_FalhaPassageira(HttpStatusCode codigo)
 	{
-		var token = new TokenDoMicrosoft(new HttpClient(new ManipuladorGravador().Responde(codigo)), Opcoes());
+		var token = Criar(new ManipuladorGravador().Responde(codigo));
 
 		(await token.ObterAsync(CancellationToken.None)).Falha!.Desfecho.Should().Be(DesfechoDaAgenda.FalhaPassageira);
 	}
@@ -147,7 +199,7 @@ public class TokenDoMicrosoftTests
 	[Fact]
 	public async Task Token_RespostaSemToken_FalhaPassageira()
 	{
-		var token = new TokenDoMicrosoft(new HttpClient(new ManipuladorGravador().Responde(HttpStatusCode.OK, "{}")), Opcoes());
+		var token = Criar(new ManipuladorGravador().Responde(HttpStatusCode.OK, "{}"));
 
 		(await token.ObterAsync(CancellationToken.None)).Falha!.Desfecho.Should().Be(DesfechoDaAgenda.FalhaPassageira);
 	}
@@ -156,7 +208,7 @@ public class TokenDoMicrosoftTests
 	public async Task Token_RedeCaida_FalhaPassageira()
 	{
 		var manipulador = new ManipuladorGravador().Lanca(new HttpRequestException($"conexao com {Segredo} caiu"));
-		var token = new TokenDoMicrosoft(new HttpClient(manipulador), Opcoes());
+		var token = Criar(manipulador);
 
 		var resultado = await token.ObterAsync(CancellationToken.None);
 

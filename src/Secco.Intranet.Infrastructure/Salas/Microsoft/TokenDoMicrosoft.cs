@@ -17,7 +17,10 @@ internal sealed class TokenDoMicrosoft
 	private static readonly TimeSpan Folga = TimeSpan.FromMinutes(1);
 	private static readonly TimeSpan ValidadeQuandoOmitida = TimeSpan.FromMinutes(5);
 
-	private readonly HttpClient _http;
+	/// <summary>Nome do cliente HTTP do pedido de token, registrado na fábrica.</summary>
+	internal const string NomeDoHttpClient = "agenda-microsoft-token";
+
+	private readonly IHttpClientFactory _fabrica;
 	private readonly AgendaOptions _opcoes;
 	private readonly TimeProvider _relogio;
 	private readonly SemaphoreSlim _trava = new(1, 1);
@@ -26,12 +29,12 @@ internal sealed class TokenDoMicrosoft
 	private DateTimeOffset _validoAte;
 
 	/// <summary>Cria o provedor de token.</summary>
-	/// <param name="http">Cliente HTTP do pedido de token.</param>
+	/// <param name="fabrica">Fábrica de clientes HTTP; um cliente novo é pedido a cada pedido de token, para acompanhar a rotação do handler.</param>
 	/// <param name="opcoes">Configuração da agenda.</param>
 	/// <param name="relogio">Relógio; o padrão é o do sistema.</param>
-	public TokenDoMicrosoft(HttpClient http, AgendaOptions opcoes, TimeProvider? relogio = null)
+	public TokenDoMicrosoft(IHttpClientFactory fabrica, AgendaOptions opcoes, TimeProvider? relogio = null)
 	{
-		_http = http;
+		_fabrica = fabrica;
 		_opcoes = opcoes;
 		_relogio = relogio ?? TimeProvider.System;
 	}
@@ -57,14 +60,21 @@ internal sealed class TokenDoMicrosoft
 		}
 	}
 
-	/// <summary>Descarta o token em cache (a agenda o recusou).</summary>
-	public void Descartar()
+	/// <summary>
+	/// Descarta o token em cache só se for o recusado pela agenda. Se outra chamada já renovou o token,
+	/// o novo fica no cache.
+	/// </summary>
+	/// <param name="tokenRecusado">Token que a agenda recusou.</param>
+	public void Descartar(string? tokenRecusado)
 	{
 		_trava.Wait();
 
 		try
 		{
-			_token = null;
+			if (_token is not null && string.Equals(_token, tokenRecusado, StringComparison.Ordinal))
+			{
+				_token = null;
+			}
 		}
 		finally
 		{
@@ -88,11 +98,12 @@ internal sealed class TokenDoMicrosoft
 			})
 		};
 
+		var http = _fabrica.CreateClient(NomeDoHttpClient);
 		HttpResponseMessage resposta;
 
 		try
 		{
-			resposta = await _http.SendAsync(pedido, ct).ConfigureAwait(false);
+			resposta = await http.SendAsync(pedido, ct).ConfigureAwait(false);
 		}
 		catch (OperationCanceledException) when (!ct.IsCancellationRequested)
 		{

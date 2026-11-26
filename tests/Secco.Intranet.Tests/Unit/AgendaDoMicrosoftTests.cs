@@ -28,7 +28,7 @@ public class AgendaDoMicrosoftTests
 		roteiro(manipulador);
 		var http = new HttpClient(manipulador);
 		var opcoes = Opcoes();
-		return (new AgendaDoMicrosoft(http, new TokenDoMicrosoft(http, opcoes), opcoes), manipulador);
+		return (new AgendaDoMicrosoft(http, Criar(manipulador, opcoes), opcoes), manipulador);
 	}
 
 	private static void ComToken(ManipuladorGravador m, string token = "token-1") =>

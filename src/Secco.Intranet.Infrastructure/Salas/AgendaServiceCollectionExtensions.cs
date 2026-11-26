@@ -13,7 +13,6 @@ namespace Secco.Intranet.Infrastructure.Salas;
 public static class AgendaServiceCollectionExtensions
 {
 	private const string Microsoft = "Microsoft";
-	private const string NomeDoHttpClientDoToken = "agenda-microsoft-token";
 
 	private const string ChaveDoProvedor = AgendaOptions.SectionKey + ":Provedor";
 	private const string ChaveDoIntervalo = AgendaOptions.SectionKey + ":IntervaloEmSegundos";
@@ -57,9 +56,9 @@ public static class AgendaServiceCollectionExtensions
 	// o pedido do token e para as chamadas à agenda.
 	private static void AdicionarAgendaDoMicrosoft(IServiceCollection services)
 	{
-		services.AddHttpClient(NomeDoHttpClientDoToken, cliente => cliente.Timeout = TimeSpan.FromSeconds(30));
+		services.AddHttpClient(TokenDoMicrosoft.NomeDoHttpClient, cliente => cliente.Timeout = TimeSpan.FromSeconds(30));
 		services.AddSingleton(provider => new TokenDoMicrosoft(
-			provider.GetRequiredService<IHttpClientFactory>().CreateClient(NomeDoHttpClientDoToken),
+			provider.GetRequiredService<IHttpClientFactory>(),
 			provider.GetRequiredService<AgendaOptions>()));
 		services.AddHttpClient<IAgendaExterna, AgendaDoMicrosoft>(cliente => cliente.Timeout = TimeSpan.FromSeconds(30));
 	}
