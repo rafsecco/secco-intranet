@@ -121,9 +121,9 @@ encontrado pelos dois caminhos aparece uma vez só.
 
 - **`Chave`:** de 1 a 64 caracteres, só `[a-z0-9-]`. É a identidade do item e o que o banco guarda
   para lembrar a posição escolhida pelo admin, então **não mude depois de publicada**. `mural` e
-  `diretorio` são reservadas aos itens fixos do core, e o prefixo `biblioteca-` ao item de cada
-  biblioteca de documentos (`biblioteca-{slug}`): item que comece por ele fica fora do menu, com
-  aviso no log.
+  `diretorio` são reservadas aos itens fixos do core, e os prefixos `biblioteca-` (item de cada
+  biblioteca de documentos, `biblioteca-{slug}`) e `link-` (links cadastrados pelo admin em `/menu`,
+  `link-{id}`): item que comece por um deles fica fora do menu, com aviso no log.
 - **`Url`:** caminho local, começando com `/` e não com `//`. URL externa (`https://...`) não é
   aceita.
 - **`Icone`:** classe do Bootstrap Icons (`bi-*`) ou `null` para item sem ícone.

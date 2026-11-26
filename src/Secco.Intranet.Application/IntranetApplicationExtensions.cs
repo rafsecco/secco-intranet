@@ -88,6 +88,10 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<MoverPosicaoNoMenuHandler>();
 		services.AddScoped<RestaurarOrdemDoMenuHandler>();
 		services.AddScoped<ListarArvoresDosSetoresHandler>();
+		services.AddScoped<ListarLinksDoMenuPrincipalHandler>();
+		services.AddScoped<CriarLinkDoMenuPrincipalHandler>();
+		services.AddScoped<EditarLinkDoMenuPrincipalHandler>();
+		services.AddScoped<ExcluirLinkDoMenuPrincipalHandler>();
 		services.AddScoped<ListarLinksDoSetorHandler>();
 		services.AddScoped<CriarGrupoDeLinksHandler>();
 		services.AddScoped<CriarLinkHandler>();

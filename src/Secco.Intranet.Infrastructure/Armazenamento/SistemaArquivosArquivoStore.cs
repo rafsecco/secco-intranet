@@ -1,6 +1,7 @@
 using System.Globalization;
 using Secco.Intranet.Application.Documentos;
 using Secco.SDK.AspNetCore.Tenancy;
+using Secco.SDK.EntityFrameworkCore.Cryptography;
 
 namespace Secco.Intranet.Infrastructure.Armazenamento;
 
@@ -16,12 +17,12 @@ namespace Secco.Intranet.Infrastructure.Armazenamento;
 /// </remarks>
 /// <param name="options">Raiz do armazenamento.</param>
 /// <param name="documentoOptions">Limites de upload.</param>
-/// <param name="cipher">Cifragem em envelope.</param>
+/// <param name="cipher">Cifrador de arquivos do SDK (envelope: chave por arquivo embrulhada pela chave mestra).</param>
 /// <param name="tenantContext">Tenant da requisição atual.</param>
 internal sealed class SistemaArquivosArquivoStore(
 	ArquivoStoreOptions options,
 	DocumentoOptions documentoOptions,
-	EnvelopeCipher cipher,
+	ISeccoFileCipher cipher,
 	ITenantContext tenantContext) : IArquivoStore
 {
 	public Task<ArquivoGravado> GravarAsync(Stream conteudo, CancellationToken cancellationToken = default) =>
@@ -61,21 +62,19 @@ internal sealed class SistemaArquivosArquivoStore(
 
 		Directory.CreateDirectory(Path.GetDirectoryName(caminhoCompleto)!);
 
-		var chaveDoArquivo = EnvelopeCipher.GerarChaveDeArquivo();
-
 		try
 		{
-			long tamanho;
+			SeccoEncryptedFile cifrado;
 
 			await using (var destino = new FileStream(
 				caminhoCompleto, FileMode.CreateNew, FileAccess.Write, FileShare.None, bufferSize: 81_920, useAsync: true))
 			{
-				tamanho = await EnvelopeCipher
-					.CifrarAsync(conteudo, destino, chaveDoArquivo, documentoOptions.TamanhoMaximoBytes, cancellationToken)
+				cifrado = await cipher
+					.EncryptAsync(conteudo, destino, documentoOptions.TamanhoMaximoBytes, cancellationToken)
 					.ConfigureAwait(false);
 			}
 
-			return new ArquivoGravado(caminhoRelativo, cipher.Embrulhar(chaveDoArquivo), tamanho);
+			return new ArquivoGravado(caminhoRelativo, cifrado.WrappedKey, cifrado.PlaintextLength);
 		}
 		catch
 		{
@@ -83,10 +82,6 @@ internal sealed class SistemaArquivosArquivoStore(
 			Apagar(caminhoCompleto);
 
 			throw;
-		}
-		finally
-		{
-			Array.Clear(chaveDoArquivo);
 		}
 	}
 
@@ -99,21 +94,12 @@ internal sealed class SistemaArquivosArquivoStore(
 		ArgumentNullException.ThrowIfNull(destino);
 
 		var caminhoCompleto = CaminhoCompleto(caminhoRelativo);
-		var chaveDoArquivo = cipher.Desembrulhar(chaveEmbrulhada);
+		await using var origem = new FileStream(
+			caminhoCompleto, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 81_920, useAsync: true);
 
-		try
-		{
-			await using var origem = new FileStream(
-				caminhoCompleto, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 81_920, useAsync: true);
-
-			await EnvelopeCipher
-				.DecifrarAsync(origem, destino, chaveDoArquivo, cancellationToken)
-				.ConfigureAwait(false);
-		}
-		finally
-		{
-			Array.Clear(chaveDoArquivo);
-		}
+		await cipher
+			.DecryptAsync(origem, destino, chaveEmbrulhada, cancellationToken)
+			.ConfigureAwait(false);
 	}
 
 	public Task RemoverAsync(string caminhoRelativo, CancellationToken cancellationToken = default)

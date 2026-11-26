@@ -20,6 +20,7 @@ namespace Secco.Intranet.Web.Navigation;
 /// <param name="Bibliotecas">Bibliotecas ativas que o usuário pode ler; viram itens do grupo principal. Nulo = nenhuma.</param>
 /// <param name="SetoresComEscrita">Setores em que o usuário escreve, para os itens restritos. Nulo = nenhum: a omissão esconde em vez de mostrar.</param>
 /// <param name="SetoresSemLeitura">Setores de <paramref name="Setores"/> que o usuário não lê, presentes só pela escrita. Nulo = nenhum.</param>
+/// <param name="LinksDoMenu">Links do menu principal cadastrados no tenant; entram no fim do grupo principal. Nulo = nenhum.</param>
 public sealed record NavigationRequest(
 	IReadOnlyList<SetorDto> Setores,
 	string CaminhoAtual,
@@ -33,7 +34,8 @@ public sealed record NavigationRequest(
 	IReadOnlyList<BibliotecaDto>? Bibliotecas = null,
 	IReadOnlySet<Guid>? SetoresComEscrita = null,
 	IReadOnlySet<Guid>? SetoresSemLeitura = null,
-	bool MostrarSalas = false);
+	bool MostrarSalas = false,
+	IReadOnlyList<LinkDoMenuPrincipalDto>? LinksDoMenu = null);
 
 /// <summary>
 /// Montagem do menu. O Mural é o único item fixo que fala com a empresa toda; a seção Setores
@@ -49,7 +51,7 @@ public static class IntranetNavigation
 
 		var caminho = string.IsNullOrWhiteSpace(request.CaminhoAtual) ? "/" : request.CaminhoAtual;
 
-		var padrao = PrincipalNaOrdemPadrao(request.MostrarDiretorio, request.ItensExtras ?? [], request.Bibliotecas, request.MostrarSalas);
+		var padrao = PrincipalNaOrdemPadrao(request.MostrarDiretorio, request.ItensExtras ?? [], request.Bibliotecas, request.LinksDoMenu, request.MostrarSalas);
 
 		var principais = OrdemDoMenu.Ordenar(padrao, entrada => entrada.Chave, request.Posicoes?.Principal)
 			.Select(entrada => new NavigationItemModel(
@@ -58,7 +60,8 @@ public static class IntranetNavigation
 				entrada.Url,
 				entrada.Chave == CatalogoDeItensDoMenuPrincipal.ChaveMural
 					? EhMural(caminho)
-					: Corresponde(caminho, CaminhoDe(entrada.Url))))
+					: entrada.Url.StartsWith('/') && Corresponde(caminho, CaminhoDe(entrada.Url)),
+				NovaAba: entrada.NovaAba))
 			.ToList();
 
 		var setores = OrdemDoMenu.Ordenar(request.Setores, setor => setor.Id.ToString("D"), request.Posicoes?.Setores)
@@ -102,14 +105,16 @@ public static class IntranetNavigation
 
 	/// <summary>
 	/// Entradas do grupo principal na ordem padrão: Mural, Diretório (se pedido), Salas (se pedido), as bibliotecas por
-	/// nome e os extras por <see cref="ItemExtraDoMenu.Ordem"/> e depois <see cref="ItemExtraDoMenu.Rotulo"/>.
+	/// nome, os extras por <see cref="ItemExtraDoMenu.Ordem"/> e depois <see cref="ItemExtraDoMenu.Rotulo"/>, e os links do menu por rótulo.
 	/// </summary>
 	/// <param name="incluirDiretorio">Se o Diretório entra.</param>
 	/// <param name="extras">Itens extras visíveis.</param>
 	/// <param name="bibliotecas">Bibliotecas que entram no menu; nulo = nenhuma.</param>
+	/// <param name="links">Links do menu principal; nulo = nenhum.</param>
 	/// <param name="incluirSalas">Se o item Salas entra, logo depois do Diretório.</param>
 	public static IReadOnlyList<EntradaDoMenuPrincipal> PrincipalNaOrdemPadrao(
-		bool incluirDiretorio, IEnumerable<ItemExtraDoMenu> extras, IEnumerable<BibliotecaDto>? bibliotecas = null, bool incluirSalas = false)
+		bool incluirDiretorio, IEnumerable<ItemExtraDoMenu> extras, IEnumerable<BibliotecaDto>? bibliotecas = null,
+		IEnumerable<LinkDoMenuPrincipalDto>? links = null, bool incluirSalas = false)
 	{
 		ArgumentNullException.ThrowIfNull(extras);
 
@@ -140,6 +145,10 @@ public static class IntranetNavigation
 			.OrderBy(extra => extra.Ordem)
 			.ThenBy(extra => extra.Rotulo, StringComparer.OrdinalIgnoreCase)
 			.Select(extra => new EntradaDoMenuPrincipal(extra.Chave, extra.Rotulo, extra.Icone, extra.Url)));
+
+		entradas.AddRange((links ?? [])
+			.OrderBy(link => link.Rotulo, StringComparer.OrdinalIgnoreCase)
+			.Select(link => new EntradaDoMenuPrincipal(link.Chave, link.Rotulo, link.Icone, link.Url, link.NovaAba)));
 
 		return entradas;
 	}

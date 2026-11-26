@@ -134,7 +134,7 @@ public class DocumentoFluxoTests(IntranetWebFactory factory) : IClassFixture<Int
 
 		texto.Should().NotContain("marcador-secreto-do-teste-de-documento", "o conteúdo em repouso precisa estar cifrado");
 		texto.Should().NotStartWith("%PDF", "nem a assinatura do formato pode vazar");
-		texto.Should().StartWith("SCCOFILE", "o cabeçalho do formato cifrado identifica o arquivo");
+		texto.Should().StartWith("SECCOENC", "o cabeçalho do formato cifrado do SDK identifica o arquivo");
 	}
 
 	[Fact]
@@ -190,6 +190,46 @@ public class DocumentoFluxoTests(IntranetWebFactory factory) : IClassFixture<Int
 		var download = await client.GetAsync($"/documentos/{id}/download");
 
 		download.StatusCode.Should().Be(HttpStatusCode.NotFound, "arquivar tira de circulação, não só da listagem");
+	}
+
+	[Fact]
+	public async Task Download_ComBlocoPosteriorAdulterado_NaoEntregaCorpoCompleto()
+	{
+		var client = CriarCliente();
+		var slug = $"setor-{Guid.NewGuid():N}"[..20];
+		var original = new byte[(3 * 65536) + 7];
+		Random.Shared.NextBytes(original);
+		// O tipo é conferido pela assinatura: sem o cabeçalho de PDF a publicação seria recusada.
+		Encoding.ASCII.GetBytes("%PDF-1.7\n").CopyTo(original, 0);
+
+		await CriarSetorAsync(client, "Setor de Teste", slug);
+		await PublicarAsync(client, slug, "Política interna", original);
+
+		var pagina = await client.GetStringAsync($"/{slug}/documentos");
+		var link = Regex.Match(pagina, @"/[Dd]ocumentos/([0-9a-fA-F-]{36})/[Dd]ownload").Value;
+		var gravado = Directory.GetFiles(_raiz, "*", SearchOption.AllDirectories).Single();
+		var bytes = await File.ReadAllBytesAsync(gravado);
+		bytes[^50] ^= 0xFF;
+		await File.WriteAllBytesAsync(gravado, bytes);
+
+		// O bloco adulterado só é percebido depois de os anteriores terem sido enviados: o
+		// servidor aborta a conexão em vez de fechar o corpo como se estivesse completo.
+		byte[]? recebido = null;
+		try
+		{
+			using var resposta = await client.GetAsync(link);
+			recebido = await resposta.Content.ReadAsByteArrayAsync();
+		}
+		catch (Exception falha) when (falha is HttpRequestException or IOException or InvalidOperationException)
+		{
+			// Aborto observado como falha de leitura: é o resultado esperado.
+		}
+
+		if (recebido is not null)
+		{
+			recebido.Should().NotEqual(original, "um arquivo adulterado não pode ser entregue como íntegro");
+			recebido.Length.Should().BeLessThan(original.Length);
+		}
 	}
 
 	[Fact]

@@ -31,7 +31,9 @@ Decisões arquiteturais específicas deste produto (Setor = Role, monolito, sist
 armazenamento de documentos) estão documentadas em
 [`docs/adr/secco-intranet-adrs.md`](docs/adr/secco-intranet-adrs.md) — consultar antes de
 mudanças estruturais. O plano de fases está em [`docs/roadmap.md`](docs/roadmap.md), e o guia
-para escrever um tema em [`docs/temas.md`](docs/temas.md).
+para escrever um tema em [`docs/temas.md`](docs/temas.md). Como os arquivos enviados são cifrados
+e quem consegue lê-los, para quem avalia a segurança de uma instalação, está em
+[`docs/seguranca.md`](docs/seguranca.md).
 
 O que este produto espera da plataforma e ainda não existe — com o link da issue onde cada
 lacuna é discutida — está em [`docs/plataforma.md`](docs/plataforma.md). Capacidade transversal

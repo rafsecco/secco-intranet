@@ -14,6 +14,13 @@ internal static class AuditoriaDeMenu
 			new RegistroDeAuditoria(verbo, RecursosDeAuditoria.Menu, item.Id.ToString(), JsonSerializer.Serialize(dados)),
 			cancellationToken);
 
+	/// <summary>Registra uma ação sobre um link do menu principal; <paramref name="dados"/> vira o JSON do registro.</summary>
+	public static Task LinkAsync(
+		ITrilhaDeAuditoria trilha, string verbo, Guid linkId, object dados, CancellationToken cancellationToken) =>
+		trilha.RegistrarAsync(
+			new RegistroDeAuditoria(verbo, RecursosDeAuditoria.Menu, linkId.ToString(), JsonSerializer.Serialize(dados)),
+			cancellationToken);
+
 	/// <summary>Registra uma reconciliação em lote.</summary>
 	public static Task ReconciliacaoAsync(ITrilhaDeAuditoria trilha, int setores, CancellationToken cancellationToken) =>
 		trilha.RegistrarAsync(

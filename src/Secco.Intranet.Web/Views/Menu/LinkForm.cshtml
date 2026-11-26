@@ -1,0 +1,56 @@
+@model LinkDoMenuFormViewModel
+@{
+	var editando = Model.Id is not null;
+	var titulo = editando ? "Editar link" : "Novo link";
+
+	ViewData["Title"] = $"{titulo} · Menu";
+
+	var cabecalho = new PageHeaderModel(titulo, "Atalho do menu principal, igual para todos os usuários do tenant.");
+}
+
+<partial name="_PageHeader" model="cabecalho" />
+
+<div class="sc-panel mb-3">
+	<div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+	<form method="post"
+		  asp-controller="Menu"
+		  asp-action="@(editando ? "EditarLink" : "NovoLink")"
+		  asp-route-id="@Model.Id">
+		<div class="row g-3">
+			<div class="col-md-8">
+				<label class="form-label" asp-for="Rotulo">Rótulo</label>
+				<input class="form-control" asp-for="Rotulo" autocomplete="off" />
+				<span class="text-danger" asp-validation-for="Rotulo"></span>
+			</div>
+
+			<div class="col-12">
+				<label class="form-label" asp-for="Url">URL</label>
+				<input class="form-control" asp-for="Url" autocomplete="off" />
+				<span class="text-danger" asp-validation-for="Url"></span>
+				<div class="form-text">Caminho da intranet (/...) ou endereço http/https.</div>
+			</div>
+
+			<div class="col-md-6">
+				<label class="form-label" asp-for="Icone">Ícone</label>
+				<input class="form-control" asp-for="Icone" autocomplete="off" placeholder="bi-life-preserver" />
+				<span class="text-danger" asp-validation-for="Icone"></span>
+				<div class="form-text">
+					Opcional. Classe do <a href="https://icons.getbootstrap.com/" target="_blank" rel="noopener noreferrer">Bootstrap Icons</a>.
+				</div>
+			</div>
+
+			<div class="col-md-6 d-flex align-items-end">
+				<div class="form-check">
+					<input class="form-check-input" type="checkbox" asp-for="NovaAba" />
+					<label class="form-check-label" asp-for="NovaAba">Abrir em nova aba</label>
+				</div>
+			</div>
+		</div>
+
+		<div class="sc-form__actions">
+			<button class="btn btn-primary" type="submit">Salvar</button>
+			<a class="btn btn-outline-secondary" asp-controller="Menu" asp-action="Index">Cancelar</a>
+		</div>
+	</form>
+</div>

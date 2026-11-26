@@ -72,6 +72,18 @@ public class CatalogoDeItensDoMenuPrincipalTests
 	}
 
 	[Fact]
+	public void Criar_ChaveComPrefixoLink_ItemFicaDeFora()
+	{
+		var log = new LoggerCapturador<CatalogoDeItensDoMenuPrincipal>();
+
+		Catalogo(log: log).Criar(Provider()).Select(i => i.GetType()).Should().NotContain(typeof(ItemChavePrefixoLink));
+
+		log.Entradas.Where(e => e.Nivel == LogLevel.Warning && e.Mensagem.Contains(nameof(ItemChavePrefixoLink), StringComparison.Ordinal))
+			.Should().ContainSingle()
+			.Which.Mensagem.Should().Contain("o prefixo 'link-' é reservado aos links do menu");
+	}
+
+	[Fact]
 	public void Extra_com_prefixo_biblioteca_fica_fora_com_aviso()
 	{
 		var log = new LoggerCapturador<CatalogoDeItensDoMenuPrincipal>();
@@ -239,6 +251,11 @@ public class CatalogoDeItensDoMenuPrincipalTests
 	public sealed class ItemChavePrefixoBiblioteca : ItemBase
 	{
 		public override string Chave => "biblioteca-x";
+	}
+
+	public sealed class ItemChavePrefixoLink : ItemBase
+	{
+		public override string Chave => "link-qualquer";
 	}
 
 	public sealed class ItemUrlAbsoluta : ItemBase

@@ -374,6 +374,40 @@ namespace Secco.Intranet.Migrations.SqlServer.Migrations
                     b.ToTable("tb_itens_menu");
                 });
 
+            modelBuilder.Entity("Secco.Intranet.Domain.Menu.LinkDoMenuPrincipal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id_pk_link_do_menu_principal");
+
+                    b.Property<string>("Icone")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("ds_icone");
+
+                    b.Property<bool>("NovaAba")
+                        .HasColumnType("bit")
+                        .HasColumnName("fl_nova_aba");
+
+                    b.Property<string>("Rotulo")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("ds_rotulo");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)")
+                        .HasColumnName("ds_url");
+
+                    b.HasKey("Id")
+                        .HasName("pk_links_do_menu_principal");
+
+                    b.ToTable("tb_links_do_menu_principal");
+                });
+
             modelBuilder.Entity("Secco.Intranet.Domain.Menu.PosicaoMenu", b =>
                 {
                     b.Property<Guid>("Id")

@@ -141,10 +141,13 @@ public sealed class CriarItemMenuHandler(IItemMenuRepository repository, ITrilha
 	/// <summary>
 	/// Rota é destino de <c>Redirect</c> (Task 9): caminho local começando com uma barra só
 	/// (<c>//host</c> seria outro domínio), ou URL absoluta http/https. Qualquer outro esquema
-	/// (<c>javascript:</c>, <c>data:</c>, <c>ftp:</c>) é recusado.
+	/// (<c>javascript:</c>, <c>data:</c>, <c>ftp:</c>) é recusado. Caractere de controle em qualquer
+	/// posição também: navegadores descartam tab e quebra de linha da URL, e <c>"/&lt;TAB&gt;/host"</c>
+	/// passaria por caminho local para virar <c>//host</c>, outro domínio.
 	/// </summary>
 	internal static bool RotaEhValida(string rota) =>
-		(rota.StartsWith('/') && !rota.StartsWith("//", StringComparison.Ordinal) && !rota.StartsWith("/\\", StringComparison.Ordinal))
-		|| (Uri.TryCreate(rota, UriKind.Absolute, out var uri)
-			&& (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps));
+		!rota.Any(char.IsControl)
+		&& ((rota.StartsWith('/') && !rota.StartsWith("//", StringComparison.Ordinal) && !rota.StartsWith("/\\", StringComparison.Ordinal))
+			|| (Uri.TryCreate(rota, UriKind.Absolute, out var uri)
+				&& (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)));
 }

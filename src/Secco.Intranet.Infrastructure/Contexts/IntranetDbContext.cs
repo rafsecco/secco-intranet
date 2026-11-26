@@ -47,6 +47,9 @@ public sealed class IntranetDbContext(DbContextOptions<IntranetDbContext> option
 	/// <summary>Posições salvas do menu principal por tenant (tabela <c>tb_posicoes_menu</c>).</summary>
 	public DbSet<PosicaoMenu> PosicoesMenu => Set<PosicaoMenu>();
 
+	/// <summary>Links que o administrador põe no menu principal.</summary>
+	public DbSet<LinkDoMenuPrincipal> LinksDoMenuPrincipal => Set<LinkDoMenuPrincipal>();
+
 	/// <summary>Itens com data de vencimento por setor (tabela <c>tb_itens_vencimento</c>).</summary>
 	public DbSet<ItemVencimento> ItensVencimento => Set<ItemVencimento>();
 

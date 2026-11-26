@@ -92,7 +92,8 @@ public sealed class NavigationViewComponent(
 			SlugsReservados: slugsReservados,
 			Bibliotecas: await CarregarBibliotecasAsync(HttpContext.User, exigirPermissao: !modoAberto).ConfigureAwait(false),
 			SetoresComEscrita: visibilidade.ComEscrita,
-			SetoresSemLeitura: visibilidade.SemLeitura);
+			SetoresSemLeitura: visibilidade.SemLeitura,
+			LinksDoMenu: await CarregarLinksAsync().ConfigureAwait(false));
 
 		return View(IntranetNavigation.Build(request));
 	}
@@ -136,6 +137,31 @@ public sealed class NavigationViewComponent(
 #pragma warning restore CA1031
 		{
 			logger.LogWarning(exception, "Não foi possível carregar as bibliotecas do menu; exibindo o menu sem elas.");
+			return [];
+		}
+	}
+
+	private async Task<IReadOnlyList<LinkDoMenuPrincipalDto>> CarregarLinksAsync()
+	{
+		if (!tenantContext.IsResolved)
+		{
+			return [];
+		}
+
+		try
+		{
+			var resultado = await serviceProvider
+				.GetRequiredService<ListarLinksDoMenuPrincipalHandler>()
+				.HandleAsync(HttpContext.RequestAborted)
+				.ConfigureAwait(false);
+
+			return resultado.IsFailure ? [] : resultado.Value;
+		}
+#pragma warning disable CA1031 // O menu está no layout: uma falha aqui derrubaria até a própria página de erro.
+		catch (Exception exception)
+#pragma warning restore CA1031
+		{
+			logger.LogWarning(exception, "Não foi possível carregar os links do menu; exibindo o menu sem eles.");
 			return [];
 		}
 	}

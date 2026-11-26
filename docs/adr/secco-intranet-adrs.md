@@ -5,7 +5,7 @@
 > Para mudar uma decisão, cria-se uma nova ADR que **substitui** a anterior — ADRs nunca são editadas retroativamente nem apagadas.
 > Decisões da plataforma (multi-tenancy, `Result<T>`, nomenclatura de banco...) estão em `secco-platform/docs/adr/secco-platform-adrs.md` — este documento cobre apenas decisões específicas deste produto.
 
-**Última atualização:** 2026-11-18 (ADR-0015 adicionada)
+**Última atualização:** 2026-11-18 (ADR-0016 adicionada)
 
 ---
 
@@ -204,7 +204,7 @@ arquivos. O caminho é montado dentro da implementação a partir do tenant corr
 que pode ser renomeado. Backends em nuvem (S3, Blob, GCS) implementam a mesma porta.
 
 **Cifragem em envelope**: cada arquivo recebe uma chave própria; o conteúdo é cifrado com
-ela em blocos de 1 MiB de AES-256-GCM, cada bloco com nonce e tag próprios e o índice mais a
+ela em blocos de 64 KiB de AES-256-GCM, cada bloco com nonce e tag próprios e o índice mais a
 marca de último bloco como dado associado. A chave do arquivo é embrulhada por uma chave
 mestra e guardada na coluna `ds_chave_embrulhada`, no formato versionado `secco-enc:v1:` já
 adotado pela plataforma (ADR-0025). A origem da chave mestra fica atrás de
@@ -215,12 +215,16 @@ empresa toda; `{slug}-user` lê o que é do setor. Arquivos **nunca** são servi
 conteúdo estático nem têm endereço adivinhável — toda leitura passa por
 `GET /documentos/{id}/download`, que avalia a visibilidade e faz streaming decifrado.
 
+**Atualização (2026-11-25):** a cifragem passou a ser a do `Secco.SDK.EntityFrameworkCore`
+(`ISeccoFileCipher`, ADR-0061 da plataforma), formato `SECCOENC` v1, construção STREAM; o
+`EnvelopeCipher` próprio saiu.
+
 ### Consequências
 - Como a cifragem acontece na aplicação, um backend em nuvem enxerga apenas texto cifrado:
   trocar de armazenamento deixa de ser uma decisão de confiança.
-- Rotacionar a chave mestra reescreve só a coluna da chave embrulhada — nenhum arquivo é
-  reescrito. É também o que torna KMS viável: o que trafega são 32 bytes, não o documento.
-- Blocos de 1 MiB, e não um bloco único, porque GCM só autentica no fim da mensagem: um
+- Trocar a chave mestra só precisa reembrulhar a coluna da chave embrulhada — nenhum arquivo é
+  reescrito. O `migrate` faz esse reembrulho em todos os tenants (2026-11-25). É também o que torna KMS viável: o que trafega são 32 bytes, não o documento.
+- Blocos de 64 KiB, e não um bloco único, porque GCM só autentica no fim da mensagem: um
   bloco único obrigaria a carregar o arquivo inteiro em memória antes de confiar em qualquer
   byte.
 - Documento inexistente e documento fora do alcance devolvem o **mesmo** erro: distinguir os
@@ -766,3 +770,40 @@ dois cadastros do mesmo dado, e o da Intranet desatualizava.
 - O admin alinha o nome dos setores com os departamentos do Entra; a lista de sem setor mostra as
   divergências.
 - Com o SecureGate instável, o Diretório mostra os dados manuais em vez de "indisponível".
+
+---
+
+## ADR-0016: Links do menu principal cadastrados pelo admin
+
+**Status:** Aceita
+**Data:** 2026-11-18
+
+### Contexto
+O grupo principal do menu só tinha itens de código: Mural, Diretório, bibliotecas e os extras de RCL
+(`IItemDeMenuPrincipal`). Atalho para um sistema externo da empresa toda (chamado, webmail) exigia
+publicar código, ou criar um setor só para ele.
+
+### Decisão
+1. **Link é dado do tenant**, em tabela própria (`LinkDoMenuPrincipal`: rótulo, URL, ícone e nova
+   aba), cadastrado só pelo `intranet-admin` em `/menu`, com trilha de auditoria (`menu.link-*`).
+2. **Folha visível a todos** os usuários autenticados do tenant, no grupo principal, depois dos
+   extras e por rótulo, até o admin reordenar.
+3. **Chave `link-{id}`**, com o prefixo `link-` reservado no catálogo (como `biblioteca-`): item de
+   RCL com chave assim fica fora do menu, com aviso no log. Excluir o link apaga a posição salva.
+4. **URL** pela regra `RotaEhValida`: caminho local (`/...`, nunca `//` nem `/\`) ou `http`/`https`.
+5. **Nova aba** pelo `NovaAba` do `NavigationItemModel`, marcada por padrão no cadastro.
+6. **`IItemDeMenuPrincipal` continua** sendo o caminho para item em código, com rota própria e gate
+   de visibilidade.
+
+### Alternativas descartadas
+- **`ItemMenu` com setor nulo:** evita tabela, mas `ItemMenu` tem FK obrigatória para setor, slug
+  único entre irmãos, tipos, nível de acesso e reconciliação dos setores; todo handler da árvore
+  teria de ignorar esses itens.
+- **Lista JSON na configuração do tenant:** sem migration, mas sem id estável por link para a chave
+  de posição e a trilha, e com edição concorrente de uma lista inteira.
+
+### Consequências
+- O admin mantém atalhos da empresa toda sem deploy; o menu ganha uma terceira fonte no grupo
+  principal.
+- Migration nova nos dois engines (`LinksDoMenuPrincipal`).
+- RCL que usava chave começando por `link-` precisa trocá-la.

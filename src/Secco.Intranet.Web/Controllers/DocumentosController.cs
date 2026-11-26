@@ -18,6 +18,7 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="searchSetores">Busca de setores, para saber o universo de slugs a checar.</param>
 /// <param name="permissoesDeSetor">Em quais setores o usuário tem leitura (ADR-0021).</param>
 /// <param name="acessoABiblioteca">Em quais bibliotecas o usuário tem leitura.</param>
+/// <param name="logger">Registro de falhas na entrega do conteúdo.</param>
 [Route("documentos")]
 public sealed class DocumentosController(
 	BaixarDocumentoHandler handler,
@@ -25,7 +26,8 @@ public sealed class DocumentosController(
 	IWebHostEnvironment environment,
 	SearchSetoresHandler searchSetores,
 	IPermissoesDeSetor permissoesDeSetor,
-	AcessoABiblioteca acessoABiblioteca) : Controller
+	AcessoABiblioteca acessoABiblioteca,
+	ILogger<DocumentosController> logger) : Controller
 {
 	private const int LimiteSetoresConsultados = 200;
 
@@ -61,7 +63,20 @@ public sealed class DocumentosController(
 		Response.ContentType = documento.ContentType;
 		Response.ContentLength = documento.Tamanho;
 
-		await documento.EscreverConteudo(Response.Body, cancellationToken).ConfigureAwait(false);
+		try
+		{
+			await documento.EscreverConteudo(Response.Body, cancellationToken).ConfigureAwait(false);
+		}
+		catch (Exception falha) when (falha is not OperationCanceledException && Response.HasStarted)
+		{
+			// Blocos anteriores já foram enviados com o Content-Length do conteúdo íntegro: a única
+			// resposta honesta é derrubar a conexão, para o cliente não tomar o corpo parcial por completo.
+			// Se nada saiu ainda (arquivo ausente, cabeçalho inválido), a exceção segue e vira erro 500.
+			// Só o tipo da exceção: a mensagem de falhas de I/O costuma trazer o caminho absoluto.
+			logger.LogError("Falha ao entregar o documento {DocumentoId}; a conexão foi abortada ({TipoDaFalha}).", id, falha.GetType().Name);
+
+			HttpContext.Abort();
+		}
 
 		return new EmptyResult();
 	}

@@ -2,18 +2,18 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Secco.Intranet.Infrastructure.Contexts;
 
 #nullable disable
 
-namespace Secco.Intranet.Migrations.Postgres.Migrations
+namespace Secco.Intranet.Migrations.SqlServer.Migrations
 {
     [DbContext(typeof(IntranetDbContext))]
-    [Migration("20261118094442_SalasEReservas")]
-    partial class SalasEReservas
+    [Migration("20261119011736_LinksDoMenuPrincipal")]
+    partial class LinksDoMenuPrincipal
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -21,41 +21,41 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "10.0.15")
-                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
-            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
             modelBuilder.Entity("Secco.Intranet.Domain.Bibliotecas.Biblioteca", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_pk_biblioteca");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("boolean")
+                        .HasColumnType("bit")
                         .HasColumnName("fl_ativo");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_created_at");
 
                     b.Property<string>("Icone")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
+                        .HasColumnType("nvarchar(64)")
                         .HasColumnName("ds_icone");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(450)
-                        .HasColumnType("character varying(450)")
+                        .HasColumnType("nvarchar(450)")
                         .HasColumnName("ds_nome");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(53)
-                        .HasColumnType("character varying(53)")
+                        .HasColumnType("nvarchar(53)")
                         .HasColumnName("ds_slug");
 
                     b.HasKey("Id")
@@ -72,52 +72,52 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_pk_perfil_colaborador");
 
                     b.Property<string>("Cargo")
                         .HasMaxLength(120)
-                        .HasColumnType("character varying(120)")
+                        .HasColumnType("nvarchar(120)")
                         .HasColumnName("ds_cargo");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_created_at");
 
                     b.Property<string>("FotoCaminhoRelativo")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_foto_caminho_relativo");
 
                     b.Property<string>("FotoChaveEmbrulhada")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_foto_chave_embrulhada");
 
                     b.Property<Guid?>("GestorUsuarioId")
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("gestor_usuario_id");
 
                     b.Property<string>("Ramal")
                         .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("ds_ramal");
 
                     b.Property<Guid?>("SetorId")
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_fk_setor");
 
                     b.Property<string>("Sobre")
                         .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
+                        .HasColumnType("nvarchar(500)")
                         .HasColumnName("ds_sobre");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_updated_at");
 
                     b.Property<Guid>("UsuarioId")
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("usuario_id");
 
                     b.HasKey("Id")
@@ -140,62 +140,62 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_pk_documento");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("boolean")
+                        .HasColumnType("bit")
                         .HasColumnName("fl_ativo");
 
                     b.Property<Guid?>("BibliotecaId")
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_fk_biblioteca");
 
                     b.Property<string>("CaminhoRelativo")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_caminho_relativo");
 
                     b.Property<string>("ChaveEmbrulhada")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_chave_embrulhada");
 
                     b.Property<string>("ContentType")
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
+                        .HasColumnType("nvarchar(128)")
                         .HasColumnName("ds_content_type");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_created_at");
 
                     b.Property<string>("CriadoPor")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_criado_por");
 
                     b.Property<string>("Descricao")
                         .HasMaxLength(4096)
-                        .HasColumnType("character varying(4096)")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("ds_descricao");
 
                     b.Property<string>("NomeArquivo")
                         .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
+                        .HasColumnType("nvarchar(512)")
                         .HasColumnName("ds_nome_arquivo");
 
                     b.Property<int>("Ordem")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("nr_ordem");
 
                     b.Property<Guid?>("ParentId")
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_fk_parent");
 
                     b.Property<Guid?>("SetorId")
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_fk_setor");
 
                     b.Property<long?>("Tamanho")
@@ -203,17 +203,17 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .HasColumnName("nr_tamanho");
 
                     b.Property<int>("Tipo")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("ie_tipo");
 
                     b.Property<string>("Titulo")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_titulo");
 
                     b.Property<int>("Visibilidade")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("ie_visibilidade");
 
                     b.HasKey("Id")
@@ -244,49 +244,49 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_pk_item_inventario");
 
                     b.Property<string>("AtribuidoANome")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_atribuido_a_nome");
 
                     b.Property<Guid?>("AtribuidoAUsuarioId")
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("atribuido_a_usuario_id");
 
                     b.Property<string>("Categoria")
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
+                        .HasColumnType("nvarchar(128)")
                         .HasColumnName("ds_categoria");
 
                     b.Property<string>("CodigoPatrimonio")
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
+                        .HasColumnType("nvarchar(128)")
                         .HasColumnName("ds_codigo_patrimonio");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_created_at");
 
                     b.Property<string>("Descricao")
                         .HasMaxLength(4096)
-                        .HasColumnType("character varying(4096)")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("ds_descricao");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_nome");
 
                     b.Property<Guid?>("SetorId")
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_fk_setor");
 
                     b.Property<int>("Status")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("ie_status");
 
                     b.HasKey("Id")
@@ -308,61 +308,61 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_pk_item_menu");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("boolean")
+                        .HasColumnType("bit")
                         .HasColumnName("fl_ativo");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_created_at");
 
                     b.Property<string>("Icone")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
+                        .HasColumnType("nvarchar(64)")
                         .HasColumnName("ds_icone");
 
                     b.Property<int>("NivelDeAcesso")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("ie_nivel_de_acesso");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_nome");
 
                     b.Property<bool>("NovaAba")
-                        .HasColumnType("boolean")
+                        .HasColumnType("bit")
                         .HasColumnName("fl_nova_aba");
 
                     b.Property<int>("Ordem")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("nr_ordem");
 
                     b.Property<Guid?>("ParentId")
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_fk_parent");
 
                     b.Property<string>("Rota")
                         .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
+                        .HasColumnType("nvarchar(512)")
                         .HasColumnName("ds_rota");
 
                     b.Property<Guid>("SetorId")
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_fk_setor");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
+                        .HasColumnType("nvarchar(128)")
                         .HasColumnName("ds_slug");
 
                     b.Property<int>("Tipo")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("ie_tipo");
 
                     b.HasKey("Id")
@@ -377,25 +377,59 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                     b.ToTable("tb_itens_menu");
                 });
 
+            modelBuilder.Entity("Secco.Intranet.Domain.Menu.LinkDoMenuPrincipal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id_pk_link_do_menu_principal");
+
+                    b.Property<string>("Icone")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("ds_icone");
+
+                    b.Property<bool>("NovaAba")
+                        .HasColumnType("bit")
+                        .HasColumnName("fl_nova_aba");
+
+                    b.Property<string>("Rotulo")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("ds_rotulo");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)")
+                        .HasColumnName("ds_url");
+
+                    b.HasKey("Id")
+                        .HasName("pk_links_do_menu_principal");
+
+                    b.ToTable("tb_links_do_menu_principal");
+                });
+
             modelBuilder.Entity("Secco.Intranet.Domain.Menu.PosicaoMenu", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_pk_posicao_menu");
 
                     b.Property<string>("Chave")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
+                        .HasColumnType("nvarchar(64)")
                         .HasColumnName("ds_chave");
 
                     b.Property<int>("Grupo")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("ie_grupo");
 
                     b.Property<int>("Ordem")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("nr_ordem");
 
                     b.HasKey("Id")
@@ -412,23 +446,23 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_pk_imagem_no_texto");
 
                     b.Property<string>("CaminhoRelativo")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_caminho_relativo");
 
                     b.Property<string>("ChaveEmbrulhada")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_chave_embrulhada");
 
                     b.Property<Guid>("PublicacaoId")
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_fk_publicacao");
 
                     b.HasKey("Id")
@@ -444,76 +478,76 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_pk_publicacao");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("boolean")
+                        .HasColumnType("bit")
                         .HasColumnName("fl_ativo");
 
                     b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_atualizado_em");
 
                     b.Property<string>("Corpo")
                         .IsRequired()
                         .HasMaxLength(20000)
-                        .HasColumnType("character varying(20000)")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("ds_corpo");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_created_at");
 
                     b.Property<string>("CriadoPor")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_criado_por");
 
                     b.Property<DateTimeOffset?>("ExpiraEm")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_expira_em");
 
                     b.Property<string>("ImagemCaminhoRelativo")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_imagem_caminho_relativo");
 
                     b.Property<string>("ImagemChaveEmbrulhada")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_imagem_chave_embrulhada");
 
                     b.Property<string>("ImagemDescricao")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)")
+                        .HasColumnType("nvarchar(300)")
                         .HasColumnName("ds_imagem_descricao");
 
                     b.Property<int>("Prioridade")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("ie_prioridade");
 
                     b.Property<DateTimeOffset>("PublicadoEm")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_publicado_em");
 
                     b.Property<Guid>("SetorId")
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_fk_setor");
 
                     b.Property<int>("Tipo")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("ie_tipo");
 
                     b.Property<string>("Titulo")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_titulo");
 
                     b.Property<int>("Visibilidade")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("ie_visibilidade");
 
                     b.HasKey("Id")
@@ -528,260 +562,39 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                     b.ToTable("tb_publicacoes");
                 });
 
-            modelBuilder.Entity("Secco.Intranet.Domain.Salas.ConvidadoDaReserva", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id_pk_convidado_da_reserva");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("ds_email");
-
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("ds_nome");
-
-                    b.Property<Guid>("ReservaId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id_fk_reserva");
-
-                    b.Property<Guid>("UsuarioId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("usuario_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_convidados_das_reservas");
-
-                    b.HasIndex("ReservaId")
-                        .HasDatabaseName("idx_convidados_das_reservas_id_fk_reserva");
-
-                    b.HasIndex("UsuarioId")
-                        .HasDatabaseName("idx_convidados_das_reservas_usuario_id");
-
-                    b.ToTable("tb_convidados_das_reservas");
-                });
-
-            modelBuilder.Entity("Secco.Intranet.Domain.Salas.ExclusaoDeEventoPendente", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id_pk_exclusao_de_evento_pendente");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("dt_created_at");
-
-                    b.Property<string>("EventoExternoId")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("ds_evento_externo_id");
-
-                    b.Property<bool>("Falhou")
-                        .HasColumnType("boolean")
-                        .HasColumnName("fl_falhou");
-
-                    b.Property<string>("MotivoDaFalha")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("ds_motivo_da_falha");
-
-                    b.Property<DateTimeOffset?>("ProximaTentativaEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("dt_proxima_tentativa_em");
-
-                    b.Property<int>("Tentativas")
-                        .HasColumnType("integer")
-                        .HasColumnName("nr_tentativas");
-
-                    b.HasKey("Id")
-                        .HasName("pk_exclusoes_de_evento_pendentes");
-
-                    b.HasIndex("Falhou", "ProximaTentativaEm")
-                        .HasDatabaseName("idx_exclusoes_de_evento_pendentes_fl_falhou_dt_proxima_tentativa_em");
-
-                    b.ToTable("tb_exclusoes_de_evento_pendentes");
-                });
-
-            modelBuilder.Entity("Secco.Intranet.Domain.Salas.Reserva", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id_pk_reserva");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("dt_created_at");
-
-                    b.Property<string>("Descricao")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("ds_descricao");
-
-                    b.Property<int>("Espelhamento")
-                        .HasColumnType("integer")
-                        .HasColumnName("ie_espelhamento");
-
-                    b.Property<string>("EventoExternoId")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("ds_evento_externo_id");
-
-                    b.Property<DateTimeOffset>("Fim")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("dt_fim");
-
-                    b.Property<DateTimeOffset>("Inicio")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("dt_inicio");
-
-                    b.Property<string>("MotivoDaFalha")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("ds_motivo_da_falha");
-
-                    b.Property<DateTimeOffset?>("ProximaTentativaEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("dt_proxima_tentativa_em");
-
-                    b.Property<string>("ReservadoPorEmail")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("ds_reservado_por_email");
-
-                    b.Property<Guid>("ReservadoPorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("reservado_por_id");
-
-                    b.Property<string>("ReservadoPorNome")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("ds_reservado_por_nome");
-
-                    b.Property<Guid>("SalaId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id_fk_sala");
-
-                    b.Property<int>("TentativasDeEspelhamento")
-                        .HasColumnType("integer")
-                        .HasColumnName("nr_tentativas_de_espelhamento");
-
-                    b.Property<string>("Titulo")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)")
-                        .HasColumnName("ds_titulo");
-
-                    b.Property<int>("Versao")
-                        .HasColumnType("integer")
-                        .HasColumnName("nr_versao");
-
-                    b.HasKey("Id")
-                        .HasName("pk_reservas");
-
-                    b.HasIndex("Espelhamento", "ProximaTentativaEm")
-                        .HasDatabaseName("idx_reservas_ie_espelhamento_dt_proxima_tentativa_em");
-
-                    b.HasIndex("SalaId", "Inicio")
-                        .HasDatabaseName("idx_reservas_id_fk_sala_dt_inicio");
-
-                    b.ToTable("tb_reservas");
-                });
-
-            modelBuilder.Entity("Secco.Intranet.Domain.Salas.Sala", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id_pk_sala");
-
-                    b.Property<bool>("Ativa")
-                        .HasColumnType("boolean")
-                        .HasColumnName("fl_ativa");
-
-                    b.Property<int?>("Capacidade")
-                        .HasColumnType("integer")
-                        .HasColumnName("nr_capacidade");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("dt_created_at");
-
-                    b.Property<string>("EmailNaAgenda")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("ds_email_na_agenda");
-
-                    b.Property<string>("Localizacao")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("ds_localizacao");
-
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)")
-                        .HasColumnName("ds_nome");
-
-                    b.Property<int>("Ordem")
-                        .HasColumnType("integer")
-                        .HasColumnName("nr_ordem");
-
-                    b.Property<string>("Recursos")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("ds_recursos");
-
-                    b.HasKey("Id")
-                        .HasName("pk_salas");
-
-                    b.HasIndex("Nome")
-                        .IsUnique()
-                        .HasDatabaseName("uk_salas_ds_nome");
-
-                    b.ToTable("tb_salas");
-                });
-
             modelBuilder.Entity("Secco.Intranet.Domain.Setores.Setor", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_pk_setor");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("boolean")
+                        .HasColumnType("bit")
                         .HasColumnName("fl_ativo");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_created_at");
 
                     b.Property<bool>("Fixo")
-                        .HasColumnType("boolean")
+                        .HasColumnType("bit")
                         .HasColumnName("fl_fixo");
 
                     b.Property<string>("Icone")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
+                        .HasColumnType("nvarchar(64)")
                         .HasColumnName("ds_icone");
 
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasColumnType("nvarchar(450)")
                         .HasColumnName("ds_nome");
 
                     b.Property<string>("Slug")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasColumnType("nvarchar(450)")
                         .HasColumnName("ds_slug");
 
                     b.HasKey("Id")
@@ -804,31 +617,31 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_pk_aviso_de_vencimento_enviado");
 
                     b.Property<int>("Ciclo")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("nr_ciclo");
 
                     b.Property<Guid>("ItemVencimentoId")
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_fk_item_vencimento");
 
                     b.Property<int>("Marco")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("nr_marco");
 
                     b.Property<int>("QuantidadeDeDestinos")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("nr_quantidade_de_destinos");
 
                     b.Property<int>("Resultado")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("ie_resultado");
 
                     b.Property<DateTimeOffset>("TratadoEm")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_tratado_em");
 
                     b.HasKey("Id")
@@ -845,21 +658,21 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_pk_item_vencimento");
 
                     b.Property<string>("Antecedencias")
                         .IsRequired()
                         .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
+                        .HasColumnType("nvarchar(32)")
                         .HasColumnName("ds_antecedencias");
 
                     b.Property<int>("Ciclo")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("nr_ciclo");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_created_at");
 
                     b.Property<DateOnly>("DataVencimento")
@@ -868,30 +681,30 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
 
                     b.Property<string>("Descricao")
                         .HasMaxLength(4096)
-                        .HasColumnType("character varying(4096)")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("ds_descricao");
 
                     b.Property<DateTimeOffset?>("EncerradoEm")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_encerrado_em");
 
                     b.Property<string>("EncerradoPor")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_encerrado_por");
 
                     b.Property<Guid?>("ResponsavelId")
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("responsavel_id");
 
                     b.Property<Guid>("SetorId")
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_fk_setor");
 
                     b.Property<string>("Titulo")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_titulo");
 
                     b.HasKey("Id")
@@ -907,11 +720,11 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_pk_renovacao_de_vencimento");
 
                     b.Property<int>("CicloAnterior")
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasColumnName("nr_ciclo_anterior");
 
                     b.Property<DateOnly>("DataAnterior")
@@ -923,22 +736,22 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .HasColumnName("dt_data_nova");
 
                     b.Property<Guid>("ItemVencimentoId")
-                        .HasColumnType("uuid")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("id_fk_item_vencimento");
 
                     b.Property<string>("Observacao")
                         .HasMaxLength(4096)
-                        .HasColumnType("character varying(4096)")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("ds_observacao");
 
                     b.Property<DateTimeOffset>("RenovadoEm")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("datetimeoffset")
                         .HasColumnName("dt_renovado_em");
 
                     b.Property<string>("RenovadoPor")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ds_renovado_por");
 
                     b.HasKey("Id")
@@ -1025,26 +838,6 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .HasConstraintName("fk_publicacoes_setor");
                 });
 
-            modelBuilder.Entity("Secco.Intranet.Domain.Salas.ConvidadoDaReserva", b =>
-                {
-                    b.HasOne("Secco.Intranet.Domain.Salas.Reserva", null)
-                        .WithMany("Convidados")
-                        .HasForeignKey("ReservaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_convidados_das_reservas_reserva");
-                });
-
-            modelBuilder.Entity("Secco.Intranet.Domain.Salas.Reserva", b =>
-                {
-                    b.HasOne("Secco.Intranet.Domain.Salas.Sala", null)
-                        .WithMany()
-                        .HasForeignKey("SalaId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_reservas_sala");
-                });
-
             modelBuilder.Entity("Secco.Intranet.Domain.Vencimentos.AvisoDeVencimentoEnviado", b =>
                 {
                     b.HasOne("Secco.Intranet.Domain.Vencimentos.ItemVencimento", null)
@@ -1073,11 +866,6 @@ namespace Secco.Intranet.Migrations.Postgres.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_renovacoes_de_vencimento_item_vencimento");
-                });
-
-            modelBuilder.Entity("Secco.Intranet.Domain.Salas.Reserva", b =>
-                {
-                    b.Navigation("Convidados");
                 });
 #pragma warning restore 612, 618
         }

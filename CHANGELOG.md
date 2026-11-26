@@ -5,12 +5,70 @@ Mudanças que exigem ajuste de quem já roda a Intranet. O formato segue
 
 ## [Não lançado]
 
+### Pacotes da plataforma
+
+- `Secco.SharedKernel` 0.7.13 → 0.7.14
+- `Secco.SDK.EntityFrameworkCore` 0.6.0 → 0.7.0
+
+### Endereços com caractere de controle
+
+Links do setor e item personalizado do menu passam a recusar endereço com caractere de controle
+(tab, quebra de linha) em qualquer posição, como os links do menu principal já faziam. O navegador
+descarta esses caracteres, e `/<TAB>/outro.host` passava por caminho local para virar
+`//outro.host`, outro domínio. A regra mora num lugar só (`RotaEhValida`). Um link já gravado com
+esse caractere segue funcionando até ser editado.
+
+### Cifragem dos arquivos
+
+Detalhes na [spec](docs/specs/2026-11-25-cifragem-de-arquivo-pelo-sdk-design.md) e na ADR-0005.
+
+A cifragem dos arquivos (documentos, imagens do Mural, fotos do Diretório) passa a ser a do
+`Secco.SDK.EntityFrameworkCore` (`ISeccoFileCipher`, ADR-0061 da plataforma, secco-platform#54):
+formato `SECCOENC` v1, blocos de 64 KiB. O `EnvelopeCipher` próprio saiu. A troca da chave
+mestra está na seção "Troca da chave mestra", abaixo.
+
+### Troca da chave mestra
+
+Detalhes na [spec](docs/specs/2026-11-25-troca-da-chave-mestra-design.md) e na ADR-0005.
+
+O `migrate` passa a reembrulhar, em todos os tenants, as chaves dos arquivos (documentos, imagem de
+destaque e imagem no texto do Mural, foto do Diretório) embrulhadas por uma chave aposentada para a
+chave ativa, logo depois das migrations de cada tenant. Nenhum arquivo é lido nem regravado, só a
+coluna da chave, e não há migration de banco. O log traz, por tenant, a tabela, as chaves
+reembrulhadas e as "sem chave conhecida", nunca chave nem caminho.
+
+**Falha:** se uma chave de arquivo não abre com nenhuma chave configurada (em geral, uma aposentada
+retirada cedo demais), o tenant conta como falho, o `migrate` sai com código 1 e o seed de referência
+não roda. Os demais tenants e as outras chaves do tenant são reembrulhados mesmo assim.
+
+**Procedimento:** o guia de deploy ganha a seção "Troca da chave mestra". A aposentada só pode sair da
+configuração depois que todos os containers estiverem na configuração nova e um `migrate` terminar
+com código 0 sem reembrulhar nenhuma chave em nenhum tenant.
+
+### Quebras — Cifragem dos arquivos
+
+**Arquivos:** os gravados antes, no formato antigo (`SCCOFILE`), não abrem mais. Para limpar, apague
+os arquivos e os registros que apontam para eles, ou zere o banco e a pasta de armazenamento de dev.
+
+### Links do menu principal
+
+Detalhes na [spec](docs/specs/2026-11-18-links-do-menu-principal-design.md) e na ADR-0016.
+
+O `intranet-admin` cadastra, edita e exclui links no card **Links** de `/menu`; eles aparecem no
+grupo principal do menu para todos, depois dos extras, e entram na ordenação.
+
+**Banco:** rodar o `migrate` antes de subir a versão (migration `LinksDoMenuPrincipal`, tabela
+`tb_links_do_menu_principal`).
+
+**Extensões (RCL):** item de menu principal cuja chave comece com `link-` deixa de aparecer, com
+aviso no log; troque a chave.
+
 ### Atributos do Entra no Diretório
 
 Detalhes na [spec](docs/specs/2026-11-17-atributos-do-entra-no-diretorio-design.md) e na ADR-0015.
 
-**Dependências:** `Secco.SecureGate.Client` 0.25.0, `Secco.SharedKernel` 0.7.12,
-`Secco.SDK.AspNetCore` 0.10.2 e `Secco.SDK.ClientCredentials` 0.1.22.
+**Dependências:** `Secco.SecureGate.Client` 0.26.0, `Secco.SharedKernel` 0.7.13,
+`Secco.SDK.AspNetCore` 0.10.3 e `Secco.SDK.ClientCredentials` 0.1.23.
 
 **SecureGate:** o Diretório passa a ler as pessoas com o escopo `directory:read` do client de gestão
 (`Secco:SecureGate:TenantManagement`), que o guia de deploy já mandava conceder. Sem ele, nada

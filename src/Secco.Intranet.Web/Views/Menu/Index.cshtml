@@ -5,7 +5,7 @@
 
     var cabecalho = new PageHeaderModel(
         "Menu",
-        "Ordem dos itens do menu deste tenant. Item novo entra no fim da lista; Restaurar padrão volta à ordem de fábrica.");
+        "Links do menu principal e ordem dos itens deste tenant. Item novo entra no fim da lista; Restaurar padrão volta à ordem de fábrica.");
 
     var grupos = new[]
     {
@@ -17,6 +17,58 @@
 <partial name="_PageHeader" model="cabecalho" />
 
 <div class="sc-stack">
+    @{
+        Func<object?, Microsoft.AspNetCore.Html.IHtmlContent> corpoDosLinks = @<text>
+            @if (Model.Links.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyStateModel("bi-link-45deg", "Nenhum link", "Atalhos para sistemas que valem para a empresa toda."))" />
+            }
+            else
+            {
+                <ul class="sc-list mb-3">
+                    @foreach (var link in Model.Links)
+                    {
+                        <li class="sc-list__item" data-link-id="@link.Id">
+                            <div class="sc-list__text">
+                                <p class="sc-list__title">
+                                    @if (!string.IsNullOrWhiteSpace(link.Icone))
+                                    {
+                                        <i class="bi @link.Icone" aria-hidden="true"></i>
+                                    }
+                                    @link.Rotulo
+                                </p>
+                                <span class="sc-list__sub">
+                                    <span class="sc-meta">@link.Url</span>
+                                    @if (link.NovaAba)
+                                    {
+                                        <span class="text-body-secondary small">nova aba</span>
+                                    }
+                                </span>
+                            </div>
+                            <div class="sc-list__actions d-flex gap-1">
+                                <a class="btn btn-outline-secondary btn-sm" asp-action="EditarLink" asp-route-id="@link.Id" title="Editar @link.Rotulo">
+                                    <i class="bi bi-pencil" aria-hidden="true"></i>
+                                    Editar
+                                    <span class="visually-hidden">@link.Rotulo</span>
+                                </a>
+                                <form method="post" asp-action="ExcluirLink" asp-route-id="@link.Id"
+                                      data-confirmar="Excluir o link &quot;@link.Rotulo&quot;?">
+                                    <button class="btn btn-outline-danger btn-sm" type="submit" title="Excluir @link.Rotulo">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
+                                        Excluir
+                                        <span class="visually-hidden">@link.Rotulo</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+            <a class="btn btn-sm btn-primary" asp-action="NovoLink">+ Link</a>
+        </text>;
+    }
+    <partial name="_Card" model="@(new CardModel("Links", Corpo: corpoDosLinks(null)))" />
+
     @foreach (var (grupo, titulo, linhas, vazio) in grupos)
     {
         Func<object?, Microsoft.AspNetCore.Html.IHtmlContent> corpo = @<text>

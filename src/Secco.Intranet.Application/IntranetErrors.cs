@@ -582,6 +582,30 @@ public static class IntranetErrors
 				"A rota precisa ser um caminho da própria intranet (começando com /) ou um endereço http/https completo.");
 	}
 
+	/// <summary>Erros dos links do menu principal.</summary>
+	public static class LinksDoMenu
+	{
+		/// <summary>Link inexistente.</summary>
+		public static readonly Error NotFound =
+			Error.NotFound("Intranet.LinksDoMenu.NotFound", "Link não encontrado.");
+
+		/// <summary>Link sem rótulo.</summary>
+		public static readonly Error RotuloRequired =
+			Error.Validation("Intranet.LinksDoMenu.RotuloRequired", "Informe o rótulo do link.");
+
+		/// <summary>Link sem URL.</summary>
+		public static readonly Error UrlRequired =
+			Error.Validation("Intranet.LinksDoMenu.UrlRequired", "Informe a URL do link.");
+
+		/// <summary>Rótulo acima do limite de caracteres.</summary>
+		public static readonly Error RotuloMuitoLongo =
+			Error.Validation("Intranet.LinksDoMenu.RotuloMuitoLongo", "O rótulo excede o limite de 256 caracteres.");
+
+		/// <summary>URL acima do limite de caracteres.</summary>
+		public static readonly Error UrlMuitoLonga =
+			Error.Validation("Intranet.LinksDoMenu.UrlMuitoLonga", "A URL excede o limite de 512 caracteres.");
+	}
+
 	/// <summary>Erros dos links do setor.</summary>
 	public static class Links
 	{
