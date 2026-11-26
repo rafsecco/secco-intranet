@@ -75,6 +75,7 @@ internal sealed class ReservaRepository(IntranetDbContext context) : IReservaRep
 
 	public async Task<IReadOnlyList<Reserva>> ListarParaEspelharAsync(DateTimeOffset agora, int limite, CancellationToken ct = default) =>
 		await context.Reservas
+			.Include(reserva => reserva.Convidados)
 			.Where(reserva => reserva.Espelhamento == EstadoDoEspelhamento.Aguardando
 				&& (reserva.ProximaTentativaEm == null || reserva.ProximaTentativaEm <= agora))
 			.OrderBy(reserva => reserva.CreatedAt)
@@ -101,6 +102,30 @@ internal sealed class ReservaRepository(IntranetDbContext context) : IReservaRep
 
 	public void RemoverExclusaoPendente(ExclusaoDeEventoPendente pendencia) =>
 		context.ExclusoesDeEventoPendentes.Remove(pendencia);
+
+	public async Task<bool> TentarGravarAsync(CancellationToken ct = default)
+	{
+		try
+		{
+			await context.SaveChangesAsync(ct).ConfigureAwait(false);
+
+			return true;
+		}
+		catch (DbUpdateConcurrencyException)
+		{
+			return false;
+		}
+	}
+
+	public async Task<bool> RecarregarAsync(Reserva reserva, CancellationToken ct = default)
+	{
+		var entrada = context.Entry(reserva);
+
+		// Recarregar uma linha apagada solta a entrada do rastreamento.
+		await entrada.ReloadAsync(ct).ConfigureAwait(false);
+
+		return entrada.State != EntityState.Detached;
+	}
 
 	public async Task SaveChangesAsync(CancellationToken ct = default) =>
 		await context.SaveChangesAsync(ct).ConfigureAwait(false);

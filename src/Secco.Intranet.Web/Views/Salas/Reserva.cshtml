@@ -65,6 +65,12 @@
 				<button class="btn btn-outline-danger" type="submit">Cancelar reserva</button>
 			</form>
 		}
+		@if (Model.PodeTentarDeNovo)
+		{
+			<form method="post" asp-action="Espelhar" asp-route-id="@reserva.Id" class="d-inline">
+				<button class="btn btn-outline-primary" type="submit">Tentar de novo</button>
+			</form>
+		}
 		<a class="btn btn-outline-secondary" asp-action="Index" asp-route-data="@dia" asp-route-sala="@reserva.SalaId">Voltar à grade</a>
 	</div>
 </div>

@@ -137,6 +137,8 @@ public static class IntranetApplicationExtensions
 		services.AddScoped<ListarOcupacaoDoDiaHandler>();
 		services.AddScoped<ListarMinhasReservasHandler>();
 		services.AddScoped<ListarConvidadosPossiveisHandler>();
+		services.AddScoped<ProcessarEspelhamentoHandler>();
+		services.AddScoped<TentarEspelharDeNovoHandler>();
 
 		return services;
 	}

@@ -80,7 +80,10 @@ public sealed class ReservaRepositorioFalso : IReservaRepository
 				.OrderBy(r => r.Inicio)]);
 
 	public Task<IReadOnlyList<Reserva>> ListarParaEspelharAsync(DateTimeOffset agora, int limite, CancellationToken ct = default) =>
-		Task.FromResult<IReadOnlyList<Reserva>>([]);
+		Task.FromResult<IReadOnlyList<Reserva>>([
+			.. Reservas
+				.Where(r => r.Espelhamento == EstadoDoEspelhamento.Aguardando && (r.ProximaTentativaEm is null || r.ProximaTentativaEm <= agora))
+				.Take(limite)]);
 
 	public void Remover(Reserva reserva) => Reservas.Remove(reserva);
 
@@ -93,9 +96,22 @@ public sealed class ReservaRepositorioFalso : IReservaRepository
 
 	public Task<IReadOnlyList<ExclusaoDeEventoPendente>> ListarExclusoesPendentesAsync(
 		DateTimeOffset agora, int limite, CancellationToken ct = default) =>
-		Task.FromResult<IReadOnlyList<ExclusaoDeEventoPendente>>([.. Exclusoes]);
+		Task.FromResult<IReadOnlyList<ExclusaoDeEventoPendente>>([
+			.. Exclusoes
+				.Where(e => !e.Falhou && (e.ProximaTentativaEm is null || e.ProximaTentativaEm <= agora))
+				.Take(limite)]);
 
 	public void RemoverExclusaoPendente(ExclusaoDeEventoPendente pendencia) => Exclusoes.Remove(pendencia);
+
+	public Task<bool> TentarGravarAsync(CancellationToken ct = default)
+	{
+		Gravacoes++;
+
+		return Task.FromResult(true);
+	}
+
+	public Task<bool> RecarregarAsync(Reserva reserva, CancellationToken ct = default) =>
+		Task.FromResult(Reservas.Contains(reserva));
 
 	public Task SaveChangesAsync(CancellationToken ct = default)
 	{

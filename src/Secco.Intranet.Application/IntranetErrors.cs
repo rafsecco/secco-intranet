@@ -750,6 +750,10 @@ public static class IntranetErrors
 		public static readonly Error JaComecou =
 			Error.Validation("Intranet.Salas.JaComecou", "Esta reserva já começou e não pode mais ser alterada.");
 
+		/// <summary>Pedido para tentar de novo o espelhamento de uma reserva que não falhou.</summary>
+		public static readonly Error EspelhamentoNaoFalhou =
+			Error.Validation("Intranet.Salas.EspelhamentoNaoFalhou", "Só o espelhamento que falhou pode ser tentado de novo.");
+
 		/// <summary>Falha ao consultar o Diretório.</summary>
 		public static readonly Error DiretorioIndisponivel =
 			Error.Failure("Intranet.Salas.DiretorioIndisponivel", "Não foi possível consultar o Diretório agora. Tente de novo.");

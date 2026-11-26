@@ -22,6 +22,7 @@ using Secco.Intranet.Infrastructure.Contexts;
 using Secco.Intranet.Infrastructure.Diretorio;
 using Secco.Intranet.Infrastructure.Notificacao;
 using Secco.Intranet.Infrastructure.Repositories;
+using Secco.Intranet.Infrastructure.Salas;
 using Secco.Intranet.Infrastructure.Seeding;
 using Secco.Intranet.Infrastructure.Vencimentos;
 using Secco.LogStream.Client;
@@ -126,6 +127,9 @@ public static class IntranetInfrastructureExtensions
 		services.AddScoped<IItemVencimentoRepository, ItemVencimentoRepository>();
 		services.AddScoped<ISalaRepository, SalaRepository>();
 		services.AddScoped<IReservaRepository, ReservaRepository>();
+
+		// Espelhamento das reservas na agenda externa: desligado sem provedor configurado.
+		services.AddAgendaExterna(configuration);
 
 		// Guarda dupla da ADR-0019 (Development + flag) e aplicada pelo SeedSeccoDataAsync.
 		services.AddScoped<IDevelopmentDataSeeder, SetoresDesenvolvimentoSeeder>();

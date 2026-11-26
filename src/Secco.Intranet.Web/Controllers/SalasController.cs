@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Secco.Intranet.Application;
 using Secco.Intranet.Application.Salas;
+using Secco.Intranet.Domain.Salas;
 using Secco.Intranet.Web.Authentication;
 using Secco.Intranet.Web.Models.Salas;
 using Secco.Intranet.Web.Navigation;
@@ -23,6 +24,8 @@ namespace Secco.Intranet.Web.Controllers;
 /// <param name="alterarReserva">Caso de uso de alteração de reserva.</param>
 /// <param name="cancelarReserva">Caso de uso de cancelamento de reserva.</param>
 /// <param name="obterReserva">Leitura pontual de reserva.</param>
+/// <param name="tentarEspelharDeNovo">Devolve à fila uma reserva cujo espelhamento falhou.</param>
+/// <param name="espelhamento">Informa se o espelhamento na agenda externa está ligado.</param>
 /// <param name="listarOcupacao">Ocupação das salas num dia.</param>
 /// <param name="listarMinhas">Reservas futuras da pessoa.</param>
 /// <param name="listarConvidados">Pessoas que podem ser convidadas.</param>
@@ -40,6 +43,8 @@ public sealed class SalasController(
 	AlterarReservaHandler alterarReserva,
 	CancelarReservaHandler cancelarReserva,
 	ObterReservaHandler obterReserva,
+	TentarEspelharDeNovoHandler tentarEspelharDeNovo,
+	IEspelhamentoLigado espelhamento,
 	ListarOcupacaoDoDiaHandler listarOcupacao,
 	ListarMinhasReservasHandler listarMinhas,
 	ListarConvidadosPossiveisHandler listarConvidados,
@@ -154,7 +159,11 @@ public sealed class SalasController(
 		var reserva = resultado.Value;
 		var ehDono = reserva.ReservadoPor.UsuarioId == quem.UsuarioId;
 
-		return View(new ReservaDetalheViewModel(reserva, ehDono || quem.EhAdministrador));
+		// O estado do espelhamento só aparece com a agenda externa ligada, e só para o dono e a administração.
+		var veEspelhamento = espelhamento.Ligado && (ehDono || quem.EhAdministrador);
+		var podeTentarDeNovo = espelhamento.Ligado && quem.EhAdministrador && reserva.Espelhamento == EstadoDoEspelhamento.Falhou;
+
+		return View(new ReservaDetalheViewModel(reserva, veEspelhamento, podeTentarDeNovo));
 	}
 
 	/// <summary>Formulário de alteração de uma reserva.</summary>
@@ -234,6 +243,37 @@ public sealed class SalasController(
 		TempData[FeedbackViewComponent.ChaveDaMensagem] = "Reserva alterada.";
 
 		return VoltarParaGrade(form);
+	}
+
+	/// <summary>Devolve à fila do espelhamento uma reserva que falhou; só a administração.</summary>
+	/// <param name="id">Identificador da reserva.</param>
+	/// <param name="cancellationToken">Token de cancelamento.</param>
+	[HttpPost("reservas/{id:guid}/espelhar")]
+	[ValidateAntiForgeryToken]
+	public async Task<IActionResult> Espelhar(Guid id, CancellationToken cancellationToken = default)
+	{
+		if (QuemPede() is not { } quem)
+		{
+			return Challenge();
+		}
+
+		var resultado = await tentarEspelharDeNovo.HandleAsync(id, quem, cancellationToken);
+
+		if (resultado.IsFailure)
+		{
+			if (resultado.Error.Type == ErrorType.NotFound)
+			{
+				return NotFound();
+			}
+
+			TempData[FeedbackViewComponent.ChaveDaMensagemDeErro] = resultado.Error.Description;
+
+			return RedirectToAction(nameof(Reserva), new { id });
+		}
+
+		TempData[FeedbackViewComponent.ChaveDaMensagem] = "A reserva voltou para a fila de envio à agenda.";
+
+		return RedirectToAction(nameof(Reserva), new { id });
 	}
 
 	/// <summary>Cancela uma reserva.</summary>

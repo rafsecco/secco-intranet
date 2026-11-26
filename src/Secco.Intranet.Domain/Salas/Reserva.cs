@@ -154,6 +154,12 @@ public sealed class Reserva : BaseEntity
 		ReiniciarTentativas();
 	}
 
+	/// <summary>
+	/// Guarda o id de um evento externo criado enquanto a reserva mudava, sem mexer no estado do espelhamento:
+	/// a reserva segue aguardando e o próximo ciclo atualiza o evento em vez de criar outro.
+	/// </summary>
+	public void RegistrarEventoExterno(string eventoExternoId) => EventoExternoId = eventoExternoId;
+
 	/// <summary>Registra uma falha que pode passar; agenda a próxima tentativa ou, na oitava, passa a <see cref="EstadoDoEspelhamento.Falhou"/>.</summary>
 	public void RegistrarFalhaPassageira(string motivo, DateTimeOffset agora)
 	{

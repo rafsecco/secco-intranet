@@ -26,6 +26,9 @@ internal sealed class ReservaConfiguration : IEntityTypeConfiguration<Reserva>
 			.HasForeignKey(reserva => reserva.SalaId)
 			.OnDelete(DeleteBehavior.Restrict);
 
+		// Detecta a reserva alterada ou cancelada entre a leitura e a gravação (o espelhamento depende disso).
+		builder.Property(reserva => reserva.Versao).IsConcurrencyToken();
+
 		builder.Property(reserva => reserva.Titulo).HasMaxLength(Reserva.TituloMaximo);
 		builder.Property(reserva => reserva.Descricao).HasMaxLength(Reserva.DescricaoMaxima);
 		builder.Property(reserva => reserva.ReservadoPorNome).HasMaxLength(256);

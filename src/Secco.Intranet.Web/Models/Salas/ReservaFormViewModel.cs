@@ -47,4 +47,5 @@ public sealed class ReservaFormViewModel
 /// <summary>Detalhe de uma reserva com o que a tela decide só por quem olha.</summary>
 /// <param name="Reserva">A reserva.</param>
 /// <param name="VeEspelhamento">Se quem olha é dono ou administrador (e portanto vê o estado do espelhamento).</param>
-public sealed record ReservaDetalheViewModel(ReservaDto Reserva, bool VeEspelhamento);
+/// <param name="PodeTentarDeNovo">Se o espelhamento falhou e quem olha é administrador (e portanto vê o botão de tentar de novo).</param>
+public sealed record ReservaDetalheViewModel(ReservaDto Reserva, bool VeEspelhamento, bool PodeTentarDeNovo);

@@ -29,6 +29,15 @@ public interface IReservaRepository
 	/// <summary>Reservas com espelhamento aguardando e sem espera ou com a espera vencida, rastreadas.</summary>
 	Task<IReadOnlyList<Reserva>> ListarParaEspelharAsync(DateTimeOffset agora, int limite, CancellationToken ct = default);
 
+	/// <summary>
+	/// Grava as alterações pendentes. Devolve falso, sem gravar a reserva, quando ela foi alterada ou
+	/// removida depois de lida (a versão mudou); a reserva continua rastreada, e <see cref="RecarregarAsync"/> a atualiza.
+	/// </summary>
+	Task<bool> TentarGravarAsync(CancellationToken ct = default);
+
+	/// <summary>Relê a reserva rastreada do banco, descartando o que foi mudado nela; falso quando ela não existe mais.</summary>
+	Task<bool> RecarregarAsync(Reserva reserva, CancellationToken ct = default);
+
 	/// <summary>Marca a reserva para remoção (os convidados vão junto); a gravação é feita por <see cref="SaveChangesAsync"/>.</summary>
 	void Remover(Reserva reserva);
 
