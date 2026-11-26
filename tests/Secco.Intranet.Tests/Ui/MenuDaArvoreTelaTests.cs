@@ -8,6 +8,7 @@ using Microsoft.Playwright;
 using Secco.Intranet.Application.Acesso;
 using Secco.Intranet.Application.Diretorio;
 using Secco.Intranet.Application.Menu;
+using Secco.Intranet.Application.Salas;
 using Secco.Intranet.Application.Setores;
 using Secco.Intranet.Domain.Menu;
 using Secco.Intranet.Tests.Integration;
@@ -45,7 +46,7 @@ public sealed class UiTheoryAttribute : TheoryAttribute
 
 /// <summary>
 /// Sobe a aplicação de verdade (Kestrel), uma vez por tema, com um setor que tem um nível a mais
-/// (Relatórios → Vendas), e um Chromium headless.
+/// (Relatórios → Vendas), duas salas com uma reserva fictícia e um Chromium headless.
 /// </summary>
 public sealed class TelaFixture : IAsyncLifetime
 {
@@ -71,6 +72,27 @@ public sealed class TelaFixture : IAsyncLifetime
 	/// <summary>Id do setor do cenário.</summary>
 	public Guid SetorId { get; private set; }
 
+	/// <summary>Nome da primeira sala do cenário.</summary>
+	public string NomeDaSalaA => $"Sala A {Slug}";
+
+	/// <summary>Nome da segunda sala do cenário.</summary>
+	public string NomeDaSalaB => $"Sala B {Slug}";
+
+	/// <summary>Id da primeira sala do cenário.</summary>
+	public Guid SalaAId { get; private set; }
+
+	/// <summary>Id da segunda sala do cenário.</summary>
+	public Guid SalaBId { get; private set; }
+
+	/// <summary>Título da reserva fictícia do cenário (na sala A).</summary>
+	public string TituloDaReservaFicticia => $"Planejamento {Slug}";
+
+	/// <summary>Dia (futuro) da reserva fictícia, só deste cenário.</summary>
+	public DateOnly DiaDaReservaFicticia { get; private set; }
+
+	/// <summary>Usuário de teste que navega pelas telas de salas (o claim de usuário é obrigatório nelas).</summary>
+	public Guid UsuarioDeSalas { get; } = Guid.NewGuid();
+
 	/// <summary>
 	/// Perfil de teste do visitante. Fora de Development o menu só mostra o setor a quem tem a
 	/// permissão de leitura dele (o modo aberto vale só em Development, ADR-0020).
@@ -78,6 +100,10 @@ public sealed class TelaFixture : IAsyncLifetime
 	private const string PerfilDoVisitante = "ui-leitor";
 
 	private readonly System.Collections.Concurrent.ConcurrentDictionary<IPage, List<string>> _errosDeScript = new();
+	private readonly System.Collections.Concurrent.ConcurrentDictionary<IPage, List<string>> _violacoesDeCsp = new();
+
+	/// <summary>Mensagens de console sobre a CSP de uma página aberta por <see cref="AbrirSalasAsync"/>.</summary>
+	public IReadOnlyList<string> ViolacoesDeCsp(IPage pagina) => _violacoesDeCsp.GetValueOrDefault(pagina) ?? [];
 
 	/// <summary>Erros de JavaScript de uma página aberta por <see cref="AbrirAsync"/>.</summary>
 	public IReadOnlyList<string> ErrosDeScript(IPage pagina) => _errosDeScript.GetValueOrDefault(pagina) ?? [];
@@ -98,6 +124,7 @@ public sealed class TelaFixture : IAsyncLifetime
 		await _fabrica.EnsureDatabaseMigratedAsync();
 		await CriarCenarioAsync();
 		await CriarOrganogramaAsync();
+		await CriarSalasAsync();
 		_fabrica.ResolvedorDePermissoes = new PermissionResolverDeTeste()
 			.ComPermissao(PerfilDoVisitante, IntranetPermissoes.Setor.Read(Slug))
 			.ComPermissao("diretorio-user", IntranetPermissoes.Diretorio.Read);
@@ -143,6 +170,62 @@ public sealed class TelaFixture : IAsyncLifetime
 		await pagina.GotoAsync("/");
 
 		return pagina;
+	}
+
+	/// <summary>Abre um caminho das telas de salas como alguém logado (com o claim de usuário), medindo a CSP.</summary>
+	public async Task<IPage> AbrirSalasAsync(string tema, string caminho, int largura = 1280, int altura = 800, bool javaScript = true)
+	{
+		var contexto = await Navegador.NewContextAsync(new BrowserNewContextOptions
+		{
+			BaseURL = Enderecos[tema],
+			ViewportSize = new ViewportSize { Width = largura, Height = altura },
+			JavaScriptEnabled = javaScript,
+			ExtraHTTPHeaders = new Dictionary<string, string>
+			{
+				[SeccoHeaders.TenantId] = Tenant.ToString(),
+				[RolesDeTesteMiddleware.Header] = PerfilDoVisitante,
+				[RolesDeTesteMiddleware.HeaderUsuario] = UsuarioDeSalas.ToString(),
+			},
+		});
+
+		var pagina = await contexto.NewPageAsync();
+		var erros = _errosDeScript.GetOrAdd(pagina, _ => []);
+		var violacoes = _violacoesDeCsp.GetOrAdd(pagina, _ => []);
+		pagina.PageError += (_, erro) => erros.Add(erro);
+		pagina.Console += (_, mensagem) =>
+		{
+			if (mensagem.Text.Contains("Content Security Policy", StringComparison.OrdinalIgnoreCase))
+			{
+				lock (violacoes)
+				{
+					violacoes.Add(mensagem.Text);
+				}
+			}
+		};
+		await pagina.GotoAsync(caminho);
+
+		return pagina;
+	}
+
+	/// <summary>Duas salas e uma reserva fictícia (na A, num dia só deste cenário), com nomes únicos.</summary>
+	private async Task CriarSalasAsync()
+	{
+		using var escopo = _fabrica.Services.CreateScope();
+		escopo.ServiceProvider.SetTenant(_fabrica.TenantAlfa);
+
+		var criar = escopo.ServiceProvider.GetRequiredService<CriarSalaHandler>();
+		var salaA = await criar.HandleAsync(new SalvarSalaCommand(null, NomeDaSalaA, "1º andar", 8, null, null, 1, true));
+		var salaB = await criar.HandleAsync(new SalvarSalaCommand(null, NomeDaSalaB, "2º andar", 4, null, null, 2, true));
+		salaA.IsSuccess.Should().BeTrue();
+		salaB.IsSuccess.Should().BeTrue();
+		SalaAId = salaA.Value;
+		SalaBId = salaB.Value;
+
+		DiaDaReservaFicticia = escopo.ServiceProvider.GetRequiredService<RelogioDeSalas>().Hoje().AddDays(10);
+		var reserva = await escopo.ServiceProvider.GetRequiredService<ReservarSalaHandler>().HandleAsync(new ReservarSalaCommand(
+			SalaAId, DiaDaReservaFicticia, new TimeOnly(10, 0), new TimeOnly(11, 0), TituloDaReservaFicticia, null, [],
+			new QuemPede(Guid.NewGuid(), false)));
+		reserva.IsSuccess.Should().BeTrue();
 	}
 
 	private async Task CriarCenarioAsync()

@@ -1,6 +1,6 @@
 # Reserva de sala — design
 
-**Estado:** aprovado em 2026-11-16; aguardando implementação.
+**Estado:** entregue em 2026-11-25.
 
 Segundo dos três projetos que saíram do item "Ferramentas do dia a dia" do [roadmap](../roadmap.md). O primeiro, [Links do setor](2026-11-15-links-do-setor-design.md), está entregue; o terceiro, o motor de processos, tem conversa e spec próprias.
 

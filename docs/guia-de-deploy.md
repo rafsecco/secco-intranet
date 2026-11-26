@@ -283,6 +283,13 @@ Convenção ASP.NET Core: `__` no nome da variável vira `:` na chave de configu
 | `Intranet__Csp__Modo` | Não (padrão `Enforce`) | Modo da Content-Security-Policy (ADR-0057 da plataforma): `Enforce` bloqueia; `ReportOnly` só relata violações no console do navegador (ou no coletor abaixo), útil para investigar um bloqueio novo sem tirar a tela do ar. Valor desconhecido impede a subida. Os demais cabeçalhos (`nosniff`, `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options`, HSTS fora de Development) valem nos dois modos. |
 | `Intranet__Chat__Provedor` | Não (padrão vazio) | Liga o botão de chat no Organograma, na página da pessoa e na lista do Diretório. Vazio = sem botão. Hoje só existe `Teams`: o botão abre a conversa com a pessoa em outra aba. Valor desconhecido impede a subida. A Intranet não chama o Microsoft, só monta o endereço a partir do e-mail; por isso o e-mail do Diretório precisa ser o mesmo com que a pessoa entra no Teams. |
 | `Intranet__Chat__TenantId` | Não | Identificador (GUID) da organização no Microsoft, acrescentado ao link do Teams. Só vale com o provedor `Teams`. Valor que não seja GUID impede a subida. |
+| `Intranet__Salas__FusoHorario` | Não (padrão `America/Sao_Paulo`) | Fuso em que os horários das reservas de sala são entendidos: o que a pessoa digita e o que a grade mostra. Id IANA ou do Windows. Id inválido impede a subida. |
+| `Intranet__Agenda__Provedor` | Não (padrão vazio) | Liga o espelhamento das reservas de sala numa agenda externa. Vazio = desligado, nada sai da Intranet. Hoje só existe `Microsoft`. Valor desconhecido impede a subida. Ver "Espelhar as reservas no Microsoft 365". |
+| `Intranet__Agenda__IntervaloEmSegundos` | Não (padrão `30`) | De quanto em quanto tempo o processo em segundo plano envia as pendências à agenda. Mínimo `5`; valor menor impede a subida. |
+| `Intranet__Agenda__Microsoft__TenantId` | Sim, com o provedor `Microsoft` | Identificador (GUID) da organização no Microsoft 365. |
+| `Intranet__Agenda__Microsoft__ClientId` | Sim, com o provedor `Microsoft` | Identificador (GUID) do aplicativo registrado. |
+| `Intranet__Agenda__Microsoft__ClientSecret` | Sim, com o provedor `Microsoft` | Segredo do aplicativo. Só por variável de ambiente ou cofre, nunca em arquivo versionado. |
+| `Intranet__Agenda__Microsoft__CaixaOrganizadora` | Sim, com o provedor `Microsoft` | E-mail da caixa de serviço que organiza os eventos. |
 | `Intranet__Csp__ReportUri` | Não | Coletor externo, HTTPS, dos relatórios de violação da CSP. A Intranet não hospeda coletor. |
 | `Secco__LogStream__*` | Não | Seção do sink de log geral (`ILogger` → LogStream), separada da auditoria acima. Vazia = log só local (stdout do container). Ver `Secco.SDK.Logging` para as chaves da seção. |
 
@@ -300,6 +307,69 @@ O recurso Vencimentos envia os avisos por um worker em processo, um por tenant, 
 | `Intranet__Vencimentos__Habilitado` | Não (padrão `true`) | `false` desliga o worker. |
 | `Intranet__Vencimentos__IntervaloEmMinutos` | Não (padrão `60`) | De quanto em quanto tempo o worker confere os itens. |
 | `Intranet__Vencimentos__FusoHorario` | Não (padrão `America/Sao_Paulo`) | Fuso que define "hoje" para os marcos de aviso. Id IANA (ex.: `America/Sao_Paulo`). Id inválido: o worker registra um erro no log e não roda. |
+
+## Espelhar as reservas no Microsoft 365
+
+O espelhamento é opcional e vem desligado. A Intranet grava a reserva primeiro e decide sozinha os conflitos de horário; um processo em segundo plano envia depois cada reserva à agenda do Microsoft 365: cria o evento, atualiza quando a reserva muda e apaga quando é cancelada. O Microsoft manda os convites, as atualizações e os cancelamentos. A via é de mão única: nada que acontece na agenda volta para a Intranet.
+
+Como funciona: os eventos são criados na agenda de uma **caixa de serviço** (por exemplo "Reserva de Salas"), que convida quem reservou, os convidados que têm e-mail no Diretório e a sala (como recurso, quando a sala tem e-mail cadastrado). O convite chega como enviado pela caixa de serviço, com o nome de quem reservou no texto. O aplicativo só precisa de acesso a essa caixa.
+
+**Reservas feitas antes de ligar o espelhamento não são enviadas.** Só as criadas, alteradas ou canceladas depois de ligar entram na fila.
+
+Os comandos abaixo foram conferidos na documentação da Microsoft em 2026-11-25 ([RBAC for Applications no Exchange Online](https://learn.microsoft.com/en-us/exchange/permissions-exo/application-rbac) e [Set-CalendarProcessing](https://learn.microsoft.com/en-us/powershell/module/exchangepowershell/set-calendarprocessing)). A Microsoft muda esses comandos de tempos em tempos: se algum não funcionar, confira as páginas.
+
+### 1. Registrar o aplicativo (Microsoft Entra)
+
+1. No centro de administração do Microsoft Entra, registre um aplicativo (só deste diretório) e anote o **ID do aplicativo (cliente)** e o **ID do diretório (locatário)**.
+2. Crie um segredo do cliente e guarde o valor num cofre.
+3. **Não conceda** a permissão `Calendars.ReadWrite` no Entra ID. Ela vale para todas as caixas da organização e soma-se à concessão do passo 3 abaixo, desfazendo o escopo. A permissão vem só pelo RBAC do Exchange Online.
+
+### 2. Criar a caixa de serviço
+
+Crie uma caixa de correio compartilhada ou de usuário (por exemplo `reserva-de-salas@suaempresa.com`). Ela é o valor de `Intranet__Agenda__Microsoft__CaixaOrganizadora`. Sem login interativo: só o aplicativo a usa.
+
+### 3. Conceder o papel com escopo só nessa caixa (Exchange Online)
+
+Quem executa precisa estar no grupo de funções Organization Management do Exchange Online. Depois do `Connect-ExchangeOnline`:
+
+```powershell
+# IDs da página "Aplicativos empresariais" do Entra (não os de "Registros de aplicativo").
+New-ServicePrincipal -AppId <ID do aplicativo> -ObjectId <ID de objeto do principal de serviço> -DisplayName "Intranet - reserva de salas"
+
+# Escopo: só a caixa de serviço.
+New-ManagementScope -Name "Caixa de reserva de salas" -RecipientRestrictionFilter "Alias -eq 'reserva-de-salas'"
+
+New-ManagementRoleAssignment -App <ID de objeto do principal de serviço> -Role "Application Calendars.ReadWrite" -CustomResourceScope "Caixa de reserva de salas"
+
+# Confere o que o aplicativo pode fazer na caixa.
+Test-ServicePrincipalAuthorization -Identity <ID de objeto do principal de serviço> -Resource reserva-de-salas@suaempresa.com
+```
+
+O filtro do escopo segue o formato do exemplo da documentação (`CustomAttribute1 -eq '...'`), aqui com o alias da caixa (a parte do e-mail antes do `@`); a lista de propriedades filtráveis está em [Filterable properties for the -RecipientFilter parameter](https://learn.microsoft.com/en-us/powershell/exchange/recipientfilter-properties). Mudanças de permissão levam de 30 minutos a 2 horas para valer; o `Test-ServicePrincipalAuthorization` não passa por esse atraso.
+
+### 4. Configurar cada sala para aceitar pedidos só da caixa de serviço
+
+Em cada caixa de sala do Exchange, deixe só a caixa de serviço reservar, para que a reserva direta pela agenda deixe de funcionar:
+
+```powershell
+Set-CalendarProcessing -Identity "<sala>" -AutomateProcessing AutoAccept -BookInPolicy "reserva-de-salas@suaempresa.com" -AllBookInPolicy $false
+```
+
+`AllRequestInPolicy` e `AllRequestOutOfPolicy` já vêm `$false`, então ninguém mais consegue pedir a sala. Depois, no cadastro da sala na Intranet (`/salas/gerenciar`), preencha o **e-mail na agenda** com o endereço da caixa da sala: sem ele, a sala não entra como recurso no convite.
+
+### 5. Ligar na Intranet
+
+Defina `Intranet__Agenda__Provedor=Microsoft` e as quatro chaves `Intranet__Agenda__Microsoft__*` da tabela de variáveis, com o segredo vindo do cofre. Falta ou formato inválido em qualquer uma impede a subida. Reinicie a aplicação.
+
+### 6. Conferir à mão
+
+A chamada real ao Microsoft não faz parte dos testes automáticos. Depois de ligar:
+
+1. Reserve uma sala com um convidado do Diretório. Em até o intervalo configurado, o convite chega ao convidado e à caixa da sala, e o detalhe da reserva mostra "espelhada".
+2. Altere o horário na Intranet: o convite é atualizado.
+3. Cancele a reserva: o cancelamento chega, e o evento some da agenda da caixa de serviço.
+4. Tente reservar a sala direto pela agenda de uma pessoa: o pedido tem de ser recusado.
+5. Se uma reserva ficar em "falhou", o detalhe mostra o motivo e o `intranet-admin` tem o botão para tentar de novo. A reserva continua valendo na Intranet.
 
 ## `docker-compose` de HML e PRD
 

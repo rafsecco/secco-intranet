@@ -273,8 +273,11 @@ processos (maior risco técnico) só entra com a base já sólida.
       dos extras, e entram na ordenação. Migration `LinksDoMenuPrincipal`.
       [Spec](specs/2026-11-18-links-do-menu-principal-design.md); plano em
       [plans/2026-11-18-links-do-menu-principal.md](plans/2026-11-18-links-do-menu-principal.md)
-- [ ] Reserva de sala — salas cadastradas pelo `intranet-admin`, item fixo no menu, com sincronização
-      de agenda a definir
+- [x] Reserva de sala — salas cadastradas pelo `intranet-admin`, item fixo "Salas" no menu, grade do
+      dia, reserva com convidados do Diretório e conflito de horário garantido no banco. Espelhamento
+      opcional na agenda do Microsoft 365 (caixa de serviço, Microsoft Graph). Migration
+      `SalasEReservas`. [Spec](specs/2026-11-16-reserva-de-sala-design.md); plano em
+      [plans/2026-11-16-reserva-de-sala.md](plans/2026-11-16-reserva-de-sala.md)
 
 ## Fase 3 — Controle de processos (v1 simples)
 

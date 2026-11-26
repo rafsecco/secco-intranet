@@ -50,6 +50,26 @@ com código 0 sem reembrulhar nenhuma chave em nenhum tenant.
 **Arquivos:** os gravados antes, no formato antigo (`SCCOFILE`), não abrem mais. Para limpar, apague
 os arquivos e os registros que apontam para eles, ou zere o banco e a pasta de armazenamento de dev.
 
+### Reserva de sala
+
+Detalhes na [spec](docs/specs/2026-11-16-reserva-de-sala-design.md).
+
+O `intranet-admin` cadastra as salas em `/salas/gerenciar`; qualquer pessoa logada vê a ocupação do dia em `/salas`, reserva um horário livre (de 15 em 15 minutos, no mesmo dia) com convidados do Diretório, e acompanha as suas em "Minhas reservas". A Intranet impede duas reservas da mesma sala no mesmo horário, também com gravações simultâneas, e funciona sozinha. O item "Salas" entra no menu principal de toda instalação.
+
+**Espelhamento (opcional):** com `Intranet__Agenda__Provedor=Microsoft`, um processo em segundo plano envia cada reserva à agenda do Microsoft 365 (cria, atualiza e apaga o evento, pelo Microsoft Graph, a partir de uma caixa de serviço). Vazio, que é o padrão, nada sai da Intranet. Reservas anteriores a ligar o espelhamento não são enviadas. Chaves: `Intranet__Agenda__*` e `Intranet__Salas__FusoHorario` (padrão `America/Sao_Paulo`). O passo a passo do administrador do Microsoft 365 está no guia de deploy, seção "Espelhar as reservas no Microsoft 365".
+
+**Banco:** rodar o `migrate` antes de subir a versão (migration `SalasEReservas`, gerada em 2026-11-25, depois da `LinksDoMenuPrincipal`; tabelas `tb_salas`, `tb_reservas`, `tb_convidados_das_reservas` e `tb_exclusoes_de_evento_pendentes`).
+
+### Quebras — Reserva de sala
+
+**Setores:** o slug `salas` passa a ser reservado. Um setor com esse slug sai do menu até ser renomeado.
+
+**Menu principal:** a chave `salas` fica reservada para o item fixo; item de extensão (RCL) com essa chave deixa de aparecer, com aviso no log.
+
+**Tema próprio (fork):** a grade usa classes `sc-salas` novas no CSS do tema e um `salas.js`. Tema que não as tenha mostra a grade sem o desenho.
+
+**Código que chama a navegação:** `IntranetNavigation.PrincipalNaOrdemPadrao` e `NavigationRequest` ganharam o parâmetro `MostrarSalas`, antes de `LinksDoMenu` no `NavigationRequest`; chamada posicional precisa ser ajustada.
+
 ### Links do menu principal
 
 Detalhes na [spec](docs/specs/2026-11-18-links-do-menu-principal-design.md) e na ADR-0016.
