@@ -46,6 +46,9 @@ public static class AgendaServiceCollectionExtensions
 			services.RemoveAll<IEspelhamentoLigado>();
 			services.AddSingleton<IEspelhamentoLigado, EspelhamentoLigado>();
 			AdicionarAgendaDoMicrosoft(services);
+			// Só o processo em segundo plano usa o processamento, e ele precisa da agenda: registrado sem
+			// provedor, o contêiner validado na subida (Development) não consegue montá-lo.
+			services.AddScoped<ProcessarEspelhamentoHandler>();
 			services.AddHostedService<EspelhamentoWorker>();
 		}
 

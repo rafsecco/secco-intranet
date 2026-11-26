@@ -93,6 +93,7 @@ public class EspelhamentoWorkerTests(IntranetWebFactory factory) : IClassFixture
 		{
 			services.RemoveAll<IEspelhamentoLigado>();
 			services.AddSingleton<IEspelhamentoLigado>(new LigadoFixo(ligado));
+			services.AddScoped<ProcessarEspelhamentoHandler>();
 			services.AddScoped<IAgendaExterna>(provider =>
 				tenantsQueFalham.Contains(provider.GetRequiredService<ITenantContext>().TenantId ?? Guid.Empty)
 					? throw new InvalidOperationException("Falha simulada do tenant.")

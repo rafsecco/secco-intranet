@@ -1,4 +1,5 @@
 using AwesomeAssertions;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -66,6 +67,23 @@ public class AgendaConfiguracaoTests(IntranetWebFactory factory) : IClassFixture
 	{
 		factory.Services.GetServices<IHostedService>().Should().NotContain(h => h is EspelhamentoWorker);
 		factory.Services.GetRequiredService<IEspelhamentoLigado>().Ligado.Should().BeFalse();
+	}
+
+	[Fact]
+	public void SemProvedor_ContainerValidadoNaSubida_ResolveTudo()
+	{
+		// Em Development o ASP.NET Core valida todo o contêiner ao subir: um serviço registrado
+		// sem as dependências (ex.: o processamento do espelhamento sem agenda) derruba a aplicação.
+		using var validada = factory.WithWebHostBuilder(builder =>
+			builder.UseDefaultServiceProvider(opcoes =>
+			{
+				opcoes.ValidateOnBuild = true;
+				opcoes.ValidateScopes = true;
+			}));
+
+		var subir = () => validada.Services;
+
+		subir.Should().NotThrow();
 	}
 
 	[Fact]
