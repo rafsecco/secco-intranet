@@ -5,6 +5,16 @@ Mudanças que exigem ajuste de quem já roda a Intranet. O formato segue
 
 ## [Não lançado]
 
+## [0.2.0] - 2026-11-26
+
+Segunda versão marcada. Traz as ferramentas do dia a dia (links do setor, link de chat do Teams no
+Diretório, links do menu principal e reserva de sala), os atributos do Entra no Diretório, as datas
+dos formulários na cultura configurada, a cifragem dos arquivos pelo SDK da plataforma e a troca da
+chave mestra pelo `migrate`. As seções de quebras listam o que muda para quem já roda a 0.1.0.
+
+**Antes de subir:** rodar o `migrate`, que aplica as migrations novas e reembrulha as chaves dos
+arquivos.
+
 ### Pacotes da plataforma
 
 - `Secco.SharedKernel` 0.7.13 → 0.7.14
