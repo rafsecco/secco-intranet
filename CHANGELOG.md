@@ -8,7 +8,7 @@ Mudanças que exigem ajuste de quem já roda a Intranet. O formato segue
 ### Implantação — serviços da plataforma pelas imagens publicadas
 
 - **SecureGate, LogStream, NotificationHub e AdminPortal** passam a vir das imagens públicas da
-  plataforma no GHCR (versão 0.1.0, para a Intranet 0.2.0), pelo [guia de implantação](https://github.com/rafsecco/secco-platform/blob/main/docs/guia-de-implantacao.md)
+  plataforma no GHCR (versão 0.2.0 ou mais nova, para a Intranet 0.2.0), pelo [guia de implantação](https://github.com/rafsecco/secco-platform/blob/main/docs/guia-de-implantacao.md)
   dela. Não é mais preciso compilar o monorepo.
 - **Mesmo host:** a Intranet entra na rede `secco` da plataforma e usa o proxy dela. O site da Intranet
   vai no `Caddyfile` da plataforma, e o segundo proxy sai do compose. Com a plataforma em outro host, a
@@ -16,7 +16,15 @@ Mudanças que exigem ajuste de quem já roda a Intranet. O formato segue
 - **Clients da Intranet no SecureGate:** passam a ser declarados como variáveis na âncora
   `x-securegate-clients` do compose da plataforma (índices 4 e 5), com o
   `SecureGate__PermissionCatalog__Products__0=intranet`, e são aplicados pelo `securegate-migrate`.
-- Ver "`docker-compose` de HML e PRD" e "SecureGate: três clients e o `migrate`" no
+- **Client de integração, ação necessária para quem usa LogStream ou NotificationHub:** a trilha de
+  auditoria, o log e as notificações saíam com o client de plataforma `intranet`. O token dele não tem
+  tenant, e os dois serviços recusavam a chamada. Crie no tenant da Intranet um client **de produto**
+  (escopos `logstream` e `notificationhub`) com o perfil `intranet-integracao` e as seis permissões do
+  guia, e configure-o em `Secco__LogStream__ClientId`/`ClientSecret` e
+  `Secco__NotificationHub__ClientId`/`ClientSecret`. O client `intranet` perde os escopos `logstream` e
+  `notificationhub`. O NotificationHub só resolve esse perfil a partir das imagens 0.2.0. Nenhuma linha
+  de código da Intranet muda.
+- Ver "`docker-compose` de HML e PRD" e "SecureGate: quatro clients e o `migrate`" no
   [guia de deploy](docs/guia-de-deploy.md).
 
 ## [0.2.0] - 2026-11-26

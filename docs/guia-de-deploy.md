@@ -43,7 +43,7 @@ caro depois.
 5. **SecureGate, LogStream e NotificationHub vêm das imagens da plataforma.** Quem os instala é o
    [guia de implantação da plataforma](https://github.com/rafsecco/secco-platform/blob/main/docs/guia-de-implantacao.md), com o compose de host único dela
    (`deploy/` do `secco-platform`). Este guia não repete aquele: traz só o que a Intranet exige da
-   instalação ("SecureGate: três clients e o `migrate`") e como a Intranet entra no mesmo host
+   instalação ("SecureGate: quatro clients e o `migrate`") e como a Intranet entra no mesmo host
    ("`docker-compose` de HML e PRD").
 6. **Mais de uma réplica exige a pasta de chaves compartilhada.** As chaves do DataProtection
    ficam em `Intranet__ProtecaoDeDados__PastaDasChaves`, e cada réplica precisa enxergar a mesma
@@ -79,12 +79,15 @@ container **não pode ser alcançável diretamente** de fora — só o proxy a a
 `docker-compose` isso é automático (a porta do serviço só é exposta ao host se você
 publicar `ports:`; não publique, deixe só o proxy publicar 443).
 
-## SecureGate: três clients e o `migrate`
+## SecureGate: quatro clients e o `migrate`
 
 **Versão das imagens.** Use a versão de imagem da plataforma cuja linha na tabela de
 compatibilidade (no guia de implantação e no `CHANGELOG.md` do `secco-platform`) traz os clients que
 esta versão da Intranet usa. A Intranet 0.2.0 usa `Secco.SecureGate.Client` 0.26.0,
-`Secco.LogStream.Client` 0.5.0 e `Secco.NotificationHub.Client` 0.6.0, ou seja, as **imagens 0.1.0**.
+`Secco.LogStream.Client` 0.5.0 e `Secco.NotificationHub.Client` 0.6.0. Os clients batem com a linha
+0.1.0 da tabela, mas é a partir das **imagens 0.2.0** que o NotificationHub lê tenants e permissões do
+SecureGate, e só com isso a integração de notificação funciona (ver o client de integração abaixo).
+Use as **imagens 0.2.0** ou mais novas.
 
 **1. Rode o `migrate` do SecureGate antes de subir.** Fora de Development, o SecureGate não migra o
 próprio banco nem roda o seed de referência no startup. Com migration pendente, **ele se recusa a
@@ -105,13 +108,18 @@ mesmo tempo.
 
 Os dois primeiros são **de plataforma** (sem tenant) porque o SecureGate dá um único grant a cada
 client de plataforma: o login do navegador é authorization code, e as chamadas de serviço são client
-credentials. O terceiro é **de produto**, vinculado ao tenant da Intranet: é com ele que a tela de
-acesso administra pessoas e perfis (ADR-0052 da plataforma).
+credentials. Os outros dois são **de produto**, vinculados ao tenant da Intranet, e o token deles sai
+com `tenant_id`:
+- **gestão:** é com ele que a tela de acesso administra pessoas e perfis (ADR-0052 da plataforma);
+- **integração:** é com ele que a Intranet grava a trilha e o log no LogStream e notifica pelo
+  NotificationHub. Um client de plataforma não serve para isso, porque o token dele não tem tenant, e
+  os dois serviços não saberiam onde gravar.
 
 | Client | Tipo | Escopos | Usado por |
 |---|---|---|---|
 | Login (ex.: `intranet-login`) | `AuthorizationCode` | `profile`, `roles` | login interativo (`Intranet:Login`) |
-| Máquina de plataforma (ex.: `intranet`) | `ClientCredentials` | `authorization:read`, `permissions:intranet`, `logstream`, `notificationhub` | permissões e revogação de sessão, publicação do catálogo de permissões no `migrate`, LogStream e NotificationHub (`Secco:SecureGate`) |
+| Máquina de plataforma (ex.: `intranet`) | `ClientCredentials` | `authorization:read`, `permissions:intranet` | permissões e revogação de sessão, publicação do catálogo de permissões no `migrate` (`Secco:SecureGate`) |
+| Integração (ex.: `cli_…`, nome "Intranet") | `ClientCredentials`, **de produto**, criado pelo operador no tenant da Intranet, com o perfil `intranet-integracao` | `logstream`, `notificationhub` | trilha de auditoria e log no LogStream, notificações e caixa in-app no NotificationHub (`Secco:LogStream` e `Secco:NotificationHub`) |
 | Gestão do tenant (ex.: `intranet-gestao`) | `ClientCredentials`, **de produto**, criado pelo operador no tenant da Intranet | `securegate:tenant-manage`, `directory:read` | client administrativo (setores, `/acesso`): ler o tenant, listar e ler pessoas, atribuir e retirar perfil, nome de exibição, desativar e reativar, encerrar sessões, criar, listar, ler, alterar permissões e excluir perfil (`Secco:SecureGate:TenantManagement`) |
 
 O client de máquina de plataforma **não carrega mais `securegate:admin`**: o secret dele deixou de
@@ -119,8 +127,40 @@ alcançar a instalação inteira. O client do navegador também não o carrega. 
 Intranet falha com `403` ao publicar o catálogo de permissões (ADR-0039 da plataforma), e o SecureGate
 passa a recusar as permissões novas dela. O catálogo publicado leva as famílias por instância
 `setor-{id}:read`/`write` e `biblioteca-{id}:read`/`write` (o `{id}` é o slug), e as de biblioteca
-entram pelo mesmo `migrate`, sem passo extra. `logstream` e `notificationhub` só são
-necessários se a Intranet usar esses serviços.
+entram pelo mesmo `migrate`, sem passo extra.
+
+**O client de integração** só é preciso se a Intranet usar o LogStream ou o NotificationHub. Quem cria
+é o operador, no tenant da Intranet, pelo AdminPortal ou pela API do SecureGate. Primeiro, o perfil
+com as permissões das chamadas que a Intranet faz:
+
+```bash
+# Perfil com as permissões (todas já estão nos catálogos publicados pelos dois serviços)
+curl -fsS -X POST "https://login.exemplo.com.br/api/v1/tenants/$TENANT/roles" \
+  -H "Authorization: Bearer $TOKEN_OPERADOR" -H "Content-Type: application/json" \
+  -d '{"name":"intranet-integracao"}'
+curl -fsS -X PUT "https://login.exemplo.com.br/api/v1/tenants/$TENANT/roles/intranet-integracao/permissions" \
+  -H "Authorization: Bearer $TOKEN_OPERADOR" -H "Content-Type: application/json" \
+  -d '{"permissions":["audit-entries:write","log-entries:write","notifications:write","notifications:read","in-app-notifications:read","in-app-notifications:write"]}'
+
+# O client de produto; o clientSecret volta só nesta resposta
+curl -fsS -X POST "https://login.exemplo.com.br/api/v1/tenants/$TENANT/clients" \
+  -H "Authorization: Bearer $TOKEN_OPERADOR" -H "Content-Type: application/json" \
+  -d '{"name":"Intranet","scopes":["logstream","notificationhub"],"roles":["intranet-integracao"]}'
+```
+
+| Permissão | Serviço | Para quê |
+|---|---|---|
+| `audit-entries:write` | LogStream | trilha de auditoria (`Intranet__Auditoria__LogStreamUrl`), inclusive a obrigatória da exportação |
+| `log-entries:write` | LogStream | log geral (`Secco__LogStream__BaseUrl`, sink do `Secco.SDK.Logging`) |
+| `notifications:write` | NotificationHub | enviar as notificações e os avisos de vencimento |
+| `notifications:read` | NotificationHub | resumo de entrega de uma publicação |
+| `in-app-notifications:read` e `in-app-notifications:write` | NotificationHub | sino: ler a caixa e marcar como lida |
+
+Na Intranet, o `clientId` e o `clientSecret` vão em `Secco__LogStream__ClientId`/`ClientSecret` e em
+`Secco__NotificationHub__ClientId`/`ClientSecret` (o mesmo client nos dois). A URL do SecureGate vem
+de `Secco__SecureGate__BaseUrl`. Revogar uma permissão no perfil vale nos dois serviços em até um TTL
+do cache de permissões. O secret só alcança o tenant da Intranet: um `X-Tenant-Id` de outro tenant é
+recusado com `400`.
 
 O client de gestão **não** entra em `SecureGate:PlatformClients`: quem o cria é o operador da
 instalação, pela API do SecureGate, no tenant da Intranet (`POST /api/v1/tenants/{id}/clients`, com os
@@ -164,8 +204,6 @@ x-securegate-clients: &securegate-clients
   SecureGate__PlatformClients__5__ClientSecret: "${INTRANET_CLIENT_SECRET:?}"
   SecureGate__PlatformClients__5__Scopes__0: "authorization:read"
   SecureGate__PlatformClients__5__Scopes__1: "permissions:intranet"
-  SecureGate__PlatformClients__5__Scopes__2: "logstream"
-  SecureGate__PlatformClients__5__Scopes__3: "notificationhub"
   SecureGate__PermissionCatalog__Products__0: "intranet"
 ```
 
@@ -276,7 +314,9 @@ Convenção ASP.NET Core: `__` no nome da variável vira `:` na chave de configu
 | `ASPNETCORE_ENVIRONMENT` | Sim | `Production`. `Development` é o **único** ambiente sem as travas de segurança: qualquer outro valor exige HTTPS no cookie e no OIDC, recusa subir sem as credenciais e a chave mestra abaixo e desliga migration/seed automáticos. Nunca `Development` num host exposto. |
 | `Secco__SecureGate__Authority` | Sim | URL do SecureGate que emite os tokens. Fora de `Development`, sem ela a aplicação recusa subir; só em `Development` há o "modo aberto" (sem autenticação) (ADR-0020). |
 | `Secco__SecureGate__BaseUrl` | Sim | URL da API do SecureGate, usada pelas chamadas de serviço (client administrativo, permissões, revogação de sessão). Em geral, a mesma da `Authority`. |
-| `Secco__SecureGate__ClientId` / `Secco__SecureGate__ClientSecret` | Sim | Client de **máquina de plataforma** (`ClientCredentials`): permissões, revogação de sessão, catálogo de permissões, LogStream e NotificationHub. Não serve para o login nem para a gestão do tenant — ver "SecureGate: três clients e o `migrate`". |
+| `Secco__SecureGate__ClientId` / `Secco__SecureGate__ClientSecret` | Sim | Client de **máquina de plataforma** (`ClientCredentials`): permissões, revogação de sessão e catálogo de permissões. Não serve para o login, para a gestão do tenant nem para LogStream e NotificationHub — ver "SecureGate: quatro clients e o `migrate`". |
+| `Secco__LogStream__ClientId` / `Secco__LogStream__ClientSecret` | Sim, se usar o LogStream | Client **de integração** (de produto, do tenant da Intranet). Sem eles, as chamadas ao LogStream caem no client de plataforma, que não tem tenant, e são recusadas. |
+| `Secco__NotificationHub__ClientId` / `Secco__NotificationHub__ClientSecret` | Sim, se usar o NotificationHub | O mesmo client de integração. Exige as imagens 0.2.0 ou mais novas da plataforma. |
 | `Secco__SecureGate__TenantManagement__ClientId` / `Secco__SecureGate__TenantManagement__ClientSecret` | Sim | Client **de produto** da gestão do tenant (`securegate:tenant-manage`), criado pelo operador no tenant da Intranet. A `BaseUrl` vem de `Secco__SecureGate__BaseUrl`. Sem o `ClientId` e o `ClientSecret`, a aplicação não sobe fora de Development; sem o `ClientId`, a tela de acesso responde "não configurado". |
 | `Intranet__Login__ClientId` / `Intranet__Login__ClientSecret` | Sim | Client do **login interativo** (`AuthorizationCode`), separado do de máquina. Sem o `ClientId`, a aplicação não sobe fora de Development. |
 | `Secco__Tenancy__Tenants__{tenantId}__ConnectionString` | Sim, uma por tenant | Connection string do banco daquele tenant. `{tenantId}` é o GUID do tenant, hífens inclusos. |
@@ -313,10 +353,10 @@ Convenção ASP.NET Core: `__` no nome da variável vira `:` na chave de configu
 | `Intranet__Csp__ReportUri` | Não | Coletor externo, HTTPS, dos relatórios de violação da CSP. A Intranet não hospeda coletor. |
 | `Secco__LogStream__*` | Não | Seção do sink de log geral (`ILogger` → LogStream), separada da auditoria acima. Vazia = log só local (stdout do container). Ver `Secco.SDK.Logging` para as chaves da seção. |
 
-Credenciais de `Secco.LogStream`/`Secco.NotificationHub` (quando as URLs acima estiverem
-preenchidas) reaproveitam `Secco__SecureGate__ClientId`/`ClientSecret` — os SDKs montam
-client credentials a partir dessa mesma seção (secco-platform#25); não há uma credencial
-separada para configurar.
+Credenciais de `Secco.LogStream`/`Secco.NotificationHub`: os SDKs leem `ClientId` e `ClientSecret` da
+seção do próprio serviço (`Secco:LogStream`, `Secco:NotificationHub`), e o que faltar cai em
+`Secco:SecureGate` (secco-platform#25). Por isso o client de integração entra nas duas seções: sem ele,
+as chamadas sairiam com o client de plataforma, sem tenant.
 
 ## Aviso de vencimento (`Intranet:Vencimentos`)
 
@@ -399,7 +439,7 @@ gerenciado à parte. Os dados ficam em pastas do host, para o backup ser cópia 
 restauração").
 
 Suba a plataforma antes, pelo guia dela, até os serviços ficarem `healthy` e com os clients da
-Intranet aplicados pelo `securegate-migrate` (seção "SecureGate: três clients e o `migrate`"). O
+Intranet aplicados pelo `securegate-migrate` (seção "SecureGate: quatro clients e o `migrate`"). O
 `migrate` da Intranet publica o catálogo de permissões no SecureGate e precisa dele no ar.
 
 Prepare o host uma vez. As duas pastas da aplicação precisam pertencer ao uid da imagem:
@@ -428,6 +468,11 @@ services:
       - Secco__SecureGate__ClientSecret=${SECURE_GATE_CLIENT_SECRET}
       - Secco__SecureGate__TenantManagement__ClientId=${SECURE_GATE_TENANT_MANAGEMENT_CLIENT_ID}
       - Secco__SecureGate__TenantManagement__ClientSecret=${SECURE_GATE_TENANT_MANAGEMENT_CLIENT_SECRET}
+      # Client de integração (de produto, do tenant): LogStream e NotificationHub
+      - Secco__LogStream__ClientId=${INTEGRACAO_CLIENT_ID:-}
+      - Secco__LogStream__ClientSecret=${INTEGRACAO_CLIENT_SECRET:-}
+      - Secco__NotificationHub__ClientId=${INTEGRACAO_CLIENT_ID:-}
+      - Secco__NotificationHub__ClientSecret=${INTEGRACAO_CLIENT_SECRET:-}
       - Intranet__Login__ClientId=${INTRANET_LOGIN_CLIENT_ID}
       - Intranet__Login__ClientSecret=${INTRANET_LOGIN_CLIENT_SECRET}
       - Intranet__Documentos__Chave__ChaveAtiva=${INTRANET_DOCUMENTOS_CHAVE}
@@ -689,8 +734,10 @@ referenciam. `RESTORE VERIFYONLY` confirma o arquivo de backup, mas não substit
 - [ ] Bind mounts em `/var/lib/intranet/documentos` e `/var/lib/intranet/chaves`, com as pastas do
       host pertencendo ao uid `1654`: sem eles, recriar o container apaga os arquivos e desconecta
       todo mundo.
-- [ ] Plataforma implantada pelas imagens, na versão da tabela de compatibilidade (Intranet 0.2.0 →
-      imagens 0.1.0), com os quatro serviços `healthy`.
+- [ ] Plataforma implantada pelas imagens 0.2.0 ou mais novas, com os quatro serviços `healthy`.
+- [ ] Usando LogStream ou NotificationHub: client de integração criado no tenant da Intranet, com o
+      perfil `intranet-integracao` e as seis permissões, configurado em `Secco__LogStream__*` e
+      `Secco__NotificationHub__*`.
 - [ ] Os dois clients de plataforma da Intranet e o `PermissionCatalog__Products` na âncora
       `x-securegate-clients` do compose da plataforma, e o `securegate-migrate` rodado depois.
 - [ ] SecureGate com duas credenciais de banco: a de migração (dona) e a de runtime (sem posse).
