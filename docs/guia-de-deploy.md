@@ -6,10 +6,13 @@
 > código impede, mas nada aqui foi pensado para isso.
 
 Este guia é para quem vai **rodar a própria instância** da Intranet (ADR-0002: é um
-produto que a empresa baixa e opera, não um serviço hospedado pela Secco). Ele assume que
-você já tem, ou vai provisionar separadamente, um `Secco.SecureGate` acessível — a
-Intranet não roda sem ele (é a única dependência dura; LogStream e NotificationHub são
-opcionais, ver abaixo).
+produto que a empresa baixa e opera, não um serviço hospedado pela Secco).
+
+A Intranet depende do `Secco.SecureGate` e não roda sem ele. O `Secco.LogStream` e o
+`Secco.NotificationHub` são opcionais (ver abaixo). Os três, mais o `Secco.AdminPortal` (o console
+de operação), são distribuídos pela plataforma como **imagens Docker públicas** no GHCR. Eles são
+implantados pelo [guia de implantação da plataforma](https://github.com/rafsecco/secco-platform/blob/main/docs/guia-de-implantacao.md), sem compilar nada. Este guia
+cobre a Intranet e o encaixe dela nessa instalação, de preferência no mesmo host.
 
 ## Limitações conhecidas — leia antes de começar
 
@@ -37,30 +40,39 @@ caro depois.
    policy de autorização em si é sempre reavaliada por requisição), só uma latência de
    propagação que hoje não é distribuída. Fora de escopo deste guia; citado aqui para não
    ser descoberto em produção.
-5. **SecureGate, LogStream e NotificationHub são serviços externos.** Este guia não cobre
-   como instalá-los — só como apontar a Intranet para eles. O que a Intranet exige da
-   instalação do SecureGate está em "SecureGate: três clients e o `migrate`", abaixo.
+5. **SecureGate, LogStream e NotificationHub vêm das imagens da plataforma.** Quem os instala é o
+   [guia de implantação da plataforma](https://github.com/rafsecco/secco-platform/blob/main/docs/guia-de-implantacao.md), com o compose de host único dela
+   (`deploy/` do `secco-platform`). Este guia não repete aquele: traz só o que a Intranet exige da
+   instalação ("SecureGate: três clients e o `migrate`") e como a Intranet entra no mesmo host
+   ("`docker-compose` de HML e PRD").
 6. **Mais de uma réplica exige a pasta de chaves compartilhada.** As chaves do DataProtection
    ficam em `Intranet__ProtecaoDeDados__PastaDasChaves`, e cada réplica precisa enxergar a mesma
    pasta, ou o cookie de sessão emitido por uma não vale na outra. Fora de escopo deste guia.
 
 ## Topologia
 
+No mesmo host da plataforma, que é o caminho deste guia:
+
 ```text
 Internet
-   │  HTTPS
+   │  HTTPS 443 (e 80 para o ACME)
    ▼
-Reverse proxy (TLS termination — Caddy, nginx, Traefik; fora do docker-compose deste
-   │            repo, ou um serviço a mais no mesmo compose)
-   │  HTTP interno, rede que só o proxy alcança
-   ▼
-intranet-web (container, esta imagem)
+proxy (Caddy do compose da plataforma: um só por host)
+   │  login.exemplo.com.br        → securegate        ┐
+   │  logs.exemplo.com.br         → logstream         │ imagens da plataforma
+   │  notificacoes.exemplo.com.br → notificationhub   │ (deploy/ do secco-platform)
+   │  admin.exemplo.com.br        → adminportal       ┘
+   │  intranet.exemplo.com.br     → intranet-web      ← este repositório
    │
-   ├──► SQL Server ou PostgreSQL — um banco por tenant (ADR-0005/ADR-0018)
-   │
-   └──► Secco.SecureGate (externo) ── Secco.LogStream (externo, opcional)
-                                   └── Secco.NotificationHub (externo, opcional)
+   └── rede "secco" (a da plataforma; a Intranet entra nela como rede externa)
+
+intranet-web ──► SQL Server ou PostgreSQL — um banco por tenant (ADR-0005/ADR-0018)
+             └─► SecureGate, LogStream e NotificationHub pelos nomes públicos, que
+                 dentro da rede resolvem para o proxy
 ```
+
+Com a plataforma em outro host, a Intranet tem o próprio proxy e chama os serviços pelos nomes
+públicos, pela internet ou pela rede interna da empresa. O compose de exemplo mostra as duas formas.
 
 A postura de rede que sustenta `Secco:ReverseProxy:Habilitado` (ver abaixo): a porta do
 container **não pode ser alcançável diretamente** de fora — só o proxy a alcança. Num
@@ -69,17 +81,20 @@ publicar `ports:`; não publique, deixe só o proxy publicar 443).
 
 ## SecureGate: três clients e o `migrate`
 
-Vale para o SecureGate a partir da versão que acompanha o `Secco.SecureGate.Client` 0.15.0
-(ADR-0037 e ADR-0038 da plataforma). Os detalhes completos estão na seção "7. Implantar" do
-`docs/getting-started.md` e no `CHANGELOG.md` do `secco-platform`.
+**Versão das imagens.** Use a versão de imagem da plataforma cuja linha na tabela de
+compatibilidade (no guia de implantação e no `CHANGELOG.md` do `secco-platform`) traz os clients que
+esta versão da Intranet usa. A Intranet 0.2.0 usa `Secco.SecureGate.Client` 0.26.0,
+`Secco.LogStream.Client` 0.5.0 e `Secco.NotificationHub.Client` 0.6.0, ou seja, as **imagens 0.1.0**.
 
-**1. Rode o `migrate` antes de subir o SecureGate.** Fora de Development, o SecureGate não migra
-o próprio banco nem roda o seed de referência no startup. Com migration pendente, **ele se
-recusa a subir**. No primeiro deploy dessa versão e em cada atualização dele:
+**1. Rode o `migrate` do SecureGate antes de subir.** Fora de Development, o SecureGate não migra o
+próprio banco nem roda o seed de referência no startup. Com migration pendente, **ele se recusa a
+subir**. No compose da plataforma, o `migrate` é um serviço próprio, e é ele que aplica os clients
+abaixo:
 
 ```bash
-dotnet Secco.SecureGate.Api.dll migrate   # mesma imagem e mesma configuração da API
-echo $?                                    # 0 = aplicado; 1 = falhou (o log diz onde)
+cd <pasta deploy/ da plataforma>
+docker compose run --rm securegate-migrate
+echo $?   # 0 = aplicado; 1 = falhou (o log diz onde)
 ```
 
 **2. Declare os dois clients de plataforma da Intranet em `SecureGate:PlatformClients`.** Clients sem tenant
@@ -128,32 +143,34 @@ token só com esse escopo e lê as pessoas pela API de diretório.
 - **Setor:** casa quando o nome do setor na Intranet é igual ao departamento do Entra. Maiúsculas e
   acentos não contam. Os departamentos que não casam aparecem em `/diretorio/importar`.
 
-Na configuração **do SecureGate** (não da Intranet), com os secrets por variável de ambiente
-(`SecureGate__PlatformClients__0__ClientSecret`, `SecureGate__PlatformClients__1__ClientSecret`):
+Na configuração **do SecureGate** (não da Intranet). No compose da plataforma, os clients ficam na
+âncora `x-securegate-clients` da sua cópia do `deploy/docker-compose.yml`, que só o
+`securegate-migrate` recebe. Use os próximos índices livres (os quatro da plataforma ocupam de 0 a 3)
+e os secrets vindos do `.env` da plataforma. O SecureGate em execução lê os clients do banco, então
+não precisa ser reiniciado depois do `migrate`.
 
-```json
-{
-  "SecureGate": {
-    "PlatformClients": [
-      {
-        "ClientId": "intranet-login",
-        "Type": "AuthorizationCode",
-        "Scopes": ["profile", "roles"],
-        "RedirectUris": ["https://intranet.suaempresa.com/signin-oidc"],
-        "PostLogoutRedirectUris": ["https://intranet.suaempresa.com/signout-callback-oidc"]
-      },
-      {
-        "ClientId": "intranet",
-        "Type": "ClientCredentials",
-        "Scopes": ["authorization:read", "permissions:intranet", "logstream", "notificationhub"]
-      }
-    ],
-    "PermissionCatalog": {
-      "Products": ["intranet"]
-    }
-  }
-}
+```yaml
+x-securegate-clients: &securegate-clients
+  # ... os clients da plataforma, índices 0 a 3 ...
+  SecureGate__PlatformClients__4__ClientId: "intranet-login"
+  SecureGate__PlatformClients__4__Type: "AuthorizationCode"
+  SecureGate__PlatformClients__4__ClientSecret: "${INTRANET_LOGIN_CLIENT_SECRET:?}"
+  SecureGate__PlatformClients__4__Scopes__0: "profile"
+  SecureGate__PlatformClients__4__Scopes__1: "roles"
+  SecureGate__PlatformClients__4__RedirectUris__0: "https://intranet.exemplo.com.br/signin-oidc"
+  SecureGate__PlatformClients__4__PostLogoutRedirectUris__0: "https://intranet.exemplo.com.br/signout-callback-oidc"
+  SecureGate__PlatformClients__5__ClientId: "intranet"
+  SecureGate__PlatformClients__5__Type: "ClientCredentials"
+  SecureGate__PlatformClients__5__ClientSecret: "${INTRANET_CLIENT_SECRET:?}"
+  SecureGate__PlatformClients__5__Scopes__0: "authorization:read"
+  SecureGate__PlatformClients__5__Scopes__1: "permissions:intranet"
+  SecureGate__PlatformClients__5__Scopes__2: "logstream"
+  SecureGate__PlatformClients__5__Scopes__3: "notificationhub"
+  SecureGate__PermissionCatalog__Products__0: "intranet"
 ```
+
+Os secrets precisam de ao menos 32 caracteres (`openssl rand -hex 32`). Os mesmos valores vão para a
+configuração da Intranet (`Intranet__Login__ClientSecret` e `Secco__SecureGate__ClientSecret`).
 
 O `PermissionCatalog:Products` registra o escopo `permissions:intranet`, que não é de nenhum produto
 da plataforma ([secco-platform#49](https://github.com/rafsecco/secco-platform/issues/49)). Sem ele, o
@@ -164,7 +181,9 @@ SecureGate recusa subir com o client acima ("escopo não registrado"). Depois de
 Security (ADR-0041 da plataforma), o `migrate` usa uma credencial **dona** do banco
 (`SecureGate__Database__MigrationConnectionString`), e a API usa outra **sem posse**, só com leitura
 e escrita (`SecureGate__Database__ConnectionString`). Fora de Development, o SecureGate **recusa
-subir** se a credencial de runtime for dona do banco. Em SQL Server, ao atualizar:
+subir** se a credencial de runtime for dona do banco. Numa instalação nova, o script do guia da
+plataforma (`deploy/sql/sqlserver-plataforma.sql`) já cria as duas. Numa instalação antiga, que
+ainda usa uma credencial só, em SQL Server:
 
 ```sql
 CREATE LOGIN secco_securegate_migrator WITH PASSWORD = N'<senha>';
@@ -374,15 +393,21 @@ A chamada real ao Microsoft não faz parte dos testes automáticos. Depois de li
 
 ## `docker-compose` de HML e PRD
 
-Exemplo mínimo — adapte para o seu proxy. O banco fica fora do compose, gerenciado à parte. Os dados
-ficam em pastas do host, para o backup ser cópia de pasta (ver "Backup e restauração").
+Exemplo mínimo, para o **mesmo host da plataforma**: a Intranet entra na rede dela e usa o proxy dela.
+Um host tem uma porta 443 só, então não suba um segundo proxy. O banco fica fora do compose,
+gerenciado à parte. Os dados ficam em pastas do host, para o backup ser cópia de pasta (ver "Backup e
+restauração").
+
+Suba a plataforma antes, pelo guia dela, até os serviços ficarem `healthy` e com os clients da
+Intranet aplicados pelo `securegate-migrate` (seção "SecureGate: três clients e o `migrate`"). O
+`migrate` da Intranet publica o catálogo de permissões no SecureGate e precisa dele no ar.
 
 Prepare o host uma vez. As duas pastas da aplicação precisam pertencer ao uid da imagem:
 
 ```bash
 export INTRANET_DADOS=/srv/intranet
 sudo install -d -o 1654 -g 1654 -m 0700 "$INTRANET_DADOS/documentos" "$INTRANET_DADOS/chaves"
-sudo install -d -m 0700 "$INTRANET_DADOS/caddy"
+sudo install -d -m 0700 "$INTRANET_DADOS/caddy"   # só com a plataforma em outro host (proxy próprio)
 ```
 
 Pasta com dono errado aparece no log como erro de permissão, com o caminho. A correção é
@@ -391,7 +416,7 @@ Pasta com dono errado aparece no log como erro de permissão, com o caminho. A c
 ```yaml
 services:
   intranet-web:
-    image: intranet-web:latest
+    image: intranet-web:${INTRANET_VERSAO}   # a imagem que você construiu, com tag de versão
     restart: unless-stopped
     # Em lista, não em mapa: o Compose não interpola chave de mapa, e o nome da connection string
     # carrega o id do tenant.
@@ -408,9 +433,13 @@ services:
       - Intranet__Documentos__Chave__ChaveAtiva=${INTRANET_DOCUMENTOS_CHAVE}
       - Secco__ReverseProxy__Habilitado=true
       - Secco__Tenancy__Tenants__${TENANT_ID}__ConnectionString=${TENANT_CONNECTION_STRING}
+      # Serviços opcionais da plataforma, pelos nomes públicos (dentro da rede, resolvem para o proxy)
+      - Intranet__Auditoria__LogStreamUrl=${LOGSTREAM_URL:-}
+      - Intranet__Notificacao__HubUrl=${NOTIFICATIONHUB_URL:-}
+      - Intranet__Notificacao__UrlBase=${INTRANET_URL:-}
     # Nenhuma porta publicada para o host — só o proxy alcança esta rede.
     networks:
-      - interna
+      - secco
     volumes:
       - ${INTRANET_DADOS:-/srv/intranet}/documentos:/var/lib/intranet/documentos
       - ${INTRANET_DADOS:-/srv/intranet}/chaves:/var/lib/intranet/chaves
@@ -421,6 +450,35 @@ services:
       timeout: 5s
       retries: 3
 
+networks:
+  secco:
+    # A rede do compose da plataforma (SECCO_NETWORK_NAME no .env dela; padrão "secco")
+    external: true
+    name: secco
+```
+
+Com `SECURE_GATE_AUTHORITY=https://login.exemplo.com.br`, `LOGSTREAM_URL=https://logs.exemplo.com.br`,
+`NOTIFICATIONHUB_URL=https://notificacoes.exemplo.com.br` e `INTRANET_URL=https://intranet.exemplo.com.br`
+no `.env` da Intranet. Os nomes públicos funcionam de dentro da rede porque o proxy da plataforma os
+tem como alias.
+
+**O site da Intranet vai no `Caddyfile` da plataforma** (`deploy/Caddyfile`), ao lado dos outros:
+
+```caddyfile
+intranet.exemplo.com.br {
+    reverse_proxy intranet-web:8080
+}
+```
+
+Acrescente também o nome nos aliases de rede do serviço `proxy` da plataforma e rode
+`docker compose up -d proxy` na pasta dela. O certificado sai do Let's Encrypt, e só exige o DNS
+apontando para o host. A seção "Produto adotante no mesmo host" do guia da plataforma descreve os três
+pontos do encaixe.
+
+**Plataforma em outro host:** a Intranet tem o próprio proxy e não entra na rede `secco`. Troque
+`networks` por uma rede local e acrescente o serviço do proxy:
+
+```yaml
   proxy:
     image: caddy:2
     restart: unless-stopped
@@ -439,27 +497,24 @@ networks:
   interna:
 ```
 
+Nesse caso, o `Caddyfile` acima fica neste host, e os nomes públicos da plataforma precisam ser
+alcançáveis daqui.
+
 O mesmo arquivo serve a HML e PRD, com um `.env` por ambiente ao lado dele. Em HML, use
 `ASPNETCORE_ENVIRONMENT=Staging` e uma **chave mestra própria**, nunca a de PRD: quem administra HML
-não pode conseguir decifrar os arquivos de produção.
+não pode conseguir decifrar os arquivos de produção. Os serviços da plataforma, esses sim, rodam com
+`Production` também na HML, como manda o guia dela.
 
-`Caddyfile` mínimo (TLS automático via Let's Encrypt, só exige DNS apontando para o host):
-
-```caddyfile
-intranet.suaempresa.com {
-    reverse_proxy intranet-web:8080
-}
-```
-
-Isto é um ponto de partida deliberadamente enxuto — não um arquivo entregue neste
-repositório, porque o proxy, o certificado e o banco variam demais entre instalações para
-travar num exemplo versionado.
+Isto é um ponto de partida deliberadamente enxuto, não um arquivo entregue neste repositório. O
+compose da plataforma, ao contrário, é versionado e testado: está em `deploy/` do `secco-platform`.
 
 ## Primeiro `intranet-admin`
 
 Já documentado no [`README.md`](../README.md#primeiro-intranet-admin) — crie a Role
-`intranet-admin` no tenant e atribua ao primeiro usuário pela API do SecureGate (ou pelo
-AdminPortal, se você tiver um) antes do primeiro login. Sem isso, ninguém acessa a Área
+`intranet-admin` no tenant e atribua ao primeiro usuário pela API do SecureGate ou pelo AdminPortal
+(imagem `secco-adminportal`, no compose da plataforma) antes do primeiro login. O primeiro operador
+da instalação, sem o qual ninguém entra no AdminPortal, tem passo próprio no guia da plataforma
+("Primeiro operador"). Sem isso, ninguém acessa a Área
 administrativa (`/Acesso`, `/Setores`) para conceder o resto.
 
 ## Health checks
@@ -474,7 +529,11 @@ Nenhum dos dois exige autenticação.
 
 ## Atualização (rollout)
 
-Sem orquestrador com rolling update (é o caso de um host único), o corte é direto:
+Sem orquestrador com rolling update (é o caso de um host único), o corte é direto.
+
+**A plataforma vem antes.** Se a versão nova da Intranet pede clients mais novos, atualize antes as
+imagens da plataforma para a versão da tabela de compatibilidade, pelo guia dela (troca da tag,
+`migrate` de cada serviço, `up -d`). Depois, a Intranet:
 
 1. Build da imagem nova (tag por versão, não `latest` puro — facilita rollback).
 2. `docker compose run --rm intranet-web migrate` com a imagem nova, **antes** do passo
@@ -630,9 +689,13 @@ referenciam. `RESTORE VERIFYONLY` confirma o arquivo de backup, mas não substit
 - [ ] Bind mounts em `/var/lib/intranet/documentos` e `/var/lib/intranet/chaves`, com as pastas do
       host pertencendo ao uid `1654`: sem eles, recriar o container apaga os arquivos e desconecta
       todo mundo.
-- [ ] Os dois clients de plataforma da Intranet declarados em `SecureGate:PlatformClients` e o
-      `migrate` do SecureGate rodado antes de subir o SecureGate.
+- [ ] Plataforma implantada pelas imagens, na versão da tabela de compatibilidade (Intranet 0.2.0 →
+      imagens 0.1.0), com os quatro serviços `healthy`.
+- [ ] Os dois clients de plataforma da Intranet e o `PermissionCatalog__Products` na âncora
+      `x-securegate-clients` do compose da plataforma, e o `securegate-migrate` rodado depois.
 - [ ] SecureGate com duas credenciais de banco: a de migração (dona) e a de runtime (sem posse).
+- [ ] Mesmo host: `intranet-web` na rede `secco`, site da Intranet no `Caddyfile` da plataforma e
+      nenhum segundo proxy.
 - [ ] Porta do container não publicada para fora do host — só o proxy alcança.
 - [ ] Em PRD, porta do banco fechada: só a aplicação e o DBA a alcançam.
 - [ ] `Secco:ReverseProxy:Habilitado=true` **só** com o ponto acima garantido.

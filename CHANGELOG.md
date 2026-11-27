@@ -5,6 +5,20 @@ Mudanças que exigem ajuste de quem já roda a Intranet. O formato segue
 
 ## [Não lançado]
 
+### Implantação — serviços da plataforma pelas imagens publicadas
+
+- **SecureGate, LogStream, NotificationHub e AdminPortal** passam a vir das imagens públicas da
+  plataforma no GHCR (versão 0.1.0, para a Intranet 0.2.0), pelo [guia de implantação](https://github.com/rafsecco/secco-platform/blob/main/docs/guia-de-implantacao.md)
+  dela. Não é mais preciso compilar o monorepo.
+- **Mesmo host:** a Intranet entra na rede `secco` da plataforma e usa o proxy dela. O site da Intranet
+  vai no `Caddyfile` da plataforma, e o segundo proxy sai do compose. Com a plataforma em outro host, a
+  Intranet segue com o proxy próprio.
+- **Clients da Intranet no SecureGate:** passam a ser declarados como variáveis na âncora
+  `x-securegate-clients` do compose da plataforma (índices 4 e 5), com o
+  `SecureGate__PermissionCatalog__Products__0=intranet`, e são aplicados pelo `securegate-migrate`.
+- Ver "`docker-compose` de HML e PRD" e "SecureGate: três clients e o `migrate`" no
+  [guia de deploy](docs/guia-de-deploy.md).
+
 ## [0.2.0] - 2026-11-26
 
 Segunda versão marcada. Traz as ferramentas do dia a dia (links do setor, link de chat do Teams no

@@ -80,6 +80,7 @@ produto escolheu a origem da capacidade, não a implementação dela.
 
 O que chegou e tem consumidor aqui já foi adotado; as linhas acima dizem onde. O que ficou sem
 consumidor está marcado nelas.
+| Implantar SecureGate, LogStream e NotificationHub sem compilar o monorepo | Imagens Docker públicas **0.1.0** (2026-11-26), ADR-0062 da plataforma: `ghcr.io/rafsecco/secco-securegate`, `secco-logstream`, `secco-notificationhub` e `secco-adminportal`. Tags `X.Y.Z` e `X.Y`, sem `latest`, com tabela de compatibilidade com os clients (Intranet 0.2.0 → imagens 0.1.0). O [guia de implantação](https://github.com/rafsecco/secco-platform/blob/main/docs/guia-de-implantacao.md) traz o compose de host único, e a Intranet entra na rede e no proxy dele (ver o [guia de deploy](guia-de-deploy.md)) | — |
 
 ## Como registrar uma demanda nova
 
